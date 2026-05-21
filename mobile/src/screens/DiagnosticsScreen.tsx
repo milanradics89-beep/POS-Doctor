@@ -1,9 +1,10 @@
 /**
  * DiagnosticsScreen
- * Full health dashboard with 10 collapsible diagnostic categories
+ * Main on-device diagnostic dashboard
+ * Entry point for the app - runs directly on the POS terminal
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,78 +13,99 @@ import {
   SafeAreaView,
   Alert,
   ActivityIndicator,
+  Pressable,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TopNav } from '../components/TopNav';
 import { CollapsibleCard } from '../components/CollapsibleCard';
 import { BottomActionBar } from '../components/BottomActionBar';
 import { StatusBadge } from '../components/StatusBadge';
 import { COLORS, SPACING, FONT_SIZES, RADIUS } from '../theme';
 import { useLanguage } from '../i18n/LanguageContext';
-import { AdbClient } from '../adb/AdbClient';
-import { runFullDiagnostics } from '../adb/DiagnosticCommands';
-import type { DiagnosticReport } from '../adb/DiagnosticCommands';
-import { saveHistoryEntry, saveKnownDevice } from '../storage';
 import { shareReport } from '../export';
+import { saveHistoryEntry } from '../storage';
+import { getDiagnostics, getDeviceKey, checkPermissions, getPermissionsInfo } from '../native/PosDoctorDiagnostics';
+import { processDiagnostics } from '../native/DiagnosticsProcessor';
+import type { DiagnosticReport, DiagnosticCategory, DiagnosticStatus } from '../native/DiagnosticsProcessor';
 import type { RootStackParamList } from '../navigation/AppNavigator';
+import { PermissionsAndroid, Platform, Linking } from 'react-native';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Diagnostics'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Diagnostics'>;
 
 export default function DiagnosticsScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const route = useRoute<Props['route']>();
   const { lang, t } = useLanguage();
-
-  const { device, client: clientParams } = route.params;
 
   const [running, setRunning] = useState(false);
   const [report, setReport] = useState<DiagnosticReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [permissionsNeeded, setPermissionsNeeded] = useState(false);
 
-  // Run diagnostics automatically on mount
-  useEffect(() => {
-    runDiagnostics();
-  }, []);
+  const requestRuntimePermissions = async () => {
+    if (Platform.OS !== 'android') return;
+
+    try {
+      const permissions = [
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
+      ];
+
+      const results = await PermissionsAndroid.requestMultiple(permissions);
+
+      const allGranted = Object.values(results).every(
+        (result) => result === PermissionsAndroid.RESULTS.GRANTED
+      );
+
+      if (allGranted) {
+        setPermissionsNeeded(false);
+        // Re-run diagnostics to get full data
+        await runDiagnostics();
+      } else {
+        // Still update permissions needed state
+        const permStatus = await checkPermissions();
+        setPermissionsNeeded(!permStatus.location || !permStatus.phoneState);
+      }
+    } catch (err) {
+      console.warn('Permission request failed:', err);
+    }
+  };
+
+  const openSettings = () => {
+    Linking.openSettings();
+  };
 
   const runDiagnostics = useCallback(async () => {
     setRunning(true);
     setError(null);
 
-    const client = new AdbClient();
     try {
-      await client.connect(clientParams.ip, clientParams.port, 15000);
+      // Check permissions first
+      const permStatus = await checkPermissions();
+      setPermissionsNeeded(!permStatus.location || !permStatus.phoneState);
 
-      const result = await runFullDiagnostics(client);
-      result.deviceIp = clientParams.ip;
+      // Get permissions info for the permissions card
+      const permissionsInfo = await getPermissionsInfo();
 
-      // Update device status from results
-      const updatedDevice = {
-        ...device,
-        manufacturer: result.deviceManufacturer !== 'Unknown' ? result.deviceManufacturer : device.manufacturer,
-        model: result.deviceModel !== 'Unknown' ? result.deviceModel : device.model,
-        serial: result.deviceSerial !== 'Unknown' ? result.deviceSerial : device.serial,
-        lastStatus: result.overallStatus as 'ok' | 'warning' | 'fault',
-        lastSeen: new Date().toISOString(),
-      };
-      await saveKnownDevice(updatedDevice);
-
-      // Save to history
-      const serialKey = result.deviceSerial !== 'Unknown'
-        ? result.deviceSerial
-        : device.serial || device.ip;
-      await saveHistoryEntry(serialKey, result);
-
-      setReport(result);
+      // Get native diagnostics data
+      const nativePayload = await getDiagnostics();
+      
+      // Process into app format (with permissions card)
+      const diagnosticReport = processDiagnostics(nativePayload, permissionsInfo);
+      
+      setReport(diagnosticReport);
+      
+      // Save to history with stable device key
+      const deviceKey = getDeviceKey(nativePayload.device);
+      await saveHistoryEntry(deviceKey, diagnosticReport);
     } catch (e: any) {
+      console.error('Diagnostics error:', e);
       setError(e?.message || t.diagnostics.failedMessage);
     } finally {
-      client.disconnect();
       setRunning(false);
     }
-  }, [clientParams, device, t]);
+  }, [t]);
 
   const handleExport = async () => {
     if (!report) return;
@@ -110,15 +132,45 @@ export default function DiagnosticsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopNav
-        showBack
-        onBack={() => navigation.goBack()}
-        title={t.diagnostics.title}
+        title="POS Doctor"
+        showHistory
+        onHistory={() => navigation.navigate('History')}
       />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Permission banner */}
+        {permissionsNeeded && !running && (
+          <View style={styles.permissionBanner}>
+            <Text style={styles.permissionBannerTitle}>⚠️ Permissions Needed</Text>
+            <Text style={styles.permissionBannerText}>
+              Some diagnostics require additional permissions for full details
+            </Text>
+            <View style={styles.permissionButtons}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.permissionButton,
+                  pressed && styles.permissionButtonPressed,
+                ]}
+                onPress={requestRuntimePermissions}
+              >
+                <Text style={styles.permissionButtonText}>Grant Permissions</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.permissionButtonSecondary,
+                  pressed && styles.permissionButtonPressed,
+                ]}
+                onPress={openSettings}
+              >
+                <Text style={styles.permissionButtonSecondaryText}>Open Settings</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
         {/* Overall health header */}
         <View style={styles.healthCard} testID="overall-health-score">
           <View style={styles.healthLeft}>
@@ -131,6 +183,11 @@ export default function DiagnosticsScreen() {
                 ]}
               >
                 {report.overallScore}%
+              </Text>
+            )}
+            {!report && !running && !error && (
+              <Text style={styles.healthWelcome}>
+                {t.diagnostics.welcomeMessage || 'Tap Run Diagnostics to start'}
               </Text>
             )}
             {!report && running && (
@@ -176,8 +233,8 @@ export default function DiagnosticsScreen() {
           <Text style={styles.deviceIdentity} testID="diagnostics-device-identity">
             {report.deviceModel} {'· '}
             <Text style={styles.mono}>{report.deviceSerial}</Text>
-            {' · '}
-            <Text style={styles.mono}>{report.deviceIp}</Text>
+            {' · Android '}
+            <Text style={styles.mono}>{report.androidVersion}</Text>
           </Text>
         )}
 
@@ -208,6 +265,19 @@ export default function DiagnosticsScreen() {
                 initialExpanded={cat.status === 'fault'}
               />
             ))}
+          </View>
+        )}
+
+        {/* Empty state - first run */}
+        {!report && !running && !error && (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>🩺</Text>
+            <Text style={styles.emptyText}>
+              {t.diagnostics.emptyTitle || 'No diagnostics run yet'}
+            </Text>
+            <Text style={styles.emptyHint}>
+              {t.diagnostics.emptyHint || 'Tap the button below to run a complete system diagnostic'}
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -258,6 +328,12 @@ const styles = StyleSheet.create({
     fontSize: 42,
     fontWeight: '700',
     lineHeight: 50,
+  },
+  healthWelcome: {
+    fontSize: FONT_SIZES.body,
+    color: COLORS.textSecondary,
+    marginTop: 8,
+    lineHeight: 22,
   },
   healthLoading: {
     flexDirection: 'row',
@@ -332,5 +408,82 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     gap: 0,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: SPACING.xxl * 2,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: SPACING.lg,
+  },
+  emptyText: {
+    fontSize: FONT_SIZES.h2,
+    color: COLORS.textSecondary,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyHint: {
+    fontSize: FONT_SIZES.meta,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: SPACING.xl,
+    lineHeight: 20,
+  },
+  permissionBanner: {
+    backgroundColor: COLORS.warningBg,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.warning,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  permissionBannerTitle: {
+    fontSize: FONT_SIZES.h3,
+    fontWeight: '700',
+    color: COLORS.warning,
+    marginBottom: 4,
+  },
+  permissionBannerText: {
+    fontSize: FONT_SIZES.meta,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.sm,
+    lineHeight: 18,
+  },
+  permissionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  permissionButton: {
+    flex: 1,
+    height: 40,
+    backgroundColor: COLORS.warning,
+    borderRadius: RADIUS.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  permissionButtonSecondary: {
+    flex: 1,
+    height: 40,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.warning,
+    borderRadius: RADIUS.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  permissionButtonPressed: {
+    opacity: 0.7,
+  },
+  permissionButtonText: {
+    fontSize: FONT_SIZES.meta,
+    fontWeight: '700',
+    color: COLORS.textInverse,
+  },
+  permissionButtonSecondaryText: {
+    fontSize: FONT_SIZES.meta,
+    fontWeight: '700',
+    color: COLORS.warning,
   },
 });

@@ -1,212 +1,196 @@
-# POS Doctor — Development Plan (Updated)
+# POS Doctor — Development Plan (Pivot: On-Device Native Android Diagnostics)
 
 ## 1) Objectives
-- Deliver a **fully self-contained Android (React Native + Expo) app** for technicians to discover Android POS terminals on local WiFi and run **real ADB-over-WiFi diagnostics** (no laptop, no backend).
-- Implement the **core workflow end-to-end** on-device: subnet scan → connect ADB → run shell commands → parse → technician dashboard.
-- Provide **English/Hungarian** UI toggle with persistent setting.
-- Persist **diagnostic history** per terminal (by serial) and enable **export/share** (text + PDF).
-- Fit environment constraints: ship complete mobile source under `/app/mobile/` + a **web UI replica** for the preview URL.
-- Ensure the implementation is **not reliant on bundling an adb binary** (which is fragile on Android/Expo); instead use a **pure JS ADB wire-protocol client** over TCP with RSA authentication.
+- Deliver a **fully self-contained Android APK** (React Native + Expo **bare**) that runs **directly on the POS terminal hardware** (no remote connectivity).
+- **Completely remove** all ADB-over-WiFi architecture:
+  - No ADB protocol client
+  - No subnet/WiFi scanning
+  - No TCP socket logic (`react-native-tcp-socket`)
+- Implement a **native on-device diagnostics engine** backed by **direct Android API calls** (via **Expo Modules + Kotlin**):
+  - `BatteryManager`, `WifiManager`, `TelephonyManager`, `NfcAdapter/NfcManager`
+  - `Build`, `ActivityManager`, `StatFs`, `DisplayMetrics`, `SensorManager`, `PackageManager`, `PowerManager`
+- Keep the existing technician UX:
+  - Dark theme UI
+  - EN/HU language toggle (persistent)
+  - Collapsible diagnostic cards
+  - Health score + overall status
+  - Export report (text + PDF) and share
+  - Diagnostic history (AsyncStorage)
+- Update app flow:
+  - Home screen opens **directly** to the diagnostic dashboard
+  - Provide a single primary CTA: **“Run Diagnostics”** (no scanning screen, no connection flow)
+- Focus only on the **working Android build**. **No web preview work**.
+
+**Current status (as of this update):**
+- ✅ Phase 1 cleanup is complete (all ADB/scanning/TCP code removed).
+- ✅ Phase 2 native diagnostics is complete:
+  - A full Kotlin **Expo Module** is implemented (`PosDoctorDiagnostics`) that collects system diagnostics directly from Android APIs.
+  - JS/TS wrapper and a diagnostics processor are implemented.
+  - `DiagnosticsScreen` runs **real on-device diagnostics** (no mocks).
+- ✅ Persistence/history and export are functional with the new on-device report format.
 
 ---
 
 ## 2) Implementation Steps
 
-### Phase 1 — Core POC (Isolation): ADB-over-WiFi from a phone (must work before UI build-out)
-**Goal:** Prove we can connect to a real POS terminal via TCP:5555 and execute `getprop`/`dumpsys` reliably from an Android app build.
+### Phase 1 — Pivot & Cleanup: Remove obsolete ADB architecture (P0)
+**Goal:** Make the app compile and run with **zero** ADB / networking discovery code.
 
 User stories:
-1. As a technician, I want the app to connect to an IP:5555 target so I can start diagnostics without a laptop.
-2. As a technician, I want the app to run `getprop` and show manufacturer/model so I know I selected the right terminal.
-3. As a technician, I want clear errors when ADB auth fails so I can fix pairing/setup quickly.
-4. As a technician, I want a reconnect button so intermittent WiFi doesn’t block the job.
-5. As a technician, I want a minimal command runner so I can validate connectivity before full diagnostics.
+1. As a technician, I want to open the app and immediately see the diagnostic dashboard (no scan/connect).
+2. As a maintainer, I want the codebase to contain no ADB/TCP scanning logic to avoid accidental regression.
 
-Steps (executed):
-- Web research: constraints and best practices for **ADB protocol in JS**, auth/RSA key handling, and React Native TCP socket limitations.
-- Implemented a full **Node.js protocol POC** (mock device server + client) proving:
-  - CRC32 framing
-  - ADB 24-byte header encode/decode
-  - CNXN handshake
-  - AUTH handshake (RSA token/signature)
-  - OPEN/WRTE/OKAY/CLSE shell stream execution
-  - subnet port scanning logic
-  - end-to-end multi-command “diagnostic flow”
-- Fixed stream ID accounting in the POC until **all tests passed**.
+Steps (completed):
+- ✅ Deleted `/app/mobile/src/adb/` entirely and removed all imports/usages.
+- ✅ Removed screens that were part of the obsolete remote workflow:
+  - `ScanScreen.tsx`
+  - `DeviceDetailScreen.tsx`
+- ✅ Updated navigation (`/app/mobile/src/navigation/AppNavigator.tsx`) so the app boots directly into `DiagnosticsScreen`.
+- ✅ Removed dependencies tied to remote ADB workflow:
+  - Removed `react-native-tcp-socket`, `js-crc32`, `node-forge`, and `@react-native-community/netinfo`
+- ✅ Removed obsolete UI components:
+  - `DeviceListItem.tsx`
+- ✅ Refactored `DiagnosticsScreen.tsx` to remove route params and ADB client usage.
+- ✅ Updated storage types to no longer import deleted ADB types.
+- ✅ Updated `HistoryScreen.tsx` to work without route params (device-local history).
+- ✅ Added History access from the home screen via `TopNav`.
+- ✅ Updated i18n strings (EN/HU) for the new “first run” empty state.
 
-Deliverables (completed):
-- ✅ `/app/tests/poc/adb_poc.js` — ADB protocol test suite (8/8 passing).
+Deliverables:
+- ✅ `/app/mobile/src/adb/` removed
+- ✅ Navigation launches directly into the dashboard
+- ✅ App builds successfully with no ADB/TCP/scanner code
 
 Status: **COMPLETED**
 
 ---
 
-### Phase 2 — V1 App Development (MVP around proven core)
-**Goal:** Full technician flow with discovery, diagnostics dashboard, bilingual UX, persistence, export, plus web UI replica.
+### Phase 2 — Native Diagnostics Engine (Android APIs via Native Modules) (P0)
+**Goal:** Replace mock diagnostics with **direct on-device** readings using Android APIs.
 
 User stories:
-1. As a technician, I want automatic subnet discovery with manual override so I can find terminals on any network.
-2. As a technician, I want to see a list of discovered terminals with manufacturer/model so I can pick the right one fast.
-3. As a technician, I want one-tap “Run Diagnostics” so I can generate a health report quickly.
-4. As a technician, I want color-coded component status so I can immediately identify faults.
-5. As a technician, I want results grouped in collapsible sections so I can navigate long outputs easily.
+1. As a technician, I want accurate device health diagnostics without connecting to anything.
+2. As a technician, I want the same categorized dashboard with collapsible cards and a clear overall health score.
+3. As a technician, I want an exportable report and saved diagnostic history for auditing.
 
-Steps (updated with progress):
+Approach (implemented):
+- ✅ Implemented a dedicated native module:
+  - **Expo Modules** local module at `/app/mobile/modules/pos-doctor-diagnostics/`
+  - Kotlin module exposed to JS as `PosDoctorDiagnostics`
+- ✅ Prefer **one native call** (`runDiagnostics`) to gather diagnostics in a single payload to reduce bridge overhead.
+- ✅ Built a JS processor layer to convert the native payload into the app’s diagnostic card/report structure.
 
-#### 2.1 Project scaffolding (Mobile)
-- Create Expo + TypeScript project under `/app/mobile/`.
-- Add navigation (Native Stack).
-- Implement dark theme token system.
-- Implement i18n (EN/HU) with persistent language toggle.
+Diagnostics coverage (implemented):
+- ✅ **Battery** (`BatteryManager`): level, status, health, temperature, voltage, technology, charge counter, cycle count (when available by API/device).
+- ✅ **Wi‑Fi** (`WifiManager`): SSID/BSSID, RSSI, link speed, frequency, IP address.
+  - Handles restricted cases (e.g., SSID/BSSID limitations and permission gating).
+- ✅ **Telephony** (`TelephonyManager`): operator, SIM state, network type, data state, roaming (and “restricted” marker when permissions block fields).
+- ✅ **NFC** (`NfcAdapter`): presence and enabled state.
+- ✅ **Build / Device identity** (`Build`): manufacturer, model, brand, device, product, fingerprint, hardware, supported ABIs, serial (with explicit “restricted” behavior).
+- ✅ **System**:
+  - `ActivityManager`: memory via `MemoryInfo`
+  - `StatFs`: internal storage totals/free/available
+  - `DisplayMetrics`: resolution, density, refresh rate
+  - `SensorManager`: sensor list
+  - `PackageManager`: system feature availability
+  - `PowerManager`: power save mode + interactive state
 
-**Completed artifacts:**
-- ✅ `/app/mobile/` Expo project created.
-- ✅ Navigation + screens wired: Scan → Device Detail → Diagnostics → History.
-- ✅ Dark theme + components: TopNav, StatusBadge, CollapsibleCard, DeviceListItem, BottomActionBar.
-- ✅ EN/HU translation system in `/app/mobile/src/i18n/` with AsyncStorage persistence.
+Steps (completed):
+1. ✅ Created Expo native module under `/app/mobile/modules/pos-doctor-diagnostics/`.
+2. ✅ Implemented Kotlin collectors and returned a JSON-serializable payload.
+3. ✅ Updated app permissions in `app.json` and module `AndroidManifest.xml`.
+4. ✅ Implemented TypeScript wrapper:
+   - `/app/mobile/src/native/PosDoctorDiagnostics.ts`
+5. ✅ Implemented diagnostics processing/scoring:
+   - `/app/mobile/src/native/DiagnosticsProcessor.ts`
+6. ✅ Wired into UI:
+   - `DiagnosticsScreen.tsx` now calls the native module and renders real device data.
 
-#### 2.2 ADB Client core (Mobile)
-- Implement **pure JS ADB wire protocol** over TCP (`react-native-tcp-socket`).
-- Implement RSA keypair generation and ADB auth (token/signature + public key payload).
-- Provide shell command execution (OPEN/WRTE/OKAY/CLSE) with timeouts.
+Deliverables:
+- ✅ Native module returns real device data on the POS terminal
+- ✅ `DiagnosticsScreen` uses native results (no mocks)
+- ✅ Health score + per-card status computed from native readings
 
-**Completed artifacts:**
-- ✅ `/app/mobile/src/adb/AdbProtocol.ts` (framing/CRC/parser)
-- ✅ `/app/mobile/src/adb/AdbAuth.ts` (node-forge RSA + Android pubkey payload)
-- ✅ `/app/mobile/src/adb/AdbClient.ts` (connect/auth/shell)
-
-#### 2.3 Discovery (Subnet scan)
-- Auto-detect subnet from WiFi IP (NetInfo) with manual override.
-- Scan `/24` on port 5555 with concurrency + cancellation.
-- Probe discovered devices with `getprop` to enrich manufacturer/model/serial.
-
-**Completed artifacts:**
-- ✅ `/app/mobile/src/adb/SubnetScanner.ts`
-- ✅ Scan screen integrates scanning + probe.
-
-#### 2.4 Diagnostics engine + dashboard
-- Implement command set and parsers:
-  - battery, nfc, wifi, telephony.registry, meminfo, activity/uptime, getprop props
-  - card reader / EMV / contactless are best-effort via `service list` + `getprop` heuristics (vendor variability acknowledged)
-- Build structured report, category statuses, and overall health score.
-- UI: 10 collapsible sections, color-coded statuses, re-run, export.
-
-**Completed artifacts:**
-- ✅ `/app/mobile/src/adb/DiagnosticCommands.ts`
-- ✅ `DiagnosticsScreen` dashboard + collapsibles + action bar.
-
-#### 2.5 Persistence + export
-- Store diagnostic history per terminal serial in AsyncStorage.
-- Export report as **text** and **PDF**, share via native share sheet.
-
-**Completed artifacts:**
-- ✅ `/app/mobile/src/storage/index.ts`
-- ✅ `/app/mobile/src/export/index.ts` (expo-print + expo-sharing)
-
-#### 2.6 Build packaging / docs
-- EAS build profiles for APK + instructions.
-
-**Completed artifacts:**
-- ✅ `/app/mobile/eas.json`
-- ✅ `/app/mobile/app.json`
-- ✅ `/app/mobile/BUILD_INSTRUCTIONS.md`
-
-#### 2.7 Web preview replica
-- Update `/app/frontend/` to provide a phone-frame UI preview of Scan/Device/Diagnostics/History + Build APK instructions.
-- Include EN/HU toggle; clearly label that preview is UI-only and real ADB runs in APK.
-
-**Completed artifacts:**
-- ✅ `/app/frontend/src/App.js` + `/app/frontend/src/App.css` updated
-- ✅ Preview running at `https://pos-doctor.preview.emergentagent.com`
-
-Phase-end testing (remaining):
-- ⏳ Run 1 E2E pass on **web preview** using the testing agent:
-  - language toggle
-  - scan flow to device detail
-  - run diagnostics (UI)
-  - history list
-  - build screen
-
-Status: **IN PROGRESS (implementation complete, web preview testing pending)**
+Status: **COMPLETED**
 
 ---
 
-### Phase 3 — Hardening + Feature Completion
-**Goal:** Reliability, better parsing, better UX, and operational readiness for field use.
+### Phase 3 — Persistence, Export, and History (P0)
+**Goal:** Ensure persistence and export remain correct with the new native report payload.
 
 User stories:
-1. As a technician, I want a diagnostic run to show progress per category so I know it’s not stuck.
-2. As a technician, I want partial results preserved if one command fails so I still get value.
-3. As a technician, I want history comparison (last vs current) so I can see regressions.
-4. As a technician, I want export to include timestamps and device identifiers so reports are audit-ready.
-5. As a technician, I want resilient scanning (pause/resume/cancel) so I can control network load.
+1. As a technician, I want every run saved locally with timestamps.
+2. As a technician, I want to export/share a report (PDF + text).
 
-Steps (revised based on current implementation):
-- Robustness:
-  - Improve ADB error classification (timeout vs unauthorized vs connection refused).
-  - Add per-command progress + partial updates to UI (category-by-category).
-  - Add retries/backoff for unstable WiFi.
-  - Consider connection reuse vs per-command behavior (optimize based on field testing).
-- Parsers:
-  - Expand dumpsys parsing for vendor variations.
-  - Make “feature absent” vs “fault” explicit (especially NFC/mobile).
-  - Improve card reader detection messaging (vendor-specific limitations).
-- UX improvements:
-  - Add cancel diagnostics.
-  - Add clearer “authorize on terminal” instructions when AUTH fails.
-  - Add recommendations per category (EN/HU).
+Notes / current state:
+- ✅ History and export remain present and functional in the on-device architecture.
+- ✅ Reports are saved on each successful run.
 
-Phase-end testing:
-- 1 E2E pass on core flows + regression checks on language toggle, history, export.
+Steps (completed / integrated during Phase 2):
+- ✅ Persist diagnostic history in AsyncStorage via `/app/mobile/src/storage/index.ts`.
+- ✅ Use a stable on-device history key derived from native identity:
+  - Prefer serial when available
+  - Fallback to `manufacturer:model:fingerprint` composite
+- ✅ Export/share:
+  - Uses existing export pipeline (`expo-print`, `expo-sharing`).
+  - Report payload now reflects on-device native data.
 
-Status: **NOT STARTED**
+Deliverables:
+- ✅ Diagnostic history works for the on-device model using a stable device identity.
+- ✅ Export/share works (text + PDF) with the new report payload.
+
+Status: **COMPLETED**
 
 ---
 
-### Phase 4 — Packaging & Release Readiness
+### Phase 4 — Hardening, Permissions, and Compatibility (P1)
+**Goal:** Make diagnostics reliable across Android versions and OEM POS devices.
+
 User stories:
-1. As an installer, I want a repeatable APK build process so I can ship to technicians reliably.
-2. As a technician, I want the app to work offline on-site so I’m not blocked by connectivity.
-3. As a technician, I want consistent behavior across Android versions so I can trust results.
-4. As a technician, I want app permissions explained so I can grant them confidently.
-5. As a maintainer, I want logs/exportable debug bundle so field issues are diagnosable.
+1. As a technician, I want clear permission prompts and actionable error messages.
+2. As a technician, I want diagnostics to degrade gracefully when OS restrictions block data.
 
-Steps:
-- EAS config review (profiles, signing guidance, versioning).
-- Android permission review and store policy notes.
-- Performance tuning:
-  - scanning concurrency defaults
-  - memory safety for large shell outputs
-- Add optional “diagnostic debug bundle” export:
-  - include raw outputs, app version, device info, timestamps
+What’s done:
+- ✅ Implemented explicit “restricted/unavailable” behavior in the native payload for fields blocked by OS permissions/restrictions.
+- ✅ App continues to render and score diagnostics even when some fields are restricted.
 
-Status: **NOT STARTED**
+Remaining / recommended follow-ups (if needed):
+- Add a proper runtime permission request UX (Activity-backed) for location/phone state, instead of only checking.
+- Expand Wi‑Fi details (gateway/DNS) and telephony signal strength where feasible per API level.
+- Add richer technician guidance per category (recommendations based on status).
+- Add a small “permissions status” diagnostic card and include granted/denied permissions in export.
+- Add automated smoke checklist for field technicians.
+
+Status: **IN PROGRESS (core behavior implemented; polish/hardening remaining)**
 
 ---
 
 ## 3) Next Actions
-1. **Web preview E2E test** (testing agent): validate key flows + EN/HU toggle.
-2. Fix any UX bugs uncovered by testing (layout overflow, click targets, collapsibles, navigation).
-3. Mobile source sanity checks:
-   - TypeScript compile
-   - dependency correctness
-   - ensure required Expo plugins are configured
-4. Document any known limitations:
-   - card reader/EMV/contactless detection is vendor-dependent
-   - ADB-over-WiFi must be enabled and authorized on the POS terminal
-5. (Optional) Prepare a minimal “smoke test checklist” for technicians.
+1. **Android build validation (P0):**
+   - Build and install the APK on target POS terminals.
+   - Verify that `runDiagnostics` returns payload correctly on the device.
+2. **Permissions UX (P1):** implement a real runtime permission request flow for Wi‑Fi/telephony where required.
+3. **Data completeness improvements (P1):**
+   - Wi‑Fi gateway/DNS parsing
+   - Telephony signal strength collection by API level
+4. **Export audit hardening (P1):** include app version, SDK, and permission status in exports.
 
 ---
 
 ## 4) Success Criteria
-- From the Android app, on a real POS terminal with ADB-over-WiFi enabled, the app can:
-  - Discover devices on subnet (auto + manual),
-  - Connect to ADB on port 5555,
-  - Execute `getprop` + required `dumpsys` commands,
-  - Display a structured, color-coded health dashboard,
-  - Save history keyed by serial,
-  - Export/share report (text + PDF),
-  - Toggle EN/HU with persistence.
-- No backend services required; all diagnostics run locally on the phone.
-- Web preview accurately reflects UI/UX flows and clearly notes that **live ADB requires the Android APK**.
-- Phase 1 validation: **ADB protocol POC passes (8/8 tests)** and serves as the reference implementation.
+- ✅ App launches directly into the diagnostic dashboard (no scan/connect screens).
+- ✅ Codebase contains **no** ADB / subnet scanning / TCP socket logic.
+- ✅ On a real POS terminal, tapping **Run Diagnostics** produces a complete on-device report using Android APIs (no mocks).
+- ✅ Dashboard shows:
+  - per-category status
+  - collapsible cards
+  - overall health score
+- ✅ History persists across launches and uses a stable on-device identity.
+- ✅ Export/share works (text + PDF).
+- ✅ EN/HU toggle remains functional and persistent.
+
+---
+
+## Notes on Prior Work (Now Obsolete)
+- The previous ADB-over-WiFi POC and ADB client implementation were completed but are **intentionally deprecated** due to the requirement pivot.
+- The web preview replica is out of scope per updated requirements.

@@ -70,10 +70,13 @@ export const translations = {
       warning: 'Warning',
       critical: 'Critical',
       failedTitle: 'Diagnostics Failed',
-      failedMessage: 'Could not run diagnostics. Check connection.',
+      failedMessage: 'Could not run diagnostics.',
       retry: 'Retry',
       rawData: 'Raw Data',
       summary: 'Summary',
+      welcomeMessage: 'Tap Run Diagnostics to start',
+      emptyTitle: 'No diagnostics run yet',
+      emptyHint: 'Tap the button below to run a complete system diagnostic',
       category: {
         battery: 'Battery',
         nfc: 'NFC Module',
@@ -94,6 +97,7 @@ export const translations = {
     // History
     history: {
       title: 'History',
+      thisDevice: 'This Device',
       noHistory: 'No diagnostic history',
       noHistoryHint: 'Run diagnostics to see history here',
       deleteAll: 'Clear All',
@@ -188,10 +192,13 @@ export const translations = {
       warning: 'Figyelmeztetés',
       critical: 'Kritikus',
       failedTitle: 'Diagnosztika sikertelen',
-      failedMessage: 'Nem sikerült a diagnosztika futtatása. Ellenőrizd a kapcsolatot.',
+      failedMessage: 'Nem sikerült a diagnosztika futtatása.',
       retry: 'Ismétel',
       rawData: 'Nyers adat',
       summary: 'Összefoglaló',
+      welcomeMessage: 'Koppints a Diagnosztika indításához',
+      emptyTitle: 'Még nincs diagnosztikai eredmény',
+      emptyHint: 'Koppints az alábbi gombra a teljes rendszer diagnosztika futtatásához',
       category: {
         battery: 'Akkumulátor',
         nfc: 'NFC Modul',
@@ -211,6 +218,7 @@ export const translations = {
     },
     history: {
       title: 'Előzmények',
+      thisDevice: 'Ez az eszköz',
       noHistory: 'Nincs diagnosztikai előzmény',
       noHistoryHint: 'Futtasd a diagnosztikát az előzmények megjelenítéséhez',
       deleteAll: 'Mind törlése',

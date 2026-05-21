@@ -4,11 +4,31 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { DiagnosticReport } from '../adb/DiagnosticCommands';
 
 const HISTORY_KEY_PREFIX = '@pos_doctor:history:';
 const DEVICE_LIST_KEY = '@pos_doctor:known_devices';
 const MAX_HISTORY_PER_DEVICE = 20;
+
+// DiagnosticReport type - matches the shape from DiagnosticsScreen
+export interface DiagnosticCategory {
+  id: string;
+  title: string;
+  status: 'ok' | 'warning' | 'fault' | 'unknown';
+  summary: string;
+  data: Array<{ key: string; value: string }>;
+  rawOutput: string;
+}
+
+export interface DiagnosticReport {
+  timestamp: string;
+  overallScore: number;
+  overallStatus: 'ok' | 'warning' | 'fault';
+  deviceManufacturer: string;
+  deviceModel: string;
+  deviceSerial: string;
+  androidVersion: string;
+  categories: DiagnosticCategory[];
+}
 
 export interface DiscoveredDevice {
   ip: string;

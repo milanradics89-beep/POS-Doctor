@@ -1,6 +1,6 @@
 /**
  * HistoryScreen
- * Past diagnostic sessions per terminal
+ * Past diagnostic sessions for this device
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -13,8 +13,8 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TopNav } from '../components/TopNav';
 import { StatusBadge } from '../components/StatusBadge';
 import { CollapsibleCard } from '../components/CollapsibleCard';
@@ -24,30 +24,26 @@ import { loadHistory, clearHistory } from '../storage';
 import type { HistoryEntry } from '../storage';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'History'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'History'>;
+
+// Default device key - will be replaced with actual device serial when native module is implemented
+const DEVICE_KEY = 'this-device';
 
 export default function HistoryScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const route = useRoute<Props['route']>();
   const { t } = useLanguage();
 
-  const { device } = route.params;
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<HistoryEntry | null>(null);
-
-  const serialKey = device.serial && device.serial !== 'Unknown'
-    ? device.serial
-    : device.ip;
 
   useEffect(() => {
     reload();
   }, []);
 
   const reload = useCallback(async () => {
-    const history = await loadHistory(serialKey);
+    const history = await loadHistory(DEVICE_KEY);
     setEntries(history);
-  }, [serialKey]);
+  }, []);
 
   const handleClearAll = () => {
     Alert.alert(
@@ -59,7 +55,7 @@ export default function HistoryScreen() {
           text: t.history.yes,
           style: 'destructive',
           onPress: async () => {
-            await clearHistory(serialKey);
+            await clearHistory(DEVICE_KEY);
             setEntries([]);
             setSelectedEntry(null);
           },
@@ -77,7 +73,7 @@ export default function HistoryScreen() {
     // Fault categories for brief note
     const faultCategories = item.report.categories
       .filter((c) => c.status === 'fault' || c.status === 'warning')
-      .map((c) => c.title.en)
+      .map((c) => c.title)
       .slice(0, 2)
       .join(', ');
 
@@ -138,7 +134,7 @@ export default function HistoryScreen() {
 
       <View style={styles.headerRow}>
         <Text style={styles.deviceTitle}>
-          {device.manufacturer} {device.model}
+          {t.history.thisDevice || 'This Device'}
         </Text>
         {entries.length > 0 && (
           <Pressable onPress={handleClearAll}>

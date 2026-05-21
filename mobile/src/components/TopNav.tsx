@@ -18,9 +18,11 @@ interface TopNavProps {
   title?: string;
   onBack?: () => void;
   showBack?: boolean;
+  showHistory?: boolean;
+  onHistory?: () => void;
 }
 
-export function TopNav({ title, onBack, showBack = false }: TopNavProps) {
+export function TopNav({ title, onBack, showBack = false, showHistory = false, onHistory }: TopNavProps) {
   const { lang, t, setLang } = useLanguage();
 
   return (
@@ -53,8 +55,19 @@ export function TopNav({ title, onBack, showBack = false }: TopNavProps) {
         </Text>
       ) : null}
 
-      {/* Right: Language Toggle */}
+      {/* Right: Language Toggle + History */}
       <View style={styles.right}>
+        {showHistory && onHistory && (
+          <Pressable
+            onPress={onHistory}
+            style={({ pressed }) => [styles.historyButton, pressed && styles.pressed]}
+            testID="top-nav-history-button"
+            accessibilityLabel="History"
+            hitSlop={8}
+          >
+            <Text style={styles.historyIcon}>📋</Text>
+          </Pressable>
+        )}
         <View style={styles.langToggle} testID="top-nav-language-toggle">
           <Pressable
             onPress={() => setLang('en')}
@@ -160,7 +173,19 @@ const styles = StyleSheet.create({
   },
   right: {
     flex: 1,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  historyButton: {
+    minWidth: TOUCH_TARGET,
+    minHeight: TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyIcon: {
+    fontSize: 20,
   },
   langToggle: {
     flexDirection: 'row',

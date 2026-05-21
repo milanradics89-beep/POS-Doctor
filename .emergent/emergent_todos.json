@@ -1,22 +1,26 @@
 [
   {
-    "content": "Phase 1: ADB protocol POC - ALL 8 TESTS PASSED",
+    "content": "Update native module to include permission request methods",
     "status": "completed"
   },
   {
-    "content": "Phase 1: React Native project + all source files",
+    "content": "Add permission request UI flow in DiagnosticsScreen",
     "status": "completed"
   },
   {
-    "content": "Phase 2: Web preview UI + all screens",
+    "content": "Create permissions status diagnostic card",
     "status": "completed"
   },
   {
-    "content": "Phase 2: Configure EAS build + build instructions",
+    "content": "Update DiagnosticsProcessor to include permissions card",
     "status": "completed"
   },
   {
-    "content": "Phase 2: End-to-end testing - 100% PASSED (33/33 tests)",
+    "content": "Run expo prebuild to generate Android native project",
+    "status": "completed"
+  },
+  {
+    "content": "Build APK using gradle",
     "status": "completed"
   }
 ]
