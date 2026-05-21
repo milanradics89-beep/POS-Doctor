@@ -1,0 +1,58 @@
+[
+  {
+    "content": "Phase 1: Research ADB wire protocol + React Native TCP integration",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: Write ADB protocol POC (Node.js mock server + client) - ALL 8 TESTS PASSED",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: Create React Native Expo project in /app/mobile/",
+    "status": "in_progress"
+  },
+  {
+    "content": "Phase 1: Implement pure JS ADB wire protocol client (TypeScript)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 1: Implement subnet scanner (port 5555)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Get design guidelines (design_agent)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Build full diagnostic UI (dark theme, all screens)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Implement all diagnostic parsers (battery, NFC, WiFi, etc.)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Add EN/HU i18n with persistent language toggle",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Add diagnostic history per terminal serial",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Add export (text + PDF) functionality",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Web preview replica in /app/frontend/ (phone frame UI)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Configure EAS build (eas.json, app.json) + build instructions",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: End-to-end testing via testing agent",
+    "status": "pending"
+  }
+]
