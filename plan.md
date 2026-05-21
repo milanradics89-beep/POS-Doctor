@@ -1,11 +1,12 @@
-# POS Doctor — Development Plan
+# POS Doctor — Development Plan (Updated)
 
 ## 1) Objectives
 - Deliver a **fully self-contained Android (React Native + Expo) app** for technicians to discover Android POS terminals on local WiFi and run **real ADB-over-WiFi diagnostics** (no laptop, no backend).
-- Implement the **core workflow end-to-end**: subnet scan → connect ADB → run shell commands → parse → dashboard.
+- Implement the **core workflow end-to-end** on-device: subnet scan → connect ADB → run shell commands → parse → technician dashboard.
 - Provide **English/Hungarian** UI toggle with persistent setting.
 - Persist **diagnostic history** per terminal (by serial) and enable **export/share** (text + PDF).
-- Fit environment constraints: ship complete mobile source under `/app/mobile/` + a **web UI replica** for preview.
+- Fit environment constraints: ship complete mobile source under `/app/mobile/` + a **web UI replica** for the preview URL.
+- Ensure the implementation is **not reliant on bundling an adb binary** (which is fragile on Android/Expo); instead use a **pure JS ADB wire-protocol client** over TCP with RSA authentication.
 
 ---
 
@@ -21,25 +22,27 @@ User stories:
 4. As a technician, I want a reconnect button so intermittent WiFi doesn’t block the job.
 5. As a technician, I want a minimal command runner so I can validate connectivity before full diagnostics.
 
-Steps:
-- Web research: best practice for **ADB protocol in JS**, auth/RSA key handling, and React Native TCP socket constraints.
-- Decide core transport implementation:
-  - Primary: **Pure JS ADB wire protocol** using `react-native-tcp-socket` + local RSA keypair.
-  - Secondary/fallback: **Expo bare + Kotlin native module** bridging to `dadb` (or equivalent) if JS implementation hits blockers.
-- Build a minimal RN screen: input IP/port → Connect → Run `getprop ro.product.manufacturer`, `ro.product.model`, `ro.serialno`.
-- Verify against real device behavior assumptions:
-  - Device must have ADB-over-network enabled and authorized.
-  - Handle unauthorized/offline/timeouts distinctly.
-- “Fix until it works” loop: connection lifecycle, packet framing, shell response capture, timeouts.
+Steps (executed):
+- Web research: constraints and best practices for **ADB protocol in JS**, auth/RSA key handling, and React Native TCP socket limitations.
+- Implemented a full **Node.js protocol POC** (mock device server + client) proving:
+  - CRC32 framing
+  - ADB 24-byte header encode/decode
+  - CNXN handshake
+  - AUTH handshake (RSA token/signature)
+  - OPEN/WRTE/OKAY/CLSE shell stream execution
+  - subnet port scanning logic
+  - end-to-end multi-command “diagnostic flow”
+- Fixed stream ID accounting in the POC until **all tests passed**.
 
-Deliverables:
-- `/app/mobile/packages/adb/` (or similar) containing the ADB client core.
-- A minimal POC screen and logs proving real command output (no mocks).
+Deliverables (completed):
+- ✅ `/app/tests/poc/adb_poc.js` — ADB protocol test suite (8/8 passing).
+
+Status: **COMPLETED**
 
 ---
 
 ### Phase 2 — V1 App Development (MVP around proven core)
-**Goal:** Full technician flow with discovery, diagnostics dashboard, bilingual UX, persistence.
+**Goal:** Full technician flow with discovery, diagnostics dashboard, bilingual UX, persistence, export, plus web UI replica.
 
 User stories:
 1. As a technician, I want automatic subnet discovery with manual override so I can find terminals on any network.
@@ -48,35 +51,83 @@ User stories:
 4. As a technician, I want color-coded component status so I can immediately identify faults.
 5. As a technician, I want results grouped in collapsible sections so I can navigate long outputs easily.
 
-Steps:
-- Project scaffolding:
-  - Create Expo (bare workflow if needed for native modules) under `/app/mobile/`.
-  - Add navigation (stack + tabs), dark theme UI kit.
-  - Add i18n system (EN/HU) + persisted setting.
-- Discovery:
-  - Auto-detect device subnet from WiFi IP; allow manual CIDR/IP range override.
-  - Implement fast port scan for 5555 with concurrency + cancellation.
-  - On discovery, fetch `getprop` fields to enrich list entries.
-- Diagnostics engine:
-  - Define command set and parsers:
-    - `dumpsys battery`, `dumpsys nfc`, `dumpsys wifi`, `dumpsys telephony.registry`, `dumpsys meminfo`, `dumpsys activity`, `getprop`.
-  - Normalize into structured JSON results.
-  - Status scoring rules (OK/Warn/Fault) per component.
-- UI:
-  - Terminal list + detail screen.
-  - Diagnostics dashboard with collapsible cards + indicators.
-  - “Re-run diagnostics” refresh.
-- Persistence:
-  - Store terminals by serial + last known IP + history entries (SQLite or MMKV).
-- Export:
-  - Generate shareable **plain text report**.
-  - Generate **PDF** (expo-print / react-native-pdf-lib) and share (expo-sharing).
-- Web preview replica:
-  - Update `/app/frontend/` to render the same screens in a phone frame (UI-only preview); clearly label that live ADB runs only in APK.
+Steps (updated with progress):
 
-Phase-end testing:
-- Run 1 E2E pass on web preview for UI/flows.
-- Validate mobile build steps locally via documented EAS workflow (since APK cannot be built here).
+#### 2.1 Project scaffolding (Mobile)
+- Create Expo + TypeScript project under `/app/mobile/`.
+- Add navigation (Native Stack).
+- Implement dark theme token system.
+- Implement i18n (EN/HU) with persistent language toggle.
+
+**Completed artifacts:**
+- ✅ `/app/mobile/` Expo project created.
+- ✅ Navigation + screens wired: Scan → Device Detail → Diagnostics → History.
+- ✅ Dark theme + components: TopNav, StatusBadge, CollapsibleCard, DeviceListItem, BottomActionBar.
+- ✅ EN/HU translation system in `/app/mobile/src/i18n/` with AsyncStorage persistence.
+
+#### 2.2 ADB Client core (Mobile)
+- Implement **pure JS ADB wire protocol** over TCP (`react-native-tcp-socket`).
+- Implement RSA keypair generation and ADB auth (token/signature + public key payload).
+- Provide shell command execution (OPEN/WRTE/OKAY/CLSE) with timeouts.
+
+**Completed artifacts:**
+- ✅ `/app/mobile/src/adb/AdbProtocol.ts` (framing/CRC/parser)
+- ✅ `/app/mobile/src/adb/AdbAuth.ts` (node-forge RSA + Android pubkey payload)
+- ✅ `/app/mobile/src/adb/AdbClient.ts` (connect/auth/shell)
+
+#### 2.3 Discovery (Subnet scan)
+- Auto-detect subnet from WiFi IP (NetInfo) with manual override.
+- Scan `/24` on port 5555 with concurrency + cancellation.
+- Probe discovered devices with `getprop` to enrich manufacturer/model/serial.
+
+**Completed artifacts:**
+- ✅ `/app/mobile/src/adb/SubnetScanner.ts`
+- ✅ Scan screen integrates scanning + probe.
+
+#### 2.4 Diagnostics engine + dashboard
+- Implement command set and parsers:
+  - battery, nfc, wifi, telephony.registry, meminfo, activity/uptime, getprop props
+  - card reader / EMV / contactless are best-effort via `service list` + `getprop` heuristics (vendor variability acknowledged)
+- Build structured report, category statuses, and overall health score.
+- UI: 10 collapsible sections, color-coded statuses, re-run, export.
+
+**Completed artifacts:**
+- ✅ `/app/mobile/src/adb/DiagnosticCommands.ts`
+- ✅ `DiagnosticsScreen` dashboard + collapsibles + action bar.
+
+#### 2.5 Persistence + export
+- Store diagnostic history per terminal serial in AsyncStorage.
+- Export report as **text** and **PDF**, share via native share sheet.
+
+**Completed artifacts:**
+- ✅ `/app/mobile/src/storage/index.ts`
+- ✅ `/app/mobile/src/export/index.ts` (expo-print + expo-sharing)
+
+#### 2.6 Build packaging / docs
+- EAS build profiles for APK + instructions.
+
+**Completed artifacts:**
+- ✅ `/app/mobile/eas.json`
+- ✅ `/app/mobile/app.json`
+- ✅ `/app/mobile/BUILD_INSTRUCTIONS.md`
+
+#### 2.7 Web preview replica
+- Update `/app/frontend/` to provide a phone-frame UI preview of Scan/Device/Diagnostics/History + Build APK instructions.
+- Include EN/HU toggle; clearly label that preview is UI-only and real ADB runs in APK.
+
+**Completed artifacts:**
+- ✅ `/app/frontend/src/App.js` + `/app/frontend/src/App.css` updated
+- ✅ Preview running at `https://pos-doctor.preview.emergentagent.com`
+
+Phase-end testing (remaining):
+- ⏳ Run 1 E2E pass on **web preview** using the testing agent:
+  - language toggle
+  - scan flow to device detail
+  - run diagnostics (UI)
+  - history list
+  - build screen
+
+Status: **IN PROGRESS (implementation complete, web preview testing pending)**
 
 ---
 
@@ -90,20 +141,25 @@ User stories:
 4. As a technician, I want export to include timestamps and device identifiers so reports are audit-ready.
 5. As a technician, I want resilient scanning (pause/resume/cancel) so I can control network load.
 
-Steps:
+Steps (revised based on current implementation):
 - Robustness:
-  - Retries/backoff; per-command timeout; better error classification.
-  - Connection pooling vs per-command connect (based on POC learnings).
+  - Improve ADB error classification (timeout vs unauthorized vs connection refused).
+  - Add per-command progress + partial updates to UI (category-by-category).
+  - Add retries/backoff for unstable WiFi.
+  - Consider connection reuse vs per-command behavior (optimize based on field testing).
 - Parsers:
-  - Expand/adjust dumpsys parsing for vendor variations.
-  - Add explicit handling for “feature absent” vs “fault”.
+  - Expand dumpsys parsing for vendor variations.
+  - Make “feature absent” vs “fault” explicit (especially NFC/mobile).
+  - Improve card reader detection messaging (vendor-specific limitations).
 - UX improvements:
-  - Progress UI, cancel diagnostics, background-safe behavior.
-  - More actionable recommendations in each section (EN/HU).
-- Data model refactor for long-term maintainability.
+  - Add cancel diagnostics.
+  - Add clearer “authorize on terminal” instructions when AUTH fails.
+  - Add recommendations per category (EN/HU).
 
 Phase-end testing:
 - 1 E2E pass on core flows + regression checks on language toggle, history, export.
+
+Status: **NOT STARTED**
 
 ---
 
@@ -116,19 +172,29 @@ User stories:
 5. As a maintainer, I want logs/exportable debug bundle so field issues are diagnosable.
 
 Steps:
-- EAS config (`eas.json`), build profiles, signing guidance.
-- Android permissions review (WiFi/network state, storage/share).
-- Performance: scanning concurrency tuning, memory safety.
-- Add optional “diagnostic debug bundle” export.
+- EAS config review (profiles, signing guidance, versioning).
+- Android permission review and store policy notes.
+- Performance tuning:
+  - scanning concurrency defaults
+  - memory safety for large shell outputs
+- Add optional “diagnostic debug bundle” export:
+  - include raw outputs, app version, device info, timestamps
+
+Status: **NOT STARTED**
 
 ---
 
 ## 3) Next Actions
-1. Implement Phase 1 POC with **pure JS ADB wire protocol** + `react-native-tcp-socket`.
-2. If blocked by auth/transport constraints, implement Kotlin module fallback and re-test.
-3. Once ADB POC is proven, proceed to subnet scanning + terminal list (Phase 2).
-4. Build dashboard + parsers, then persistence + export.
-5. Produce web UI replica for preview and finalize EAS build instructions.
+1. **Web preview E2E test** (testing agent): validate key flows + EN/HU toggle.
+2. Fix any UX bugs uncovered by testing (layout overflow, click targets, collapsibles, navigation).
+3. Mobile source sanity checks:
+   - TypeScript compile
+   - dependency correctness
+   - ensure required Expo plugins are configured
+4. Document any known limitations:
+   - card reader/EMV/contactless detection is vendor-dependent
+   - ADB-over-WiFi must be enabled and authorized on the POS terminal
+5. (Optional) Prepare a minimal “smoke test checklist” for technicians.
 
 ---
 
@@ -142,4 +208,5 @@ Steps:
   - Export/share report (text + PDF),
   - Toggle EN/HU with persistence.
 - No backend services required; all diagnostics run locally on the phone.
-- Web preview accurately reflects UI/UX flows (with clear limitation note about live ADB).
+- Web preview accurately reflects UI/UX flows and clearly notes that **live ADB requires the Android APK**.
+- Phase 1 validation: **ADB protocol POC passes (8/8 tests)** and serves as the reference implementation.
