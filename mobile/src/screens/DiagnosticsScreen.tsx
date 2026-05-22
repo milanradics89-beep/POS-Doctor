@@ -4,7 +4,7 @@
  * Entry point for the app - runs directly on the POS terminal
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,7 @@ import { COLORS, SPACING, FONT_SIZES, RADIUS } from '../theme';
 import { useLanguage } from '../i18n/LanguageContext';
 import { shareReport } from '../export';
 import { saveHistoryEntry } from '../storage';
-import { getDiagnostics, getDeviceKey, checkPermissions, getPermissionsInfo } from '../native/PosDoctorDiagnostics';
+import { getDiagnostics, getDeviceKey, getPermissionsInfo } from '../native/PosDoctorDiagnostics';
 import { processDiagnostics } from '../native/DiagnosticsProcessor';
 import type { DiagnosticReport, DiagnosticCategory, DiagnosticStatus } from '../native/DiagnosticsProcessor';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -42,6 +42,20 @@ export default function DiagnosticsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [permissionsNeeded, setPermissionsNeeded] = useState(false);
+  const [permissionSummary, setPermissionSummary] = useState({
+    location: 'unknown',
+    phoneState: 'unknown',
+  });
+
+  const refreshPermissionSummary = useCallback(async () => {
+    const info = await getPermissionsInfo();
+    setPermissionSummary({ location: info.location, phoneState: info.phoneState });
+    setPermissionsNeeded(info.location !== 'granted' || info.phoneState !== 'granted');
+  }, []);
+
+  useEffect(() => {
+    refreshPermissionSummary();
+  }, [refreshPermissionSummary]);
 
   const requestRuntimePermissions = async () => {
     if (Platform.OS !== 'android') return;
@@ -60,12 +74,21 @@ export default function DiagnosticsScreen() {
 
       if (allGranted) {
         setPermissionsNeeded(false);
+        await refreshPermissionSummary();
         // Re-run diagnostics to get full data
         await runDiagnostics();
       } else {
         // Still update permissions needed state
-        const permStatus = await checkPermissions();
-        setPermissionsNeeded(!permStatus.location || !permStatus.phoneState);
+        await refreshPermissionSummary();
+        const showLocationRationale = await PermissionsAndroid.shouldShowRequestPermissionRationale(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+        );
+        const showPhoneRationale = await PermissionsAndroid.shouldShowRequestPermissionRationale(
+          PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE
+        );
+        if (!showLocationRationale || !showPhoneRationale) {
+          Alert.alert('Permissions blocked', 'Enable permissions from Android Settings to run full diagnostics.');
+        }
       }
     } catch (err) {
       console.warn('Permission request failed:', err);
@@ -82,8 +105,7 @@ export default function DiagnosticsScreen() {
 
     try {
       // Check permissions first
-      const permStatus = await checkPermissions();
-      setPermissionsNeeded(!permStatus.location || !permStatus.phoneState);
+      await refreshPermissionSummary();
 
       // Get permissions info for the permissions card
       const permissionsInfo = await getPermissionsInfo();
@@ -105,18 +127,39 @@ export default function DiagnosticsScreen() {
     } finally {
       setRunning(false);
     }
-  }, [t]);
+  }, [refreshPermissionSummary, t]);
 
   const handleExport = async () => {
     if (!report) return;
-    setExporting(true);
-    try {
-      await shareReport(report, lang, 'pdf');
-    } catch (e: any) {
-      Alert.alert(t.diagnostics.exportFailed, e?.message || '');
-    } finally {
-      setExporting(false);
-    }
+    Alert.alert('Export Report', 'Choose export format', [
+      {
+        text: 'Text',
+        onPress: async () => {
+          setExporting(true);
+          try {
+            await shareReport(report, lang, 'text');
+          } catch (e: any) {
+            Alert.alert(t.diagnostics.exportFailed, e?.message || '');
+          } finally {
+            setExporting(false);
+          }
+        },
+      },
+      {
+        text: 'PDF',
+        onPress: async () => {
+          setExporting(true);
+          try {
+            await shareReport(report, lang, 'pdf');
+          } catch (e: any) {
+            Alert.alert(t.diagnostics.exportFailed, e?.message || '');
+          } finally {
+            setExporting(false);
+          }
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const healthColor = !report ? COLORS.textMuted
@@ -141,13 +184,11 @@ export default function DiagnosticsScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Permission banner */}
-        {permissionsNeeded && !running && (
-          <View style={styles.permissionBanner}>
-            <Text style={styles.permissionBannerTitle}>⚠️ Permissions Needed</Text>
-            <Text style={styles.permissionBannerText}>
-              Some diagnostics require additional permissions for full details
-            </Text>
+        <View style={styles.permissionBanner}>
+          <Text style={styles.permissionBannerTitle}>Permission Status</Text>
+          <Text style={styles.permissionBannerText}>Location: {permissionSummary.location}</Text>
+          <Text style={styles.permissionBannerText}>Phone state: {permissionSummary.phoneState}</Text>
+          {permissionsNeeded && !running && (
             <View style={styles.permissionButtons}>
               <Pressable
                 style={({ pressed }) => [
@@ -168,8 +209,8 @@ export default function DiagnosticsScreen() {
                 <Text style={styles.permissionButtonSecondaryText}>Open Settings</Text>
               </Pressable>
             </View>
-          </View>
-        )}
+          )}
+        </View>
 
         {/* Overall health header */}
         <View style={styles.healthCard} testID="overall-health-score">
