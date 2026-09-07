@@ -3,7 +3,8 @@ import{SafeAreaView,View,Text,StyleSheet,Pressable,Image,ScrollView,ActivityIndi
 import*as ImagePicker from'expo-image-picker';
 import{LinearGradient}from'expo-linear-gradient';
 import{UseitApiProvider,analyzeForConsumer}from'../src/core/intelligence/apiClient';
-import type{OpportunityKind,PresentationResult}from'../src/core/intelligence/types';
+import type{OpportunityKind}from'../src/core/intelligence/types';
+import type{PresentationResult}from'../src/core/intelligence/presentation';
 
 const API_URL=process.env.EXPO_PUBLIC_USEIT_API_URL||'';
 const modes:[OpportunityKind,string][]=[['create','Turn what you have into something new.'],['improve','Make your space or things better.'],['fix','Figure out what to do next.'],['cook','Make something from what you have.'],['surprise','Show me something I would not think of.']];
