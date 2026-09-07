@@ -8,7 +8,7 @@ export class UseitApiProvider implements IntelligenceProvider {
   constructor(private readonly baseUrl: string) {}
 
   async analyzeImage(imageUri: string, userIntent?: OpportunityKind): Promise<SceneAnalysis> {
-    const base = this.baseUrl.replace(/\/$/, '');
+    const base = this.baseUrl.trim().replace(/\/$/, '');
     if (!base) throw new Error('USEIT API base URL is required.');
     const response = await fetchWithPolicy(`${base}/v1/analyze`, {
       method: 'POST',
@@ -16,7 +16,8 @@ export class UseitApiProvider implements IntelligenceProvider {
       body: JSON.stringify({ imageUri, userIntent }),
     });
     if (!response.ok) throw new Error(`USEIT API request failed (${response.status}).`);
-    const payload = await response.json();
+    let payload: unknown;
+    try { payload = await response.json(); } catch { throw new Error('USEIT API returned malformed JSON.'); }
     const checked = validateAnalysis(payload);
     if (!checked.ok) throw new Error('USEIT API returned an invalid analysis.');
     return normalizeAnalysis(checked.data);
