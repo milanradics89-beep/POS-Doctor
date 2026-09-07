@@ -1,0 +1,1 @@
+{"expo":{"name":"USEIT","slug":"useit","version":"0.1.0","orientation":"portrait","scheme":"useit","userInterfaceStyle":"light","plugins":["expo-router","expo-image-picker","expo-linear-gradient"],"experiments":{"typedRoutes":true}},"android":{"adaptiveIcon":{"backgroundColor":"#F7F7F2"}},"ios":{"supportsTablet":true}}
