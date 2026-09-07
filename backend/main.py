@@ -19,12 +19,6 @@ class AnalyzeRequest(BaseModel):
     locale:str=Field(default="hu-HU",max_length=20)
     responseFormat:str=Field(default="scene_analysis_v1",max_length=64)
 
-class UseitAnalyzeRequest(AnalyzeRequest):
-    budgetHuf:Optional[int]=Field(default=None,ge=0)
-    preserveExisting:Optional[bool]=None
-    preferredStyles:list[str]=Field(default_factory=list,max_length=10)
-    preferredColors:list[str]=Field(default_factory=list,max_length=10)
-
 SCENE_STRATEGIES={"room":"Inspect layout, circulation, focal points, lighting, furniture scale, empty wall/floor areas, clutter and visible style. Prefer concrete improvements.","table":"Inventory objects and group them by material, function and relationships. Look for combinations, reuse, repair and organization without inventing unseen supplies.","fridge":"Identify only reasonably visible ingredients. Separate certain from uncertain items. Prefer practical recipes using several visible ingredients and make missing assumptions explicit.","food":"Treat visible food conservatively. Suggest realistic combinations and preparation ideas grounded in what is visible.","objects":"Consider practical uses, repair, reuse and combinations. Do not recommend disposal or replacement before considering specialist uses.","wardrobe":"Consider garments, available storage and combinations. Prefer realistic outfit, organization and reuse ideas grounded in visible items.","garage":"Consider tools, materials and repair/reuse possibilities. Respect visible safety constraints.","garden":"Consider layout, plants, tools and usable outdoor space. Prefer achievable improvements.","mixed":"First determine the dominant useful context, then apply the most relevant reasoning strategy."}
 BASE_SYSTEM="""You are USEIT. Understand the entire photographed scene before proposing anything. Scene context beats isolated object labels. Visible evidence beats assumptions. Never invent objects, ingredients, brands, measurements or conditions. Confidence represents visual certainty, not usefulness. Generate specific, achievable opportunities and preserve safety constraints. Prefer one excellent recommendation over generic lists. The result must be useful even when the image is cluttered or imperfect."""
 
@@ -48,8 +42,3 @@ def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analys
 @app.post("/v1/analyze")
 def analyze(request:AnalyzeRequest):
     return _analyze(request)
-
-@app.post("/v1/useit/analyze")
-def useit_analyze(request:UseitAnalyzeRequest):
-    result=_analyze(request)
-    return {"status":"completed","pipeline":"useit-intelligence-v1","scene":result,"shoppingContext":{"budgetHuf":request.budgetHuf,"preserveExisting":request.preserveExisting,"preferredStyles":request.preferredStyles,"preferredColors":request.preferredColors},"actions":[{"id":"refine","label":"Refine preferences","type":"refine"},{"id":"shopping","label":"Build shopping solution","type":"shopping"},{"id":"preview","label":"Generate redesign preview","type":"generate_preview"}]}
