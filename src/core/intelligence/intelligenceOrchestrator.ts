@@ -10,13 +10,7 @@ import { optimizeShoppingSolution } from './solutionOptimizer';
 import { scoreSolutionCompatibility } from './visualCompatibilityEngine';
 import { buildRedesignPlan } from './redesignPlan';
 
-export type IntelligenceRun = {
-  status: 'needs_clarification'|'completed'|'no_candidates'; scene: SceneModel;
-  task: ReturnType<typeof planTask>; clarification: ReturnType<typeof buildClarificationGate>;
-  candidates?: Awaited<ReturnType<typeof collectProductCandidates>>;
-  ranked?: ReturnType<typeof rankProducts>; solutions?: ReturnType<typeof scoreSolutionCompatibility>;
-  redesign?: ReturnType<typeof buildRedesignPlan>;
-};
+export type IntelligenceRun = { status: 'needs_clarification'|'completed'|'no_candidates'; scene: SceneModel; task: ReturnType<typeof planTask>; clarification: ReturnType<typeof buildClarificationGate>; candidates?: Awaited<ReturnType<typeof collectProductCandidates>>; ranked?: ReturnType<typeof rankProducts>; solutions?: ReturnType<typeof scoreSolutionCompatibility>; redesign?: ReturnType<typeof buildRedesignPlan> };
 
 export async function runIntelligence(scene: SceneModel, analysis: DomainAnalysis, providers: ProductProvider[] = [], options: Parameters<typeof planTask>[2] = {}): Promise<IntelligenceRun> {
   const needs = inferDomainNeeds(scene, analysis, options.userText);
@@ -28,8 +22,7 @@ export async function runIntelligence(scene: SceneModel, analysis: DomainAnalysi
   const candidates = await collectProductCandidates(decision, providers);
   if (!candidates.candidates.length) return { status: 'no_candidates', scene, task, clarification, candidates };
   const ranked = rankProducts(scene, decision, candidates.candidates);
-  const rawSolutions = optimizeShoppingSolution(decision, ranked);
-  const solutions = scoreSolutionCompatibility(scene, rawSolutions);
+  const solutions = scoreSolutionCompatibility(scene, optimizeShoppingSolution(decision, ranked));
   const top = solutions[0];
   const redesign = top && scene.domain === 'room' ? buildRedesignPlan(scene, top) : undefined;
   return { status: 'completed', scene, task, clarification, candidates, ranked, solutions, redesign };
