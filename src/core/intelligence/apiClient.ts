@@ -6,6 +6,7 @@ import { fetchWithPolicy } from './request';
 import { createPromptPolicy } from './promptPolicy';
 import { analyzeAndAct, type IntelligenceOutput } from './intelligencePipeline';
 import type { CandidateProvider } from './candidateProvider';
+import type { IntentDomain } from './intentNeed';
 
 export class UseitApiProvider implements IntelligenceProvider {
   constructor(private readonly baseUrl: string) {}
@@ -41,7 +42,21 @@ function sceneSignals(scene: SceneAnalysis): string[] {
   ];
 }
 
-function intentText(intent?: OpportunityKind): string {
+function domainForScene(sceneType: SceneAnalysis['sceneType']): IntentDomain {
+  if (sceneType === 'wardrobe') return 'wardrobe';
+  if (sceneType === 'fridge' || sceneType === 'food') return 'food';
+  if (sceneType === 'kitchen' || sceneType === 'room' || sceneType === 'table' || sceneType === 'bathroom') return 'room';
+  if (sceneType === 'objects' || sceneType === 'garage' || sceneType === 'garden') return 'object';
+  return 'general';
+}
+
+function intentText(intent: OpportunityKind | undefined, sceneType: SceneAnalysis['sceneType']): string {
+  if (sceneType === 'wardrobe') {
+    if (intent === 'fix') return 'fix this garment';
+    if (intent === 'surprise') return 'style this outfit';
+    return 'create or complete an outfit';
+  }
+  if (sceneType === 'fridge' || sceneType === 'food') return 'cook a recipe from what I have';
   switch (intent) {
     case 'create': return 'create redesign or new solution';
     case 'improve': return 'improve or redesign this';
@@ -60,8 +75,8 @@ export async function analyzeForConsumer(
 ): Promise<ConsumerAnalysis> {
   const analysis = await provider.analyzeImage(imageUri, intent);
   const intelligence = await analyzeAndAct({
-    domain: analysis.sceneType,
-    userText: intentText(intent),
+    domain: domainForScene(analysis.sceneType),
+    userText: intentText(intent, analysis.sceneType),
     sceneSignals: sceneSignals(analysis),
     providers: options.providers ?? [],
     budgetHuf: options.budgetHuf,
