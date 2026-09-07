@@ -3,6 +3,7 @@ import { validateAnalysis } from './validateAnalysis';
 import { normalizeAnalysis } from './normalizeAnalysis';
 import { toPresentationResult, type PresentationResult } from './presentation';
 import { fetchWithPolicy } from './request';
+import { buildSceneAnalysisPrompt } from './scenePrompt';
 
 export class UseitApiProvider implements IntelligenceProvider {
   constructor(private readonly baseUrl: string) {}
@@ -13,7 +14,11 @@ export class UseitApiProvider implements IntelligenceProvider {
     const response = await fetchWithPolicy(`${base}/v1/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ imageUri, userIntent }),
+      body: JSON.stringify({
+        imageUri,
+        userIntent,
+        scenePrompt: buildSceneAnalysisPrompt({ intent: userIntent, locale: 'hu-HU' }),
+      }),
     });
     if (!response.ok) throw new Error(`USEIT API request failed (${response.status}).`);
     let payload: unknown;
