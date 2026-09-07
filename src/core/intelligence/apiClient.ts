@@ -41,6 +41,17 @@ function sceneSignals(scene: SceneAnalysis): string[] {
   ];
 }
 
+function intentText(intent?: OpportunityKind): string {
+  switch (intent) {
+    case 'create': return 'create redesign or new solution';
+    case 'improve': return 'improve or redesign this';
+    case 'fix': return 'fix this';
+    case 'cook': return 'cook a recipe from what I have';
+    case 'surprise': return 'find an unexpected useful idea';
+    default: return '';
+  }
+}
+
 export async function analyzeForConsumer(
   provider: IntelligenceProvider,
   imageUri: string,
@@ -50,7 +61,7 @@ export async function analyzeForConsumer(
   const analysis = await provider.analyzeImage(imageUri, intent);
   const intelligence = await analyzeAndAct({
     domain: analysis.sceneType,
-    userText: intent ?? '',
+    userText: intentText(intent),
     sceneSignals: sceneSignals(analysis),
     providers: options.providers ?? [],
     budgetHuf: options.budgetHuf,
