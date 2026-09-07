@@ -3,6 +3,7 @@ import type { IntelligenceInput, IntelligenceOutput } from './intelligencePipeli
 import { analyzeAndAct } from './intelligencePipeline';
 import { analyzeScene, type VisionProvider } from './sceneAnalyzer';
 import { sceneSignals, type SceneModel } from './sceneModel';
+import { normalizeScene } from './sceneNormalizer';
 import { validateImageInput, type ImageInput } from './imageInput';
 
 export type ProcessImageInput = {
@@ -20,7 +21,8 @@ export type ProcessImageOutput = IntelligenceOutput & { image: ImageInput; scene
 
 export async function processImage(input: ProcessImageInput): Promise<ProcessImageOutput> {
   const image = validateImageInput(input.image);
-  const scene = await analyzeScene(image.uri, input.visionProvider, image.mimeType);
+  const rawScene = await analyzeScene(image.uri, input.visionProvider, image.mimeType);
+  const scene = normalizeScene(rawScene);
   const intelligenceInput: IntelligenceInput = {
     domain: scene.domain,
     userText: input.userText ?? '',
