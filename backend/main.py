@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from openai import OpenAI
 
-app = FastAPI(title="USEIT Intelligence API", version="0.1.0")
+app = FastAPI(title="USEIT Intelligence API", version="0.2.0")
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-5.6-luna")
 
@@ -33,25 +33,34 @@ SCHEMA = {
 class AnalyzeRequest(BaseModel):
     imageUri: str = Field(min_length=20, max_length=8_000_000)
     userIntent: Optional[str] = None
+    prompt: Optional[str] = Field(default=None, max_length=20_000)
+    locale: str = Field(default="hu-HU", max_length=20)
+    responseFormat: str = Field(default="scene_analysis_v1", max_length=64)
 
-SYSTEM = """You are USEIT, a practical multimodal assistant. Understand the whole photographed scene before proposing anything. Identify visible objects, materials, food, furniture, spatial relationships, constraints and uncertainty. Generate useful opportunities grounded in what is actually visible. Never invent an object merely to make an idea work. For rooms think like an interior designer; for loose materials like a creative maker; for food like a practical cook; for broken objects like a troubleshooter. Adapt to the user's intent. Be concise, concrete and visually describable. Confidence reflects visual certainty, not usefulness."""
+BASE_SYSTEM = """You are USEIT, a practical multimodal assistant. Understand the whole photographed scene before proposing anything. Identify visible objects, materials, food, furniture, spatial relationships, constraints and uncertainty. Generate useful opportunities grounded in what is actually visible. Never invent an object merely to make an idea work. For rooms think like an interior designer; for loose materials like a creative maker; for food like a practical cook; for broken objects like a troubleshooter. Be concise, concrete and visually describable. Confidence reflects visual certainty, not usefulness. Never claim an item is present when it is only guessed. If uncertainty materially affects a recommendation, state it in constraints or safetyNotes."""
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model": MODEL}
+    return {"status": "ok", "model": MODEL, "responseFormat": "scene_analysis_v1"}
 
 @app.post("/v1/analyze")
 def analyze(request: AnalyzeRequest):
+    if request.responseFormat != "scene_analysis_v1":
+        raise HTTPException(status_code=400, detail="Unsupported response format.")
     if not os.environ.get("OPENAI_API_KEY"):
         raise HTTPException(status_code=503, detail="Vision service is not configured.")
     try:
+        instructions = BASE_SYSTEM
+        if request.prompt:
+            instructions += f"\n\nUSEIT analysis policy:\n{request.prompt}"
+        instructions += f"\n\nRespond with user-facing text in locale {request.locale}."
         prompt = "Analyze this image for USEIT."
         if request.userIntent:
             prompt += f" User intent: {request.userIntent}."
         response = client.responses.create(
             model=MODEL,
             input=[{"role":"user","content":[{"type":"input_text","text":prompt},{"type":"input_image","image_url":request.imageUri,"detail":"high"}]}],
-            instructions=SYSTEM,
+            instructions=instructions,
             text={"format":{"type":"json_schema","name":"useit_scene_analysis","strict":True,"schema":SCHEMA}}
         )
         return json.loads(response.output_text)
