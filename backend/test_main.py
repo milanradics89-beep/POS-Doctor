@@ -36,12 +36,12 @@ def test_requires_api_key():
 
 
 def test_analyze_passes_image_and_policy():
-    mock = Mock()
-    mock.responses.create.return_value = Mock(output_text=json.dumps(valid_output()))
-    with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'}, clear=False), patch('main.client', mock):
+    mock_client = Mock()
+    mock_client.responses.create.return_value = Mock(output_text=json.dumps(valid_output()))
+    with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'}, clear=False), patch('main._get_client', return_value=mock_client):
         r = client.post('/v1/analyze', json={'imageUri': 'data:image/jpeg;base64,' + 'a' * 32, 'userIntent': 'improve', 'prompt': 'Analyze the whole room.', 'locale': 'hu-HU', 'responseFormat': 'scene_analysis_v1'})
     assert r.status_code == 200
-    call = mock.responses.create.call_args.kwargs
+    call = mock_client.responses.create.call_args.kwargs
     assert call['input'][0]['content'][1]['type'] == 'input_image'
     assert 'Analyze the whole room' in call['instructions']
     assert call['text']['format']['name'] == 'useit_scene_analysis'
@@ -49,6 +49,11 @@ def test_analyze_passes_image_and_policy():
 
 def test_invalid_image_uri_is_rejected_by_validation():
     r = client.post('/v1/analyze', json={'imageUri': 'not-an-image'})
+    assert r.status_code == 422
+
+
+def test_unsupported_image_mime_is_rejected():
+    r = client.post('/v1/analyze', json={'imageUri': 'data:text/plain;base64,' + 'a' * 32})
     assert r.status_code == 422
 
 
