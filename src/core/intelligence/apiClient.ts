@@ -4,6 +4,8 @@ import { normalizeAnalysis } from './normalizeAnalysis';
 import { toPresentationResult, type PresentationResult } from './presentation';
 import { fetchWithPolicy } from './request';
 import { createPromptPolicy } from './promptPolicy';
+import { analyzeAndAct, type IntelligenceOutput } from './intelligencePipeline';
+import type { CandidateProvider } from './candidateProvider';
 
 export class UseitApiProvider implements IntelligenceProvider {
   constructor(private readonly baseUrl: string) {}
@@ -26,6 +28,35 @@ export class UseitApiProvider implements IntelligenceProvider {
   }
 }
 
-export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind): Promise<PresentationResult> {
-  return toPresentationResult(await provider.analyzeImage(imageUri, intent), intent);
+export type ConsumerAnalysis = PresentationResult & {
+  intelligence: IntelligenceOutput;
+};
+
+function sceneSignals(scene: SceneAnalysis): string[] {
+  return [
+    `scene:${scene.sceneType}`,
+    ...scene.items.map(item => `item:${item.name}${item.category ? `:${item.category}` : ''}`),
+    ...scene.constraints.map(value => `constraint:${value}`),
+    ...scene.opportunities.map(value => `opportunity:${value.kind}:${value.title}`),
+  ];
+}
+
+export async function analyzeForConsumer(
+  provider: IntelligenceProvider,
+  imageUri: string,
+  intent?: OpportunityKind,
+  options: { providers?: CandidateProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; requiredCategory?: string } = {},
+): Promise<ConsumerAnalysis> {
+  const analysis = await provider.analyzeImage(imageUri, intent);
+  const intelligence = await analyzeAndAct({
+    domain: analysis.sceneType,
+    userText: intent ?? '',
+    sceneSignals: sceneSignals(analysis),
+    providers: options.providers ?? [],
+    budgetHuf: options.budgetHuf,
+    preferredStyles: options.preferredStyles,
+    preferredColors: options.preferredColors,
+    requiredCategory: options.requiredCategory,
+  });
+  return { ...toPresentationResult(analysis, intent), intelligence };
 }
