@@ -20,9 +20,7 @@ export function inferDomainNeeds(scene: SceneModel, analysis: DomainAnalysis, us
   } else if (scene.domain === 'object') {
     needs = text.includes('jav') ? ['object_repair','object_identify'] : text.includes('csere') ? ['object_replace','object_identify'] : ['object_identify','object_repair'];
     rationale.push('Object scene detected; identification precedes repair or replacement.');
-  } else {
-    rationale.push('Unknown scene domain requires clarification.');
-  }
+  } else rationale.push('Unknown scene domain requires clarification.');
   if (analysis.actionableObjects.length === 0 && needs.length) rationale.push('No high-confidence actionable objects were detected.');
   return { needs, priority: needs[0] ?? 'object_identify', rationale };
 }
