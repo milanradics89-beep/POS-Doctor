@@ -1,4 +1,5 @@
-import type { Opportunity, SceneAnalysis } from './types';
+import type { Opportunity, OpportunityKind, SceneAnalysis } from './types';
+import { rankSuggestions } from './suggestions';
 
 export type PresentationResult = {
   hero: Opportunity | null;
@@ -7,9 +8,10 @@ export type PresentationResult = {
   cautions: string[];
 };
 
-/** Turns raw intelligence into the small set of decisions the consumer UI should expose first. */
-export function toPresentationResult(analysis: SceneAnalysis): PresentationResult {
-  const [hero, ...alternatives] = analysis.opportunities;
+/** Turns scene intelligence into a small, ranked set of decisions for the consumer UI. */
+export function toPresentationResult(analysis: SceneAnalysis, intent?: OpportunityKind): PresentationResult {
+  const ranked = rankSuggestions(analysis, intent);
+  const [hero, ...alternatives] = ranked;
   return {
     hero: hero ?? null,
     alternatives: alternatives.slice(0, 3),
