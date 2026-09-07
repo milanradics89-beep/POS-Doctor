@@ -1,8 +1,10 @@
+export type AnalysisOutcome = 'ready' | 'retake' | 'clarify' | 'error';
+
 export type AnalysisTelemetry = {
   sessionId: string;
   startedAt: string;
   completedAt?: string;
-  outcome?: 'ready' | 'retake' | 'clarify' | 'error';
+  outcome?: AnalysisOutcome;
   latencyMs?: number;
 };
 
@@ -10,7 +12,8 @@ export function startTelemetry(sessionId: string): AnalysisTelemetry {
   return { sessionId, startedAt: new Date().toISOString() };
 }
 
-export function finishTelemetry(t: AnalysisTelemetry, outcome: NonNullable<AnalysisTelemetry['outcome']>): AnalysisTelemetry {
-  const completedAt = new Date().toISOString();
-  return { ...t, completedAt, outcome, latencyMs: Math.max(0, Date.parse(completedAt) - Date.parse(t.startedAt)) };
+export function finishTelemetry(t: AnalysisTelemetry, outcome: AnalysisOutcome, completedAt = new Date().toISOString()): AnalysisTelemetry {
+  const started = Date.parse(t.startedAt);
+  const completed = Date.parse(completedAt);
+  return { ...t, completedAt, outcome, latencyMs: Number.isFinite(started) && Number.isFinite(completed) ? Math.max(0, completed - started) : undefined };
 }
