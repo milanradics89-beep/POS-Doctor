@@ -1,7 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
-from security import validate_public_http_url
+from backend.security import validate_public_http_url
 
 
 def test_rejects_localhost():
