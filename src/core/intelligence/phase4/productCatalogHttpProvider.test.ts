@@ -37,4 +37,17 @@ describe('ProductCatalogHttpProvider', () => {
   it('requires an HTTP(S) endpoint', () => {
     expect(() => new ProductCatalogHttpProvider({ endpoint: 'file:///tmp/catalog', retailer: 'example' })).toThrow('HTTP(S)');
   });
+
+  it('aborts a request after the configured timeout', async () => {
+    let aborted = false;
+    const fetchImpl = async (_input: RequestInfo | URL, init?: RequestInit) => {
+      init?.signal?.addEventListener('abort', () => { aborted = true; });
+      await new Promise(resolve => setTimeout(resolve, 20));
+      throw new DOMException('The operation was aborted.', 'AbortError');
+    };
+
+    const provider = new ProductCatalogHttpProvider({ endpoint: 'https://example.com/catalog', retailer: 'example', timeoutMs: 1, fetchImpl });
+    await expect(provider.search(query)).rejects.toThrow('aborted');
+    expect(aborted).toBe(true);
+  });
 });
