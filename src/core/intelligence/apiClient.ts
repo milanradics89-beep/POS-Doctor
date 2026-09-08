@@ -21,10 +21,10 @@ export class UseitApiProvider implements IntelligenceProvider {
     let payload: unknown;
     try { payload = await response.json(); } catch { throw new Error('USEIT API returned malformed JSON.'); }
     const checked = validateAnalysis(payload);
-    if (!checked.ok) throw new Error('USEIT API returned an invalid analysis.');
+    if (!checked.ok) throw new Error(`USEIT API returned an invalid analysis: ${checked.issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
     return normalizeAnalysis(checked.data);
   }
-  async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; url: string }>): Promise<{ imageDataUrl: string; disclosure: string }> {
+  async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; url: string; id?: string; confidence?: number }>): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
     const base = this.baseUrl.trim().replace(/\/$/, '');
     if (!base) throw new Error('USEIT API base URL is required.');
     const response = await fetchWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ imageUri, prompt, products }) });
@@ -32,8 +32,9 @@ export class UseitApiProvider implements IntelligenceProvider {
     if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('USEIT redesign API returned an unexpected response.');
     const payload: unknown = await response.json();
     if (!payload || typeof payload !== 'object' || typeof (payload as { imageDataUrl?: unknown }).imageDataUrl !== 'string') throw new Error('USEIT redesign API returned an invalid result.');
-    const result = payload as { imageDataUrl: string; disclosure?: unknown };
-    return { imageDataUrl: result.imageDataUrl, disclosure: typeof result.disclosure === 'string' ? result.disclosure : 'AI-generated visual concept. Product availability and appearance may differ from the source.' };
+    const result = payload as { imageDataUrl: string; disclosure?: unknown; products?: unknown };
+    const appliedProducts = Array.isArray(result.products) ? result.products as typeof products : products;
+    return { imageDataUrl: result.imageDataUrl, disclosure: typeof result.disclosure === 'string' ? result.disclosure : 'AI-generated visual concept. Product availability and appearance may differ from the source.', products: appliedProducts };
   }
 }
 
