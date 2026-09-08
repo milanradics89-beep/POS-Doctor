@@ -7,7 +7,7 @@ export async function callUseitAnalyze(config: UseitClientConfig, request: Useit
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeoutMs ?? 30000);
   try {
-    const response = await fetch(`${config.baseUrl.replace(/\/$/, '')}/api/useit/analyze`, {
+    const response = await fetch(`${config.baseUrl.replace(/\/$/, '')}/v1/useit/analyze`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...(config.token ? { authorization: `Bearer ${config.token}` } : {}) },
       body: JSON.stringify(request),
