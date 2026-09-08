@@ -7,8 +7,8 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from google_search import ProductSearchRequest, product_search
-from product_extractor import resolve_product
+from backend.google_search import ProductSearchRequest, product_search
+from backend.product_extractor import resolve_product
 
 router = APIRouter(prefix="/v1/products", tags=["products"])
 
@@ -45,12 +45,7 @@ async def discover_products(request: ProductDiscoveryRequest):
         if result.get("_error"):
             errors.append({"url": result.get("url", item["url"]), "message": result["_error"]})
             continue
-        candidates.append({
-            **result,
-            "searchRank": item["rank"],
-            "searchTitle": item["title"],
-            "searchSnippet": item.get("snippet", ""),
-        })
+        candidates.append({**result, "searchRank": item["rank"], "searchTitle": item["title"], "searchSnippet": item.get("snippet", "")})
 
     candidates.sort(key=lambda item: (-float(item.get("qualityScore", 0)), int(item.get("searchRank", 999))))
     return {"query": request.query, "candidates": candidates, "errors": errors}
