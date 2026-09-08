@@ -3,7 +3,7 @@ import type { SceneModel, SceneObject } from './sceneModel';
 
 const categories: SceneObject['category'][] = ['furniture', 'fixture', 'appliance', 'food', 'clothing', 'accessory', 'object', 'person', 'unknown'];
 
-function objectCategory(category: string): SceneObject['category'] {
+function objectCategory(category: string = ''): SceneObject['category'] {
   const value = category.toLowerCase();
   if (categories.includes(value as SceneObject['category'])) return value as SceneObject['category'];
   if (/sofa|chair|table|bed|cabinet|shelf|desk|rug/.test(value)) return 'furniture';
@@ -21,7 +21,7 @@ export function toSceneModel(analysis: SceneAnalysis, imageId: string): SceneMod
       ? 'food'
       : analysis.sceneType === 'objects' || analysis.sceneType === 'garage' || analysis.sceneType === 'garden'
         ? 'object'
-        : analysis.sceneType === 'room' || analysis.sceneType === 'bathroom' || analysis.sceneType === 'kitchen' || analysis.sceneType === 'table'
+        : analysis.sceneType === 'room' || analysis.sceneType === 'table'
           ? 'room'
           : 'unknown';
 
@@ -29,7 +29,7 @@ export function toSceneModel(analysis: SceneAnalysis, imageId: string): SceneMod
     id: `vision-${index + 1}`,
     label: item.name,
     category: objectCategory(item.category),
-    attributes: Object.fromEntries(item.attributes.map(attribute => [attribute, true])),
+    attributes: Object.fromEntries((item.attributes ?? []).map(attribute => [attribute, true])),
     confidence: item.confidence,
   }));
 
