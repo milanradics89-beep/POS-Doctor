@@ -40,7 +40,7 @@ function sceneSignals(scene: SceneAnalysis): string[] { return [`scene:${scene.s
 function domainForScene(sceneType: SceneAnalysis['sceneType']): IntentDomain {
   if (sceneType === 'wardrobe') return 'wardrobe';
   if (sceneType === 'fridge' || sceneType === 'food') return 'food';
-  if (sceneType === 'kitchen' || sceneType === 'room' || sceneType === 'table' || sceneType === 'bathroom') return 'room';
+  if (sceneType === 'room' || sceneType === 'table') return 'room';
   if (sceneType === 'objects' || sceneType === 'garage' || sceneType === 'garden') return 'object';
   return 'general';
 }
