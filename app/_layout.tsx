@@ -25,7 +25,7 @@ class AppErrorBoundary extends React.Component<React.PropsWithChildren, State> {
             <Text style={styles.kicker}>USEIT</Text>
             <Text style={styles.title}>Something went wrong.</Text>
             <Text style={styles.body}>
-              The app hit an unexpected error. Your photo and account data were not sent anywhere by this screen.
+              USEIT hit an unexpected application error. You can safely try the screen again.
             </Text>
             <Pressable
               accessibilityRole="button"
