@@ -1,9 +1,9 @@
-import type { SceneAnalysis } from './types';
+import type { VisionSceneAnalysis } from './visionContract';
 import type { SceneModel, SceneObject } from './sceneModel';
 
 const categories: SceneObject['category'][] = ['furniture', 'fixture', 'appliance', 'food', 'clothing', 'accessory', 'object', 'person', 'unknown'];
 
-function objectCategory(category: string = ''): SceneObject['category'] {
+function objectCategory(category = ''): SceneObject['category'] {
   const value = category.toLowerCase();
   if (categories.includes(value as SceneObject['category'])) return value as SceneObject['category'];
   if (/sofa|chair|table|bed|cabinet|shelf|desk|rug/.test(value)) return 'furniture';
@@ -14,7 +14,8 @@ function objectCategory(category: string = ''): SceneObject['category'] {
   return 'object';
 }
 
-export function toSceneModel(analysis: SceneAnalysis, imageId: string): SceneModel {
+/** The only translation boundary from the Vision API DTO into the intelligence SceneModel. */
+export function toSceneModel(analysis: VisionSceneAnalysis, imageId: string): SceneModel {
   const domain: SceneModel['domain'] = analysis.sceneType === 'wardrobe'
     ? 'wardrobe'
     : analysis.sceneType === 'fridge' || analysis.sceneType === 'food'
@@ -27,10 +28,10 @@ export function toSceneModel(analysis: SceneAnalysis, imageId: string): SceneMod
 
   const objects: SceneObject[] = analysis.items.map((item, index) => ({
     id: `vision-${index + 1}`,
-    label: item.name,
+    label: item.name.trim(),
     category: objectCategory(item.category),
-    attributes: Object.fromEntries((item.attributes ?? []).map(attribute => [attribute, true])),
-    confidence: item.confidence,
+    attributes: Object.fromEntries((item.attributes ?? []).map(attribute => [attribute.trim(), true]).filter(([attribute]) => attribute.length > 0)),
+    confidence: Math.max(0, Math.min(1, item.confidence)),
   }));
 
   return {
@@ -39,9 +40,10 @@ export function toSceneModel(analysis: SceneAnalysis, imageId: string): SceneMod
     objects,
     relations: [],
     globalAttributes: {
-      roomType: analysis.sceneType,
-      sceneSummary: analysis.summary,
-      constraints: analysis.constraints.join('; '),
+      sceneType: analysis.sceneType,
+      sceneSummary: analysis.summary.trim(),
+      constraints: analysis.constraints.map(value => value.trim()).filter(Boolean).join('; '),
+      safetyNotes: analysis.safetyNotes.map(value => value.trim()).filter(Boolean).join('; '),
     },
   };
 }
