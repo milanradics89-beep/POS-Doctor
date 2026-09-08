@@ -11,7 +11,7 @@ from google_search import router as google_search_router
 from product_extractor import router as product_extractor_router
 from product_discovery import router as product_discovery_router
 
-app = FastAPI(title="USEIT Intelligence API", version="0.5.1")
+app = FastAPI(title="USEIT Intelligence API", version="0.5.0")
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-5.6-luna")
 
 SCHEMA = {"type":"object","additionalProperties":False,"properties":{"sceneType":{"type":"string","enum":["room","table","fridge","wardrobe","garage","garden","objects","food","mixed","unknown"]},"summary":{"type":"string"},"items":{"type":"array","items":{"type":"object","additionalProperties":False,"properties":{"name":{"type":"string"},"category":{"type":"string"},"confidence":{"type":"number","minimum":0,"maximum":1},"attributes":{"type":"array","items":{"type":"string"}}},"required":["name","category","confidence","attributes"]}},"constraints":{"type":"array","items":{"type":"string"}},"opportunities":{"type":"array","items":{"type":"object","additionalProperties":False,"properties":{"id":{"type":"string"},"title":{"type":"string"},"description":{"type":"string"},"kind":{"type":"string","enum":["create","improve","fix","cook","reuse","play","organize","surprise"]},"effort":{"type":"string","enum":["easy","medium","advanced"]},"durationMinutes":{"type":"integer","minimum":1},"requiredItems":{"type":"array","items":{"type":"string"}},"missingItems":{"type":"array","items":{"type":"string"}},"visualizable":{"type":"boolean"}},"required":["id","title","description","kind","effort","durationMinutes","requiredItems","missingItems","visualizable"]}},"safetyNotes":{"type":"array","items":{"type":"string"}}},"required":["sceneType","summary","items","constraints","opportunities","safetyNotes"]}
@@ -59,8 +59,7 @@ def _analyze(request:AnalyzeRequest):
     except Exception as exc: raise HTTPException(502,"Vision analysis failed.") from exc
 
 @app.get("/health")
-def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.5.1"}
-
+def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.5.0"}
 @app.post("/v1/analyze")
 def analyze(request:AnalyzeRequest): return _analyze(request)
 
