@@ -8,7 +8,7 @@ export async function collectPhase4ProductCandidatesByCategory(
   catalogProvider: ProductCatalogProvider,
 ): Promise<ProductCandidate[]> {
   const categories = decision.categories.filter((category) => category.trim().length > 0);
-  if (categories.length === 0) return [];
+  if (categories.length === 0 || decision.candidateSlots <= 0) return [];
 
   const provider = new ProductCatalogCandidateProvider(catalogProvider);
   const results = await Promise.all(
@@ -22,9 +22,13 @@ export async function collectPhase4ProductCandidatesByCategory(
   );
 
   const seen = new Set<string>();
-  return results.flat().filter((candidate) => {
-    if (seen.has(candidate.id)) return false;
+  const candidates: ProductCandidate[] = [];
+  for (const candidate of results.flat()) {
+    if (seen.has(candidate.id)) continue;
     seen.add(candidate.id);
-    return true;
-  });
+    candidates.push(candidate);
+    if (candidates.length >= decision.candidateSlots) break;
+  }
+
+  return candidates;
 }
