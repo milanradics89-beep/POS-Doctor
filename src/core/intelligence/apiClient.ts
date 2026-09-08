@@ -9,12 +9,14 @@ import { analyzeDomain } from './domainAnalyzer';
 import { runIntelligence, type IntelligenceRun } from './intelligenceOrchestrator';
 import type { ProductProvider } from './productCandidateCollector';
 import { googleProductProvider } from './googleProductProvider';
+import { validateImageUri } from './imageInput';
 
 export class UseitApiProvider implements IntelligenceProvider {
   constructor(private readonly baseUrl: string) {}
   async analyzeImage(imageUri: string, userIntent?: OpportunityKind): Promise<SceneAnalysis> {
     const base = this.baseUrl.trim().replace(/\/$/, '');
     if (!base) throw new Error('USEIT API base URL is required.');
+    validateImageUri(imageUri);
     const policy = createPromptPolicy(userIntent, 'hu-HU');
     const response = await fetchWithPolicy(`${base}/v1/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale }) });
     if (!response.ok) throw new Error(`USEIT API request failed (${response.status}).`);
@@ -27,6 +29,7 @@ export class UseitApiProvider implements IntelligenceProvider {
   async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; url: string; id?: string; confidence?: number }>): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
     const base = this.baseUrl.trim().replace(/\/$/, '');
     if (!base) throw new Error('USEIT API base URL is required.');
+    validateImageUri(imageUri);
     const response = await fetchWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ imageUri, prompt, products }) });
     if (!response.ok) throw new Error(`USEIT redesign request failed (${response.status}).`);
     if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('USEIT redesign API returned an unexpected response.');
@@ -67,6 +70,7 @@ function toConsumerIntelligence(run: IntelligenceRun): ConsumerIntelligence {
   return { action: { type: actionType, title: actionTitle }, need: { kind: goal }, rankedCandidates: ranked, intentConfidence: run.clarification.needsClarification ? 0.5 : 1, clarificationRequired: run.clarification.needsClarification };
 }
 export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean } = {}): Promise<ConsumerAnalysis> {
+  validateImageUri(imageUri);
   const analysis = await provider.analyzeImage(imageUri, intent);
   const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(analysis, imageUri.slice(0, 80));
   const providers = options.phase3Providers ?? [googleProductProvider];
