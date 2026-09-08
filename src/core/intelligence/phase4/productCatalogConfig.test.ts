@@ -29,7 +29,7 @@ describe('productCatalogConfig', () => {
   it('defaults providers to enabled and priority to zero', () => {
     const factory = vi.fn(() => ({ search: vi.fn(async () => []) }));
     createProductCatalogProviders({ providers: [base] }, factory);
-    expect(factory).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }));
+    expect(factory.mock.calls[0]?.[0]).toEqual(expect.objectContaining({ id: 'a' }));
   });
 
   it('allows an injected factory for retailer-specific adapters', () => {
