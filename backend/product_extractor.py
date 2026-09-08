@@ -1,8 +1,6 @@
 import html
-import ipaddress
 import json
 import re
-import socket
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -10,6 +8,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from security import validate_public_http_url
 
 router = APIRouter(prefix="/v1/products", tags=["products"])
 
@@ -39,16 +38,6 @@ class _HTMLParser(HTMLParser):
             payload = "".join(self._buffer).strip()
             if payload: self.json_ld.append(payload)
             self._json_ld = False; self._buffer = []
-
-def _validate_public_url(url: str) -> str:
-    parsed = urlparse(url)
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname: raise HTTPException(400, "Only HTTP(S) product URLs are supported.")
-    try: addresses = socket.getaddrinfo(parsed.hostname, None)
-    except socket.gaierror as exc: raise HTTPException(400, "Product host could not be resolved.") from exc
-    for address in {item[4][0] for item in addresses}:
-        ip = ipaddress.ip_address(address)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved: raise HTTPException(400, "Product host is not publicly reachable.")
-    return url
 
 def _json_objects(raw: str) -> list[Any]:
     try: value = json.loads(html.unescape(raw))
@@ -91,10 +80,8 @@ def _number(value: Any) -> float | None:
     if value is None: return None
     text = re.sub(r"[^0-9.,-]", "", str(value)).strip()
     if not text: return None
-    if "," in text and "." in text:
-        text = text.replace(".", "").replace(",", ".")
-    elif "," in text:
-        text = text.replace(",", ".")
+    if "," in text and "." in text: text = text.replace(".", "").replace(",", ".")
+    elif "," in text: text = text.replace(",", ".")
     try: return float(text)
     except ValueError: return None
 
@@ -112,13 +99,8 @@ def _extract(parser: _HTMLParser, url: str) -> dict[str, Any] | None:
     name = _string(product.get("name")) or parser.meta.get("og:title")
     if not name: return None
     image = _first_image(product.get("image"), url) or parser.meta.get("og:image")
-    brand = _string(product.get("brand"))
-    color = _string(product.get("color"))
-    material = _string(product.get("material"))
-    category = _string(product.get("category"))
-    price_number = _number(offer.get("price"))
-    currency = _string(offer.get("priceCurrency"))
-    availability = _availability(offer.get("availability"))
+    brand = _string(product.get("brand")); color = _string(product.get("color")); material = _string(product.get("material")); category = _string(product.get("category"))
+    price_number = _number(offer.get("price")); currency = _string(offer.get("priceCurrency")); availability = _availability(offer.get("availability"))
     evidence = ["json-ld:Product"]
     if offer: evidence.append("json-ld:Offer")
     if image: evidence.append("image")
@@ -127,25 +109,32 @@ def _extract(parser: _HTMLParser, url: str) -> dict[str, Any] | None:
     if color: evidence.append("color")
     if material: evidence.append("material")
     quality = min(1.0, 0.35 + 0.08 * len(evidence) + (0.15 if price_number is not None else 0))
-    return {
-        "id": canonical, "name": str(name).strip(), "brand": brand, "url": canonical,
-        "imageUrl": image, "price": price_number, "currency": currency,
-        "availability": availability, "retailer": urlparse(canonical).hostname,
-        "category": category, "color": color, "material": material,
-        "evidence": evidence, "qualityScore": quality,
-    }
+    return {"id": canonical, "name": str(name).strip(), "brand": brand, "url": canonical, "imageUrl": image, "price": price_number, "currency": currency, "availability": availability, "retailer": urlparse(canonical).hostname, "category": category, "color": color, "material": material, "evidence": evidence, "qualityScore": quality}
+
+async def _fetch_product_page(url: str) -> tuple[str, httpx.Response]:
+    current = validate_public_http_url(url)
+    headers = {"User-Agent": "USEIT/1.0 (+product-discovery)"}
+    async with httpx.AsyncClient(timeout=10, follow_redirects=False, headers=headers) as client:
+        for _ in range(5):
+            response = await client.get(current)
+            if response.is_redirect or response.is_permanent_redirect:
+                location = response.headers.get("location")
+                if not location: raise HTTPException(502, "Product page returned an invalid redirect.")
+                current = validate_public_http_url(urljoin(current, location))
+                continue
+            response.raise_for_status()
+            return current, response
+    raise HTTPException(508, "Product page redirect chain is too long.")
 
 @router.post("/resolve")
 async def resolve_product(request: ProductResolveRequest):
-    url = _validate_public_url(request.url)
-    headers = {"User-Agent": "USEIT/1.0 (+product-discovery)"}
     try:
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True, headers=headers) as client:
-            response = await client.get(url); response.raise_for_status()
+        url, response = await _fetch_product_page(request.url)
+    except HTTPException: raise
     except httpx.HTTPStatusError as exc: raise HTTPException(502, "Product page returned an HTTP error.") from exc
     except httpx.HTTPError as exc: raise HTTPException(504, "Product page could not be fetched.") from exc
     if "text/html" not in response.headers.get("content-type", "").lower(): raise HTTPException(422, "URL does not point to an HTML product page.")
     parser = _HTMLParser(); parser.feed(response.text[:2_000_000])
-    product = _extract(parser, str(response.url))
+    product = _extract(parser, str(response.url or url))
     if not product: raise HTTPException(422, "No valid Product structured data was found.")
     return product
