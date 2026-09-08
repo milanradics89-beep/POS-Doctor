@@ -15,6 +15,8 @@ class ProductRef(BaseModel):
     category: str
     priceHuf: Optional[float] = None
     url: str
+    id: Optional[str] = None
+    confidence: Optional[float] = Field(default=None, ge=0, le=1)
 
 class RedesignRequest(BaseModel):
     imageUri: str = Field(min_length=20, max_length=8_000_000)
@@ -80,6 +82,7 @@ def redesign(request: RedesignRequest):
         return {
             "imageDataUrl": f"data:image/png;base64,{result.data[0].b64_json}",
             "disclosure": "AI-generated visualization. Product appearance, scale, color and placement may differ from the real item. Verify product details on the linked retailer page.",
+            "products": [product.model_dump() for product in request.products],
         }
     except HTTPException:
         raise
