@@ -26,11 +26,11 @@ export class ActionExecutionLifecycle {
     const existing = this.executions.get(key);
     if (existing?.result) return existing.result;
 
-    this.executions.set({ idempotencyKey: key, actionType: action.type, status: 'REQUESTED' });
-    this.executions.set({ idempotencyKey: key, actionType: action.type, status: 'EXECUTING' });
+    this.executions.set(key, { idempotencyKey: key, actionType: action.type, status: 'REQUESTED' });
+    this.executions.set(key, { idempotencyKey: key, actionType: action.type, status: 'EXECUTING' });
 
     const result = await this.dispatcher.dispatch(action, confirmed);
-    this.executions.set({
+    this.executions.set(key, {
       idempotencyKey: key,
       actionType: action.type,
       status: result.ok ? 'SUCCEEDED' : 'FAILED',
