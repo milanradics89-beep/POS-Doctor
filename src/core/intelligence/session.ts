@@ -4,7 +4,7 @@ import { analyzeWithQualityRetry } from './retryAnalysis';
 import { decideExperience, type ExperienceDecision } from './experience';
 import { fingerprintImage } from './imageFingerprint';
 
-export type AnalysisSession = { status: 'analyzing' | 'ready' | 'retake' | 'clarify' | 'error'; image: CapturedImage; fingerprint?: string; decision?: ExperienceDecision; error?: string };
+export type AnalysisSession = { status: 'analyzing' | 'ready' | 'results' | 'retake' | 'clarify' | 'error'; image: CapturedImage; fingerprint?: string; decision?: ExperienceDecision; error?: string };
 
 export async function analyzeCapturedImage(provider: IntelligenceProvider, image: CapturedImage, intent?: OpportunityKind): Promise<AnalysisSession> {
   const prepared = prepareCapturedImage(image);
