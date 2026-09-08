@@ -13,7 +13,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
       - run: npm install
       - run: npx tsc --noEmit
 
@@ -26,4 +25,4 @@ jobs:
           python-version: '3.12'
       - run: pip install -r backend/requirements.txt
       - run: python -m compileall -q backend
-      - run: pytest -q backend/tests
+      - run: pytest -q backend/test_main.py backend/test_scene_quality.py
