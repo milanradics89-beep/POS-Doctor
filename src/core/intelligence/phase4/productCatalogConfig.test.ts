@@ -14,6 +14,10 @@ describe('productCatalogConfig', () => {
     expect(() => validateProductCatalogConfig({ providers: [{ ...base, timeoutMs: 0 }] })).toThrow('Timeout');
   });
 
+  it('rejects non-HTTP(S) endpoints', () => {
+    expect(() => validateProductCatalogConfig({ providers: [{ ...base, endpoint: 'file:///tmp/catalog' }] })).toThrow('HTTP(S)');
+  });
+
   it('filters disabled providers and orders enabled providers by priority', () => {
     const factory = vi.fn((config: ProductCatalogProviderConfig) => ({ search: vi.fn(async () => []) }));
     createProductCatalogProviders({
