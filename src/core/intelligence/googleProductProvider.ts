@@ -14,6 +14,9 @@ type DiscoveryResponse = {
     currency?: string;
     availability?: 'in_stock' | 'limited' | 'out_of_stock' | 'unknown';
     brand?: string;
+    category?: string;
+    color?: string;
+    material?: string;
     evidence?: string[];
     qualityScore?: number;
     searchRank?: number;
@@ -28,24 +31,15 @@ export const googleProductProvider: ProductProvider = {
   async search(decision: ShoppingDecision): Promise<ProductCandidate[]> {
     const base = API_BASE_URL.trim().replace(/\/$/, '');
     if (!base) throw new Error('USEIT API URL is not configured.');
-
     const response = await fetchWithPolicy(`${base}/v1/products/discover`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        query: decision.query,
-        limit: Math.min(Math.max(decision.candidateSlots, 6), 20),
-        locale: 'hu-HU',
-        region: 'HU',
-        max_resolve: Math.min(Math.max(decision.candidateSlots, 6), 12),
-      }),
+      body: JSON.stringify({ query: decision.query, limit: Math.min(Math.max(decision.candidateSlots, 6), 20), locale: 'hu-HU', region: 'HU', max_resolve: Math.min(Math.max(decision.candidateSlots, 6), 12) }),
     });
-
     if (!response.ok) {
       const message = await response.text().catch(() => 'Google product discovery failed');
       throw new Error(`Google product discovery failed (${response.status}): ${message}`);
     }
-
     const payload = await response.json() as DiscoveryResponse;
     return payload.candidates
       .filter(item => item.url && item.name && item.availability !== 'out_of_stock')
@@ -53,10 +47,13 @@ export const googleProductProvider: ProductProvider = {
         id: item.id,
         title: item.name,
         url: item.url,
-        priceHuf: item.currency?.toUpperCase() === 'HUF' && typeof item.price === 'number' ? item.price : undefined,
+        priceHuf: item.currency?.toUpperCase() === 'HUF' && typeof item.price === 'number' ? Math.round(item.price) : undefined,
         category: decision.categories[0] ?? 'general',
         attributes: {
           ...(item.brand ? { brand: item.brand } : {}),
+          ...(item.category ? { productCategory: item.category } : {}),
+          ...(item.color ? { color: item.color } : {}),
+          ...(item.material ? { material: item.material } : {}),
           ...(item.retailer ? { retailer: item.retailer } : {}),
           ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
           ...(item.qualityScore !== undefined ? { qualityScore: item.qualityScore } : {}),
