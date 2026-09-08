@@ -18,8 +18,21 @@ export class ProductCatalogHttpProvider implements ProductCatalogProvider {
   constructor(private readonly options: ProductCatalogHttpProviderOptions) {
     this.timeoutMs = options.timeoutMs ?? 5000;
     this.fetchImpl = options.fetchImpl ?? fetch;
-    if (!/^https?:\/\//i.test(options.endpoint)) {
+
+    let endpointUrl: URL;
+    try {
+      endpointUrl = new URL(options.endpoint);
+    } catch {
+      throw new Error('Product catalog endpoint must be a valid HTTP(S) URL.');
+    }
+    if (endpointUrl.protocol !== 'http:' && endpointUrl.protocol !== 'https:') {
       throw new Error('Product catalog endpoint must use HTTP(S).');
+    }
+    if (!options.retailer.trim()) {
+      throw new Error('Product catalog retailer is required.');
+    }
+    if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0) {
+      throw new Error('Product catalog timeoutMs must be greater than zero.');
     }
   }
 
@@ -57,25 +70,49 @@ export class ProductCatalogHttpProvider implements ProductCatalogProvider {
   }
 
   private normalizeItem(value: unknown, index: number): ProductCatalogItem {
-    if (!value || typeof value !== 'object') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
       throw new Error(`Invalid product catalog item at index ${index}.`);
     }
 
     const item = value as Record<string, unknown>;
-    if (typeof item.id !== 'string' || typeof item.title !== 'string' || typeof item.category !== 'string') {
+    if (typeof item.id !== 'string' || !item.id.trim() || typeof item.title !== 'string' || !item.title.trim() || typeof item.category !== 'string' || !item.category.trim()) {
       throw new Error(`Invalid product catalog item at index ${index}: id, title and category are required.`);
     }
 
-    if (item.productUrl !== undefined && typeof item.productUrl !== 'string') {
-      throw new Error(`Invalid productUrl at index ${index}.`);
+    if (item.productUrl !== undefined) {
+      if (typeof item.productUrl !== 'string') throw new Error(`Invalid productUrl at index ${index}.`);
+      try {
+        const productUrl = new URL(item.productUrl);
+        if (productUrl.protocol !== 'http:' && productUrl.protocol !== 'https:') throw new Error();
+      } catch {
+        throw new Error(`Invalid productUrl at index ${index}: HTTP(S) URL required.`);
+      }
+    }
+
+    if (item.imageUrl !== undefined) {
+      if (typeof item.imageUrl !== 'string') throw new Error(`Invalid imageUrl at index ${index}.`);
+      try {
+        const imageUrl = new URL(item.imageUrl);
+        if (imageUrl.protocol !== 'http:' && imageUrl.protocol !== 'https:') throw new Error();
+      } catch {
+        throw new Error(`Invalid imageUrl at index ${index}: HTTP(S) URL required.`);
+      }
     }
 
     if (item.price !== undefined && (typeof item.price !== 'number' || !Number.isFinite(item.price) || item.price < 0)) {
       throw new Error(`Invalid price at index ${index}.`);
     }
 
-    if (item.currency !== undefined && typeof item.currency !== 'string') {
+    if (item.currency !== undefined && (typeof item.currency !== 'string' || !item.currency.trim())) {
       throw new Error(`Invalid currency at index ${index}.`);
+    }
+
+    if (item.available !== undefined && typeof item.available !== 'boolean') {
+      throw new Error(`Invalid available value at index ${index}.`);
+    }
+
+    if (item.attributes !== undefined && (typeof item.attributes !== 'object' || item.attributes === null || Array.isArray(item.attributes))) {
+      throw new Error(`Invalid attributes at index ${index}.`);
     }
 
     return {
@@ -84,11 +121,11 @@ export class ProductCatalogHttpProvider implements ProductCatalogProvider {
       category: item.category,
       price: item.price as number | undefined,
       currency: item.currency as string | undefined,
-      imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : undefined,
+      imageUrl: item.imageUrl as string | undefined,
       productUrl: item.productUrl as string | undefined,
       retailer: this.options.retailer,
-      available: item.available === undefined ? undefined : Boolean(item.available),
-      attributes: item.attributes && typeof item.attributes === 'object' ? item.attributes as Record<string, string | number | boolean> : undefined,
+      available: item.available as boolean | undefined,
+      attributes: item.attributes as Record<string, string | number | boolean> | undefined,
     };
   }
 }
