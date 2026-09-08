@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 from openai import OpenAI
 from scene_quality import quality_gate
 from redesign import router as redesign_router
+from google_search import router as google_search_router
 
 app = FastAPI(title="USEIT Intelligence API", version="0.5.0")
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-5.6-luna")
@@ -62,3 +63,4 @@ def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analys
 def analyze(request:AnalyzeRequest): return _analyze(request)
 
 app.include_router(redesign_router)
+app.include_router(google_search_router)
