@@ -38,6 +38,32 @@ describe('ProductCatalogHttpProvider', () => {
     expect(() => new ProductCatalogHttpProvider({ endpoint: 'file:///tmp/catalog', retailer: 'example' })).toThrow('HTTP(S)');
   });
 
+  it('requires a positive timeout', () => {
+    expect(() => new ProductCatalogHttpProvider({ endpoint: 'https://example.com/catalog', retailer: 'example', timeoutMs: 0 })).toThrow('greater than zero');
+  });
+
+  it('requires a retailer', () => {
+    expect(() => new ProductCatalogHttpProvider({ endpoint: 'https://example.com/catalog', retailer: '   ' })).toThrow('retailer is required');
+  });
+
+  it('rejects non-HTTP(S) product URLs', async () => {
+    const fetchImpl = async () => new Response(JSON.stringify([{ id: '1', title: 'Desk', category: 'office', productUrl: 'javascript:alert(1)' }]), { status: 200 });
+    const provider = new ProductCatalogHttpProvider({ endpoint: 'https://example.com/catalog', retailer: 'example', fetchImpl });
+    await expect(provider.search(query)).rejects.toThrow('HTTP(S) URL required');
+  });
+
+  it('does not coerce string availability to boolean', async () => {
+    const fetchImpl = async () => new Response(JSON.stringify([{ id: '1', title: 'Desk', category: 'office', available: 'false' }]), { status: 200 });
+    const provider = new ProductCatalogHttpProvider({ endpoint: 'https://example.com/catalog', retailer: 'example', fetchImpl });
+    await expect(provider.search(query)).rejects.toThrow('Invalid available value');
+  });
+
+  it('rejects array attributes', async () => {
+    const fetchImpl = async () => new Response(JSON.stringify([{ id: '1', title: 'Desk', category: 'office', attributes: [] }]), { status: 200 });
+    const provider = new ProductCatalogHttpProvider({ endpoint: 'https://example.com/catalog', retailer: 'example', fetchImpl });
+    await expect(provider.search(query)).rejects.toThrow('Invalid attributes');
+  });
+
   it('aborts a request after the configured timeout', async () => {
     let aborted = false;
     const fetchImpl = async (_input: RequestInfo | URL, init?: RequestInit) => {
