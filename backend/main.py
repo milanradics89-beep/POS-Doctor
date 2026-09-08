@@ -9,9 +9,9 @@ from scene_quality import quality_gate
 from redesign import router as redesign_router
 from google_search import router as google_search_router
 from product_extractor import router as product_extractor_router
-from product_discovery import router as product_discovery_router
+from product_discovery import router as product_discovery_router, ProductDiscoveryRequest, discover_products
 
-app = FastAPI(title="USEIT Intelligence API", version="0.5.0")
+app = FastAPI(title="USEIT Intelligence API", version="0.6.0")
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-5.6-luna")
 
 SCHEMA = {"type":"object","additionalProperties":False,"properties":{"sceneType":{"type":"string","enum":["room","table","fridge","wardrobe","garage","garden","objects","food","mixed","unknown"]},"summary":{"type":"string"},"items":{"type":"array","items":{"type":"object","additionalProperties":False,"properties":{"name":{"type":"string"},"category":{"type":"string"},"confidence":{"type":"number","minimum":0,"maximum":1},"attributes":{"type":"array","items":{"type":"string"}}},"required":["name","category","confidence","attributes"]}},"constraints":{"type":"array","items":{"type":"string"}},"opportunities":{"type":"array","items":{"type":"object","additionalProperties":False,"properties":{"id":{"type":"string"},"title":{"type":"string"},"description":{"type":"string"},"kind":{"type":"string","enum":["create","improve","fix","cook","reuse","play","organize","surprise"]},"effort":{"type":"string","enum":["easy","medium","advanced"]},"durationMinutes":{"type":"integer","minimum":1},"requiredItems":{"type":"array","items":{"type":"string"}},"missingItems":{"type":"array","items":{"type":"string"}},"visualizable":{"type":"boolean"}},"required":["id","title","description","kind","effort","durationMinutes","requiredItems","missingItems","visualizable"]}},"safetyNotes":{"type":"array","items":{"type":"string"}}},"required":["sceneType","summary","items","constraints","opportunities","safetyNotes"]}
@@ -36,6 +36,13 @@ class AnalyzeRequest(BaseModel):
         if parsed.scheme in {"https", "http"} and parsed.netloc: return value
         raise ValueError("imageUri must be an image data URI or HTTP(S) URL")
 
+class UseItAnalyzeRequest(AnalyzeRequest):
+    budgetHuf: int | None = Field(default=None, ge=0, le=100_000_000)
+    preferredStyles: list[str] = Field(default_factory=list, max_length=12)
+    preferredColors: list[str] = Field(default_factory=list, max_length=12)
+    discoverProducts: bool = True
+    productLimit: int = Field(default=8, ge=1, le=12)
+
 SCENE_STRATEGIES={"room":"Inspect layout, circulation, focal points, lighting, furniture scale, empty wall/floor areas, clutter and visible style. Prefer concrete improvements.","table":"Inventory objects and group them by material, function and relationships. Look for combinations, reuse, repair and organization without inventing unseen supplies.","fridge":"Identify only reasonably visible ingredients. Separate certain from uncertain items. Prefer practical recipes using several visible ingredients and make missing assumptions explicit.","food":"Treat visible food conservatively. Suggest realistic combinations and preparation ideas grounded in what is visible.","objects":"Consider practical uses, repair, reuse and combinations. Do not recommend disposal or replacement before considering specialist uses.","wardrobe":"Consider garments, available storage and combinations. Prefer realistic outfit, organization and reuse ideas grounded in visible items.","garage":"Consider tools, materials and repair/reuse possibilities. Respect visible safety constraints.","garden":"Consider layout, plants, tools and usable outdoor space. Prefer achievable improvements.","mixed":"First determine the dominant useful context, then apply the most relevant reasoning strategy."}
 BASE_SYSTEM="""You are USEIT. Understand the entire photographed scene before proposing anything. Scene context beats isolated object labels. Visible evidence beats assumptions. Never invent objects, ingredients, brands, measurements or conditions. Confidence represents visual certainty, not usefulness. Generate specific, achievable opportunities and preserve safety constraints. Prefer one excellent recommendation over generic lists. The result must be useful even when the image is cluttered or imperfect."""
 
@@ -58,10 +65,35 @@ def _analyze(request:AnalyzeRequest):
     except HTTPException: raise
     except Exception as exc: raise HTTPException(502,"Vision analysis failed.") from exc
 
+def _wants_shopping(text: str | None) -> bool:
+    value = (text or "").lower()
+    return any(token in value for token in ("venni", "vásárol", "shopping", "buy", "purchase", "termék", "bútor", "csere"))
+
+def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
+    items = [str(item.get("category")) for item in scene.get("items", [])[:6] if item.get("category")]
+    budget = f"under {request.budgetHuf} HUF" if request.budgetHuf else ""
+    return " ".join([scene.get("sceneType", "objects"), *items, *request.preferredStyles, *request.preferredColors, budget]).strip()
+
 @app.get("/health")
-def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.5.0"}
+def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.6.0"}
+
 @app.post("/v1/analyze")
 def analyze(request:AnalyzeRequest): return _analyze(request)
+
+@app.post("/v1/useit/analyze")
+async def useit_analyze(request:UseItAnalyzeRequest):
+    scene = _analyze(request)
+    intent = request.userIntent or request.prompt
+    shopping = None
+    if request.discoverProducts and _wants_shopping(intent):
+        query = _build_discovery_query(scene, request)
+        if query:
+            shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
+    suggestions = [
+        {"id": o["id"], "title": o["title"], "description": o["description"], "kind": o["kind"], "effort": o["effort"], "durationMinutes": o["durationMinutes"], "visualizable": o["visualizable"]}
+        for o in scene.get("opportunities", [])
+    ]
+    return {"scene": scene, "suggestions": suggestions, "shopping": shopping, "pipeline": ["see", "understand", "suggest", "shop" if shopping else "plan"]}
 
 app.include_router(redesign_router)
 app.include_router(google_search_router)
