@@ -27,7 +27,7 @@ export function buildDesignBrief(analysis: SceneAnalysis, options: Partial<Pick<
     visibleItems: analysis.items.map(item => item.name),
     constraints: analysis.constraints,
     safetyNotes: analysis.safetyNotes,
-    spatialNotes: analysis.items.flatMap(item => item.attributes),
+    spatialNotes: analysis.items.flatMap(item => item.attributes ?? []),
     unknowns: analysis.items.filter(item => item.confidence < 0.75).map(item => item.name),
   };
 }
