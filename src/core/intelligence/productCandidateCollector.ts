@@ -1,5 +1,6 @@
-import type { ProductCandidate } from './shoppingDecisionEngine';
-import type { ShoppingDecision } from './shoppingDecisionEngine';
+import type { ProductCandidate, ShoppingDecision } from './shoppingDecisionEngine';
+
+export type { ProductCandidate } from './shoppingDecisionEngine';
 
 export interface ProductProvider {
   id: string;
