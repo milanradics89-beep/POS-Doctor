@@ -3,6 +3,7 @@ import type { ShoppingDecision } from '../shoppingDecisionEngine';
 import type { ProductCatalogProvider } from './productCatalog';
 import { ProductCatalogCandidateProvider } from './productCatalogAdapter';
 import { rankPhase4ProductCandidates } from './rankPhase4ProductCandidates';
+import { selectPhase4CandidatesWithCategoryCoverage } from './selectPhase4CandidatesWithCategoryCoverage';
 
 export async function collectPhase4ProductCandidatesByCategory(
   decision: ShoppingDecision,
@@ -30,5 +31,10 @@ export async function collectPhase4ProductCandidatesByCategory(
     candidates.push(candidate);
   }
 
-  return rankPhase4ProductCandidates(candidates, decision).slice(0, decision.candidateSlots);
+  const ranked = rankPhase4ProductCandidates(candidates, decision);
+  return selectPhase4CandidatesWithCategoryCoverage(
+    ranked,
+    categories,
+    decision.candidateSlots,
+  );
 }
