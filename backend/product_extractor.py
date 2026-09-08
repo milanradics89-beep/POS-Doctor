@@ -8,7 +8,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from security import validate_public_http_url
+from backend.security import validate_public_http_url
 
 router = APIRouter(prefix="/v1/products", tags=["products"])
 
