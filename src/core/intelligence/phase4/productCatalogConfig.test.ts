@@ -18,6 +18,11 @@ describe('productCatalogConfig', () => {
     expect(() => validateProductCatalogConfig({ providers: [{ ...base, endpoint: 'file:///tmp/catalog' }] })).toThrow('HTTP(S)');
   });
 
+  it('rejects malformed endpoint URLs', () => {
+    expect(() => validateProductCatalogConfig({ providers: [{ ...base, endpoint: 'https://' }] })).toThrow('valid URL');
+    expect(() => validateProductCatalogConfig({ providers: [{ ...base, endpoint: 'https://[invalid' }] })).toThrow('valid URL');
+  });
+
   it('filters disabled providers and orders enabled providers by priority', () => {
     const factory = vi.fn((config: ProductCatalogProviderConfig) => ({ search: vi.fn(async () => []) }));
     createProductCatalogProviders({
