@@ -10,9 +10,28 @@ export type ImageInput = {
   createdAt?: string;
 };
 
+const MAX_DATA_URL_BYTES = 12 * 1024 * 1024;
+const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+
+function byteLength(value: string): number {
+  return new TextEncoder().encode(value).byteLength;
+}
+
+export function validateImageUri(uri: string): void {
+  if (typeof uri !== 'string' || uri.trim().length === 0) throw new Error('Image uri is required');
+  if (!uri.startsWith('data:')) return;
+
+  const match = /^data:([^;,]+);base64,/.exec(uri);
+  if (!match) throw new Error('Invalid image data format');
+
+  const mimeType = match[1].toLowerCase();
+  if (!ALLOWED_IMAGE_MIME_TYPES.has(mimeType)) throw new Error(`Unsupported image type: ${mimeType}`);
+  if (byteLength(uri) > MAX_DATA_URL_BYTES) throw new Error('Image is too large. Please choose a smaller photo.');
+}
+
 export function validateImageInput(input: ImageInput): ImageInput {
   if (!input.id) throw new Error('Image id is required');
-  if (!input.uri) throw new Error('Image uri is required');
+  validateImageUri(input.uri);
   if (!input.mimeType.startsWith('image/')) throw new Error('Only image inputs are supported');
   if (input.source !== 'camera' && input.source !== 'gallery') throw new Error('Unsupported image source');
   return input;
