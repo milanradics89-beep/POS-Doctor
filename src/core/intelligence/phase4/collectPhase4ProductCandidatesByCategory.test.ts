@@ -28,8 +28,8 @@ describe('collectPhase4ProductCandidatesByCategory', () => {
     const result = await collectPhase4ProductCandidatesByCategory(decision, provider);
 
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenCalledWith(expect.objectContaining({ category: 'sofa', categories: ['sofa'] }));
-    expect(search).toHaveBeenCalledWith(expect.objectContaining({ category: 'lighting', categories: ['lighting'] }));
+    expect(search).toHaveBeenCalledWith(expect.objectContaining({ category: 'sofa' }));
+    expect(search).toHaveBeenCalledWith(expect.objectContaining({ category: 'lighting' }));
     expect(result.map((candidate) => candidate.id)).toEqual(['sofa-1', 'light-1']);
   });
 
