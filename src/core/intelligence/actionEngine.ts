@@ -1,10 +1,10 @@
-import type { RankedCandidate } from './unifiedRanking';
+import type { RankedProduct } from './productRankingEngine';
 import type { Need } from './intentNeed';
 
 export type ActionType = 'visualize' | 'shop' | 'recipe' | 'style' | 'repair_guide' | 'book_service' | 'recommend' | 'explain';
 export type Action = { type: ActionType; title: string; candidateIds: string[]; requiresConfirmation: boolean; payload: Record<string, unknown> };
 
-export function buildAction(need: Need, candidates: RankedCandidate[]): Action {
+export function buildAction(need: Need, candidates: RankedProduct[]): Action {
   const candidateIds = candidates.slice(0, 10).map(c => c.id);
   switch (need.kind) {
     case 'redesign': return { type: 'visualize', title: 'Create the redesigned view', candidateIds, requiresConfirmation: true, payload: { preserveSource: true } };
