@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createProductCatalogProviders, validateProductCatalogConfig } from './productCatalogConfig';
+import type { ProductCatalogProviderConfig } from './productCatalogConfig';
 
 describe('productCatalogConfig', () => {
   const base = { id: 'a', retailer: 'Retailer A', endpoint: 'https://a.example/catalog' };
@@ -14,7 +15,7 @@ describe('productCatalogConfig', () => {
   });
 
   it('filters disabled providers and orders enabled providers by priority', () => {
-    const factory = vi.fn(config => ({ search: vi.fn(async () => []) }));
+    const factory = vi.fn((config: ProductCatalogProviderConfig) => ({ search: vi.fn(async () => []) }));
     createProductCatalogProviders({
       providers: [
         { ...base, id: 'low', priority: 20 },
@@ -27,14 +28,14 @@ describe('productCatalogConfig', () => {
   });
 
   it('defaults providers to enabled and priority to zero', () => {
-    const factory = vi.fn(() => ({ search: vi.fn(async () => []) }));
+    const factory = vi.fn((config: ProductCatalogProviderConfig) => ({ search: vi.fn(async () => []) }));
     createProductCatalogProviders({ providers: [base] }, factory);
-    expect(factory.mock.calls[0]?.[0]).toEqual(expect.objectContaining({ id: 'a' }));
+    expect(factory.mock.calls[0][0]).toEqual(expect.objectContaining({ id: 'a' }));
   });
 
   it('allows an injected factory for retailer-specific adapters', () => {
     const provider = { search: vi.fn(async () => []) };
-    const factory = vi.fn(() => provider);
+    const factory = vi.fn((_config: ProductCatalogProviderConfig) => provider);
     const result = createProductCatalogProviders({ providers: [base] }, factory);
     expect(result).toEqual([provider]);
   });
