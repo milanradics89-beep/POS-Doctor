@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm install --no-audit --no-fund
       - run: npx tsc --noEmit
 
   backend:
@@ -23,6 +23,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -r backend/requirements.txt
+      - run: python -m pip install -r backend/requirements.txt
       - run: python -m compileall -q backend
-      - run: pytest -q backend/test_main.py backend/test_scene_quality.py
+      - run: python -m pytest -q backend/test_main.py backend/test_scene_quality.py
