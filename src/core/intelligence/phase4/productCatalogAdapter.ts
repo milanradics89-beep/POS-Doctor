@@ -1,4 +1,5 @@
-import type { ProductCandidate, ProductProvider, ShoppingDecision } from '../productCandidateCollector';
+import type { ProductCandidate, ProductProvider } from '../productCandidateCollector';
+import type { ShoppingDecision } from '../shoppingDecisionEngine';
 import type { ProductCatalogItem, ProductCatalogProvider, ProductCatalogQuery } from './productCatalog';
 
 function mapAvailability(value: ProductCatalogItem['available']): ProductCandidate['availability'] {
