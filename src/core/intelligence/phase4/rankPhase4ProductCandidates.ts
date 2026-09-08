@@ -5,13 +5,6 @@ function stringList(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string').map(item => item.toLowerCase()) : [];
 }
 
-function matchesPreferred(candidate: ProductCandidate, key: 'preferredStyles' | 'preferredColors', attributeKeys: string[]): number {
-  const preferred = stringList((candidate as ProductCandidate & { attributes: Record<string, unknown> }).attributes?.[key]);
-  if (!preferred.length) return 0;
-  const values = attributeKeys.flatMap(attributeKey => stringList(candidate.attributes?.[attributeKey]));
-  return preferred.some(value => values.includes(value)) ? 1 : 0;
-}
-
 function score(candidate: ProductCandidate, decision: ShoppingDecision): number {
   let value = candidate.availability === 'in_stock' ? 100 : candidate.availability === 'unknown' ? 40 : 0;
 
