@@ -37,5 +37,6 @@ export function validateAnalysis(value: unknown): { ok: true; data: SceneAnalysi
   if (!Array.isArray(value.items)) issues.push({ path: 'items', message: 'Expected an array.' }); else value.items.forEach((v, i) => validateItem(v, `items[${i}]`, issues));
   for (const key of ['constraints','safetyNotes'] as const) if (!isStringArray(value[key])) issues.push({ path: key, message: 'Expected an array of strings.' });
   if (!Array.isArray(value.opportunities)) issues.push({ path: 'opportunities', message: 'Expected an array.' }); else value.opportunities.forEach((v, i) => validateOpportunity(v, `opportunities[${i}]`, issues));
-  return issues.length ? { ok: false, issues } : { ok: true, data: value as SceneAnalysis };
+  if (issues.length) return { ok: false, issues };
+  return { ok: true, data: value as unknown as SceneAnalysis };
 }
