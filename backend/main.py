@@ -12,7 +12,7 @@ from product_extractor import router as product_extractor_router
 from product_discovery import router as product_discovery_router, ProductDiscoveryRequest, discover_products
 
 app = FastAPI(title="USEIT Intelligence API", version="0.6.0")
-MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-5.6-luna")
+MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
 
 SCHEMA = {"type":"object","additionalProperties":False,"properties":{"sceneType":{"type":"string","enum":["room","table","fridge","wardrobe","garage","garden","objects","food","mixed","unknown"]},"summary":{"type":"string"},"items":{"type":"array","items":{"type":"object","additionalProperties":False,"properties":{"name":{"type":"string"},"category":{"type":"string"},"confidence":{"type":"number","minimum":0,"maximum":1},"attributes":{"type":"array","items":{"type":"string"}}},"required":["name","category","confidence","attributes"]}},"constraints":{"type":"array","items":{"type":"string"}},"opportunities":{"type":"array","items":{"type":"object","additionalProperties":False,"properties":{"id":{"type":"string"},"title":{"type":"string"},"description":{"type":"string"},"kind":{"type":"string","enum":["create","improve","fix","cook","reuse","play","organize","surprise"]},"effort":{"type":"string","enum":["easy","medium","advanced"]},"durationMinutes":{"type":"integer","minimum":1},"requiredItems":{"type":"array","items":{"type":"string"}},"missingItems":{"type":"array","items":{"type":"string"}},"visualizable":{"type":"boolean"}},"required":["id","title","description","kind","effort","durationMinutes","requiredItems","missingItems","visualizable"]}},"safetyNotes":{"type":"array","items":{"type":"string"}}},"required":["sceneType","summary","items","constraints","opportunities","safetyNotes"]}
 
@@ -60,8 +60,20 @@ def _analyze(request:AnalyzeRequest):
         instructions+=f"\n\nRespond with user-facing text in locale {request.locale}."
         user_text="Analyze this image for USEIT. Classify the scene before generating opportunities."
         if request.userIntent: user_text+=f" User intent: {request.userIntent}."
-        response=_get_client().responses.create(model=MODEL,input=[{"role":"user","content":[{"type":"input_text","text":user_text},{"type":"input_image","image_url":request.imageUri,"detail":"high"}]}],instructions=instructions,text={"format":{"type":"json_schema","name":"useit_scene_analysis","strict":True,"schema":SCHEMA}})
-        return quality_gate(json.loads(response.output_text))
+        response=_get_client().chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role":"system","content":instructions},
+                {"role":"user","content":[
+                    {"type":"text","text":user_text},
+                    {"type":"image_url","image_url":{"url":request.imageUri,"detail":"high"}},
+                ]},
+            ],
+            response_format={"type":"json_schema","json_schema":{"name":"useit_scene_analysis","strict":True,"schema":SCHEMA}},
+        )
+        content=response.choices[0].message.content
+        if not content: raise HTTPException(502,"Vision analysis returned no structured content.")
+        return quality_gate(json.loads(content))
     except HTTPException: raise
     except Exception as exc: raise HTTPException(502,"Vision analysis failed.") from exc
 
