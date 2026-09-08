@@ -1,7 +1,8 @@
 import pytest
 from fastapi import HTTPException
 
-from backend.product_extractor import _HTMLParser, _extract, _validate_public_url
+from backend.product_extractor import _HTMLParser, _extract
+from backend.security import validate_public_http_url
 
 
 def parse(html: str):
@@ -31,19 +32,19 @@ def test_extracts_product_offer_and_evidence():
 
 def test_rejects_non_http_urls():
     with pytest.raises(HTTPException) as exc:
-        _validate_public_url('file:///etc/passwd')
+        validate_public_http_url('file:///etc/passwd')
     assert exc.value.status_code == 400
 
 
 def test_rejects_localhost():
     with pytest.raises(HTTPException) as exc:
-        _validate_public_url('http://localhost:8000/product')
+        validate_public_http_url('http://localhost:8000/product')
     assert exc.value.status_code == 400
 
 
 def test_rejects_private_ip():
     with pytest.raises(HTTPException) as exc:
-        _validate_public_url('http://127.0.0.1/product')
+        validate_public_http_url('http://127.0.0.1/product')
     assert exc.value.status_code == 400
 
 
