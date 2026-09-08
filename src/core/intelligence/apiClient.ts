@@ -31,6 +31,7 @@ export class UseitApiProvider implements IntelligenceProvider {
     if (!base) throw new Error('USEIT API base URL is required.');
     const response = await fetchWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ imageUri, prompt, products }) });
     if (!response.ok) throw new Error(`USEIT redesign request failed (${response.status}).`);
+    if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('USEIT redesign API returned an unexpected response.');
     return response.json();
   }
 }
@@ -51,9 +52,9 @@ function intentText(intent: OpportunityKind | undefined, sceneType: SceneAnalysi
 }
 export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { providers?: CandidateProvider[]; phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; requiredCategory?: string; preserveExisting?: boolean } = {}): Promise<ConsumerAnalysis> {
   const analysis = await provider.analyzeImage(imageUri, intent);
-  const intelligence = await analyzeAndAct({ domain: domainForScene(analysis.sceneType), userText: intentText(intent, analysis.sceneType), sceneSignals: sceneSignals(analysis), providers: options.providers ?? [], budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, requiredCategory: options.requiredCategory });
   const scene = toSceneModel(analysis, imageUri.slice(0, 80));
   const phase3Providers = options.phase3Providers ?? [googleProductProvider];
   const phase3 = await runIntelligence(scene, analyzeDomain(scene), phase3Providers, { budgetHuf: options.budgetHuf, preserveExisting: options.preserveExisting ?? true, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, userText: intentText(intent, analysis.sceneType) });
+  const intelligence = await analyzeAndAct({ domain: domainForScene(analysis.sceneType), userText: intentText(intent, analysis.sceneType), sceneSignals: sceneSignals(analysis), providers: options.providers ?? [], budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, requiredCategory: options.requiredCategory });
   return { ...toPresentationResult(analysis, intent), intelligence, phase3, analysis };
 }
