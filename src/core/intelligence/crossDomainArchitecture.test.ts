@@ -28,7 +28,7 @@ function scene(domain: SceneModel['domain']): SceneModel {
 
 describe('cross-domain intelligence architecture', () => {
   it.each([
-    ['room', 'room_shopping'],
+    ['room', 'room_redesign'],
     ['food', 'food_recipe'],
     ['wardrobe', 'wardrobe_styling'],
     ['object', 'object_identify'],
