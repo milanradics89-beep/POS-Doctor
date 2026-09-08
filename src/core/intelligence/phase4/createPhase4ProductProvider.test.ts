@@ -27,6 +27,9 @@ describe('createPhase4ProductProvider', () => {
       query: 'modern sofa',
       categories: ['sofa'],
       budgetHuf: 150000,
+      preserveExisting: true,
+      constraints: {},
+      candidateSlots: 6,
     });
 
     expect(provider.id).toBe('phase4-catalog');
