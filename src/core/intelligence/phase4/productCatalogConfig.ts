@@ -30,7 +30,15 @@ export function validateProductCatalogConfig(config: ProductCatalogRuntimeConfig
     ids.add(provider.id);
     if (!provider.retailer?.trim()) throw new Error(`Retailer is required for provider: ${provider.id}`);
     if (!provider.endpoint?.trim()) throw new Error(`Endpoint is required for provider: ${provider.id}`);
-    if (!/^https?:\/\//i.test(provider.endpoint)) throw new Error(`Endpoint must use HTTP(S) for provider: ${provider.id}`);
+    let endpoint: URL;
+    try {
+      endpoint = new URL(provider.endpoint);
+    } catch {
+      throw new Error(`Endpoint must be a valid URL for provider: ${provider.id}`);
+    }
+    if (endpoint.protocol !== 'http:' && endpoint.protocol !== 'https:') {
+      throw new Error(`Endpoint must use HTTP(S) for provider: ${provider.id}`);
+    }
     if (provider.priority !== undefined && (!Number.isInteger(provider.priority) || provider.priority < 0)) {
       throw new Error(`Priority must be a non-negative integer for provider: ${provider.id}`);
     }
