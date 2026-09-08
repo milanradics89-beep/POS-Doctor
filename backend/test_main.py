@@ -2,7 +2,7 @@ import json
 import os
 from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
-from main import app
+from backend.main import app
 
 client = TestClient(app)
 
@@ -37,14 +37,14 @@ def test_requires_api_key():
 
 def test_analyze_passes_image_and_policy():
     mock_client = Mock()
-    mock_client.responses.create.return_value = Mock(output_text=json.dumps(valid_output()))
-    with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'}, clear=False), patch('main._get_client', return_value=mock_client):
+    mock_client.chat.completions.create.return_value = Mock(choices=[Mock(message=Mock(content=json.dumps(valid_output())))])
+    with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'}, clear=False), patch('backend.main._get_client', return_value=mock_client):
         r = client.post('/v1/analyze', json={'imageUri': 'data:image/jpeg;base64,' + 'a' * 32, 'userIntent': 'improve', 'prompt': 'Analyze the whole room.', 'locale': 'hu-HU', 'responseFormat': 'scene_analysis_v1'})
     assert r.status_code == 200
-    call = mock_client.responses.create.call_args.kwargs
-    assert call['input'][0]['content'][1]['type'] == 'input_image'
-    assert 'Analyze the whole room' in call['instructions']
-    assert call['text']['format']['name'] == 'useit_scene_analysis'
+    call = mock_client.chat.completions.create.call_args.kwargs
+    assert call['messages'][1]['content'][1]['type'] == 'image_url'
+    assert 'Analyze the whole room' in call['messages'][0]['content']
+    assert call['response_format']['json_schema']['name'] == 'useit_scene_analysis'
 
 
 def test_invalid_image_uri_is_rejected_by_validation():
