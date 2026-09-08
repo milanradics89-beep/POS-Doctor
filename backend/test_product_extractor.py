@@ -1,7 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
-from product_extractor import _HTMLParser, _extract, _validate_public_url
+from backend.product_extractor import _HTMLParser, _extract, _validate_public_url
 
 
 def parse(html: str):
