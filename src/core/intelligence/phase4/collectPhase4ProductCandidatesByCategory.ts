@@ -2,6 +2,7 @@ import type { ProductCandidate } from '../productCandidateCollector';
 import type { ShoppingDecision } from '../shoppingDecisionEngine';
 import type { ProductCatalogProvider } from './productCatalog';
 import { ProductCatalogCandidateProvider } from './productCatalogAdapter';
+import { rankPhase4ProductCandidates } from './rankPhase4ProductCandidates';
 
 export async function collectPhase4ProductCandidatesByCategory(
   decision: ShoppingDecision,
@@ -27,8 +28,7 @@ export async function collectPhase4ProductCandidatesByCategory(
     if (seen.has(candidate.id)) continue;
     seen.add(candidate.id);
     candidates.push(candidate);
-    if (candidates.length >= decision.candidateSlots) break;
   }
 
-  return candidates;
+  return rankPhase4ProductCandidates(candidates, decision).slice(0, decision.candidateSlots);
 }
