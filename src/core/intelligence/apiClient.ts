@@ -4,12 +4,9 @@ import { normalizeAnalysis } from './normalizeAnalysis';
 import { toPresentationResult, type PresentationResult } from './presentation';
 import { fetchWithPolicy } from './request';
 import { createPromptPolicy } from './promptPolicy';
-import { analyzeAndAct, type IntelligenceOutput } from './intelligencePipeline';
-import type { CandidateProvider } from './candidateProvider';
 import type { IntentDomain } from './intentNeed';
 import { analyzeDomain } from './domainAnalyzer';
 import { runIntelligence, type IntelligenceRun } from './intelligenceOrchestrator';
-import { toSceneModel } from './sceneAnalysisAdapter';
 import type { ProductProvider } from './productCandidateCollector';
 import { googleProductProvider } from './googleProductProvider';
 
@@ -21,7 +18,8 @@ export class UseitApiProvider implements IntelligenceProvider {
     const policy = createPromptPolicy(userIntent, 'hu-HU');
     const response = await fetchWithPolicy(`${base}/v1/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale }) });
     if (!response.ok) throw new Error(`USEIT API request failed (${response.status}).`);
-    let payload: unknown; try { payload = await response.json(); } catch { throw new Error('USEIT API returned malformed JSON.'); }
+    let payload: unknown;
+    try { payload = await response.json(); } catch { throw new Error('USEIT API returned malformed JSON.'); }
     const checked = validateAnalysis(payload);
     if (!checked.ok) throw new Error('USEIT API returned an invalid analysis.');
     return normalizeAnalysis(checked.data);
@@ -32,12 +30,22 @@ export class UseitApiProvider implements IntelligenceProvider {
     const response = await fetchWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ imageUri, prompt, products }) });
     if (!response.ok) throw new Error(`USEIT redesign request failed (${response.status}).`);
     if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('USEIT redesign API returned an unexpected response.');
-    return response.json();
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== 'object' || typeof (payload as { imageDataUrl?: unknown }).imageDataUrl !== 'string') throw new Error('USEIT redesign API returned an invalid result.');
+    const result = payload as { imageDataUrl: string; disclosure?: unknown };
+    return { imageDataUrl: result.imageDataUrl, disclosure: typeof result.disclosure === 'string' ? result.disclosure : 'AI-generated visual concept. Product availability and appearance may differ from the source.' };
   }
 }
 
-export type ConsumerAnalysis = PresentationResult & { intelligence: IntelligenceOutput; phase3?: IntelligenceRun; analysis?: SceneAnalysis };
-function sceneSignals(scene: SceneAnalysis): string[] { return [`scene:${scene.sceneType}`, ...scene.items.map(item => `item:${item.name}${item.category ? `:${item.category}` : ''}`), ...scene.constraints.map(value => `constraint:${value}`), ...scene.opportunities.map(value => `opportunity:${value.kind}:${value.title}`)]; }
+export type ConsumerIntelligence = {
+  action: { type: string; title: string };
+  need: { kind: string };
+  rankedCandidates: Array<{ id: string; title: string; category: string; source: string; priceHuf: number; url: string }>;
+  intentConfidence: number;
+  clarificationRequired: boolean;
+};
+export type ConsumerAnalysis = PresentationResult & { intelligence: ConsumerIntelligence; phase3: IntelligenceRun; analysis: SceneAnalysis };
+
 function domainForScene(sceneType: SceneAnalysis['sceneType']): IntentDomain {
   if (sceneType === 'wardrobe') return 'wardrobe';
   if (sceneType === 'fridge' || sceneType === 'food') return 'food';
@@ -50,11 +58,17 @@ function intentText(intent: OpportunityKind | undefined, sceneType: SceneAnalysi
   if (sceneType === 'fridge' || sceneType === 'food') return 'cook a recipe from what I have';
   switch (intent) { case 'create': return 'create redesign or new solution'; case 'improve': return 'improve or redesign this'; case 'fix': return 'fix this'; case 'cook': return 'cook a recipe from what I have'; case 'surprise': return 'find an unexpected useful idea'; default: return ''; }
 }
-export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { providers?: CandidateProvider[]; phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; requiredCategory?: string; preserveExisting?: boolean } = {}): Promise<ConsumerAnalysis> {
+function toConsumerIntelligence(run: IntelligenceRun): ConsumerIntelligence {
+  const goal = run.task.goal;
+  const actionType = goal === 'food_recipe' ? 'recipe' : goal === 'wardrobe_styling' ? 'style' : goal === 'object_repair' ? 'repair_guide' : goal === 'room_redesign' || goal === 'room_shopping' ? 'visualize' : run.task.shoppingRequired ? 'shop' : 'recommend';
+  const actionTitle = actionType === 'visualize' ? 'Create the redesigned view' : actionType === 'recipe' ? 'Build a recipe from the visible ingredients' : actionType === 'style' ? 'Complete the outfit' : actionType === 'repair_guide' ? 'Show the repair path' : actionType === 'shop' ? 'Show the best matching options' : 'Show recommendations';
+  const ranked = (run.ranked ?? []).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.title, category: candidate.category, source: candidate.source, priceHuf: candidate.priceHuf ?? 0, url: candidate.url }));
+  return { action: { type: actionType, title: actionTitle }, need: { kind: goal }, rankedCandidates: ranked, intentConfidence: run.clarification.needsClarification ? 0.5 : 1, clarificationRequired: run.clarification.needsClarification };
+}
+export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean } = {}): Promise<ConsumerAnalysis> {
   const analysis = await provider.analyzeImage(imageUri, intent);
-  const scene = toSceneModel(analysis, imageUri.slice(0, 80));
-  const phase3Providers = options.phase3Providers ?? [googleProductProvider];
-  const phase3 = await runIntelligence(scene, analyzeDomain(scene), phase3Providers, { budgetHuf: options.budgetHuf, preserveExisting: options.preserveExisting ?? true, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, userText: intentText(intent, analysis.sceneType) });
-  const intelligence = await analyzeAndAct({ domain: domainForScene(analysis.sceneType), userText: intentText(intent, analysis.sceneType), sceneSignals: sceneSignals(analysis), providers: options.providers ?? [], budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, requiredCategory: options.requiredCategory });
-  return { ...toPresentationResult(analysis, intent), intelligence, phase3, analysis };
+  const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(analysis, imageUri.slice(0, 80));
+  const providers = options.phase3Providers ?? [googleProductProvider];
+  const phase3 = await runIntelligence(scene, analyzeDomain(scene), providers, { budgetHuf: options.budgetHuf, preserveExisting: options.preserveExisting ?? true, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, userText: intentText(intent, analysis.sceneType) });
+  return { ...toPresentationResult(analysis, intent), intelligence: toConsumerIntelligence(phase3), phase3, analysis };
 }
