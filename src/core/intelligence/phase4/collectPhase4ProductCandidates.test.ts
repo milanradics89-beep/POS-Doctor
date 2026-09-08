@@ -46,12 +46,13 @@ describe('collectPhase4ProductCandidates', () => {
       providers: [{ id: 'catalog-a', retailer: 'Retailer A', endpoint: 'https://a.example/catalog' }],
     }, { factory: () => ({ search }) });
 
-    expect(search).toHaveBeenCalledWith(expect.objectContaining({
-      query: expect.stringContaining('room'),
-      categories: expect.arrayContaining(['sofa']),
-      budgetHuf: 150000,
-      preserveExisting: true,
-    }));
+    expect(search).toHaveBeenCalledWith({
+      query: 'room sofa coffee_table lighting decor modern beige',
+      category: 'sofa',
+      budgetMax: 150000,
+      currency: 'HUF',
+      locale: 'hu-HU',
+    });
     expect(result).toEqual({
       candidates: [expect.objectContaining({ id: 'p-1', priceHuf: 120000, availability: 'in_stock' })],
       providersUsed: ['phase4-catalog'],
