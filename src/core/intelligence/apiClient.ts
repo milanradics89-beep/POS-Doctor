@@ -7,6 +7,10 @@ import { createPromptPolicy } from './promptPolicy';
 import { analyzeAndAct, type IntelligenceOutput } from './intelligencePipeline';
 import type { CandidateProvider } from './candidateProvider';
 import type { IntentDomain } from './intentNeed';
+import { analyzeDomain } from './domainAnalyzer';
+import { runIntelligence, type IntelligenceRun } from './intelligenceOrchestrator';
+import { toSceneModel } from './sceneAnalysisAdapter';
+import type { ProductProvider } from './productCandidateCollector';
 
 export class UseitApiProvider implements IntelligenceProvider {
   constructor(private readonly baseUrl: string) {}
@@ -27,10 +31,24 @@ export class UseitApiProvider implements IntelligenceProvider {
     if (!checked.ok) throw new Error('USEIT API returned an invalid analysis.');
     return normalizeAnalysis(checked.data);
   }
+
+  async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; url: string }>): Promise<{ imageDataUrl: string; disclosure: string }> {
+    const base = this.baseUrl.trim().replace(/\/$/, '');
+    if (!base) throw new Error('USEIT API base URL is required.');
+    const response = await fetchWithPolicy(`${base}/v1/redesign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ imageUri, prompt, products }),
+    });
+    if (!response.ok) throw new Error(`USEIT redesign request failed (${response.status}).`);
+    return response.json();
+  }
 }
 
 export type ConsumerAnalysis = PresentationResult & {
   intelligence: IntelligenceOutput;
+  phase3?: IntelligenceRun;
+  analysis?: SceneAnalysis;
 };
 
 function sceneSignals(scene: SceneAnalysis): string[] {
@@ -71,7 +89,7 @@ export async function analyzeForConsumer(
   provider: IntelligenceProvider,
   imageUri: string,
   intent?: OpportunityKind,
-  options: { providers?: CandidateProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; requiredCategory?: string } = {},
+  options: { providers?: CandidateProvider[]; phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; requiredCategory?: string; preserveExisting?: boolean } = {},
 ): Promise<ConsumerAnalysis> {
   const analysis = await provider.analyzeImage(imageUri, intent);
   const intelligence = await analyzeAndAct({
@@ -84,5 +102,13 @@ export async function analyzeForConsumer(
     preferredColors: options.preferredColors,
     requiredCategory: options.requiredCategory,
   });
-  return { ...toPresentationResult(analysis, intent), intelligence };
+  const scene = toSceneModel(analysis, imageUri.slice(0, 80));
+  const phase3 = await runIntelligence(scene, analyzeDomain(scene), options.phase3Providers ?? [], {
+    budgetHuf: options.budgetHuf,
+    preserveExisting: options.preserveExisting ?? true,
+    preferredStyles: options.preferredStyles,
+    preferredColors: options.preferredColors,
+    userText: intentText(intent, analysis.sceneType),
+  });
+  return { ...toPresentationResult(analysis, intent), intelligence, phase3, analysis };
 }
