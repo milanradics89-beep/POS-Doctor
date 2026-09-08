@@ -10,12 +10,12 @@ import { runIntelligence, type IntelligenceRun } from './intelligenceOrchestrato
 import type { ProductProvider } from './productCandidateCollector';
 import { googleProductProvider } from './googleProductProvider';
 import { validateImageUri } from './imageInput';
+import { normalizeApiBaseUrl } from './apiConfig';
 
 export class UseitApiProvider implements IntelligenceProvider {
   constructor(private readonly baseUrl: string) {}
   async analyzeImage(imageUri: string, userIntent?: OpportunityKind): Promise<SceneAnalysis> {
-    const base = this.baseUrl.trim().replace(/\/$/, '');
-    if (!base) throw new Error('USEIT API base URL is required.');
+    const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
     const policy = createPromptPolicy(userIntent, 'hu-HU');
     const response = await fetchWithPolicy(`${base}/v1/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale }) });
@@ -27,8 +27,7 @@ export class UseitApiProvider implements IntelligenceProvider {
     return normalizeAnalysis(checked.data);
   }
   async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; url: string; id?: string; confidence?: number }>): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
-    const base = this.baseUrl.trim().replace(/\/$/, '');
-    if (!base) throw new Error('USEIT API base URL is required.');
+    const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
     const response = await fetchWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ imageUri, prompt, products }) });
     if (!response.ok) throw new Error(`USEIT redesign request failed (${response.status}).`);
