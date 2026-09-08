@@ -1,4 +1,4 @@
-from scene_quality import CONFIDENCE_FLOOR, quality_gate
+from backend.scene_quality import CONFIDENCE_FLOOR, quality_gate
 
 
 def test_low_confidence_items_are_removed():
