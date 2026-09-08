@@ -22,3 +22,4 @@ export type {
 export { ProductCatalogRuntime } from './productCatalogRuntime';
 export type { ProductCatalogRuntimeOptions } from './productCatalogRuntime';
 export { createPhase4ProductProvider } from './createPhase4ProductProvider';
+export { collectPhase4ProductCandidates } from './collectPhase4ProductCandidates';
