@@ -30,7 +30,13 @@ export function toSceneModel(analysis: VisionSceneAnalysis, imageId: string): Sc
     id: `vision-${index + 1}`,
     label: item.name.trim(),
     category: objectCategory(item.category),
-    attributes: Object.fromEntries((item.attributes ?? []).map(attribute => [attribute.trim(), true]).filter(([attribute]) => attribute.length > 0)),
+    attributes: Object.fromEntries(
+      (item.attributes ?? [])
+        .filter((attribute): attribute is string => typeof attribute === 'string')
+        .map(attribute => attribute.trim())
+        .filter(attribute => attribute.length > 0)
+        .map(attribute => [attribute, true]),
+    ),
     confidence: Math.max(0, Math.min(1, item.confidence)),
   }));
 
