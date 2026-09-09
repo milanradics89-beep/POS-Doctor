@@ -19,10 +19,11 @@ from backend.product_extractor import router as product_extractor_router
 from backend.redesign import router as redesign_router
 from backend.rate_limit import install_rate_limit
 from backend.request_controls import install_request_controls
+from backend.security_headers import install_security_headers
+from backend.production_security import production_mode, validate_production_security
 from backend.scene_quality import quality_gate
 from backend.scene_understanding import normalize_scene_understanding
 from backend.scene_reasoning import derive_scene_facts, derive_scene_reasoning
-from backend.security_headers import install_security_headers
 from backend.vision_contract import BASE_SYSTEM, SCHEMA, SCENE_STRATEGIES
 from backend.intent_engine import classify_intent, rank_opportunities
 from backend.suggestion_explanations import build_suggestion_reasons
@@ -30,7 +31,19 @@ from backend.specialist_agents import build_specialist_context
 
 logger = logging.getLogger("useit")
 logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
-app = FastAPI(title="USEIT Intelligence API", version="0.8.0")
+
+# Security configuration is validated before the application is exposed.
+# In production this fails closed on missing secrets, wildcard CORS, or docs exposure.
+if production_mode():
+    validate_production_security()
+
+app = FastAPI(
+    title="USEIT Intelligence API",
+    version="0.8.0",
+    docs_url=None if production_mode() else "/docs",
+    redoc_url=None if production_mode() else "/redoc",
+    openapi_url=None if production_mode() else "/openapi.json",
+)
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key", "X-Request-ID"])
 install_request_controls(app)
@@ -121,15 +134,7 @@ async def useit_analyze(request: UseItAnalyzeRequest):
         query = _build_discovery_query(scene, request)
         if query:
             shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
-    suggestions = [
-        {
-            "id": o["id"], "title": o["title"], "description": o["description"], "kind": o["kind"],
-            "effort": o["effort"], "durationMinutes": o["durationMinutes"], "visualizable": o["visualizable"],
-            "score": o["score"], "preferenceScore": o.get("preferenceScore", 0.0), "rank": o["rank"],
-            "reasons": build_suggestion_reasons(o, intent, scene, context),
-        }
-        for o in ranked
-    ]
+    suggestions = [{"id":o["id"],"title":o["title"],"description":o["description"],"kind":o["kind"],"effort":o["effort"],"durationMinutes":o["durationMinutes"],"visualizable":o["visualizable"],"score":o["score"],"preferenceScore":o.get("preferenceScore",0.0),"rank":o["rank"],"reasons":build_suggestion_reasons(o,intent,scene,context)} for o in ranked]
     scene["sceneFacts"] = derive_scene_facts(scene)
     scene["sceneReasoning"] = derive_scene_reasoning(scene)
     specialist = build_specialist_context(scene, intent)
