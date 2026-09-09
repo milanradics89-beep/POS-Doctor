@@ -11,9 +11,13 @@ def validate_public_http_url(url: str) -> str:
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
         raise HTTPException(400, "Only HTTP(S) product URLs are supported.")
+    if parsed.username is not None or parsed.password is not None:
+        raise HTTPException(400, "Product URLs must not contain embedded credentials.")
     hostname = parsed.hostname.rstrip(".").lower()
     if hostname in {"localhost", "localhost.localdomain"}:
         raise HTTPException(400, "Local product hosts are not allowed.")
+    if parsed.port not in {None, 80, 443}:
+        raise HTTPException(400, "Only standard HTTP(S) ports are allowed.")
     try:
         addresses = socket.getaddrinfo(hostname, parsed.port or (443 if parsed.scheme == "https" else 80), type=socket.SOCK_STREAM)
     except (socket.gaierror, ValueError) as exc:
