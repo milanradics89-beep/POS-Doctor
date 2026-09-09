@@ -23,10 +23,11 @@ from backend.security_headers import install_security_headers
 from backend.vision_contract import BASE_SYSTEM, SCHEMA, SCENE_STRATEGIES
 from backend.intent_engine import classify_intent, rank_opportunities
 from backend.suggestion_explanations import build_suggestion_reasons
+from backend.specialist_agents import build_specialist_context
 
 logger = logging.getLogger("useit")
 logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
-app = FastAPI(title="USEIT Intelligence API", version="0.7.1")
+app = FastAPI(title="USEIT Intelligence API", version="0.8.0")
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key", "X-Request-ID"])
 install_request_controls(app)
@@ -99,7 +100,7 @@ def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
     return " ".join([scene.get("sceneType", "objects"), *items, *request.preferredStyles, *request.preferredColors, budget]).strip()
 
 @app.get("/health")
-async def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.7.1","apiKeyRequired":bool(configured_api_key())}
+async def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyRequired":bool(configured_api_key())}
 
 @app.post("/v1/analyze")
 async def analyze(request: AnalyzeRequest):
@@ -128,7 +129,8 @@ async def useit_analyze(request: UseItAnalyzeRequest):
     ]
     scene["sceneFacts"] = derive_scene_facts(scene)
     scene["sceneReasoning"] = derive_scene_reasoning(scene)
-    return {"scene":scene,"intent":intent,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","reason","intent","suggest","shop" if shopping else "plan"]}
+    specialist = build_specialist_context(scene, intent)
+    return {"scene":scene,"intent":intent,"specialist":specialist,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","reason","intent","specialist","suggest","shop" if shopping else "plan"]}
 
 app.include_router(redesign_router)
 app.include_router(google_search_router)
