@@ -19,10 +19,11 @@ from backend.request_controls import install_request_controls
 from backend.scene_quality import quality_gate
 from backend.security_headers import install_security_headers
 from backend.vision_contract import BASE_SYSTEM, SCHEMA, SCENE_STRATEGIES
+from backend.intent_engine import classify_intent, rank_opportunities
 
 logger = logging.getLogger("useit")
 logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
-app = FastAPI(title="USEIT Intelligence API", version="0.6.2")
+app = FastAPI(title="USEIT Intelligence API", version="0.7.0")
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key", "X-Request-ID"])
 install_request_controls(app)
@@ -98,7 +99,7 @@ def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
     return " ".join([scene.get("sceneType", "objects"), *items, *request.preferredStyles, *request.preferredColors, budget]).strip()
 
 @app.get("/health")
-async def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.6.2","apiKeyRequired":bool(configured_api_key())}
+async def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.7.0","apiKeyRequired":bool(configured_api_key())}
 
 @app.post("/v1/analyze")
 async def analyze(request: AnalyzeRequest):
@@ -108,14 +109,15 @@ async def analyze(request: AnalyzeRequest):
 @app.post("/v1/useit/analyze")
 async def useit_analyze(request: UseItAnalyzeRequest):
     scene = await _analyze(request)
-    intent = request.userIntent or request.prompt
+    intent = classify_intent(request.userIntent, request.prompt)
+    ranked = rank_opportunities(scene, intent)
     shopping = None
-    if request.discoverProducts and _wants_shopping(intent):
+    if request.discoverProducts and intent["name"] == "shop":
         query = _build_discovery_query(scene, request)
         if query:
             shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
-    suggestions = [{"id":o["id"],"title":o["title"],"description":o["description"],"kind":o["kind"],"effort":o["effort"],"durationMinutes":o["durationMinutes"],"visualizable":o["visualizable"]} for o in scene.get("opportunities", [])]
-    return {"scene":scene,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","suggest","shop" if shopping else "plan"]}
+    suggestions = [{"id":o["id"],"title":o["title"],"description":o["description"],"kind":o["kind"],"effort":o["effort"],"durationMinutes":o["durationMinutes"],"visualizable":o["visualizable"],"score":o["score"],"rank":o["rank"]} for o in ranked]
+    return {"scene":scene,"intent":intent,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","intent","suggest","shop" if shopping else "plan"]}
 
 app.include_router(redesign_router)
 app.include_router(google_search_router)
