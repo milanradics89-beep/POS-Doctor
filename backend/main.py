@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
 
+from backend.action_layer import router as action_router
 from backend.api_auth import configured_api_key, install_api_key_guard
 from backend.google_search import router as google_search_router
 from backend.knowledge_search import router as knowledge_search_router
@@ -134,6 +135,7 @@ async def useit_analyze(request: UseItAnalyzeRequest):
     specialist = build_specialist_context(scene, intent)
     return {"scene":scene,"intent":intent,"specialist":specialist,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","reason","intent","specialist","suggest","shop" if shopping else "plan"]}
 
+app.include_router(action_router)
 app.include_router(redesign_router)
 app.include_router(google_search_router)
 app.include_router(knowledge_search_router)
