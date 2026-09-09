@@ -18,6 +18,7 @@ from backend.rate_limit import install_rate_limit
 from backend.request_controls import install_request_controls
 from backend.scene_quality import quality_gate
 from backend.scene_understanding import normalize_scene_understanding
+from backend.scene_reasoning import derive_scene_facts, derive_scene_reasoning
 from backend.security_headers import install_security_headers
 from backend.vision_contract import BASE_SYSTEM, SCHEMA, SCENE_STRATEGIES
 from backend.intent_engine import classify_intent, rank_opportunities
@@ -118,21 +119,16 @@ async def useit_analyze(request: UseItAnalyzeRequest):
             shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
     suggestions = [
         {
-            "id": o["id"],
-            "title": o["title"],
-            "description": o["description"],
-            "kind": o["kind"],
-            "effort": o["effort"],
-            "durationMinutes": o["durationMinutes"],
-            "visualizable": o["visualizable"],
-            "score": o["score"],
-            "preferenceScore": o.get("preferenceScore", 0.0),
-            "rank": o["rank"],
+            "id": o["id"], "title": o["title"], "description": o["description"], "kind": o["kind"],
+            "effort": o["effort"], "durationMinutes": o["durationMinutes"], "visualizable": o["visualizable"],
+            "score": o["score"], "preferenceScore": o.get("preferenceScore", 0.0), "rank": o["rank"],
             "reasons": build_suggestion_reasons(o, intent, scene, context),
         }
         for o in ranked
     ]
-    return {"scene":scene,"intent":intent,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","intent","suggest","shop" if shopping else "plan"]}
+    scene["sceneFacts"] = derive_scene_facts(scene)
+    scene["sceneReasoning"] = derive_scene_reasoning(scene)
+    return {"scene":scene,"intent":intent,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","reason","intent","suggest","shop" if shopping else "plan"]}
 
 app.include_router(redesign_router)
 app.include_router(google_search_router)
