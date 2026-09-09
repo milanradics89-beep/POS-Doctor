@@ -19,6 +19,20 @@ def test_memory_requires_explicit_consent(monkeypatch, tmp_path):
     assert response.status_code == 422
 
 
+def test_memory_validates_shape_and_bounds(monkeypatch, tmp_path):
+    _configure(monkeypatch, tmp_path)
+    bad_category = client.post(
+        "/v1/memory/user-a",
+        json={"consent": True, "entries": [{"key": "x", "value": "y", "category": "inference"}]},
+    )
+    oversized = client.post(
+        "/v1/memory/user-a",
+        json={"consent": True, "entries": [{"key": "x", "value": "v" * 1001, "category": "preference"}]},
+    )
+    assert bad_category.status_code == 422
+    assert oversized.status_code == 422
+
+
 def test_memory_persists_and_upserts_without_cross_user_leak(monkeypatch, tmp_path):
     _configure(monkeypatch, tmp_path)
     write = client.post(
