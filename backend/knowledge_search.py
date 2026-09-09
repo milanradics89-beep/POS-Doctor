@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
@@ -40,8 +41,7 @@ class KnowledgeSearchRequest(BaseModel):
 
 
 def _source(url: str) -> str:
-    host = urlparse(url).netloc.lower()
-    return host.removeprefix("www.")
+    return urlparse(url).netloc.lower().removeprefix("www.")
 
 
 def _trusted_http_url(url: str) -> bool:
@@ -50,8 +50,8 @@ def _trusted_http_url(url: str) -> bool:
 
 
 async def search_knowledge(request: KnowledgeSearchRequest) -> list[KnowledgeResult]:
-    api_key = __import__("os").environ.get("GOOGLE_WEB_SEARCH_API_KEY")
-    client_id = __import__("os").environ.get("GOOGLE_WEB_SEARCH_CLIENT_ID")
+    api_key = os.environ.get("GOOGLE_WEB_SEARCH_API_KEY")
+    client_id = os.environ.get("GOOGLE_WEB_SEARCH_CLIENT_ID")
     if not api_key or not client_id:
         raise HTTPException(503, "Knowledge search is not configured.")
 
