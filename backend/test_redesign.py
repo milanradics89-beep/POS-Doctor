@@ -29,7 +29,9 @@ def test_redesign_rejects_empty_image_data():
 
 
 def test_redesign_rejects_oversized_decoded_image():
-    oversized = b"x" * 6_000_001
+    # Keep the encoded request below RedesignRequest.imageUri's 8 MB field limit
+    # so the request reaches the decoded-image size guard in _image_file().
+    oversized = b"x" * 5_999_000
     response = client.post("/v1/redesign", json={"imageUri": image_uri(oversized), "prompt": "Redesign this room in a modern style."})
     assert response.status_code == 413
 
