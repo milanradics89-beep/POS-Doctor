@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 from backend.api_auth import configured_api_key, install_api_key_guard
 from backend.google_search import router as google_search_router
 from backend.knowledge_search import router as knowledge_search_router
+from backend.personal_memory import router as personal_memory_router
 from backend.product_discovery import ProductDiscoveryRequest, discover_products, router as product_discovery_router
 from backend.product_extractor import router as product_extractor_router
 from backend.redesign import router as redesign_router
@@ -30,7 +31,7 @@ logger = logging.getLogger("useit")
 logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
 app = FastAPI(title="USEIT Intelligence API", version="0.8.0")
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key", "X-Request-ID"])
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key", "X-Request-ID"])
 install_request_controls(app)
 install_security_headers(app)
 install_api_key_guard(app)
@@ -136,5 +137,6 @@ async def useit_analyze(request: UseItAnalyzeRequest):
 app.include_router(redesign_router)
 app.include_router(google_search_router)
 app.include_router(knowledge_search_router)
+app.include_router(personal_memory_router)
 app.include_router(product_extractor_router)
 app.include_router(product_discovery_router)
