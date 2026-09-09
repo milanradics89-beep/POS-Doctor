@@ -63,7 +63,8 @@ def classify_intent(user_intent: str | None, prompt: str | None = None) -> dict:
 
     hits, base_confidence, profile = candidates[0]
     confidence = min(0.99, base_confidence + max(0, hits - 1) * 0.04)
-    if len(candidates) > 1 and candidates[1][0] == hits and abs(candidates[1][1] - base_confidence) <= 0.08:
+    confidence_gap = round(abs(candidates[1][1] - base_confidence), 2) if len(candidates) > 1 else None
+    if len(candidates) > 1 and candidates[1][0] == hits and confidence_gap is not None and confidence_gap <= 0.08:
         confidence = max(0.45, confidence - 0.12)
         source = "ambiguous_user_text"
     else:
