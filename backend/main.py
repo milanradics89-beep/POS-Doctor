@@ -20,6 +20,7 @@ from backend.scene_quality import quality_gate
 from backend.security_headers import install_security_headers
 from backend.vision_contract import BASE_SYSTEM, SCHEMA, SCENE_STRATEGIES
 from backend.intent_engine import classify_intent, rank_opportunities
+from backend.suggestion_explanations import build_suggestion_reasons
 
 logger = logging.getLogger("useit")
 logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
@@ -113,7 +114,22 @@ async def useit_analyze(request: UseItAnalyzeRequest):
         query = _build_discovery_query(scene, request)
         if query:
             shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
-    suggestions = [{"id":o["id"],"title":o["title"],"description":o["description"],"kind":o["kind"],"effort":o["effort"],"durationMinutes":o["durationMinutes"],"visualizable":o["visualizable"],"score":o["score"],"rank":o["rank"]} for o in ranked]
+    suggestions = [
+        {
+            "id": o["id"],
+            "title": o["title"],
+            "description": o["description"],
+            "kind": o["kind"],
+            "effort": o["effort"],
+            "durationMinutes": o["durationMinutes"],
+            "visualizable": o["visualizable"],
+            "score": o["score"],
+            "preferenceScore": o.get("preferenceScore", 0.0),
+            "rank": o["rank"],
+            "reasons": build_suggestion_reasons(o, intent, scene, context),
+        }
+        for o in ranked
+    ]
     return {"scene":scene,"intent":intent,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","intent","suggest","shop" if shopping else "plan"]}
 
 app.include_router(redesign_router)
