@@ -4,6 +4,7 @@ from typing import Any
 
 RELATION_CONFIDENCE_FLOOR = 0.55
 MAX_RELATIONS = 40
+MAX_FACTS = 40
 
 
 def _key(value: Any) -> str:
@@ -13,12 +14,14 @@ def _key(value: Any) -> str:
 def normalize_relations(analysis: dict[str, Any]) -> list[dict[str, Any]]:
     """Return conservative, deduplicated scene relations from vision output."""
     items = analysis.get("items", []) or []
-    visible = {_key(item.get("name")) for item in items if _key(item.get("name"))}
+    visible = {_key(item.get("name")) for item in items if isinstance(item, dict) and _key(item.get("name"))}
     relations = analysis.get("relations", []) or []
     seen: set[tuple[str, str, str]] = set()
     normalized: list[dict[str, Any]] = []
 
     for relation in relations:
+        if not isinstance(relation, dict):
+            continue
         source = _key(relation.get("source"))
         target = _key(relation.get("target"))
         predicate = _key(relation.get("relation") or relation.get("type"))
@@ -28,7 +31,7 @@ def normalize_relations(analysis: dict[str, Any]) -> list[dict[str, Any]]:
             continue
         if not source or not target or not predicate or source == target:
             continue
-        if source not in visible or target not in visible or confidence < RELATION_CONFIDENCE_FLOOR:
+        if source not in visible or target not in visible or not 0 <= confidence <= 1 or confidence < RELATION_CONFIDENCE_FLOOR:
             continue
         key = (source, target, predicate)
         if key in seen:
@@ -50,5 +53,34 @@ def derive_scene_facts(analysis: dict[str, Any]) -> list[dict[str, Any]]:
             "object": relation["target"],
             "confidence": relation["confidence"],
         }
-        for relation in normalize_relations(analysis)
+        for relation in normalize_relations(analysis)[:MAX_FACTS]
     ]
+
+
+def derive_scene_reasoning(analysis: dict[str, Any]) -> list[dict[str, Any]]:
+    """Produce bounded, evidence-backed higher-level scene signals.
+
+    These are intentionally conservative: no new object is invented and no
+    transitive conclusion is emitted unless the relation itself is explicit.
+    """
+    relations = normalize_relations(analysis)
+    reasoning: list[dict[str, Any]] = []
+    for relation in relations:
+        predicate = relation["relation"]
+        if predicate in {"inside", "contains", "on", "attached_to", "part_of"}:
+            reasoning.append({
+                "type": "context",
+                "subject": relation["source"],
+                "context": relation["target"],
+                "relation": predicate,
+                "confidence": relation["confidence"],
+            })
+        elif predicate in {"near", "aligned_with"}:
+            reasoning.append({
+                "type": "proximity",
+                "subject": relation["source"],
+                "relatedTo": relation["target"],
+                "relation": predicate,
+                "confidence": relation["confidence"],
+            })
+    return reasoning[:MAX_FACTS]
