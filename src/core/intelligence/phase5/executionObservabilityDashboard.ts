@@ -14,8 +14,12 @@ export function createExecutionObservabilityDashboard(
     throw new Error('recentLimit must be a non-negative integer.');
   }
 
+  const recent = recentLimit === 0
+    ? []
+    : records.slice(-recentLimit).reverse().map((record) => ({ ...record }));
+
   return {
     summary: summarizeExecutionObservability(records),
-    recent: records.slice(-recentLimit).reverse().map((record) => ({ ...record })),
+    recent,
   };
 }
