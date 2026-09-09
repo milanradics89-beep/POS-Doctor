@@ -23,6 +23,20 @@ def test_unmatched_text_uses_safe_fallback() -> None:
     assert result["source"] == "fallback"
 
 
+def test_english_fix_term_does_not_match_inside_another_word() -> None:
+    result = classify_intent("Show me a prefix example")
+    assert result["name"] == "explore"
+    assert result["source"] == "fallback"
+
+
+def test_ambiguous_intent_is_marked_and_exposes_alternatives() -> None:
+    result = classify_intent("repair és create")
+    assert result["source"] == "ambiguous_user_text"
+    assert result["name"] == "fix"
+    assert result["alternatives"][0]["name"] == "create"
+    assert result["confidence"] < 0.88
+
+
 def test_opportunities_are_ranked_by_intent_fit() -> None:
     scene = {
         "sceneType": "room",
