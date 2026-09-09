@@ -30,6 +30,16 @@ def test_action_plan_is_deterministic_and_allowlisted(monkeypatch, tmp_path):
     assert client.post("/v1/actions/plan", json=arbitrary).status_code == 422
 
 
+def test_action_payloads_are_typed_and_candidates_are_opaque(monkeypatch, tmp_path):
+    _configure(monkeypatch, tmp_path)
+    base = {"actionType": "shop", "title": "Compare", "candidateIds": ["candidate-1"]}
+    wrong_type = {**base, "payload": {"comparePrices": "https://example.com"}}
+    assert client.post("/v1/actions/plan", json=wrong_type).status_code == 422
+
+    url_candidate = {**base, "candidateIds": ["https://example.com/item"]}
+    assert client.post("/v1/actions/plan", json=url_candidate).status_code == 422
+
+
 def test_action_execution_requires_confirmation_and_fails_closed(monkeypatch, tmp_path):
     _configure(monkeypatch, tmp_path)
     plan = client.post(
