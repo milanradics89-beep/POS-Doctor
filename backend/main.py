@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from backend.api_auth import configured_api_key, install_api_key_guard
 from backend.google_search import router as google_search_router
+from backend.knowledge_search import router as knowledge_search_router
 from backend.product_discovery import ProductDiscoveryRequest, discover_products, router as product_discovery_router
 from backend.product_extractor import router as product_extractor_router
 from backend.redesign import router as redesign_router
@@ -134,5 +135,6 @@ async def useit_analyze(request: UseItAnalyzeRequest):
 
 app.include_router(redesign_router)
 app.include_router(google_search_router)
+app.include_router(knowledge_search_router)
 app.include_router(product_extractor_router)
 app.include_router(product_discovery_router)
