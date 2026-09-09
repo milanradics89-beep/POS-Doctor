@@ -14,6 +14,7 @@ from backend.google_search import router as google_search_router
 from backend.product_discovery import ProductDiscoveryRequest, discover_products, router as product_discovery_router
 from backend.product_extractor import router as product_extractor_router
 from backend.redesign import router as redesign_router
+from backend.rate_limit import install_rate_limit
 from backend.scene_quality import quality_gate
 from backend.security_headers import install_security_headers
 from backend.vision_contract import BASE_SYSTEM, SCHEMA, SCENE_STRATEGIES
@@ -25,6 +26,7 @@ origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key"])
 install_security_headers(app)
 install_api_key_guard(app)
+install_rate_limit(app)
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
 
 class AnalyzeRequest(BaseModel):
