@@ -17,7 +17,7 @@ export class ExecutionObservabilityCollector {
       recordedAt,
     });
     this.records.push(record);
-    return record;
+    return { ...record };
   }
 
   getAll(): ActionExecutionObservability[] {
