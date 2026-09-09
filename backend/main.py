@@ -15,6 +15,7 @@ from backend.product_discovery import ProductDiscoveryRequest, discover_products
 from backend.product_extractor import router as product_extractor_router
 from backend.redesign import router as redesign_router
 from backend.scene_quality import quality_gate
+from backend.security_headers import install_security_headers
 from backend.vision_contract import BASE_SYSTEM, SCHEMA, SCENE_STRATEGIES
 
 logger = logging.getLogger("useit")
@@ -22,6 +23,7 @@ logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
 app = FastAPI(title="USEIT Intelligence API", version="0.6.2")
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key"])
+install_security_headers(app)
 install_api_key_guard(app)
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
 
