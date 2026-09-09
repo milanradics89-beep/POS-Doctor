@@ -102,7 +102,7 @@ async def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_
 
 @app.post("/v1/analyze")
 async def analyze(request: AnalyzeRequest):
-    logger.info("Analyze request received: imageUri_length=%s request_id=%s", len(request.imageUri), getattr(request.state, "request_id", "unknown"))
+    logger.info("Analyze request received: imageUri_length=%s", len(request.imageUri))
     return await _analyze(request)
 
 @app.post("/v1/useit/analyze")
