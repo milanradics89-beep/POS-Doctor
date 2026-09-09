@@ -27,24 +27,54 @@ def _tokens(text: str) -> set[str]:
     return set(re.findall(r"[\wáéíóöőúüű]+", text.lower()))
 
 
+def _match_term(term: str, text: str, tokens: set[str]) -> bool:
+    normalized = term.lower()
+    if " " in normalized:
+        return normalized in text
+    if normalized in {"fix", "buy", "purchase", "shopping", "improve", "upgrade", "better", "repair", "cook", "recipe", "organize", "storage", "declutter", "reuse", "upcycle", "create", "build", "make", "project", "play", "game"}:
+        return normalized in tokens
+    return normalized in text
+
+
+def _intent_candidates(text: str) -> list[tuple[int, float, IntentProfile]]:
+    tokens = _tokens(text)
+    candidates: list[tuple[int, float, IntentProfile]] = []
+    for profile in _INTENTS:
+        hits = sum(1 for term in profile.terms if _match_term(term, text, tokens))
+        if hits:
+            candidates.append((hits, profile.confidence, profile))
+    return sorted(candidates, key=lambda item: (-item[0], -item[1], item[2].name))
+
+
 def classify_intent(user_intent: str | None, prompt: str | None = None) -> dict:
     text = " ".join(part for part in (user_intent, prompt) if part).strip()
     if not text:
         return {"name": "explore", "confidence": 0.35, "source": "default"}
 
-    tokens = _tokens(text)
-    candidates: list[tuple[int, float, IntentProfile]] = []
-    for profile in _INTENTS:
-        hits = sum(1 for term in profile.terms if term in text.lower() or term in tokens)
-        if hits:
-            candidates.append((hits, profile.confidence, profile))
-
+    candidates = _intent_candidates(text)
     if not candidates:
         return {"name": "explore", "confidence": 0.35, "source": "fallback"}
 
-    hits, base_confidence, profile = max(candidates, key=lambda item: (item[0], item[1]))
+    hits, base_confidence, profile = candidates[0]
     confidence = min(0.99, base_confidence + max(0, hits - 1) * 0.04)
-    return {"name": profile.name, "confidence": round(confidence, 2), "source": "user_text"}
+    if len(candidates) > 1 and candidates[1][0] == hits and abs(candidates[1][1] - base_confidence) < 0.05:
+        confidence = max(0.45, confidence - 0.12)
+        source = "ambiguous_user_text"
+    else:
+        source = "user_text"
+
+    alternatives = [
+        {"name": candidate.name, "confidence": round(min(0.99, candidate.confidence + max(0, candidate.hits - 1) * 0.04), 2)}
+        for candidate in []
+    ]
+    alternatives = [
+        {"name": candidate[2].name, "confidence": round(min(0.99, candidate[1] + max(0, candidate[0] - 1) * 0.04), 2)}
+        for candidate in candidates[1:3]
+    ]
+    result = {"name": profile.name, "confidence": round(confidence, 2), "source": source}
+    if alternatives:
+        result["alternatives"] = alternatives
+    return result
 
 
 def _normalise_terms(values: list[str] | tuple[str, ...] | None) -> set[str]:
