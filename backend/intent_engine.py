@@ -22,6 +22,12 @@ _INTENTS: tuple[IntentProfile, ...] = (
     IntentProfile("play", 0.80, ("játék", "játszani", "play", "game", "gyerek")),
 )
 
+_ENGLISH_SINGLE_WORD_TERMS = {
+    "fix", "buy", "purchase", "shopping", "improve", "upgrade", "better", "repair",
+    "cook", "recipe", "organize", "storage", "declutter", "reuse", "upcycle", "create",
+    "build", "make", "project", "play", "game",
+}
+
 
 def _tokens(text: str) -> set[str]:
     return set(re.findall(r"[\wáéíóöőúüű]+", text.lower()))
@@ -31,7 +37,7 @@ def _match_term(term: str, text: str, tokens: set[str]) -> bool:
     normalized = term.lower()
     if " " in normalized:
         return normalized in text
-    if normalized in {"fix", "buy", "purchase", "shopping", "improve", "upgrade", "better", "repair", "cook", "recipe", "organize", "storage", "declutter", "reuse", "upcycle", "create", "build", "make", "project", "play", "game"}:
+    if normalized in _ENGLISH_SINGLE_WORD_TERMS:
         return normalized in tokens
     return normalized in text
 
@@ -63,10 +69,6 @@ def classify_intent(user_intent: str | None, prompt: str | None = None) -> dict:
     else:
         source = "user_text"
 
-    alternatives = [
-        {"name": candidate.name, "confidence": round(min(0.99, candidate.confidence + max(0, candidate.hits - 1) * 0.04), 2)}
-        for candidate in []
-    ]
     alternatives = [
         {"name": candidate[2].name, "confidence": round(min(0.99, candidate[1] + max(0, candidate[0] - 1) * 0.04), 2)}
         for candidate in candidates[1:3]
