@@ -47,12 +47,24 @@ def classify_intent(user_intent: str | None, prompt: str | None = None) -> dict:
     return {"name": profile.name, "confidence": round(confidence, 2), "source": "user_text"}
 
 
-def _score_opportunity(opportunity: dict, intent: dict, scene: dict) -> float:
+def _normalise_terms(values: list[str] | tuple[str, ...] | None) -> set[str]:
+    return {value.strip().lower() for value in (values or []) if value and value.strip()}
+
+
+def _scene_evidence_score(scene: dict) -> float:
+    items = scene.get("items") or []
+    confidences = [float(item.get("confidence", 0.0)) for item in items if item.get("confidence") is not None]
+    if not confidences:
+        return 0.5
+    return sum(confidences) / len(confidences)
+
+
+def _score_opportunity(opportunity: dict, intent: dict, scene: dict, context: dict | None = None) -> float:
+    context = context or {}
     score = 0.50
     kind = str(opportunity.get("kind", ""))
-    title = str(opportunity.get("title", "")).lower()
-    description = str(opportunity.get("description", "")).lower()
-    intent_name = intent["name"]
+    searchable = " ".join(str(opportunity.get(key, "")) for key in ("title", "description", "kind")).lower()
+    intent_name = intent.get("name", "explore")
 
     if intent_name == kind:
         score += 0.35
@@ -61,26 +73,46 @@ def _score_opportunity(opportunity: dict, intent: dict, scene: dict) -> float:
     elif intent_name == "explore":
         score += 0.05 if opportunity.get("visualizable") else 0.0
 
-    scene_type = str(scene.get("sceneType", "unknown"))
-    if scene_type in title or scene_type in description:
+    scene_type = str(scene.get("sceneType", "unknown")).lower()
+    if scene_type != "unknown" and scene_type in searchable:
         score += 0.05
+
+    preferred_styles = _normalise_terms(context.get("preferredStyles"))
+    preferred_colors = _normalise_terms(context.get("preferredColors"))
+    if preferred_styles and any(term in searchable for term in preferred_styles):
+        score += 0.07
+    if preferred_colors and any(term in searchable for term in preferred_colors):
+        score += 0.05
+
+    required_items = {str(item).lower() for item in (opportunity.get("requiredItems") or [])}
+    visible_items = {str(item.get("name", "")).lower() for item in (scene.get("items") or [])}
+    if required_items:
+        matched = sum(1 for item in required_items if any(item in visible or visible in item for visible in visible_items if visible))
+        coverage = matched / len(required_items)
+        score += 0.10 * coverage
+        if coverage == 0 and not opportunity.get("missingItems"):
+            score -= 0.05
+
+    evidence = _scene_evidence_score(scene)
+    score += (evidence - 0.5) * 0.10
 
     effort_bonus = {"easy": 0.06, "medium": 0.03, "advanced": 0.0}.get(opportunity.get("effort"), 0.0)
     score += effort_bonus
     if opportunity.get("visualizable"):
         score += 0.04
-    return round(min(score, 1.0), 3)
+    return round(max(0.0, min(score, 1.0)), 3)
 
 
-def rank_opportunities(scene: dict, intent: dict, limit: int = 6) -> list[dict]:
+def rank_opportunities(scene: dict, intent: dict, limit: int = 6, context: dict | None = None) -> list[dict]:
+    if limit < 1:
+        return []
     opportunities = scene.get("opportunities") or []
     ranked = []
-    for index, opportunity in enumerate(opportunities):
+    for opportunity in opportunities:
         item = dict(opportunity)
-        item["score"] = _score_opportunity(item, intent, scene)
-        item["rank"] = index + 1
+        item["score"] = _score_opportunity(item, intent, scene, context)
         ranked.append(item)
-    ranked.sort(key=lambda item: (-item["score"], item["id"]))
+    ranked.sort(key=lambda item: (-item["score"], str(item.get("id", ""))))
     for rank, item in enumerate(ranked[:limit], start=1):
         item["rank"] = rank
     return ranked[:limit]
