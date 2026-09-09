@@ -21,7 +21,7 @@ def normalize_relations(analysis: dict[str, Any]) -> list[dict[str, Any]]:
     for relation in relations:
         source = _key(relation.get("source"))
         target = _key(relation.get("target"))
-        predicate = _key(relation.get("relation"))
+        predicate = _key(relation.get("relation") or relation.get("type"))
         try:
             confidence = float(relation.get("confidence", 0))
         except (TypeError, ValueError):
@@ -42,13 +42,13 @@ def normalize_relations(analysis: dict[str, Any]) -> list[dict[str, Any]]:
 
 def derive_scene_facts(analysis: dict[str, Any]) -> list[dict[str, Any]]:
     """Derive bounded facts only from explicit, sufficiently confident relations."""
-    facts: list[dict[str, Any]] = []
-    for relation in normalize_relations(analysis):
-        facts.append({
+    return [
+        {
             "type": "relation",
             "subject": relation["source"],
             "predicate": relation["relation"],
             "object": relation["target"],
             "confidence": relation["confidence"],
-        })
-    return facts
+        }
+        for relation in normalize_relations(analysis)
+    ]
