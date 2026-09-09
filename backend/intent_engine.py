@@ -22,11 +22,7 @@ _INTENTS: tuple[IntentProfile, ...] = (
     IntentProfile("play", 0.80, ("játék", "játszani", "play", "game", "gyerek")),
 )
 
-_ENGLISH_SINGLE_WORD_TERMS = {
-    "fix", "buy", "purchase", "shopping", "improve", "upgrade", "better", "repair",
-    "cook", "recipe", "organize", "storage", "declutter", "reuse", "upcycle", "create",
-    "build", "make", "project", "play", "game",
-}
+_ENGLISH_SINGLE_WORD_TERMS = {"fix", "buy", "purchase", "shopping", "improve", "upgrade", "better", "repair", "cook", "recipe", "organize", "storage", "declutter", "reuse", "upcycle", "create", "build", "make", "project", "play", "game"}
 
 
 def _tokens(text: str) -> set[str]:
@@ -56,11 +52,9 @@ def classify_intent(user_intent: str | None, prompt: str | None = None) -> dict:
     text = " ".join(part for part in (user_intent, prompt) if part).strip()
     if not text:
         return {"name": "explore", "confidence": 0.35, "source": "default"}
-
     candidates = _intent_candidates(text)
     if not candidates:
         return {"name": "explore", "confidence": 0.35, "source": "fallback"}
-
     hits, base_confidence, profile = candidates[0]
     confidence = min(0.99, base_confidence + max(0, hits - 1) * 0.04)
     confidence_gap = round(abs(candidates[1][1] - base_confidence), 2) if len(candidates) > 1 else None
@@ -69,11 +63,7 @@ def classify_intent(user_intent: str | None, prompt: str | None = None) -> dict:
         source = "ambiguous_user_text"
     else:
         source = "user_text"
-
-    alternatives = [
-        {"name": candidate[2].name, "confidence": round(min(0.99, candidate[1] + max(0, candidate[0] - 1) * 0.04), 2)}
-        for candidate in candidates[1:3]
-    ]
+    alternatives = [{"name": candidate[2].name, "confidence": round(min(0.99, candidate[1] + max(0, candidate[0] - 1) * 0.04), 2)} for candidate in candidates[1:3]]
     result = {"name": profile.name, "confidence": round(confidence, 2), "source": source}
     if alternatives:
         result["alternatives"] = alternatives
@@ -92,16 +82,26 @@ def _scene_evidence_score(scene: dict) -> float:
     return sum(confidences) / len(confidences)
 
 
+def _relation_coverage(opportunity: dict, scene: dict) -> float:
+    """Score whether an opportunity's required items participate in explicit scene relations."""
+    facts = scene.get("sceneFacts") or []
+    required = {str(item).strip().lower() for item in (opportunity.get("requiredItems") or []) if str(item).strip()}
+    if not facts or not required:
+        return 0.0
+    related = set()
+    for fact in facts:
+        related.add(str(fact.get("subject", "")).lower())
+        related.add(str(fact.get("object", "")).lower())
+    matched = sum(1 for item in required if any(item in entity or entity in item for entity in related if entity))
+    return matched / len(required)
+
+
 def _preference_score(opportunity: dict, context: dict | None = None) -> float:
     context = context or {}
     searchable = " ".join(str(opportunity.get(key, "")) for key in ("title", "description", "kind")).lower()
-    preferred_styles = _normalise_terms(context.get("preferredStyles"))
-    preferred_colors = _normalise_terms(context.get("preferredColors"))
     score = 0.0
-    if preferred_styles and any(term in searchable for term in preferred_styles):
-        score += 0.07
-    if preferred_colors and any(term in searchable for term in preferred_colors):
-        score += 0.05
+    if _normalise_terms(context.get("preferredStyles")) and any(term in searchable for term in _normalise_terms(context.get("preferredStyles"))): score += 0.07
+    if _normalise_terms(context.get("preferredColors")) and any(term in searchable for term in _normalise_terms(context.get("preferredColors"))): score += 0.05
     return round(score, 3)
 
 
@@ -110,19 +110,13 @@ def _score_opportunity(opportunity: dict, intent: dict, scene: dict, context: di
     score = 0.50
     kind = str(opportunity.get("kind", ""))
     intent_name = intent.get("name", "explore")
-
-    if intent_name == kind:
-        score += 0.35
-    elif intent_name == "shop" and opportunity.get("missingItems"):
-        score += 0.20
-    elif intent_name == "explore":
-        score += 0.05 if opportunity.get("visualizable") else 0.0
+    if intent_name == kind: score += 0.35
+    elif intent_name == "shop" and opportunity.get("missingItems"): score += 0.20
+    elif intent_name == "explore": score += 0.05 if opportunity.get("visualizable") else 0.0
 
     searchable = " ".join(str(opportunity.get(key, "")) for key in ("title", "description", "kind")).lower()
     scene_type = str(scene.get("sceneType", "unknown")).lower()
-    if scene_type != "unknown" and scene_type in searchable:
-        score += 0.05
-
+    if scene_type != "unknown" and scene_type in searchable: score += 0.05
     score += _preference_score(opportunity, context)
 
     required_items = {str(item).lower() for item in (opportunity.get("requiredItems") or [])}
@@ -131,28 +125,26 @@ def _score_opportunity(opportunity: dict, intent: dict, scene: dict, context: di
         matched = sum(1 for item in required_items if any(item in visible or visible in item for visible in visible_items if visible))
         coverage = matched / len(required_items)
         score += 0.10 * coverage
-        if coverage == 0 and not opportunity.get("missingItems"):
-            score -= 0.05
+        if coverage == 0 and not opportunity.get("missingItems"): score -= 0.05
+
+    relation_coverage = _relation_coverage(opportunity, scene)
+    score += 0.08 * relation_coverage
 
     evidence = _scene_evidence_score(scene)
     score += (evidence - 0.5) * 0.10
     score += {"easy": 0.06, "medium": 0.03, "advanced": 0.0}.get(opportunity.get("effort"), 0.0)
-    if opportunity.get("visualizable"):
-        score += 0.04
+    if opportunity.get("visualizable"): score += 0.04
     return round(max(0.0, min(score, 1.0)), 3)
 
 
 def rank_opportunities(scene: dict, intent: dict, limit: int = 6, context: dict | None = None) -> list[dict]:
-    if limit < 1:
-        return []
-    opportunities = scene.get("opportunities") or []
+    if limit < 1: return []
     ranked = []
-    for opportunity in opportunities:
+    for opportunity in scene.get("opportunities") or []:
         item = dict(opportunity)
         item["score"] = _score_opportunity(item, intent, scene, context)
         item["preferenceScore"] = _preference_score(item, context)
         ranked.append(item)
     ranked.sort(key=lambda item: (-item["score"], -item["preferenceScore"], str(item.get("id", ""))))
-    for rank, item in enumerate(ranked[:limit], start=1):
-        item["rank"] = rank
+    for rank, item in enumerate(ranked[:limit], start=1): item["rank"] = rank
     return ranked[:limit]
