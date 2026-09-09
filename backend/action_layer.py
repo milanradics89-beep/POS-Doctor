@@ -49,11 +49,14 @@ CONFIRMATION_REQUIRED = {
     ActionType.REPAIR_GUIDE,
 }
 
-ENABLED_ADAPTERS = {
-    name.strip()
-    for name in os.environ.get("USEIT_ACTION_ADAPTERS", "").split(",")
-    if name.strip()
-}
+
+def _enabled_adapters() -> set[str]:
+    """Read adapter configuration at execution time, avoiding stale import-time state."""
+    return {
+        name.strip()
+        for name in os.environ.get("USEIT_ACTION_ADAPTERS", "").split(",")
+        if name.strip()
+    }
 
 
 class ActionRequest(BaseModel):
@@ -232,7 +235,7 @@ async def execute_action(plan_id: str, request: ExecuteRequest) -> ExecutionResp
             return ExecutionResponse(planId=plan.planId, state=existing[1], idempotent=True, message="Action was already accepted for this idempotency key.")
         if plan.requiresConfirmation and request.confirmation is not True:
             raise HTTPException(428, "Explicit confirmation is required before executing this action.")
-        if plan.actionType.value not in ENABLED_ADAPTERS:
+        if plan.actionType.value not in _enabled_adapters():
             raise HTTPException(503, "Action adapter is not configured; execution failed closed.")
         connection.execute(
             "INSERT INTO action_executions(idempotency_key, plan_id, state, created_at) VALUES (?, ?, ?, ?)",
