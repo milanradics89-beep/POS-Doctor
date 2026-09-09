@@ -7,7 +7,8 @@ import sqlite3
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
@@ -32,6 +33,11 @@ class ActionType(str, Enum):
     EXPLAIN = "explain"
 
 
+class ActionState(str, Enum):
+    PLANNED = "planned"
+    ACCEPTED = "accepted"
+
+
 PAYLOAD_KEYS = {
     ActionType.VISUALIZE: {"preserveSource"},
     ActionType.SHOP: {"comparePrices"},
@@ -42,12 +48,28 @@ PAYLOAD_KEYS = {
     ActionType.EXPLAIN: set(),
 }
 
+PAYLOAD_TYPES = {
+    key: {field: bool for field in fields}
+    for key, fields in PAYLOAD_KEYS.items()
+}
+
 CONFIRMATION_REQUIRED = {
     ActionType.VISUALIZE,
     ActionType.SHOP,
     ActionType.STYLE,
     ActionType.REPAIR_GUIDE,
 }
+
+# Adapters are deliberately explicit. External integrations register a callable and
+# must also be enabled by USEIT_ACTION_ADAPTERS. No arbitrary import/tool execution exists.
+ActionAdapter = Callable[["PlanResponse"], ActionState]
+_ADAPTERS: dict[ActionType, ActionAdapter] = {
+    ActionType.RECOMMEND: lambda _plan: ActionState.ACCEPTED,
+}
+
+
+def register_action_adapter(action_type: ActionType, adapter: ActionAdapter) -> None:
+    _ADAPTERS[action_type] = adapter
 
 
 def _enabled_adapters() -> set[str]:
@@ -57,6 +79,12 @@ def _enabled_adapters() -> set[str]:
         for name in os.environ.get("USEIT_ACTION_ADAPTERS", "").split(",")
         if name.strip()
     }
+
+
+def _resolve_adapter(action_type: ActionType) -> ActionAdapter | None:
+    if action_type.value not in _enabled_adapters():
+        return None
+    return _ADAPTERS.get(action_type)
 
 
 class ActionRequest(BaseModel):
@@ -74,6 +102,9 @@ class ActionRequest(BaseModel):
         for value in values:
             if not 1 <= len(value) <= 128:
                 raise ValueError("candidateIds contain an invalid identifier")
+            parsed = urlparse(value)
+            if parsed.scheme or parsed.netloc or any(ord(char) < 32 for char in value):
+                raise ValueError("candidateIds must be opaque identifiers")
         return values
 
     @field_validator("payload")
@@ -82,10 +113,10 @@ class ActionRequest(BaseModel):
         for key, value in values.items():
             if not 1 <= len(str(key)) <= 64:
                 raise ValueError("payload key is invalid")
-            if isinstance(value, str) and len(value) > MAX_PAYLOAD_VALUE:
-                raise ValueError("payload value is too long")
             if isinstance(value, (dict, list)):
                 raise ValueError("nested payload values are not supported")
+            if isinstance(value, str) and len(value) > MAX_PAYLOAD_VALUE:
+                raise ValueError("payload value is too long")
         return values
 
     @field_validator("metadata")
@@ -105,7 +136,7 @@ class PlanResponse(BaseModel):
     candidateIds: list[str]
     payload: dict[str, Any]
     requiresConfirmation: bool
-    state: str
+    state: ActionState
 
 
 class ExecuteRequest(BaseModel):
@@ -122,7 +153,7 @@ class ExecuteRequest(BaseModel):
 
 class ExecutionResponse(BaseModel):
     planId: str
-    state: str
+    state: ActionState
     idempotent: bool
     message: str
 
@@ -157,6 +188,10 @@ def _validate_payload_for_action(request: ActionRequest) -> None:
     unknown = set(request.payload) - PAYLOAD_KEYS[request.actionType]
     if unknown:
         raise HTTPException(422, "Payload contains unsupported action fields.")
+    expected_types = PAYLOAD_TYPES[request.actionType]
+    for key, expected in expected_types.items():
+        if key in request.payload and type(request.payload[key]) is not expected:
+            raise HTTPException(422, f"Payload field '{key}' has an invalid type.")
 
 
 def _stable_plan_id(request: ActionRequest) -> str:
@@ -186,7 +221,7 @@ def _plan(request: ActionRequest) -> PlanResponse:
         candidateIds=request.candidateIds,
         payload=request.payload,
         requiresConfirmation=request.actionType in CONFIRMATION_REQUIRED,
-        state="planned",
+        state=ActionState.PLANNED,
     )
     connection = _connect()
     try:
@@ -223,25 +258,35 @@ async def execute_action(plan_id: str, request: ExecuteRequest) -> ExecutionResp
     if len(plan_id) != 32:
         raise HTTPException(422, "Invalid action plan identifier.")
     plan = _load_plan(plan_id)
+    if plan.requiresConfirmation and request.confirmation is not True:
+        raise HTTPException(428, "Explicit confirmation is required before executing this action.")
+
+    adapter = _resolve_adapter(plan.actionType)
+    if adapter is None:
+        raise HTTPException(503, "Action adapter is not configured; execution failed closed.")
+
     connection = _connect()
     try:
+        connection.execute("BEGIN IMMEDIATE")
         existing = connection.execute(
             "SELECT plan_id, state FROM action_executions WHERE idempotency_key = ?",
             (request.idempotencyKey,),
         ).fetchone()
         if existing:
+            connection.rollback()
             if existing[0] != plan.planId:
                 raise HTTPException(409, "Idempotency key is already bound to another action plan.")
-            return ExecutionResponse(planId=plan.planId, state=existing[1], idempotent=True, message="Action was already accepted for this idempotency key.")
-        if plan.requiresConfirmation and request.confirmation is not True:
-            raise HTTPException(428, "Explicit confirmation is required before executing this action.")
-        if plan.actionType.value not in _enabled_adapters():
-            raise HTTPException(503, "Action adapter is not configured; execution failed closed.")
+            return ExecutionResponse(planId=plan.planId, state=ActionState(existing[1]), idempotent=True, message="Action was already accepted for this idempotency key.")
+
+        state = adapter(plan)
+        if state not in {ActionState.ACCEPTED}:
+            connection.rollback()
+            raise HTTPException(502, "Action adapter returned an unsupported lifecycle state.")
         connection.execute(
             "INSERT INTO action_executions(idempotency_key, plan_id, state, created_at) VALUES (?, ?, ?, ?)",
-            (request.idempotencyKey, plan.planId, "accepted", datetime.now(timezone.utc).isoformat()),
+            (request.idempotencyKey, plan.planId, state.value, datetime.now(timezone.utc).isoformat()),
         )
         connection.commit()
-        return ExecutionResponse(planId=plan.planId, state="accepted", idempotent=False, message="Action accepted by the configured adapter boundary.")
+        return ExecutionResponse(planId=plan.planId, state=state, idempotent=False, message="Action accepted by the configured adapter boundary.")
     finally:
         connection.close()
