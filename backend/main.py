@@ -17,6 +17,7 @@ from backend.redesign import router as redesign_router
 from backend.rate_limit import install_rate_limit
 from backend.request_controls import install_request_controls
 from backend.scene_quality import quality_gate
+from backend.scene_understanding import normalize_scene_understanding
 from backend.security_headers import install_security_headers
 from backend.vision_contract import BASE_SYSTEM, SCHEMA, SCENE_STRATEGIES
 from backend.intent_engine import classify_intent, rank_opportunities
@@ -84,7 +85,8 @@ async def _analyze(request: AnalyzeRequest):
         )
         content = response.choices[0].message.content
         if not content: raise HTTPException(502, "Vision analysis returned no structured content.")
-        return quality_gate(json.loads(content))
+        scene = quality_gate(json.loads(content))
+        return normalize_scene_understanding(scene)
     except HTTPException: raise
     except Exception as exc:
         logger.exception("Vision analysis failed")
