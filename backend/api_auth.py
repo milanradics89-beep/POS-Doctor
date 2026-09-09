@@ -20,7 +20,7 @@ def install_api_key_guard(app) -> None:
     @app.middleware("http")
     async def api_key_guard(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
         expected = configured_api_key()
-        if expected and request.url.path not in PUBLIC_PATHS:
+        if expected and request.method != "OPTIONS" and request.url.path not in PUBLIC_PATHS:
             supplied = request.headers.get("X-API-Key", "")
             if not secrets.compare_digest(supplied, expected):
                 return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key."})
