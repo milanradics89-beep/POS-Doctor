@@ -15,6 +15,7 @@ from backend.product_discovery import ProductDiscoveryRequest, discover_products
 from backend.product_extractor import router as product_extractor_router
 from backend.redesign import router as redesign_router
 from backend.rate_limit import install_rate_limit
+from backend.request_controls import install_request_controls
 from backend.scene_quality import quality_gate
 from backend.security_headers import install_security_headers
 from backend.vision_contract import BASE_SYSTEM, SCHEMA, SCENE_STRATEGIES
@@ -23,7 +24,8 @@ logger = logging.getLogger("useit")
 logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
 app = FastAPI(title="USEIT Intelligence API", version="0.6.2")
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key"])
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key", "X-Request-ID"])
+install_request_controls(app)
 install_security_headers(app)
 install_api_key_guard(app)
 install_rate_limit(app)
@@ -100,7 +102,7 @@ async def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_
 
 @app.post("/v1/analyze")
 async def analyze(request: AnalyzeRequest):
-    logger.info("Analyze request received: imageUri_length=%s", len(request.imageUri))
+    logger.info("Analyze request received: imageUri_length=%s request_id=%s", len(request.imageUri), getattr(request.state, "request_id", "unknown"))
     return await _analyze(request)
 
 @app.post("/v1/useit/analyze")
