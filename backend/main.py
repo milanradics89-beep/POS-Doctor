@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
 
+from backend.api_auth import configured_api_key, install_api_key_guard
 from backend.google_search import router as google_search_router
 from backend.product_discovery import ProductDiscoveryRequest, discover_products, router as product_discovery_router
 from backend.product_extractor import router as product_extractor_router
@@ -18,9 +19,10 @@ from backend.vision_contract import BASE_SYSTEM, SCHEMA, SCENE_STRATEGIES
 
 logger = logging.getLogger("useit")
 logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
-app = FastAPI(title="USEIT Intelligence API", version="0.6.1")
+app = FastAPI(title="USEIT Intelligence API", version="0.6.2")
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key"])
+install_api_key_guard(app)
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
 
 class AnalyzeRequest(BaseModel):
@@ -90,7 +92,7 @@ def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
     return " ".join([scene.get("sceneType", "objects"), *items, *request.preferredStyles, *request.preferredColors, budget]).strip()
 
 @app.get("/health")
-async def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.6.1"}
+async def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.6.2","apiKeyRequired":bool(configured_api_key())}
 
 @app.post("/v1/analyze")
 async def analyze(request: AnalyzeRequest):
