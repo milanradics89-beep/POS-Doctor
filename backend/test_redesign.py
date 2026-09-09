@@ -2,9 +2,11 @@ import base64
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from backend.main import app
+from backend.redesign import _image_file
 
 client = TestClient(app)
 
@@ -29,11 +31,14 @@ def test_redesign_rejects_empty_image_data():
 
 
 def test_redesign_rejects_oversized_decoded_image():
-    # Keep the encoded request below RedesignRequest.imageUri's 8 MB field limit
-    # so the request reaches the decoded-image size guard in _image_file().
-    oversized = b"x" * 5_999_000
-    response = client.post("/v1/redesign", json={"imageUri": image_uri(oversized), "prompt": "Redesign this room in a modern style."})
-    assert response.status_code == 413
+    oversized = b"x" * 6_000_001
+    with patch("backend.redesign.base64.b64decode", return_value=oversized):
+        try:
+            _image_file(image_uri(b"small-payload"))
+        except HTTPException as exc:
+            assert exc.status_code == 413
+        else:
+            raise AssertionError("Oversized decoded image was not rejected")
 
 
 def test_redesign_bounds_product_metadata():
