@@ -6,6 +6,7 @@ from fastapi import HTTPException
 
 
 TRUE_VALUES = {"1", "true", "yes", "on"}
+MIN_SESSION_SECRET_LENGTH = 32
 
 
 def production_mode() -> bool:
@@ -16,10 +17,15 @@ def validate_production_security() -> None:
     if not production_mode():
         return
 
-    required = ("OPENAI_API_KEY", "USEIT_API_KEY")
-    missing = [name for name in required if not os.getenv(name)]
-    if missing:
-        raise RuntimeError("Missing required production secrets: " + ", ".join(missing))
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError("Missing required production secret: OPENAI_API_KEY")
+
+    api_key = os.getenv("USEIT_API_KEY", "").strip()
+    session_secret = os.getenv("USEIT_SESSION_SECRET", "").strip()
+    if not api_key and not session_secret:
+        raise RuntimeError("Production requires USEIT_API_KEY or USEIT_SESSION_SECRET")
+    if session_secret and len(session_secret) < MIN_SESSION_SECRET_LENGTH:
+        raise RuntimeError("USEIT_SESSION_SECRET must be at least 32 characters")
 
     origins = [x.strip() for x in os.getenv("USEIT_CORS_ORIGINS", "").split(",") if x.strip()]
     if not origins or "*" in origins:
