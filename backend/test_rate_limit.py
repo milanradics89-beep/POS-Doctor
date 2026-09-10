@@ -36,8 +36,13 @@ def test_rate_limit_does_not_block_options_or_public_paths(monkeypatch):
     async def health():
         return {"status": "ok"}
 
+    @app.get("/ready")
+    async def ready():
+        return {"status": "ready"}
+
     install_rate_limit(app)
     client = TestClient(app)
 
     assert client.options("/v1/test").status_code == 200
     assert client.get("/health").status_code == 200
+    assert client.get("/ready").status_code == 200
