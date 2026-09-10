@@ -42,6 +42,22 @@ def test_analyze_passes_image_and_policy():
     assert call['response_format']['json_schema']['name'] == 'useit_scene_analysis'
 
 
+def test_useit_analyze_returns_versioned_contract():
+    scene = valid_output()
+    intent = {'name': 'improve', 'confidence': 0.9}
+    with patch('backend.main._analyze', new=AsyncMock(return_value=scene)), \
+         patch('backend.main.classify_intent', return_value=intent), \
+         patch('backend.main.rank_opportunities', return_value=[]), \
+         patch('backend.main.derive_scene_facts', return_value=[]), \
+         patch('backend.main.derive_scene_reasoning', return_value=[]), \
+         patch('backend.main.build_specialist_context', return_value={'profile':'home-design'}):
+        r = client.post('/v1/useit/analyze', json={'imageUri':'data:image/jpeg;base64,' + 'a' * 32,'userIntent':'improve'})
+    assert r.status_code == 200
+    assert r.json()['contractVersion'] == 'useit_analyze_v1'
+    assert r.json()['intent'] == intent
+    assert r.json()['pipeline'][-1] == 'plan'
+
+
 def test_invalid_image_uri_is_rejected_by_validation():
     r = client.post('/v1/analyze', json={'imageUri':'not-an-image'})
     assert r.status_code == 422
