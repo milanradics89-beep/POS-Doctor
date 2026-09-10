@@ -77,7 +77,7 @@ def test_invalid_api_key_is_rejected():
 
 
 def test_cors_preflight_remains_public_when_api_key_is_configured():
-    with patch.dict(os.environ, {"USEIT_API_KEY": "secret"}, clear=False):
+    with patch.dict(os.environ, {"USEIT_API_KEY": "secret", "USEIT_CORS_ORIGINS": "http://localhost:3000"}, clear=False):
         response = client.options(
             "/v1/analyze",
             headers={
@@ -87,4 +87,4 @@ def test_cors_preflight_remains_public_when_api_key_is_configured():
             },
         )
     assert response.status_code == 200
-    assert response.headers.get("access-control-allow-origin") == "*"
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
