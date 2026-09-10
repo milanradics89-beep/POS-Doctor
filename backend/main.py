@@ -118,6 +118,15 @@ def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
 @app.get("/health")
 async def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyRequired":bool(configured_api_key())}
 
+@app.get("/ready")
+async def ready():
+    dependencies_ready = bool(os.environ.get("OPENAI_API_KEY"))
+    if production_mode():
+        dependencies_ready = dependencies_ready and bool(configured_api_key())
+    if not dependencies_ready:
+        raise HTTPException(status_code=503, detail="Service is not ready.")
+    return {"status": "ready"}
+
 @app.post("/v1/analyze")
 async def analyze(request: AnalyzeRequest):
     logger.info("Analyze request received: imageUri_length=%s", len(request.imageUri))
