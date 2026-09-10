@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "guard:useit": "node scripts/useit-boundary.mjs"
   },
   "dependencies": {
     "expo": "~57.0.21",
