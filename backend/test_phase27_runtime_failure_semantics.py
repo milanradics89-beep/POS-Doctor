@@ -48,7 +48,7 @@ def test_product_discovery_failure_degrades_without_failing_analysis(monkeypatch
             "/v1/useit/analyze",
             json={
                 "imageUri": "https://example.com/image.jpg",
-                "userIntent": "shop",
+                "userIntent": "shopping",
                 "discoverProducts": True,
             },
         )
@@ -56,6 +56,7 @@ def test_product_discovery_failure_degrades_without_failing_analysis(monkeypatch
     assert response.status_code == 200
     payload = response.json()
     assert payload["contractVersion"] == "useit_analyze_v1"
+    assert payload["intent"]["name"] == "shop"
     assert payload["shopping"] == {
         "query": "room",
         "candidates": [],
