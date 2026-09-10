@@ -19,11 +19,11 @@ def test_health_remains_public_when_api_key_is_configured():
 def test_session_endpoint_is_public_and_issues_short_lived_token():
     with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32}, clear=False):
         response = client.post("/v1/session")
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["tokenType"] == "Bearer"
-    assert payload["expiresIn"] <= 3600
-    assert verify_session_token(payload["accessToken"]) is True
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["tokenType"] == "Bearer"
+        assert payload["expiresIn"] <= 3600
+        assert verify_session_token(payload["accessToken"]) is True
 
 
 def test_session_token_rejects_tampering():
