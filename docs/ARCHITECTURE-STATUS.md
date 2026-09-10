@@ -36,6 +36,8 @@ The runtime also emits safe structured request-completion telemetry containing o
 
 The resilience layer defensively parses the request timeout configuration, bounds it to 1–300 seconds, and keeps `/ready` outside application rate limiting so deployment infrastructure can continue probing readiness during traffic throttling.
 
+Canonical failure semantics are explicit: vision-layer HTTP failures remain non-success responses, optional product discovery degrades to structured empty shopping results, internal provider exception text is not exposed, and readiness failures remain generic `503` responses.
+
 ## Phase status
 
 - Phase 1: USEIT foundation and basic architecture are established.
@@ -52,6 +54,7 @@ The resilience layer defensively parses the request timeout configuration, bound
 - Phase 24: safe request observability is implemented, with structured completion telemetry and regression coverage that excludes request payloads.
 - Phase 25: end-to-end acceptance coverage is implemented for the canonical `/v1/useit/analyze` consumer boundary, including single-pass vision orchestration and conditional shopping execution.
 - Phase 26: runtime resilience hardening is implemented for malformed timeout configuration and readiness availability during rate limiting.
+- Phase 27: canonical runtime failure semantics are regression-tested for vision failures, optional shopping degradation, provider-error redaction, and readiness failure disclosure.
 
 ## Current implementation gate
 
@@ -62,4 +65,4 @@ The resilience layer defensively parses the request timeout configuration, bound
 5. Preserve legacy provider compatibility without allowing it to become the production consumer path.
 6. Use `/ready` as the deployment readiness gate and keep it free of sensitive configuration disclosure.
 7. Keep runtime telemetry limited to safe operational metadata and never log user content or credentials.
-8. Maintain end-to-end acceptance evidence around the canonical runtime and harden failure/resilience behavior before adding further intelligence layers.
+8. Maintain end-to-end acceptance evidence around the canonical runtime, including explicit failure semantics and resilience behavior, before adding further intelligence layers.
