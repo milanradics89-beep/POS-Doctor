@@ -10,7 +10,7 @@ from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
 
 from backend.action_layer import router as action_router
-from backend.api_auth import configured_api_key, install_api_key_guard
+from backend.api_auth import configured_api_key, configured_session_secret, issue_session_token, install_api_key_guard, session_ttl_seconds
 from backend.google_search import router as google_search_router
 from backend.knowledge_search import router as knowledge_search_router
 from backend.personal_memory import router as personal_memory_router
@@ -33,8 +33,6 @@ from backend.specialist_agents import build_specialist_context
 logger = logging.getLogger("useit")
 logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
 
-# Security configuration is validated before the application is exposed.
-# In production this fails closed on missing secrets, wildcard CORS, or docs exposure.
 if production_mode():
     validate_production_security()
 
@@ -46,7 +44,7 @@ app = FastAPI(
     openapi_url=None if production_mode() else "/openapi.json",
 )
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key", "X-Request-ID"])
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "Authorization", "X-API-Key", "X-Request-ID"])
 install_request_controls(app)
 install_observability(app, logger)
 install_security_headers(app)
@@ -118,16 +116,24 @@ def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
     return " ".join([scene.get("sceneType", "objects"), *items, *request.preferredStyles, *request.preferredColors, budget]).strip()
 
 @app.get("/health")
-async def health(): return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyRequired":bool(configured_api_key())}
+async def health():
+    return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyConfigured":bool(configured_api_key()),"sessionAuthConfigured":bool(configured_session_secret())}
 
 @app.get("/ready")
 async def ready():
     dependencies_ready = bool(os.environ.get("OPENAI_API_KEY"))
     if production_mode():
-        dependencies_ready = dependencies_ready and bool(configured_api_key())
+        dependencies_ready = dependencies_ready and bool(configured_api_key() or configured_session_secret())
     if not dependencies_ready:
         raise HTTPException(status_code=503, detail="Service is not ready.")
     return {"status": "ready"}
+
+@app.post("/v1/session")
+async def create_session():
+    if not configured_session_secret():
+        raise HTTPException(status_code=503, detail="Session authentication is not configured.")
+    token, expires_at = issue_session_token()
+    return {"accessToken": token, "tokenType": "Bearer", "expiresAt": expires_at, "expiresIn": session_ttl_seconds()}
 
 @app.post("/v1/analyze")
 async def analyze(request: AnalyzeRequest):
