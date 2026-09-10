@@ -32,6 +32,8 @@ Product discovery is invoked by the backend unified endpoint. The Expo-side prod
 
 `/health` is informational. `GET /ready` is the deployment readiness gate. Readiness returns only a generic ready status and never discloses secret state. In production it requires the vision and application authentication configuration to be present before traffic should be accepted.
 
+The runtime also emits safe structured request-completion telemetry containing only request ID, method, path, status code and elapsed duration. Request bodies, image URIs, prompts, credentials and response bodies are outside the telemetry boundary.
+
 ## Phase status
 
 - Phase 1: USEIT foundation and basic architecture are established.
@@ -45,6 +47,7 @@ Product discovery is invoked by the backend unified endpoint. The Expo-side prod
 - Phase 21: product-discovery degradation and per-candidate failure isolation are hardened.
 - Phase 22: bounded request deadlines and timeout behavior are hardened.
 - Phase 23: operational readiness probing is implemented with safe production gating.
+- Phase 24: safe request observability is implemented, with structured completion telemetry and regression coverage that excludes request payloads.
 
 ## Current implementation gate
 
@@ -54,4 +57,5 @@ Product discovery is invoked by the backend unified endpoint. The Expo-side prod
 4. Keep credentialed product discovery behind FastAPI.
 5. Preserve legacy provider compatibility without allowing it to become the production consumer path.
 6. Use `/ready` as the deployment readiness gate and keep it free of sensitive configuration disclosure.
-7. Next value should come from end-to-end acceptance evidence, resilience and observable production behavior, not another duplicate intelligence layer.
+7. Keep runtime telemetry limited to safe operational metadata and never log user content or credentials.
+8. Next value should come from end-to-end acceptance evidence and resilience of the canonical runtime, not another duplicate intelligence layer.
