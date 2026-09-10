@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { UseitApiProvider, analyzeForConsumer } from './apiClient';
 
 const image = 'data:image/jpeg;base64,aGVsbG8=';
+const provider = () => new UseitApiProvider('https://api.example.test', { apiKey: 'test-api-key' });
 
 const validAnalysis = {
   responseFormat: 'scene_analysis_v1',
@@ -30,47 +31,46 @@ describe('UseitApiProvider boundary handling', () => {
 
   it('rejects a missing API base URL before network access', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
-    await expect(new UseitApiProvider('   ').analyzeImage(image)).rejects.toThrow('USEIT API base URL is required.');
+    await expect(provider().analyzeImage(image)).rejects.toThrow('USEIT API base URL is required.');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid image before network access', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
-    await expect(new UseitApiProvider('https://api.example.test').analyzeImage('data:image/svg+xml;base64,abc')).rejects.toThrow('Unsupported image type');
+    await expect(provider().analyzeImage('data:image/svg+xml;base64,abc')).rejects.toThrow('Unsupported image type');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('reports malformed analysis JSON as a controlled API error', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('not-json', { status: 200, headers: { 'content-type': 'application/json' } }));
-    await expect(new UseitApiProvider('https://api.example.test').analyzeImage(image)).rejects.toThrow('USEIT API returned malformed JSON.');
+    await expect(provider().analyzeImage(image)).rejects.toThrow('USEIT API returned malformed JSON.');
   });
 
   it('rejects an invalid analysis payload with validation details', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ sceneType: 'room' }), { status: 200, headers: { 'content-type': 'application/json' } }));
-    await expect(new UseitApiProvider('https://api.example.test').analyzeImage(image)).rejects.toThrow('USEIT API returned an invalid analysis:');
+    await expect(provider().analyzeImage(image)).rejects.toThrow('USEIT API returned an invalid analysis:');
   });
 
   it('normalizes a valid analysis response at the API boundary', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(validAnalysis), { status: 200, headers: { 'content-type': 'application/json' } }));
-    const result = await new UseitApiProvider('https://api.example.test').analyzeImage(image);
+    const result = await provider().analyzeImage(image);
     expect(result.responseFormat).toBe('scene_analysis_v1');
     expect(result.sceneType).toBe('room');
   });
 
   it('rejects a non-JSON redesign response', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('<html>error</html>', { status: 200, headers: { 'content-type': 'text/html' } }));
-    await expect(new UseitApiProvider('https://api.example.test').renderRedesign(image, 'test', [])).rejects.toThrow('USEIT redesign API returned an unexpected response.');
+    await expect(provider().renderRedesign(image, 'test', [])).rejects.toThrow('USEIT redesign API returned an unexpected response.');
   });
 
   it('rejects an invalid redesign payload', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ disclosure: 'x' }), { status: 200, headers: { 'content-type': 'application/json' } }));
-    await expect(new UseitApiProvider('https://api.example.test').renderRedesign(image, 'test', [])).rejects.toThrow('USEIT redesign API returned an invalid result.');
+    await expect(provider().renderRedesign(image, 'test', [])).rejects.toThrow('USEIT redesign API returned an invalid result.');
   });
 
   it('uses the unified consumer boundary without calling legacy vision or client shopping', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(validUnified), { status: 200, headers: { 'content-type': 'application/json' } }));
-    const provider = new UseitApiProvider('https://api.example.test');
-    const result = await analyzeForConsumer(provider, image, 'improve');
+    const result = await analyzeForConsumer(provider(), image, 'improve');
     expect(result.unified?.contractVersion).toBe('useit_analyze_v1');
     expect(result.analysis.sceneType).toBe('room');
     expect(result.intelligence.intentConfidence).toBe(0.82);
