@@ -15,17 +15,26 @@ MAX_REQUEST_ID_LENGTH = 128
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 45.0
 MIN_REQUEST_TIMEOUT_SECONDS = 1.0
 MAX_REQUEST_TIMEOUT_SECONDS = 300.0
+# Backward-compatible module-level override retained for existing tests and integrations.
+REQUEST_TIMEOUT_SECONDS = DEFAULT_REQUEST_TIMEOUT_SECONDS
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]+$")
 
 
-def configured_request_timeout() -> float:
-    try:
-        value = float(os.environ.get("USEIT_REQUEST_TIMEOUT_SECONDS", str(DEFAULT_REQUEST_TIMEOUT_SECONDS)))
-    except (TypeError, ValueError):
-        return DEFAULT_REQUEST_TIMEOUT_SECONDS
+def _bounded_timeout(value: float) -> float:
     if not math.isfinite(value):
         return DEFAULT_REQUEST_TIMEOUT_SECONDS
     return min(MAX_REQUEST_TIMEOUT_SECONDS, max(MIN_REQUEST_TIMEOUT_SECONDS, value))
+
+
+def configured_request_timeout() -> float:
+    configured = os.environ.get("USEIT_REQUEST_TIMEOUT_SECONDS")
+    if configured is None:
+        return _bounded_timeout(float(REQUEST_TIMEOUT_SECONDS))
+    try:
+        value = float(configured)
+    except (TypeError, ValueError):
+        return DEFAULT_REQUEST_TIMEOUT_SECONDS
+    return _bounded_timeout(value)
 
 
 def _safe_request_id(value: str | None) -> str:
