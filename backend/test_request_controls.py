@@ -1,7 +1,14 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.request_controls import MAX_REQUEST_BYTES, install_request_controls
+from backend.request_controls import (
+    MAX_REQUEST_BYTES,
+    MAX_REQUEST_TIMEOUT_SECONDS,
+    MIN_REQUEST_TIMEOUT_SECONDS,
+    DEFAULT_REQUEST_TIMEOUT_SECONDS,
+    configured_request_timeout,
+    install_request_controls,
+)
 
 
 def _client() -> TestClient:
@@ -40,3 +47,16 @@ def test_invalid_content_length_is_rejected() -> None:
     response = _client().post("/ping", headers={"Content-Length": "not-a-number"})
     assert response.status_code == 400
     assert response.json()["detail"] == "Invalid Content-Length."
+
+
+def test_invalid_timeout_configuration_falls_back_safely(monkeypatch) -> None:
+    for value in ("not-a-number", "nan", "inf", "-inf"):
+        monkeypatch.setenv("USEIT_REQUEST_TIMEOUT_SECONDS", value)
+        assert configured_request_timeout() == DEFAULT_REQUEST_TIMEOUT_SECONDS
+
+
+def test_timeout_configuration_is_bounded(monkeypatch) -> None:
+    monkeypatch.setenv("USEIT_REQUEST_TIMEOUT_SECONDS", "0.01")
+    assert configured_request_timeout() == MIN_REQUEST_TIMEOUT_SECONDS
+    monkeypatch.setenv("USEIT_REQUEST_TIMEOUT_SECONDS", "9999")
+    assert configured_request_timeout() == MAX_REQUEST_TIMEOUT_SECONDS
