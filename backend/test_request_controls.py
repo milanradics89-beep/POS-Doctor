@@ -60,3 +60,23 @@ def test_timeout_configuration_is_bounded(monkeypatch) -> None:
     assert configured_request_timeout() == MIN_REQUEST_TIMEOUT_SECONDS
     monkeypatch.setenv("USEIT_REQUEST_TIMEOUT_SECONDS", "9999")
     assert configured_request_timeout() == MAX_REQUEST_TIMEOUT_SECONDS
+
+
+def test_unexpected_failure_returns_generic_error_with_correlation_id() -> None:
+    app = FastAPI()
+    install_request_controls(app)
+
+    @app.get("/boom")
+    async def boom():
+        raise RuntimeError("secret internal implementation detail")
+
+    with TestClient(app) as client:
+        response = client.get("/boom", headers={"X-Request-ID": "phase27-error"})
+
+    assert response.status_code == 500
+    assert response.headers["X-Request-ID"] == "phase27-error"
+    assert response.json() == {
+        "detail": "Internal server error.",
+        "requestId": "phase27-error",
+    }
+    assert "secret internal implementation detail" not in response.text
