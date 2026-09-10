@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 import secrets
 from collections.abc import Awaitable, Callable
@@ -8,7 +6,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
 
-PUBLIC_PATHS = frozenset({"/health", "/docs", "/openapi.json", "/redoc"})
+PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc"})
 
 
 def configured_api_key() -> str | None:
