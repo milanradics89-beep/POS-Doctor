@@ -1,4 +1,5 @@
 import type { VisionDetectedItem, VisionOpportunity, VisionOpportunityKind, VisionSceneAnalysis, VisionSceneType } from './visionContract';
+import type { UseitAnalyzeResponse } from './useitAnalyzeContract';
 
 /** Public intelligence types. VisionSceneAnalysis is the only backend DTO. */
 export type SceneType = VisionSceneType;
@@ -14,7 +15,7 @@ export type UnifiedIntelligenceProvider = {
     preferredColors?: string[];
     discoverProducts?: boolean;
     productLimit?: number;
-  }): Promise<{ scene: SceneAnalysis }>;
+  }): Promise<UseitAnalyzeResponse>;
 };
 
 export interface IntelligenceProvider {
