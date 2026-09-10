@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import os
 import re
 import secrets
 from collections.abc import Awaitable, Callable
@@ -9,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 MAX_REQUEST_BYTES = 10_500_000
 MAX_REQUEST_ID_LENGTH = 128
+REQUEST_TIMEOUT_SECONDS = float(os.environ.get("USEIT_REQUEST_TIMEOUT_SECONDS", "45"))
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]+$")
 
 
@@ -38,6 +41,13 @@ def install_request_controls(app) -> None:
             if len(body) > MAX_REQUEST_BYTES:
                 return JSONResponse(status_code=413, content={"detail": "Request body is too large."})
 
-        response = await call_next(request)
+        try:
+            response = await asyncio.wait_for(call_next(request), timeout=REQUEST_TIMEOUT_SECONDS)
+        except asyncio.TimeoutError:
+            return JSONResponse(
+                status_code=504,
+                content={"detail": "Request timed out.", "requestId": request_id},
+                headers={"X-Request-ID": request_id},
+            )
         response.headers["X-Request-ID"] = request_id
         return response
