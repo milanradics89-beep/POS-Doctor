@@ -31,7 +31,7 @@ def test_protected_endpoint_rejects_missing_key(monkeypatch):
     client = TestClient(_app(monkeypatch))
     response = client.get("/protected")
     assert response.status_code == 401
-    assert response.json() == {"detail": "Invalid or missing API key."}
+    assert response.json() == {"detail": "Missing or invalid API credentials."}
 
 
 def test_protected_endpoint_rejects_wrong_key(monkeypatch):
@@ -45,6 +45,24 @@ def test_protected_endpoint_accepts_correct_key(monkeypatch):
     response = client.get("/protected", headers={"X-API-Key": "test-secret"})
     assert response.status_code == 200
     assert response.json() == {"ok": True}
+
+
+def test_protected_endpoint_accepts_signed_session(monkeypatch):
+    from backend.api_auth import issue_session_token
+
+    monkeypatch.delenv("USEIT_API_KEY", raising=False)
+    monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
+    app = FastAPI()
+
+    @app.get("/protected")
+    async def protected():
+        return {"ok": True}
+
+    install_api_key_guard(app)
+    client = TestClient(app)
+    token, _ = issue_session_token()
+    response = client.get("/protected", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
 
 
 def test_options_is_allowed_for_preflight(monkeypatch):
