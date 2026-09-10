@@ -138,7 +138,7 @@ async def useit_analyze(request: UseItAnalyzeRequest):
     scene["sceneFacts"] = derive_scene_facts(scene)
     scene["sceneReasoning"] = derive_scene_reasoning(scene)
     specialist = build_specialist_context(scene, intent)
-    return {"scene":scene,"intent":intent,"specialist":specialist,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","reason","intent","specialist","suggest","shop" if shopping else "plan"]}
+    return {"contractVersion":"useit_analyze_v1","scene":scene,"intent":intent,"specialist":specialist,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","reason","intent","specialist","suggest","shop" if shopping else "plan"]}
 
 app.include_router(action_router)
 app.include_router(redesign_router)
