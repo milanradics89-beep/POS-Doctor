@@ -21,14 +21,34 @@ class ProductDiscoveryRequest(BaseModel):
     max_resolve: int = Field(default=8, ge=1, le=12)
 
 
+def _error_message(stage: str, exc: BaseException) -> str:
+    if isinstance(exc, HTTPException):
+        return f"{stage} unavailable ({exc.status_code})"
+    return f"{stage} unavailable ({type(exc).__name__})"
+
+
 @router.post("/discover")
 async def discover_products(request: ProductDiscoveryRequest):
-    search = await product_search(ProductSearchRequest(
-        query=request.query,
-        limit=request.limit,
-        locale=request.locale,
-        region=request.region,
-    ))
+    try:
+        search = await product_search(ProductSearchRequest(
+            query=request.query,
+            limit=request.limit,
+            locale=request.locale,
+            region=request.region,
+        ))
+    except (HTTPException, httpx.HTTPError, ValueError) as exc:
+        return {
+            "query": request.query,
+            "candidates": [],
+            "errors": [{"url": "", "message": _error_message("product search", exc)}],
+        }
+    except Exception as exc:
+        return {
+            "query": request.query,
+            "candidates": [],
+            "errors": [{"url": "", "message": _error_message("product search", exc)}],
+        }
+
     candidates: list[dict[str, Any]] = []
     errors: list[dict[str, str]] = []
 
@@ -36,9 +56,11 @@ async def discover_products(request: ProductDiscoveryRequest):
         try:
             return await resolve_product(type("Resolve", (), {"url": item["url"]})())
         except HTTPException as exc:
-            return {"_error": f"{exc.status_code}: {exc.detail}", "url": item.get("url", "")}
+            return {"_error": _error_message("product resolution", exc), "url": item.get("url", "")}
         except (httpx.HTTPError, ValueError) as exc:
-            return {"_error": str(exc), "url": item.get("url", "")}
+            return {"_error": _error_message("product resolution", exc), "url": item.get("url", "")}
+        except Exception as exc:
+            return {"_error": _error_message("product resolution", exc), "url": item.get("url", "")}
 
     results = await asyncio.gather(*(resolve(item) for item in search["results"][:request.max_resolve]))
     for item, result in zip(search["results"], results):
