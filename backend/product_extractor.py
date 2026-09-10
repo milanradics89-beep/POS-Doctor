@@ -8,9 +8,11 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from backend.security import validate_public_http_url
+from backend.security import validate_connected_peer, validate_public_http_url
 
 router = APIRouter(prefix="/v1/products", tags=["products"])
+MAX_PRODUCT_PAGE_BYTES = 2_000_000
+MAX_REDIRECTS = 5
 
 class ProductResolveRequest(BaseModel):
     url: str = Field(min_length=10, max_length=4_000)
@@ -87,7 +89,7 @@ def _number(value: Any) -> float | None:
 
 def _string(value: Any) -> str | None:
     if isinstance(value, str) and value.strip(): return value.strip()
-    if isinstance(value, dict) and isinstance(value.get("name"), str) and value["name"].strip(): return value["name"].strip()
+    if isinstance(value, dict) and isinstance(value.get("name"), str) and value["name"].strip(): return value["name"] .strip()
     return None
 
 def _extract(parser: _HTMLParser, url: str) -> dict[str, Any] | None:
@@ -111,30 +113,44 @@ def _extract(parser: _HTMLParser, url: str) -> dict[str, Any] | None:
     quality = min(1.0, 0.35 + 0.08 * len(evidence) + (0.15 if price_number is not None else 0))
     return {"id": canonical, "name": str(name).strip(), "brand": brand, "url": canonical, "imageUrl": image, "price": price_number, "currency": currency, "availability": availability, "retailer": urlparse(canonical).hostname, "category": category, "color": color, "material": material, "evidence": evidence, "qualityScore": quality}
 
-async def _fetch_product_page(url: str) -> tuple[str, httpx.Response]:
+async def _fetch_product_page(url: str) -> tuple[str, str, bytes]:
     current = validate_public_http_url(url)
     headers = {"User-Agent": "USEIT/1.0 (+product-discovery)"}
     async with httpx.AsyncClient(timeout=10, follow_redirects=False, headers=headers) as client:
-        for _ in range(5):
-            response = await client.get(current)
-            if response.is_redirect or response.is_permanent_redirect:
-                location = response.headers.get("location")
-                if not location: raise HTTPException(502, "Product page returned an invalid redirect.")
-                current = validate_public_http_url(urljoin(current, location))
-                continue
-            response.raise_for_status()
-            return current, response
+        for _ in range(MAX_REDIRECTS):
+            async with client.stream("GET", current) as response:
+                validate_connected_peer(response)
+                if response.is_redirect or response.is_permanent_redirect:
+                    location = response.headers.get("location")
+                    if not location: raise HTTPException(502, "Product page returned an invalid redirect.")
+                    current = validate_public_http_url(urljoin(current, location))
+                    continue
+                response.raise_for_status()
+                if "text/html" not in response.headers.get("content-type", "").lower():
+                    raise HTTPException(422, "URL does not point to an HTML product page.")
+                declared = response.headers.get("content-length")
+                if declared:
+                    try:
+                        if int(declared) > MAX_PRODUCT_PAGE_BYTES:
+                            raise HTTPException(413, "Product page is too large.")
+                    except ValueError:
+                        pass
+                body = bytearray()
+                async for chunk in response.aiter_bytes():
+                    body.extend(chunk)
+                    if len(body) > MAX_PRODUCT_PAGE_BYTES:
+                        raise HTTPException(413, "Product page is too large.")
+                return current, response.headers.get("content-type", ""), bytes(body)
     raise HTTPException(508, "Product page redirect chain is too long.")
 
 @router.post("/resolve")
 async def resolve_product(request: ProductResolveRequest):
     try:
-        url, response = await _fetch_product_page(request.url)
+        url, _, body = await _fetch_product_page(request.url)
     except HTTPException: raise
     except httpx.HTTPStatusError as exc: raise HTTPException(502, "Product page returned an HTTP error.") from exc
     except httpx.HTTPError as exc: raise HTTPException(504, "Product page could not be fetched.") from exc
-    if "text/html" not in response.headers.get("content-type", "").lower(): raise HTTPException(422, "URL does not point to an HTML product page.")
-    parser = _HTMLParser(); parser.feed(response.text[:2_000_000])
-    product = _extract(parser, str(response.url or url))
+    parser = _HTMLParser(); parser.feed(body.decode("utf-8", errors="replace"))
+    product = _extract(parser, url)
     if not product: raise HTTPException(422, "No valid Product structured data was found.")
     return product
