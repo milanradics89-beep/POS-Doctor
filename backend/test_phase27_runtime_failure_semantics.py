@@ -48,7 +48,7 @@ def test_product_discovery_failure_degrades_without_failing_analysis(monkeypatch
             "/v1/useit/analyze",
             json={
                 "imageUri": "https://example.com/image.jpg",
-                "userIntent": "shopping",
+                "userIntent": "shop",
                 "discoverProducts": True,
             },
         )
