@@ -20,14 +20,13 @@ jobs:
           node-version: 24
 
       - name: Generate deterministic npm lockfile
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+        run: |
+          npm config set package-lock true
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          test -s package-lock.json
 
       - name: Commit lockfile
         run: |
-          if git diff --quiet -- package-lock.json; then
-            echo "No lockfile changes required."
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package-lock.json
