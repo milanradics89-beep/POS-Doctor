@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import math
 import os
 import re
@@ -9,6 +10,8 @@ from collections.abc import Awaitable, Callable
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
+
+logger = logging.getLogger("useit.request_controls")
 
 MAX_REQUEST_BYTES = 10_500_000
 MAX_REQUEST_ID_LENGTH = 128
@@ -29,7 +32,7 @@ def _bounded_timeout(value: float) -> float:
 def configured_request_timeout() -> float:
     configured = os.environ.get("USEIT_REQUEST_TIMEOUT_SECONDS")
     if configured is None:
-        return float(REQUEST_TIMEOUT_SECONDS)
+        return _bounded_timeout(float(REQUEST_TIMEOUT_SECONDS))
     try:
         value = float(configured)
     except (TypeError, ValueError):
@@ -69,6 +72,14 @@ def install_request_controls(app) -> None:
             return JSONResponse(
                 status_code=504,
                 content={"detail": "Request timed out.", "requestId": request_id},
+                headers={"X-Request-ID": request_id},
+            )
+        except Exception:
+            # Keep unexpected failures generic while preserving the operational correlation ID.
+            logger.exception("Unhandled request failure")
+            return JSONResponse(
+                status_code=500,
+                content={"detail": "Internal server error.", "requestId": request_id},
                 headers={"X-Request-ID": request_id},
             )
         response.headers["X-Request-ID"] = request_id
