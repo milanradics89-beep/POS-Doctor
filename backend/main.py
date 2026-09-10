@@ -133,7 +133,11 @@ async def useit_analyze(request: UseItAnalyzeRequest):
     if request.discoverProducts and intent["name"] == "shop":
         query = _build_discovery_query(scene, request)
         if query:
-            shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
+            try:
+                shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
+            except Exception:
+                logger.exception("Unified product discovery degraded")
+                shopping = {"query": query, "candidates": [], "errors": [{"url": "", "message": "product discovery unavailable"}]}
     suggestions = [{"id":o["id"],"title":o["title"],"description":o["description"],"kind":o["kind"],"effort":o["effort"],"durationMinutes":o["durationMinutes"],"visualizable":o["visualizable"],"score":o["score"],"preferenceScore":o.get("preferenceScore",0.0),"rank":o["rank"],"reasons":build_suggestion_reasons(o,intent,scene,context)} for o in ranked]
     scene["sceneFacts"] = derive_scene_facts(scene)
     scene["sceneReasoning"] = derive_scene_reasoning(scene)
