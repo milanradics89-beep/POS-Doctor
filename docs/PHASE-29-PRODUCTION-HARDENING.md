@@ -22,8 +22,9 @@ Phase 29 closes the highest-priority production risks identified by the full rep
 - Intelligence POSTs do not automatically retry, preventing accidental duplicate inference/cost from transient 5xx responses.
 
 ### 4. Dependency security
-- CI runs `npm audit --audit-level=high`.
-- CI runs `pip-audit` against backend requirements.
+- Runtime Python dependencies are separated from test-only dependencies.
+- CI runs `npm audit --omit=dev --audit-level=high` for production JavaScript dependencies.
+- CI runs `pip-audit` against `backend/requirements.txt`, excluding test-only packages from the production dependency gate.
 - Dependabot tracks npm, Python and GitHub Actions dependencies weekly.
 
 ### 5. Production acceptance
