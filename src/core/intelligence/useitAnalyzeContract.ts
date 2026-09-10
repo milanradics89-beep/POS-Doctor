@@ -71,7 +71,7 @@ function isValidShoppingCandidate(value: unknown): value is UseitShoppingCandida
   if (!isOptionalString(value.category) || !isOptionalString(value.brand) || !isOptionalString(value.imageUrl) || !isOptionalString(value.currency) || !isOptionalString(value.retailer)) return false;
   if (value.price !== undefined && value.price !== null && !isFiniteNumber(value.price)) return false;
   if (value.qualityScore !== undefined && (!isFiniteNumber(value.qualityScore) || value.qualityScore < 0 || value.qualityScore > 1)) return false;
-  if (value.searchRank !== undefined && (!Number.isInteger(value.searchRank) || value.searchRank < 1)) return false;
+  if (value.searchRank !== undefined && (!isFiniteNumber(value.searchRank) || !Number.isInteger(value.searchRank) || value.searchRank < 1)) return false;
   return value.availability === undefined || typeof value.availability === 'string';
 }
 
