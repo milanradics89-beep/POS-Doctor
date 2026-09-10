@@ -32,7 +32,7 @@ def test_request_observability_logs_safe_completion(caplog):
     assert '"durationMs":' in caplog.text
 
 
-def test_request_observability_does_not_log_request_payload():
+def test_request_observability_does_not_log_request_payload(caplog):
     app = FastAPI()
     install_request_controls(app)
     install_observability(app, logging.getLogger("phase24-payload-test"))
@@ -42,7 +42,7 @@ def test_request_observability_does_not_log_request_payload():
         return {"status": "accepted"}
 
     with TestClient(app) as client:
-        with __import__("pytest").caplog.at_level(logging.INFO, logger="phase24-payload-test"):
+        with caplog.at_level(logging.INFO, logger="phase24-payload-test"):
             response = client.post(
                 "/payload",
                 json={"imageUri": "data:image/png;base64,SECRET_IMAGE", "prompt": "SECRET_PROMPT"},
@@ -50,5 +50,5 @@ def test_request_observability_does_not_log_request_payload():
             )
 
     assert response.status_code == 200
-    assert "SECRET_IMAGE" not in __import__("pytest").caplog.text
-    assert "SECRET_PROMPT" not in __import__("pytest").caplog.text
+    assert "SECRET_IMAGE" not in caplog.text
+    assert "SECRET_PROMPT" not in caplog.text
