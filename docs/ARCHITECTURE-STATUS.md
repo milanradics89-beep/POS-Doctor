@@ -28,6 +28,10 @@ The TypeScript core retains the deeper planning modules for migration/compatibil
 
 Product discovery is invoked by the backend unified endpoint. The Expo-side product provider is retained only for legacy-provider compatibility and is not used on the unified consumer path. Product-provider credentials must never be shipped to Expo.
 
+## Operational boundary
+
+`/health` is informational. `GET /ready` is the deployment readiness gate. Readiness returns only a generic ready status and never discloses secret state. In production it requires the vision and application authentication configuration to be present before traffic should be accepted.
+
 ## Phase status
 
 - Phase 1: USEIT foundation and basic architecture are established.
@@ -38,6 +42,9 @@ Product discovery is invoked by the backend unified endpoint. The Expo-side prod
 - Phase 18: versioned fail-closed intelligence contract is implemented with regression coverage.
 - Phase 19: canonical unified runtime wiring is implemented; unified-capable providers use one `/v1/useit/analyze` request and validate the complete response.
 - Phase 20: consumer runtime wiring is implemented; the actual mobile consumer flow now consumes the unified response and does not invoke client-side product discovery on that path.
+- Phase 21: product-discovery degradation and per-candidate failure isolation are hardened.
+- Phase 22: bounded request deadlines and timeout behavior are hardened.
+- Phase 23: operational readiness probing is implemented with safe production gating.
 
 ## Current implementation gate
 
@@ -46,4 +53,5 @@ Product discovery is invoked by the backend unified endpoint. The Expo-side prod
 3. Keep the TypeScript unified contract fail-closed and versioned.
 4. Keep credentialed product discovery behind FastAPI.
 5. Preserve legacy provider compatibility without allowing it to become the production consumer path.
-6. Next value should come from production hardening and end-to-end acceptance evidence, not another duplicate intelligence layer.
+6. Use `/ready` as the deployment readiness gate and keep it free of sensitive configuration disclosure.
+7. Next value should come from end-to-end acceptance evidence, resilience and observable production behavior, not another duplicate intelligence layer.
