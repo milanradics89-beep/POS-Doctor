@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import re
 import secrets
@@ -11,8 +12,20 @@ from fastapi.responses import JSONResponse
 
 MAX_REQUEST_BYTES = 10_500_000
 MAX_REQUEST_ID_LENGTH = 128
-REQUEST_TIMEOUT_SECONDS = float(os.environ.get("USEIT_REQUEST_TIMEOUT_SECONDS", "45"))
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 45.0
+MIN_REQUEST_TIMEOUT_SECONDS = 1.0
+MAX_REQUEST_TIMEOUT_SECONDS = 300.0
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]+$")
+
+
+def configured_request_timeout() -> float:
+    try:
+        value = float(os.environ.get("USEIT_REQUEST_TIMEOUT_SECONDS", str(DEFAULT_REQUEST_TIMEOUT_SECONDS)))
+    except (TypeError, ValueError):
+        return DEFAULT_REQUEST_TIMEOUT_SECONDS
+    if not math.isfinite(value):
+        return DEFAULT_REQUEST_TIMEOUT_SECONDS
+    return min(MAX_REQUEST_TIMEOUT_SECONDS, max(MIN_REQUEST_TIMEOUT_SECONDS, value))
 
 
 def _safe_request_id(value: str | None) -> str:
@@ -42,7 +55,7 @@ def install_request_controls(app) -> None:
                 return JSONResponse(status_code=413, content={"detail": "Request body is too large."})
 
         try:
-            response = await asyncio.wait_for(call_next(request), timeout=REQUEST_TIMEOUT_SECONDS)
+            response = await asyncio.wait_for(call_next(request), timeout=configured_request_timeout())
         except asyncio.TimeoutError:
             return JSONResponse(
                 status_code=504,
