@@ -4,7 +4,7 @@ import { validateUseitAnalyzeResponse } from './useitAnalyzeContract';
 const scene = {
   responseFormat: 'scene_analysis_v1',
   sceneType: 'room',
-  summary: 'A room.',
+  summary: 'A room scene for contract validation.',
   items: [],
   constraints: [],
   opportunities: [],
