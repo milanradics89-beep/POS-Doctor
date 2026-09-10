@@ -8,6 +8,7 @@ def test_development_allows_missing_production_secrets(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "development")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("USEIT_API_KEY", raising=False)
+    monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
     monkeypatch.delenv("USEIT_CORS_ORIGINS", raising=False)
     validate_production_security()
 
@@ -16,8 +17,29 @@ def test_production_requires_secrets(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("USEIT_API_KEY", raising=False)
+    monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
     with pytest.raises(RuntimeError, match="Missing required production secrets"):
+        validate_production_security()
+
+
+def test_production_accepts_server_issued_session_secret(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.delenv("USEIT_API_KEY", raising=False)
+    monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+    validate_production_security()
+
+
+def test_production_rejects_short_session_secret(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.delenv("USEIT_API_KEY", raising=False)
+    monkeypatch.setenv("USEIT_SESSION_SECRET", "too-short")
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+    with pytest.raises(RuntimeError, match="at least 32 characters"):
         validate_production_security()
 
 
