@@ -59,6 +59,7 @@ Production configuration is fail-closed: production requires vision and applicat
 - Phase 27: canonical runtime failure semantics are regression-tested for vision failures, optional shopping degradation, provider-error redaction, readiness failure disclosure, and unexpected request failures with safe correlation IDs.
 - Phase 28: production security configuration is regression-tested for fail-closed secrets, CORS, documentation exposure, valid configuration, and generic runtime enforcement.
 - Phase 29: production hardening is implemented and CI-validated, including outbound URL/SSRF controls, bounded product-page streaming, safe client authentication boundaries, no POST inference retries, runtime/test dependency separation, production dependency audits, Dependabot coverage, Redis-backed distributed rate limiting, and Expo SDK 57 dependency alignment.
+- Phase 30: mobile release validation is promoted into CI with Expo project-health diagnostics and an Android bundle export gate, so JavaScript/backend green status can no longer masquerade as complete mobile validation.
 
 ## Current implementation gate
 
@@ -72,3 +73,4 @@ Production configuration is fail-closed: production requires vision and applicat
 8. Keep production configuration fail-closed and regression-tested.
 9. Maintain end-to-end acceptance evidence around the canonical runtime, including explicit failure semantics and resilience behavior, before adding further intelligence layers.
 10. Keep frontend and backend production dependency audits green; upgrade Expo SDKs as a coherent dependency set rather than merging isolated major-version Dependabot bumps.
+11. Treat `expo-doctor` and Android export validation as mandatory CI gates before considering a frontend change release-ready.
