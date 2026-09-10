@@ -36,7 +36,9 @@ The runtime also emits safe structured request-completion telemetry containing o
 
 The resilience layer defensively parses the request timeout configuration, bounds it to 1–300 seconds, and keeps `/ready` outside application rate limiting so deployment infrastructure can continue probing readiness during traffic throttling.
 
-Canonical failure semantics are explicit: vision-layer HTTP failures remain non-success responses, optional product discovery degrades to structured empty shopping results, internal provider exception text is not exposed, and readiness failures remain generic `503` responses.
+Canonical failure semantics are explicit: vision-layer HTTP failures remain non-success responses, optional product discovery degrades to structured empty shopping results, internal provider exception text is not exposed, readiness failures remain generic `503` responses, and unexpected request failures return a generic `500` with the safe request correlation ID.
+
+Production configuration is fail-closed: production requires vision and application authentication secrets, non-wildcard CORS origins, and disabled interactive API documentation. Runtime enforcement returns only a generic `503` when this configuration is incomplete.
 
 ## Phase status
 
@@ -54,7 +56,8 @@ Canonical failure semantics are explicit: vision-layer HTTP failures remain non-
 - Phase 24: safe request observability is implemented, with structured completion telemetry and regression coverage that excludes request payloads.
 - Phase 25: end-to-end acceptance coverage is implemented for the canonical `/v1/useit/analyze` consumer boundary, including single-pass vision orchestration and conditional shopping execution.
 - Phase 26: runtime resilience hardening is implemented for malformed timeout configuration and readiness availability during rate limiting.
-- Phase 27: canonical runtime failure semantics are regression-tested for vision failures, optional shopping degradation, provider-error redaction, and readiness failure disclosure.
+- Phase 27: canonical runtime failure semantics are regression-tested for vision failures, optional shopping degradation, provider-error redaction, readiness failure disclosure, and unexpected request failures with safe correlation IDs.
+- Phase 28: production security configuration is regression-tested for fail-closed secrets, CORS, documentation exposure, valid configuration, and generic runtime enforcement.
 
 ## Current implementation gate
 
@@ -65,4 +68,5 @@ Canonical failure semantics are explicit: vision-layer HTTP failures remain non-
 5. Preserve legacy provider compatibility without allowing it to become the production consumer path.
 6. Use `/ready` as the deployment readiness gate and keep it free of sensitive configuration disclosure.
 7. Keep runtime telemetry limited to safe operational metadata and never log user content or credentials.
-8. Maintain end-to-end acceptance evidence around the canonical runtime, including explicit failure semantics and resilience behavior, before adding further intelligence layers.
+8. Keep production configuration fail-closed and regression-tested.
+9. Maintain end-to-end acceptance evidence around the canonical runtime, including explicit failure semantics and resilience behavior, before adding further intelligence layers.
