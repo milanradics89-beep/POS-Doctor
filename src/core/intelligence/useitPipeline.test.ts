@@ -12,17 +12,19 @@ const scene = {
   safetyNotes: [],
 };
 
+const unifiedResponse = {
+  contractVersion: 'useit_analyze_v1' as const,
+  scene,
+  intent: { name: 'improve', confidence: 0.9 },
+  specialist: { profile: 'home-design' },
+  suggestions: [],
+  shopping: null,
+  pipeline: ['see', 'understand', 'reason', 'intent', 'specialist', 'suggest', 'plan'],
+};
+
 describe('runUseitPipeline unified boundary', () => {
   it('uses the unified endpoint once when the provider supports it', async () => {
-    const analyzeUseit = vi.fn().mockResolvedValue({
-      contractVersion: 'useit_analyze_v1',
-      scene,
-      intent: { name: 'improve', confidence: 0.9 },
-      specialist: { profile: 'home-design' },
-      suggestions: [],
-      shopping: null,
-      pipeline: ['see', 'understand', 'reason', 'intent', 'specialist', 'suggest', 'plan'],
-    });
+    const analyzeUseit = vi.fn().mockResolvedValue(unifiedResponse);
     const analyzeImage = vi.fn().mockRejectedValue(new Error('legacy path must not run'));
     const provider = { analyzeUseit, analyzeImage } as unknown as IntelligenceProvider;
 
@@ -46,18 +48,13 @@ describe('runUseitPipeline unified boundary', () => {
     expect(analyzeImage).toHaveBeenCalledTimes(2);
   });
 
-  it('fails closed when the unified scene is invalid', async () => {
+  it('fails closed when the unified response is invalid', async () => {
     const analyzeUseit = vi.fn().mockResolvedValue({
-      contractVersion: 'useit_analyze_v1',
-      scene: { sceneType: 'room' },
-      intent: { name: 'improve' },
-      specialist: {},
-      suggestions: [],
-      shopping: null,
-      pipeline: ['see'],
+      ...unifiedResponse,
+      contractVersion: 'unknown_contract',
     });
     const provider = { analyzeUseit } as unknown as IntelligenceProvider;
 
-    await expect(runUseitPipeline(provider, 'image')).rejects.toThrow('Unified intelligence scene validation failed:');
+    await expect(runUseitPipeline(provider, 'image')).rejects.toThrow('Unified intelligence response validation failed:');
   });
 });
