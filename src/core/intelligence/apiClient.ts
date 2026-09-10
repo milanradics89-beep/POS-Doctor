@@ -11,6 +11,7 @@ import type { ProductProvider } from './productCandidateCollector';
 import { googleProductProvider } from './googleProductProvider';
 import { validateImageUri } from './imageInput';
 import { normalizeApiBaseUrl } from './apiConfig';
+import { validateUseitAnalyzeResponse, type UseitAnalyzeResponse } from './useitAnalyzeContract';
 
 export class UseitApiProvider implements IntelligenceProvider {
   constructor(private readonly baseUrl: string) {}
@@ -25,6 +26,18 @@ export class UseitApiProvider implements IntelligenceProvider {
     const checked = validateAnalysis(payload);
     if (!checked.ok) throw new Error(`USEIT API returned an invalid analysis: ${checked.issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
     return normalizeAnalysis(checked.data);
+  }
+  async analyzeUseit(imageUri: string, intent?: OpportunityKind, options: { budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; discoverProducts?: boolean; productLimit?: number } = {}): Promise<UseitAnalyzeResponse> {
+    const base = normalizeApiBaseUrl(this.baseUrl);
+    validateImageUri(imageUri);
+    const policy = createPromptPolicy(intent, 'hu-HU');
+    const response = await fetchWithPolicy(`${base}/v1/useit/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale, budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles ?? [], preferredColors: options.preferredColors ?? [], discoverProducts: options.discoverProducts ?? true, productLimit: options.productLimit ?? 8 }) });
+    if (!response.ok) throw new Error(`USEIT unified analysis failed (${response.status}).`);
+    let payload: unknown;
+    try { payload = await response.json(); } catch { throw new Error('USEIT unified analysis returned malformed JSON.'); }
+    const checked = validateUseitAnalyzeResponse(payload);
+    if (!checked.ok) throw new Error(`USEIT unified analysis returned an invalid response: ${checked.issues.join('; ')}`);
+    return checked.data;
   }
   async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; url: string; id?: string; confidence?: number }>): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
     const base = normalizeApiBaseUrl(this.baseUrl);
