@@ -3,13 +3,14 @@ import { analyzeImage } from './analyzeImage';
 import { inferIntent } from './intent';
 import { normalizeAnalysis } from './normalizeAnalysis';
 import { validateAnalysis } from './validateAnalysis';
+import { validateUseitAnalyzeResponse } from './useitAnalyzeContract';
 
 export async function runUseitPipeline(provider: IntelligenceProvider, imageUri: string, requestedIntent?: OpportunityKind): Promise<SceneAnalysis> {
   if (provider.analyzeUseit) {
     const unified = await provider.analyzeUseit(imageUri, requestedIntent);
-    const validation = validateAnalysis(unified.scene);
-    if (!validation.ok) throw new Error(`Unified intelligence scene validation failed: ${validation.issues.map(i => `${i.path}: ${i.message}`).join('; ')}`);
-    return normalizeAnalysis(validation.data);
+    const validation = validateUseitAnalyzeResponse(unified);
+    if (!validation.ok) throw new Error(`Unified intelligence response validation failed: ${validation.issues.join('; ')}`);
+    return normalizeAnalysis(validation.data.scene);
   }
 
   const initial = await analyzeImage(provider, imageUri, requestedIntent);
