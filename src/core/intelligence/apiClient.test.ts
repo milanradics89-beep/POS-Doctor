@@ -31,7 +31,7 @@ describe('UseitApiProvider boundary handling', () => {
 
   it('rejects a missing API base URL before network access', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
-    await expect(provider().analyzeImage(image)).rejects.toThrow('USEIT API base URL is required.');
+    await expect(new UseitApiProvider('').analyzeImage(image)).rejects.toThrow('USEIT API base URL is required.');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
