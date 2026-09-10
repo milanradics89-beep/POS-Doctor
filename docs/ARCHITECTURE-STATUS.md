@@ -34,6 +34,8 @@ Product discovery is invoked by the backend unified endpoint. The Expo-side prod
 
 The runtime also emits safe structured request-completion telemetry containing only request ID, method, path, status code and elapsed duration. Request bodies, image URIs, prompts, credentials and response bodies are outside the telemetry boundary.
 
+The resilience layer defensively parses the request timeout configuration, bounds it to 1–300 seconds, and keeps `/ready` outside application rate limiting so deployment infrastructure can continue probing readiness during traffic throttling.
+
 ## Phase status
 
 - Phase 1: USEIT foundation and basic architecture are established.
@@ -49,6 +51,7 @@ The runtime also emits safe structured request-completion telemetry containing o
 - Phase 23: operational readiness probing is implemented with safe production gating.
 - Phase 24: safe request observability is implemented, with structured completion telemetry and regression coverage that excludes request payloads.
 - Phase 25: end-to-end acceptance coverage is implemented for the canonical `/v1/useit/analyze` consumer boundary, including single-pass vision orchestration and conditional shopping execution.
+- Phase 26: runtime resilience hardening is implemented for malformed timeout configuration and readiness availability during rate limiting.
 
 ## Current implementation gate
 
