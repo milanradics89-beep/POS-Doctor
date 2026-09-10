@@ -5,6 +5,13 @@ import { normalizeAnalysis } from './normalizeAnalysis';
 import { validateAnalysis } from './validateAnalysis';
 
 export async function runUseitPipeline(provider: IntelligenceProvider, imageUri: string, requestedIntent?: OpportunityKind): Promise<SceneAnalysis> {
+  if (provider.analyzeUseit) {
+    const unified = await provider.analyzeUseit(imageUri, requestedIntent);
+    const validation = validateAnalysis(unified.scene);
+    if (!validation.ok) throw new Error(`Unified intelligence scene validation failed: ${validation.issues.map(i => `${i.path}: ${i.message}`).join('; ')}`);
+    return normalizeAnalysis(validation.data);
+  }
+
   const initial = await analyzeImage(provider, imageUri, requestedIntent);
   const intent = inferIntent(initial.sceneType, requestedIntent);
   const withIntent = await provider.analyzeImage(imageUri, intent);
