@@ -9,7 +9,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
 
-PUBLIC_PATHS = frozenset({"/health", "/docs", "/openapi.json", "/redoc"})
+PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc"})
 
 
 def configured_rate_limit() -> int:
