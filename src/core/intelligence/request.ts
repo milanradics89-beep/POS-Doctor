@@ -12,16 +12,15 @@ function requestUrl(input: RequestInfo | URL): URL | null {
   }
 }
 
-function hasApiKey(headers: HeadersInit | undefined): boolean {
+function hasHeader(headers: HeadersInit | undefined, name: string): boolean {
   if (!headers) return false;
-  const normalized = new Headers(headers);
-  return Boolean(normalized.get('X-API-Key')?.trim());
+  return Boolean(new Headers(headers).get(name)?.trim());
 }
 
 function sessionAuthEligible(input: RequestInfo | URL, init: RequestInit): URL | null {
-  if (hasApiKey(init.headers) || (init.method || 'GET').toUpperCase() === 'OPTIONS') return null;
+  if (hasHeader(init.headers, 'X-API-Key') || hasHeader(init.headers, 'Authorization') || (init.method || 'GET').toUpperCase() === 'OPTIONS') return null;
   const url = requestUrl(input);
-  if (!url || url.pathname === '/v1/session' || url.pathname === '/health' || url.pathname === '/ready') return null;
+  if (!url || !url.pathname.startsWith('/v1/') || url.pathname === '/v1/session') return null;
   return url;
 }
 
@@ -77,7 +76,7 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
       }
       const response = await fetch(input, { ...requestInit, signal: controller.signal });
 
-      if (response.status === 401 && sessionUrl && !hasApiKey(init.headers)) {
+      if (response.status === 401 && sessionUrl) {
         sessionState = null;
         const refreshed = await obtainSession(sessionUrl, true);
         if (refreshed) {
