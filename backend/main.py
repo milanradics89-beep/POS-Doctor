@@ -4,7 +4,7 @@ import os
 from typing import Optional
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
@@ -130,10 +130,12 @@ async def ready():
     return {"status": "ready"}
 
 @app.post("/v1/session")
-async def create_session():
+async def create_session(response: Response):
     if not configured_session_secret():
         raise HTTPException(status_code=503, detail="Session authentication is not configured.")
     token, expires_at = issue_session_token()
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
     return {"accessToken": token, "tokenType": "Bearer", "expiresAt": expires_at, "expiresIn": session_ttl_seconds()}
 
 @app.post("/v1/analyze")
