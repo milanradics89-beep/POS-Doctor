@@ -80,14 +80,16 @@ export function validateUseitAnalyzeResponse(payload: unknown):
   | { ok: false; issues: string[] } {
   if (!isRecord(payload)) return { ok: false, issues: ['response must be an object'] };
 
-  const issues: string[] = [];
-  if (payload.contractVersion !== USEIT_ANALYZE_CONTRACT_VERSION) issues.push(`contractVersion: expected ${USEIT_ANALYZE_CONTRACT_VERSION}`);
+  if (payload.contractVersion !== USEIT_ANALYZE_CONTRACT_VERSION) {
+    return { ok: false, issues: [`contractVersion: expected ${USEIT_ANALYZE_CONTRACT_VERSION}`] };
+  }
 
   const sceneResult = validateAnalysis(payload.scene);
   if (!sceneResult.ok) {
-    issues.push(...sceneResult.issues.map(issue => `scene.${issue.path}: ${issue.message}`));
+    return { ok: false, issues: sceneResult.issues.map(issue => `scene.${issue.path}: ${issue.message}`) };
   }
 
+  const issues: string[] = [];
   if (!isRecord(payload.intent) || typeof payload.intent.name !== 'string' || !payload.intent.name) {
     issues.push('intent.name: expected non-empty string');
   } else if (payload.intent.confidence !== undefined && (!isFiniteNumber(payload.intent.confidence) || payload.intent.confidence < 0 || payload.intent.confidence > 1)) {
