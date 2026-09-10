@@ -58,7 +58,7 @@ export function validateUseitAnalyzeResponse(payload: unknown):
 
   if (issues.length) return { ok: false, issues };
 
-  const rawSuggestions: unknown[] = payload.suggestions;
+  const rawSuggestions = payload.suggestions as unknown[];
   const suggestions: UseitSuggestion[] = [];
   for (const [index, value] of rawSuggestions.entries()) {
     if (!isRecord(value) || typeof value.id !== 'string' || typeof value.title !== 'string' || typeof value.description !== 'string' || typeof value.kind !== 'string' || typeof value.effort !== 'string' || typeof value.visualizable !== 'boolean' || typeof value.score !== 'number' || typeof value.rank !== 'number' || !Array.isArray(value.reasons) || value.reasons.some(reason => typeof reason !== 'string')) {
