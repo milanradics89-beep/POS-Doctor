@@ -1,8 +1,7 @@
-import os
-
 import pytest
+from fastapi import HTTPException
 
-from backend.production_security import validate_production_security
+from backend.production_security import enforce_production_configuration, validate_production_security
 
 
 def test_development_allows_missing_production_secrets(monkeypatch):
@@ -39,3 +38,26 @@ def test_production_rejects_enabled_interactive_docs(monkeypatch):
     monkeypatch.setenv("USEIT_ALLOW_DOCS", "true")
     with pytest.raises(RuntimeError, match="documentation"):
         validate_production_security()
+
+
+def test_valid_production_configuration_passes(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
+    monkeypatch.setenv("USEIT_API_KEY", "test-useit")
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+    validate_production_security()
+
+
+def test_runtime_enforcement_returns_generic_503(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
+    monkeypatch.setenv("USEIT_API_KEY", "test-useit")
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "*")
+
+    with pytest.raises(HTTPException) as exc_info:
+        enforce_production_configuration()
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Production security configuration is incomplete"
+    assert "test-useit" not in str(exc_info.value.detail)
