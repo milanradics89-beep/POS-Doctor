@@ -26,6 +26,8 @@ Phase 29 closes the highest-priority production risks identified by the full rep
 - CI runs `npm audit --omit=dev --audit-level=high` for production JavaScript dependencies.
 - CI runs `pip-audit` against `backend/requirements.txt`, excluding test-only packages from the production dependency gate.
 - Dependabot tracks npm, Python and GitHub Actions dependencies weekly.
+- The frontend was aligned to the supported Expo SDK 57 dependency set: Expo 57.0.21, React Native 0.86.3, React 19.2.3, Expo Router 57.0.20 and the matching Expo SDK modules.
+- The production dependency audit is now green after the SDK 57 alignment.
 
 ### 5. Production acceptance
 - Production configuration is fail-closed for required secrets, CORS and documentation exposure.
