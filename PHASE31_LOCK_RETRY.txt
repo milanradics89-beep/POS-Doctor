@@ -1,1 +1,0 @@
-Temporary trigger for lockfile bootstrap. Remove after package-lock.json is committed.
