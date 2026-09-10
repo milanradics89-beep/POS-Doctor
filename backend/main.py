@@ -19,6 +19,7 @@ from backend.product_extractor import router as product_extractor_router
 from backend.redesign import router as redesign_router
 from backend.rate_limit import install_rate_limit
 from backend.request_controls import install_request_controls
+from backend.observability import install_observability
 from backend.security_headers import install_security_headers
 from backend.production_security import production_mode, validate_production_security
 from backend.scene_quality import quality_gate
@@ -47,6 +48,7 @@ app = FastAPI(
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "X-API-Key", "X-Request-ID"])
 install_request_controls(app)
+install_observability(app, logger)
 install_security_headers(app)
 install_api_key_guard(app)
 install_rate_limit(app)
