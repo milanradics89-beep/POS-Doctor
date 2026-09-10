@@ -6,41 +6,44 @@ The repository is intentionally still named `POS-Doctor`, but the application ha
 
 ## Canonical runtime path today
 
-`Expo UI → src/core/intelligence/apiClient.ts → POST /v1/analyze → backend/main.py → Vision + scene_quality → validated scene analysis → presentation`
+`Expo UI → src/core/intelligence/apiClient.ts → POST /v1/useit/analyze → backend/main.py → Vision + scene understanding + intent + specialist + suggestions + optional shopping → validated unified response → presentation`
 
-The current mobile flow uses `UseitApiProvider` and calls `/v1/analyze`. fileciteturn256file0L2-L2
+`/v1/analyze` remains the authoritative low-level vision endpoint. The consumer runtime now prefers the versioned `/v1/useit/analyze` boundary, so the mobile client does not perform a second vision request or duplicate product discovery when the provider supports the unified capability.
 
-The FastAPI service is the USEIT vision backend. It is not a preserved POS Doctor backend.
+The FastAPI service is the USEIT vision/intelligence backend. It is not a preserved POS Doctor backend.
 
 ## Canonical intelligence core
 
-The existing `src/core/intelligence` TypeScript implementation is the canonical USEIT domain/intelligence core. It already contains the cross-domain pipeline for intent, need inference, candidate search, ranking and action generation. `intelligencePipeline.ts` is the simpler tested pipeline; `intelligenceOrchestrator.ts` is the richer room-shopping/redesign orchestration. These are prototypes/core modules and are not both independent production request paths.
+The existing `src/core/intelligence` TypeScript implementation remains the canonical client-side intelligence type/adapter layer. Backend orchestration owns the credentialed runtime calls and returns the versioned unified contract. The richer TypeScript orchestration remains available for legacy provider compatibility and focused domain tests, but it is not a second production request path on the unified runtime.
 
-The richer orchestration already covers:
+The unified backend flow is:
+
+`scene → scene facts/reasoning → intent → opportunity ranking → specialist context → suggestions → optional product discovery`
+
+The TypeScript core retains the deeper planning modules for migration/compatibility:
 
 `scene → domain needs → task → clarification → shopping decision → product candidates → ranking → solution optimization → visual compatibility → redesign plan`.
 
-That flow exists in `intelligenceOrchestrator.ts`. fileciteturn249file0L2-L2
+## Security boundary
 
-The simpler `intelligencePipeline.ts` remains because it has focused cross-domain tests and provides the stable core contract for intent → need → candidates → ranking → action. fileciteturn248file0L2-L2
-
-## Removed duplicate work
-
-Do not recreate a second Python domain/strategy layer under `backend/useit`. Any such layer duplicates the TypeScript intelligence core and creates competing sources of truth. The temporary duplicate `backend/useit` files were removed during the architecture cleanup.
-
-Do not put product-provider credentials in Expo. Product-provider integrations requiring secrets belong behind the backend boundary.
+Product discovery is invoked by the backend unified endpoint. The Expo-side product provider is retained only for legacy-provider compatibility and is not used on the unified consumer path. Product-provider credentials must never be shipped to Expo.
 
 ## Phase status
 
 - Phase 1: USEIT foundation and basic architecture are established.
-- Phase 2: real image input → FastAPI vision → validated scene analysis → presentation is implemented. Automated tests exist, but a real-device/real-image acceptance run still needs to be recorded before calling the phase closed.
-- Phase 3: domain intelligence, shopping, ranking, solution optimization, visual compatibility and redesign are implemented as the USEIT intelligence core, but the end-to-end production wiring is not complete.
+- Phase 2: real image input → FastAPI multimodal vision → validated scene analysis → presentation is implemented.
+- Phase 3: intent/suggestion intelligence, scene understanding, specialist context, shopping discovery, ranking and visual generation foundations are implemented.
+- Phase 4–11: knowledge/search, personal memory, action layer, trust/privacy/security and production hardening capabilities have been implemented incrementally and hardened through automated validation.
+- Phase 17: unified intelligence boundary is implemented and runtime validated.
+- Phase 18: versioned fail-closed intelligence contract is implemented with regression coverage.
+- Phase 19: canonical unified runtime wiring is implemented; unified-capable providers use one `/v1/useit/analyze` request and validate the complete response.
+- Phase 20: consumer runtime wiring is implemented; the actual mobile consumer flow now consumes the unified response and does not invoke client-side product discovery on that path.
 
-## Next implementation gate
+## Current implementation gate
 
-1. Keep `/v1/analyze` as the authoritative vision endpoint.
-2. Keep `src/core/intelligence` as the authoritative domain/intelligence core.
-3. Define one typed boundary between the FastAPI scene analysis and the TypeScript intelligence core.
-4. Move credentialed product-provider calls behind the backend boundary.
-5. Wire the room flow first: existing-vs-new furniture → budget → product search → ranking → redesign.
-6. Reuse the same domain architecture for wardrobe, fridge/food, table and object scenarios instead of creating separate ad-hoc systems.
+1. Keep `/v1/analyze` authoritative for raw multimodal scene analysis.
+2. Keep `/v1/useit/analyze` as the canonical consumer intelligence boundary.
+3. Keep the TypeScript unified contract fail-closed and versioned.
+4. Keep credentialed product discovery behind FastAPI.
+5. Preserve legacy provider compatibility without allowing it to become the production consumer path.
+6. Next value should come from production hardening and end-to-end acceptance evidence, not another duplicate intelligence layer.
