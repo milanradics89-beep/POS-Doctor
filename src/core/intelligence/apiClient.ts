@@ -60,7 +60,7 @@ export type ConsumerIntelligence = {
   intentConfidence: number;
   clarificationRequired: boolean;
 };
-export type ConsumerAnalysis = PresentationResult & { intelligence: ConsumerIntelligence; phase3: IntelligenceRun; analysis: SceneAnalysis };
+export type ConsumerAnalysis = PresentationResult & { intelligence: ConsumerIntelligence; phase3?: IntelligenceRun; analysis: SceneAnalysis; unified?: UseitAnalyzeResponse };
 
 function domainForScene(sceneType: SceneAnalysis['sceneType']): IntentDomain {
   if (sceneType === 'wardrobe') return 'wardrobe';
@@ -81,8 +81,20 @@ function toConsumerIntelligence(run: IntelligenceRun): ConsumerIntelligence {
   const ranked = (run.ranked ?? []).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.title, category: candidate.category, source: candidate.source, priceHuf: candidate.priceHuf ?? 0, url: candidate.url }));
   return { action: { type: actionType, title: actionTitle }, need: { kind: goal }, rankedCandidates: ranked, intentConfidence: run.clarification.needsClarification ? 0.5 : 1, clarificationRequired: run.clarification.needsClarification };
 }
+function toUnifiedConsumerIntelligence(result: UseitAnalyzeResponse): ConsumerIntelligence {
+  const intent = result.intent.name;
+  const actionType = intent === 'cook' ? 'recipe' : intent === 'fix' ? 'repair_guide' : intent === 'improve' || intent === 'create' ? 'visualize' : intent === 'shop' ? 'shop' : 'recommend';
+  const actionTitle = actionType === 'visualize' ? 'Create the redesigned view' : actionType === 'recipe' ? 'Build a recipe from the visible ingredients' : actionType === 'repair_guide' ? 'Show the repair path' : actionType === 'shop' ? 'Show the best matching options' : 'Show recommendations';
+  const ranked = (result.shopping?.candidates ?? []).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.name, category: candidate.category ?? 'general', source: candidate.retailer ?? 'USEIT', priceHuf: candidate.price ?? 0, url: candidate.url }));
+  return { action: { type: actionType, title: actionTitle }, need: { kind: intent }, rankedCandidates: ranked, intentConfidence: result.intent.confidence ?? 0.5, clarificationRequired: (result.intent.confidence ?? 0.5) < 0.6 };
+}
 export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean } = {}): Promise<ConsumerAnalysis> {
   validateImageUri(imageUri);
+  if (provider.analyzeUseit) {
+    const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors });
+    const analysis = normalizeAnalysis(unified.scene);
+    return { ...toPresentationResult(analysis, intent), intelligence: toUnifiedConsumerIntelligence(unified), analysis, unified };
+  }
   const analysis = await provider.analyzeImage(imageUri, intent);
   const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(analysis, imageUri.slice(0, 80));
   const providers = options.phase3Providers ?? [googleProductProvider];
