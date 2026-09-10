@@ -30,9 +30,12 @@ def _bounded_timeout(value: float) -> float:
 
 
 def configured_request_timeout() -> float:
+    # Preserve the legacy test/integration override when it is explicitly changed.
+    if REQUEST_TIMEOUT_SECONDS != DEFAULT_REQUEST_TIMEOUT_SECONDS:
+        return float(REQUEST_TIMEOUT_SECONDS)
     configured = os.environ.get("USEIT_REQUEST_TIMEOUT_SECONDS")
     if configured is None:
-        return _bounded_timeout(float(REQUEST_TIMEOUT_SECONDS))
+        return DEFAULT_REQUEST_TIMEOUT_SECONDS
     try:
         value = float(configured)
     except (TypeError, ValueError):
