@@ -10,7 +10,8 @@ from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
 
 from backend.action_layer import router as action_router
-from backend.api_auth import configured_api_key, configured_session_secret, issue_session_token, install_api_key_guard, session_ttl_seconds
+from backend.api_auth import configured_api_key, configured_session_secret, issue_session_token, session_ttl_seconds
+from backend.runtime_auth import install_runtime_auth_guard
 from backend.google_search import router as google_search_router
 from backend.knowledge_search import router as knowledge_search_router
 from backend.personal_memory import router as personal_memory_router
@@ -48,8 +49,7 @@ app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=Fals
 install_request_controls(app)
 install_observability(app, logger)
 install_security_headers(app)
-if configured_api_key() or configured_session_secret():
-    install_api_key_guard(app)
+install_runtime_auth_guard(app)
 install_rate_limit(app)
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
 
