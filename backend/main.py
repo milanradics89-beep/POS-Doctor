@@ -48,7 +48,8 @@ app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=Fals
 install_request_controls(app)
 install_observability(app, logger)
 install_security_headers(app)
-install_api_key_guard(app)
+if configured_api_key() or configured_session_secret():
+    install_api_key_guard(app)
 install_rate_limit(app)
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
 
@@ -117,7 +118,7 @@ def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
 
 @app.get("/health")
 async def health():
-    return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyConfigured":bool(configured_api_key()),"sessionAuthConfigured":bool(configured_session_secret())}
+    return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyConfigured":bool(configured_api_key()),"apiKeyRequired":bool(configured_api_key() or configured_session_secret()),"sessionAuthConfigured":bool(configured_session_secret())}
 
 @app.get("/ready")
 async def ready():
