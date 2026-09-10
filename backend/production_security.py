@@ -17,13 +17,15 @@ def validate_production_security() -> None:
     if not production_mode():
         return
 
+    missing = []
     if not os.getenv("OPENAI_API_KEY"):
-        raise RuntimeError("Missing required production secret: OPENAI_API_KEY")
-
+        missing.append("OPENAI_API_KEY")
     api_key = os.getenv("USEIT_API_KEY", "").strip()
     session_secret = os.getenv("USEIT_SESSION_SECRET", "").strip()
     if not api_key and not session_secret:
-        raise RuntimeError("Production requires USEIT_API_KEY or USEIT_SESSION_SECRET")
+        missing.append("USEIT_API_KEY or USEIT_SESSION_SECRET")
+    if missing:
+        raise RuntimeError("Missing required production secrets: " + ", ".join(missing))
     if session_secret and len(session_secret) < MIN_SESSION_SECRET_LENGTH:
         raise RuntimeError("USEIT_SESSION_SECRET must be at least 32 characters")
 
