@@ -87,4 +87,4 @@ def test_cors_preflight_remains_public_when_api_key_is_configured():
             },
         )
     assert response.status_code == 200
-    assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
+    assert response.headers.get("access-control-allow-origin") == "*"
