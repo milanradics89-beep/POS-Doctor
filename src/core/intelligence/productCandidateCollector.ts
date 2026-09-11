@@ -13,6 +13,21 @@ export type CandidateCollection = {
   errors: Array<{ provider: string; message: string }>;
 };
 
+function normalizeCandidateUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    for (const key of [...parsed.searchParams.keys()]) {
+      if (/^(utm_|fbclid|gclid|msclkid|mc_cid|mc_eid)$/i.test(key) || key.toLowerCase().startsWith('utm_')) {
+        parsed.searchParams.delete(key);
+      }
+    }
+    parsed.hash = '';
+    return parsed.toString();
+  } catch {
+    return url.trim();
+  }
+}
+
 function isProductCandidate(value: unknown): value is ProductCandidate {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<ProductCandidate>;
@@ -70,7 +85,8 @@ export async function collectProductCandidates(decision: ShoppingDecision, provi
 
   const deduped = new Map<string, ProductCandidate>();
   for (const candidate of candidates) {
-    const key = candidate.url || `${candidate.source}:${candidate.title.toLowerCase()}`;
+    const normalizedUrl = candidate.url ? normalizeCandidateUrl(candidate.url) : '';
+    const key = normalizedUrl || `${candidate.source}:${candidate.title.trim().toLowerCase()}`;
     if (!deduped.has(key)) deduped.set(key, candidate);
   }
 
