@@ -79,4 +79,16 @@ describe('collectProductCandidates', () => {
     expect(result.candidates[0].id).toBe('p-1');
     expect(result.providersUsed).toEqual(['a', 'b']);
   });
+
+  it('deduplicates tracking variants and URL fragments of the same product', async () => {
+    const providers: ProductProvider[] = [
+      { id: 'a', search: vi.fn().mockResolvedValue([candidate({ url: 'https://shop.example/p-1?utm_source=google&utm_campaign=summer#details' })]) },
+      { id: 'b', search: vi.fn().mockResolvedValue([candidate({ id: 'p-2', url: 'https://shop.example/p-1?utm_medium=cpc', source: 'other' })]) },
+    ];
+
+    const result = await collectProductCandidates(decision, providers);
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0].id).toBe('p-1');
+  });
 });
