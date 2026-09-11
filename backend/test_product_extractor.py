@@ -93,6 +93,11 @@ def test_number_handles_common_european_formats():
     assert _number('Infinity') is None
 
 
+def test_number_handles_us_mixed_separator_format():
+    assert _number('1,299.99') == 1299.99
+    assert _number('1,234,567.89') == 1234567.89
+
+
 def test_rejects_non_http_urls():
     with pytest.raises(HTTPException) as exc:
         validate_public_http_url('file:///etc/passwd')
