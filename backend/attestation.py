@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import os
+import secrets
+import time
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol
@@ -36,18 +42,69 @@ class AttestationVerifier(Protocol):
         """Verify platform-backed attestation server-side."""
 
 
+@dataclass(frozen=True)
+class AttestationChallenge:
+    challenge: str
+    provider: AttestationProvider
+    app_id: str
+    expires_at: int
+
+
+class ChallengeStore:
+    """Single-use challenge store. Production deployments should use shared storage."""
+
+    def __init__(self) -> None:
+        self._issued: dict[str, int] = {}
+
+    def issue(self, ttl_seconds: int = 300) -> str:
+        now = int(time.time())
+        nonce = secrets.token_urlsafe(32)
+        self._issued[hashlib.sha256(nonce.encode()).hexdigest()] = now + ttl_seconds
+        self._prune(now)
+        return nonce
+
+    def consume(self, challenge: str, now: int | None = None) -> bool:
+        current = int(time.time() if now is None else now)
+        key = hashlib.sha256(challenge.encode()).hexdigest()
+        expires_at = self._issued.pop(key, None)
+        self._prune(current)
+        return expires_at is not None and expires_at > current
+
+    def _prune(self, now: int) -> None:
+        self._issued = {key: expiry for key, expiry in self._issued.items() if expiry > now}
+
+
+_CHALLENGE_STORE = ChallengeStore()
+DEFAULT_CHALLENGE_TTL_SECONDS = 300
+MAX_CHALLENGE_TTL_SECONDS = 600
+
+
 def configured_attestation_mode() -> AttestationMode:
     value = os.environ.get("USEIT_ATTESTATION_MODE", AttestationMode.DISABLED.value).strip().lower()
     try:
         return AttestationMode(value)
     except ValueError:
-        raise RuntimeError(
-            "USEIT_ATTESTATION_MODE must be one of: disabled, optional, required."
-        )
+        raise RuntimeError("USEIT_ATTESTATION_MODE must be one of: disabled, optional, required.")
 
 
 def attestation_required(mode: AttestationMode | None = None) -> bool:
     return (mode or configured_attestation_mode()) is AttestationMode.REQUIRED
+
+
+def issue_challenge(ttl_seconds: int | None = None) -> AttestationChallenge:
+    ttl = max(30, min(ttl_seconds or DEFAULT_CHALLENGE_TTL_SECONDS, MAX_CHALLENGE_TTL_SECONDS))
+    provider_value = os.environ.get("USEIT_ATTESTATION_PROVIDER", AttestationProvider.APP_ATTEST.value).strip().lower()
+    try:
+        provider = AttestationProvider(provider_value)
+    except ValueError as exc:
+        raise RuntimeError("USEIT_ATTESTATION_PROVIDER must be apple_app_attest or google_play_integrity.") from exc
+    app_id = os.environ.get("USEIT_ATTESTATION_APP_ID", "").strip()
+    challenge = _CHALLENGE_STORE.issue(ttl)
+    return AttestationChallenge(challenge=challenge, provider=provider, app_id=app_id, expires_at=int(time.time()) + ttl)
+
+
+def consume_challenge(challenge: str) -> bool:
+    return _CHALLENGE_STORE.consume(challenge)
 
 
 def evaluate_attestation(
