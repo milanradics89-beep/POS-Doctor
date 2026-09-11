@@ -41,6 +41,35 @@ jobs:
           cd android
           ./gradlew assembleRelease --no-daemon
 
+  ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies reproducibly
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Generate native iOS project
+        run: npx expo prebuild --platform ios --no-install
+      - name: Install CocoaPods dependencies
+        run: npx pod-install ios
+      - name: Validate native iOS release build
+        run: |
+          xcodebuild \
+            -workspace ios/USEIT.xcworkspace \
+            -scheme USEIT \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
   backend:
     runs-on: ubuntu-latest
     steps:
