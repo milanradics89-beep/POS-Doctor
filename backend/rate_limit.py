@@ -10,6 +10,8 @@ from fastapi.responses import JSONResponse
 
 
 PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc"})
+SESSION_PATH = "/v1/session"
+DEFAULT_SESSION_RATE_LIMIT = 10
 
 
 def configured_rate_limit() -> int:
@@ -17,6 +19,13 @@ def configured_rate_limit() -> int:
         return max(1, int(os.environ.get("USEIT_RATE_LIMIT_PER_MINUTE", "60")))
     except ValueError:
         return 60
+
+
+def configured_session_rate_limit() -> int:
+    try:
+        return max(1, int(os.environ.get("USEIT_SESSION_RATE_LIMIT_PER_MINUTE", str(DEFAULT_SESSION_RATE_LIMIT))))
+    except ValueError:
+        return DEFAULT_SESSION_RATE_LIMIT
 
 
 def rate_limit_mode() -> str:
@@ -35,7 +44,7 @@ def _limited_response() -> JSONResponse:
     )
 
 
-async def _redis_allowed(request: Request, limit: int) -> bool:
+async def _redis_allowed(request: Request, limit: int, namespace: str = "rate") -> bool:
     try:
         from redis.asyncio import Redis
     except ImportError as exc:
@@ -46,7 +55,7 @@ async def _redis_allowed(request: Request, limit: int) -> bool:
         raise RuntimeError("Redis rate limiting requires USEIT_REDIS_URL.")
 
     client = Redis.from_url(url, decode_responses=True)
-    key = f"useit:rate:{_client_key(request)}:{int(time.time() // 60)}"
+    key = f"useit:{namespace}:{_client_key(request)}:{int(time.time() // 60)}"
     try:
         count = await client.incr(key)
         if count == 1:
@@ -57,24 +66,28 @@ async def _redis_allowed(request: Request, limit: int) -> bool:
 
 
 def install_rate_limit(app) -> None:
-    buckets: dict[str, deque[float]] = defaultdict(deque)
+    buckets: dict[tuple[str, str], deque[float]] = defaultdict(deque)
 
     @app.middleware("http")
     async def rate_limit(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
         if request.method == "OPTIONS" or request.url.path in PUBLIC_PATHS:
             return await call_next(request)
 
-        limit = configured_rate_limit()
+        is_session = request.url.path == SESSION_PATH and request.method == "POST"
+        limit = configured_session_rate_limit() if is_session else configured_rate_limit()
+        namespace = "session-rate" if is_session else "rate"
+
         if rate_limit_mode() == "redis":
             try:
-                allowed = await _redis_allowed(request, limit)
+                allowed = await _redis_allowed(request, limit, namespace)
             except Exception:
                 return JSONResponse(status_code=503, content={"detail": "Rate limiting is temporarily unavailable."})
             if not allowed:
                 return _limited_response()
         else:
             now = time.monotonic()
-            bucket = buckets[_client_key(request)]
+            key = (namespace, _client_key(request))
+            bucket = buckets[key]
             cutoff = now - 60.0
             while bucket and bucket[0] <= cutoff:
                 bucket.popleft()
