@@ -3,24 +3,34 @@ import type { SceneModel } from './sceneModel';
 
 export type RankedProduct = ProductCandidate & { score: number; scoreBreakdown: Record<string, number>; reasons: string[] };
 
+function finiteScore(value: number, fallback = 0.5): number {
+  return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : fallback;
+}
+
 export function rankProducts(scene: SceneModel, decision: ShoppingDecision, candidates: ProductCandidate[]): RankedProduct[] {
   return candidates.map(candidate => {
     const scoreBreakdown = {
-      categoryFit: decision.categories.includes(candidate.category) ? 1 : 0.35,
-      budgetFit: scoreBudget(candidate, decision),
-      styleFit: scoreAttribute(candidate, decision, 'style'),
-      colorFit: scoreAttribute(candidate, decision, 'color'),
-      availability: candidate.availability === 'in_stock' ? 1 : candidate.availability === 'out_of_stock' ? 0 : 0.5,
+      categoryFit: finiteScore(decision.categories.includes(candidate.category) ? 1 : 0.35),
+      budgetFit: finiteScore(scoreBudget(candidate, decision)),
+      styleFit: finiteScore(scoreAttribute(candidate, decision, 'style')),
+      colorFit: finiteScore(scoreAttribute(candidate, decision, 'color')),
+      availability: finiteScore(candidate.availability === 'in_stock' ? 1 : candidate.availability === 'out_of_stock' ? 0 : 0.5),
     };
-    const score = scoreBreakdown.categoryFit * 0.30 + scoreBreakdown.budgetFit * 0.25 + scoreBreakdown.styleFit * 0.20 + scoreBreakdown.colorFit * 0.10 + scoreBreakdown.availability * 0.15;
+    const score = finiteScore(
+      scoreBreakdown.categoryFit * 0.30 + scoreBreakdown.budgetFit * 0.25 + scoreBreakdown.styleFit * 0.20 + scoreBreakdown.colorFit * 0.10 + scoreBreakdown.availability * 0.15,
+    );
     return { ...candidate, score, scoreBreakdown, reasons: buildReasons(candidate, scoreBreakdown, scene) };
-  }).sort((a, b) => b.score - a.score);
+  }).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
 }
 
 function scoreBudget(candidate: ProductCandidate, decision: ShoppingDecision): number {
-  if (candidate.priceHuf == null || decision.budgetHuf == null) return 0.5;
-  if (candidate.priceHuf <= decision.budgetHuf) return Math.max(0.4, 1 - candidate.priceHuf / (decision.budgetHuf * 1.25));
-  return Math.max(0, 1 - (candidate.priceHuf - decision.budgetHuf) / decision.budgetHuf);
+  const price = candidate.priceHuf;
+  const budget = decision.budgetHuf;
+  if (price == null || budget == null) return 0.5;
+  if (!Number.isFinite(price) || price < 0 || !Number.isFinite(budget) || budget < 0) return 0.5;
+  if (budget === 0) return price === 0 ? 1 : 0;
+  if (price <= budget) return Math.max(0.4, 1 - price / (budget * 1.25));
+  return Math.max(0, 1 - (price - budget) / budget);
 }
 
 function scoreAttribute(candidate: ProductCandidate, decision: ShoppingDecision, key: string): number {
