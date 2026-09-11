@@ -1,7 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
-from backend.product_extractor import _HTMLParser, _extract
+from backend.product_extractor import _HTMLParser, _extract, _number, _currency
 from backend.security import validate_public_http_url
 
 
@@ -23,11 +23,37 @@ def test_extracts_product_offer_and_evidence():
     assert product is not None
     assert product['name'] == 'Design Chair'
     assert product['price'] == 129990
+    assert product['priceHuf'] == 129990
     assert product['currency'] == 'HUF'
     assert product['availability'] == 'in_stock'
     assert product['url'] == 'https://shop.example/p/1'
     assert 'json-ld:Product' in product['evidence']
     assert 'json-ld:Offer' in product['evidence']
+
+
+def test_non_huf_price_is_never_exposed_as_price_huf():
+    parser = parse('''<script type="application/ld+json">{"@type":"Product","name":"Imported Chair","offers":{"price":"299.99","priceCurrency":"EUR"}}</script>''')
+    product = _extract(parser, 'https://shop.example/p')
+    assert product is not None
+    assert product['price'] == 299.99
+    assert product['currency'] == 'EUR'
+    assert product['priceHuf'] is None
+
+
+def test_currency_is_normalized_to_iso_style_code():
+    assert _currency(' huf ') == 'HUF'
+    assert _currency('eur') == 'EUR'
+    assert _currency('EURO') is None
+    assert _currency('HUF1') is None
+
+
+def test_number_handles_common_european_formats():
+    assert _number('1.234') == 1234
+    assert _number('1.234,56') == 1234.56
+    assert _number('1234,56') == 1234.56
+    assert _number('1234.56') == 1234.56
+    assert _number('1,234') == 1234
+    assert _number('-1') is None
 
 
 def test_rejects_non_http_urls():
