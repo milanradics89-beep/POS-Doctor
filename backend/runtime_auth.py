@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from backend.api_auth import configured_api_key, configured_session_secret, extract_bearer_token, verify_session_token
 
 
-PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc", "/v1/session"})
+PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc", "/v1/session", "/v1/session/challenge"})
 
 
 def install_runtime_auth_guard(app) -> None:
