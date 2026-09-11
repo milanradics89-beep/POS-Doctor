@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import base64
 import hashlib
-import hmac
-import json
 import os
 import secrets
 import time
@@ -91,8 +88,18 @@ def attestation_required(mode: AttestationMode | None = None) -> bool:
     return (mode or configured_attestation_mode()) is AttestationMode.REQUIRED
 
 
+def attestation_challenge_ttl_seconds() -> int:
+    raw = os.environ.get("USEIT_ATTESTATION_CHALLENGE_TTL_SECONDS", str(DEFAULT_CHALLENGE_TTL_SECONDS))
+    try:
+        value = int(raw)
+    except ValueError:
+        return DEFAULT_CHALLENGE_TTL_SECONDS
+    return max(30, min(value, MAX_CHALLENGE_TTL_SECONDS))
+
+
 def issue_challenge(ttl_seconds: int | None = None) -> AttestationChallenge:
-    ttl = max(30, min(ttl_seconds or DEFAULT_CHALLENGE_TTL_SECONDS, MAX_CHALLENGE_TTL_SECONDS))
+    ttl = ttl_seconds if ttl_seconds is not None else attestation_challenge_ttl_seconds()
+    ttl = max(30, min(ttl, MAX_CHALLENGE_TTL_SECONDS))
     provider_value = os.environ.get("USEIT_ATTESTATION_PROVIDER", AttestationProvider.APP_ATTEST.value).strip().lower()
     try:
         provider = AttestationProvider(provider_value)
