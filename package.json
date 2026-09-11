@@ -13,12 +13,12 @@
     "guard:useit": "node scripts/useit-boundary.mjs"
   },
   "dependencies": {
-    "expo": "~57.0.21",
-    "expo-constants": "~57.0.17",
-    "expo-image-picker": "~57.0.16",
-    "expo-linear-gradient": "~57.0.1",
-    "expo-linking": "~57.0.5",
-    "expo-router": "~57.0.20",
+    "expo": "~57.0.22",
+    "expo-constants": "~57.0.18",
+    "expo-image-picker": "~57.0.17",
+    "expo-linear-gradient": "~57.0.2",
+    "expo-linking": "~57.0.10",
+    "expo-router": "~57.0.21",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
