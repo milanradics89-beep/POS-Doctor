@@ -68,7 +68,24 @@ jobs:
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath build/ios-simulator \
             build
+      - name: Install and launch iOS simulator smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEVICE_UDID="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE_UDID"
+          xcrun simctl boot "$DEVICE_UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$DEVICE_UDID" -b
+          APP_PATH="build/ios-simulator/Build/Products/Release-iphonesimulator/USEIT.app"
+          test -d "$APP_PATH"
+          BUNDLE_ID="$(xcodebuild -showBuildSettings -workspace ios/USEIT.xcworkspace -scheme USEIT | awk -F ' = ' '/PRODUCT_BUNDLE_IDENTIFIER/{print $2; exit}')"
+          test -n "$BUNDLE_ID"
+          xcrun simctl install "$DEVICE_UDID" "$APP_PATH"
+          xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID"
+          xcrun simctl terminate "$DEVICE_UDID" "$BUNDLE_ID" || true
+          xcrun simctl shutdown "$DEVICE_UDID"
 
   backend:
     runs-on: ubuntu-latest
