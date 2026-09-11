@@ -9,7 +9,9 @@ from backend.attestation import (
     AttestationResult,
     attestation_required,
     configured_attestation_mode,
+    consume_challenge,
     evaluate_attestation,
+    issue_challenge,
 )
 
 
@@ -65,3 +67,23 @@ def test_required_mode_accepts_verified_evidence():
         AttestationMode.REQUIRED,
     )
     assert result == AttestationResult(True, "attestation_verified")
+
+
+def test_challenge_is_single_use():
+    challenge = issue_challenge(ttl_seconds=60)
+    assert consume_challenge(challenge.challenge)
+    assert not consume_challenge(challenge.challenge)
+
+
+def test_expired_challenge_is_rejected(monkeypatch):
+    challenge = issue_challenge(ttl_seconds=30)
+    monkeypatch.setattr("backend.attestation.time.time", lambda: challenge.expires_at + 1)
+    assert not consume_challenge(challenge.challenge)
+
+
+def test_challenge_uses_configured_provider_and_app_id(monkeypatch):
+    monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "google_play_integrity")
+    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "com.useit.app")
+    challenge = issue_challenge(ttl_seconds=60)
+    assert challenge.provider is AttestationProvider.PLAY_INTEGRITY
+    assert challenge.app_id == "com.useit.app"
