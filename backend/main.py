@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from backend.action_layer import router as action_router
 from backend.api_auth import configured_api_key, configured_session_secret, issue_session_token, session_ttl_seconds
+from backend.attestation import issue_challenge
 from backend.runtime_auth import install_runtime_auth_guard
 from backend.google_search import router as google_search_router
 from backend.knowledge_search import router as knowledge_search_router
@@ -128,6 +129,13 @@ async def ready():
     if not dependencies_ready:
         raise HTTPException(status_code=503, detail="Service is not ready.")
     return {"status": "ready"}
+
+@app.post("/v1/session/challenge")
+async def create_attestation_challenge(response: Response):
+    challenge = issue_challenge()
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return {"challenge": challenge.challenge, "provider": challenge.provider.value, "appId": challenge.app_id, "expiresAt": challenge.expires_at}
 
 @app.post("/v1/session")
 async def create_session(response: Response):
