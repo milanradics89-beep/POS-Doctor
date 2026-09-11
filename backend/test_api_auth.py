@@ -93,3 +93,27 @@ def test_cors_preflight_remains_public_when_api_key_is_configured():
     assert response.status_code == 200
     allow_origin = response.headers.get("access-control-allow-origin")
     assert allow_origin in {configured_origin, "*"}
+
+
+def test_cors_preflight_rejects_unknown_origin():
+    configured_origins = {
+        origin.strip()
+        for origin in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",")
+        if origin.strip() and origin.strip() != "*"
+    }
+    if not configured_origins:
+        return
+
+    unknown_origin = "https://not-allowed.useit.invalid"
+    assert unknown_origin not in configured_origins
+    with patch.dict(os.environ, {"USEIT_API_KEY": "secret"}, clear=False):
+        response = client.options(
+            "/v1/analyze",
+            headers={
+                "Origin": unknown_origin,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "Authorization, Content-Type",
+            },
+        )
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers
