@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 
 from backend.attestation import (
@@ -27,7 +28,7 @@ def issue_attestation_challenge() -> dict[str, object]:
         "provider": challenge.provider.value,
         "appId": challenge.app_id,
         "expiresAt": challenge.expires_at,
-        "expiresIn": max(0, challenge.expires_at - __import__("time").time().__int__()),
+        "expiresIn": max(0, challenge.expires_at - int(time.time())),
         "mode": configured_attestation_mode().value,
     }
 
