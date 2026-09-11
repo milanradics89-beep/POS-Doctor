@@ -12,16 +12,8 @@ from backend.attestation import (
     consume_challenge,
     evaluate_attestation,
     issue_challenge,
+    validate_challenge_binding,
 )
-
-
-def evidence() -> AttestationEvidence:
-    return AttestationEvidence(
-        provider=AttestationProvider.APP_ATTEST,
-        challenge="server-challenge",
-        assertion="platform-assertion",
-        app_id="com.useit.app",
-    )
 
 
 def test_attestation_defaults_to_disabled(monkeypatch):
@@ -53,7 +45,7 @@ def test_required_mode_rejects_missing_attestation():
 
 def test_required_mode_rejects_invalid_provider_result():
     result = evaluate_attestation(
-        evidence(),
+        AttestationEvidence(AttestationProvider.APP_ATTEST, "challenge", "assertion", "com.useit.app"),
         AttestationResult(False, "wrong_app"),
         AttestationMode.REQUIRED,
     )
@@ -62,7 +54,7 @@ def test_required_mode_rejects_invalid_provider_result():
 
 def test_required_mode_accepts_verified_evidence():
     result = evaluate_attestation(
-        evidence(),
+        AttestationEvidence(AttestationProvider.APP_ATTEST, "challenge", "assertion", "com.useit.app"),
         AttestationResult(True, "provider_verified"),
         AttestationMode.REQUIRED,
     )
@@ -87,3 +79,37 @@ def test_challenge_uses_configured_provider_and_app_id(monkeypatch):
     challenge = issue_challenge(ttl_seconds=60)
     assert challenge.provider is AttestationProvider.PLAY_INTEGRITY
     assert challenge.app_id == "com.useit.app"
+
+
+def test_challenge_binding_rejects_wrong_provider(monkeypatch):
+    monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "apple_app_attest")
+    challenge = issue_challenge(ttl_seconds=60)
+    result = validate_challenge_binding(
+        AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, challenge.challenge, "assertion", challenge.app_id)
+    )
+    assert result == AttestationResult(False, "wrong_provider")
+
+
+def test_challenge_binding_rejects_wrong_app(monkeypatch):
+    monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "apple_app_attest")
+    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "com.useit.app")
+    challenge = issue_challenge(ttl_seconds=60)
+    result = validate_challenge_binding(
+        AttestationEvidence(AttestationProvider.APP_ATTEST, challenge.challenge, "assertion", "com.attacker.app")
+    )
+    assert result == AttestationResult(False, "wrong_app")
+
+
+def test_challenge_binding_rejects_missing_assertion():
+    challenge = issue_challenge(ttl_seconds=60)
+    result = validate_challenge_binding(
+        AttestationEvidence(challenge.provider, challenge.challenge, "", challenge.app_id)
+    )
+    assert result == AttestationResult(False, "assertion_missing")
+
+
+def test_challenge_binding_is_single_use():
+    challenge = issue_challenge(ttl_seconds=60)
+    evidence = AttestationEvidence(challenge.provider, challenge.challenge, "assertion", challenge.app_id)
+    assert validate_challenge_binding(evidence).verified
+    assert validate_challenge_binding(evidence) == AttestationResult(False, "challenge_invalid_or_replayed")
