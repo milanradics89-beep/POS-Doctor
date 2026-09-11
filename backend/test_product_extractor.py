@@ -40,20 +40,57 @@ def test_non_huf_price_is_never_exposed_as_price_huf():
     assert product['priceHuf'] is None
 
 
+def test_usd_price_is_never_exposed_as_price_huf():
+    parser = parse('''<script type="application/ld+json">{"@type":"Product","name":"US Chair","offers":{"price":"1,299.99","priceCurrency":"USD"}}</script>''')
+    product = _extract(parser, 'https://shop.example/p')
+    assert product is not None
+    assert product['price'] == 1299.99
+    assert product['currency'] == 'USD'
+    assert product['priceHuf'] is None
+
+
+def test_malformed_price_or_currency_never_creates_huf_price():
+    parser = parse('''
+    <script type="application/ld+json">
+    {"@type":"Product","name":"Broken Chair","offers":{"price":"not-a-price","priceCurrency":"HUF"}}
+    </script>
+    ''')
+    product = _extract(parser, 'https://shop.example/p')
+    assert product is not None
+    assert product['price'] is None
+    assert product['currency'] == 'HUF'
+    assert product['priceHuf'] is None
+
+    parser = parse('''
+    <script type="application/ld+json">
+    {"@type":"Product","name":"Broken Currency","offers":{"price":"129990","priceCurrency":"HUF1"}}
+    </script>
+    ''')
+    product = _extract(parser, 'https://shop.example/p')
+    assert product is not None
+    assert product['price'] == 129990
+    assert product['currency'] is None
+    assert product['priceHuf'] is None
+
+
 def test_currency_is_normalized_to_iso_style_code():
     assert _currency(' huf ') == 'HUF'
     assert _currency('eur') == 'EUR'
     assert _currency('EURO') is None
     assert _currency('HUF1') is None
+    assert _currency(840) is None
 
 
 def test_number_handles_common_european_formats():
     assert _number('1.234') == 1234
-    assert _number('1.234,56') == 1234.56
+    assert _number('1.234.567') == 1234567
+    assert _number('1.234.567,89') == 1234567.89
     assert _number('1234,56') == 1234.56
     assert _number('1234.56') == 1234.56
     assert _number('1,234') == 1234
     assert _number('-1') is None
+    assert _number('NaN') is None
+    assert _number('Infinity') is None
 
 
 def test_rejects_non_http_urls():
