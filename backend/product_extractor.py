@@ -82,10 +82,24 @@ def _number(value: Any) -> float | None:
     if value is None: return None
     text = re.sub(r"[^0-9.,-]", "", str(value)).strip()
     if not text: return None
-    if "," in text and "." in text: text = text.replace(".", "").replace(",", ".")
-    elif "," in text: text = text.replace(",", ".")
-    try: return float(text)
+    if "," in text and "." in text:
+        text = text.replace(".", "").replace(",", ".")
+    elif "," in text:
+        parts = text.split(",")
+        text = "".join(parts[:-1]) + "." + parts[-1] if len(parts[-1]) in (1, 2) and len(parts) > 1 else "".join(parts)
+    elif "." in text:
+        parts = text.split(".")
+        text = "".join(parts) if len(parts) > 2 or (len(parts) == 2 and len(parts[-1]) == 3) else text
+    try:
+        result = float(text)
+        return result if result >= 0 else None
     except ValueError: return None
+
+def _currency(value: Any) -> str | None:
+    if not isinstance(value, str): return None
+    currency = value.strip().upper()
+    if not re.fullmatch(r"[A-Z]{3}", currency): return None
+    return currency
 
 def _string(value: Any) -> str | None:
     if isinstance(value, str) and value.strip(): return value.strip()
@@ -102,7 +116,8 @@ def _extract(parser: _HTMLParser, url: str) -> dict[str, Any] | None:
     if not name: return None
     image = _first_image(product.get("image"), url) or parser.meta.get("og:image")
     brand = _string(product.get("brand")); color = _string(product.get("color")); material = _string(product.get("material")); category = _string(product.get("category"))
-    price_number = _number(offer.get("price")); currency = _string(offer.get("priceCurrency")); availability = _availability(offer.get("availability"))
+    price_number = _number(offer.get("price")); currency = _currency(offer.get("priceCurrency")); availability = _availability(offer.get("availability"))
+    price_huf = price_number if currency == "HUF" else None
     evidence = ["json-ld:Product"]
     if offer: evidence.append("json-ld:Offer")
     if image: evidence.append("image")
@@ -110,8 +125,8 @@ def _extract(parser: _HTMLParser, url: str) -> dict[str, Any] | None:
     if brand: evidence.append("brand")
     if color: evidence.append("color")
     if material: evidence.append("material")
-    quality = min(1.0, 0.35 + 0.08 * len(evidence) + (0.15 if price_number is not None else 0))
-    return {"id": canonical, "name": str(name).strip(), "brand": brand, "url": canonical, "imageUrl": image, "price": price_number, "currency": currency, "availability": availability, "retailer": urlparse(canonical).hostname, "category": category, "color": color, "material": material, "evidence": evidence, "qualityScore": quality}
+    quality = min(1.0, 0.35 + 0.08 * len(evidence) + (0.15 if price_huf is not None else 0))
+    return {"id": canonical, "name": str(name).strip(), "brand": brand, "url": canonical, "imageUrl": image, "price": price_number, "priceHuf": price_huf, "currency": currency, "availability": availability, "retailer": urlparse(canonical).hostname, "category": category, "color": color, "material": material, "evidence": evidence, "qualityScore": quality}
 
 async def _fetch_product_page(url: str) -> tuple[str, str, bytes]:
     current = validate_public_http_url(url)
