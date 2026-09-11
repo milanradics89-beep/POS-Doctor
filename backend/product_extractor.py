@@ -82,8 +82,13 @@ def _number(value: Any) -> float | None:
     if value is None: return None
     text = re.sub(r"[^0-9.,-]", "", str(value)).strip()
     if not text: return None
+
     if "," in text and "." in text:
-        text = text.replace(".", "").replace(",", ".")
+        # When both separators are present, the right-most one is the
+        # decimal separator. This handles both 1.234,56 and 1,234.56.
+        decimal_separator = "," if text.rfind(",") > text.rfind(".") else "."
+        thousands_separator = "." if decimal_separator == "," else ","
+        text = text.replace(thousands_separator, "").replace(decimal_separator, ".")
     elif "," in text:
         parts = text.split(",")
         text = "".join(parts[:-1]) + "." + parts[-1] if len(parts[-1]) in (1, 2) and len(parts) > 1 else "".join(parts)
