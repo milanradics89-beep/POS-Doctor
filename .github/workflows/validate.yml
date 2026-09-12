@@ -74,18 +74,39 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          cleanup() {
+            if [[ -n "${DEVICE_UDID:-}" ]]; then
+              xcrun simctl terminate "$DEVICE_UDID" "$BUNDLE_ID" 2>/dev/null || true
+              xcrun simctl shutdown "$DEVICE_UDID" 2>/dev/null || true
+            fi
+          }
+          trap cleanup EXIT
+
           DEVICE_UDID="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/{print $2; exit}')"
-          test -n "$DEVICE_UDID"
+          if [[ -z "$DEVICE_UDID" ]]; then
+            echo "No available iPhone simulator found on the runner."
+            xcrun simctl list devices available
+            exit 1
+          fi
+
           xcrun simctl boot "$DEVICE_UDID" 2>/dev/null || true
           xcrun simctl bootstatus "$DEVICE_UDID" -b
-          APP_PATH="build/ios-simulator/Build/Products/Release-iphonesimulator/USEIT.app"
-          test -d "$APP_PATH"
-          BUNDLE_ID="$(xcodebuild -showBuildSettings -workspace ios/USEIT.xcworkspace -scheme USEIT | awk -F ' = ' '/PRODUCT_BUNDLE_IDENTIFIER/{print $2; exit}')"
+
+          APP_PATH="$(find build/ios-simulator -type d -name 'USEIT.app' -print -quit)"
+          if [[ -z "$APP_PATH" ]]; then
+            echo "USEIT.app was not produced by the iOS Release simulator build."
+            find build/ios-simulator -maxdepth 6 -type d -name '*.app' -print || true
+            exit 1
+          fi
+
+          BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")"
           test -n "$BUNDLE_ID"
+          echo "Installing $BUNDLE_ID from $APP_PATH"
+
           xcrun simctl install "$DEVICE_UDID" "$APP_PATH"
           xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID"
-          xcrun simctl terminate "$DEVICE_UDID" "$BUNDLE_ID" || true
-          xcrun simctl shutdown "$DEVICE_UDID"
+          sleep 3
+          xcrun simctl spawn "$DEVICE_UDID" launchctl print system 2>/dev/null >/dev/null
 
   backend:
     runs-on: ubuntu-latest
