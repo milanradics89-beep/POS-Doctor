@@ -47,29 +47,30 @@ jobs:
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           test -n "$SDK_ROOT"
 
-          EMULATOR_BIN="$(command -v emulator || true)"
-          ADB_BIN="$(command -v adb || true)"
           SDKMANAGER="$(command -v sdkmanager || true)"
           AVDMANAGER="$(command -v avdmanager || true)"
+          ADB_BIN="$(command -v adb || true)"
           AAPT_BIN="$(command -v aapt || true)"
 
-          if [[ -z "$EMULATOR_BIN" && -x "$SDK_ROOT/emulator/emulator" ]]; then EMULATOR_BIN="$SDK_ROOT/emulator/emulator"; fi
-          if [[ -z "$ADB_BIN" && -x "$SDK_ROOT/platform-tools/adb" ]]; then ADB_BIN="$SDK_ROOT/platform-tools/adb"; fi
           if [[ -z "$SDKMANAGER" ]]; then SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -path '*/bin/sdkmanager' -perm -111 2>/dev/null | sort -V | tail -n 1 || true)"; fi
           if [[ -z "$AVDMANAGER" ]]; then AVDMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -path '*/bin/avdmanager' -perm -111 2>/dev/null | sort -V | tail -n 1 || true)"; fi
+          if [[ -z "$ADB_BIN" && -x "$SDK_ROOT/platform-tools/adb" ]]; then ADB_BIN="$SDK_ROOT/platform-tools/adb"; fi
           if [[ -z "$AAPT_BIN" ]]; then AAPT_BIN="$(find "$SDK_ROOT/build-tools" -type f -name aapt -perm -111 2>/dev/null | sort -V | tail -n 1 || true)"; fi
 
-          printf 'Android SDK: %s\n' "$SDK_ROOT"
-          printf 'emulator: %s\nadb: %s\nsdkmanager: %s\navdmanager: %s\naapt: %s\n' "$EMULATOR_BIN" "$ADB_BIN" "$SDKMANAGER" "$AVDMANAGER" "$AAPT_BIN"
-
-          test -x "$EMULATOR_BIN"
-          test -x "$ADB_BIN"
+          printf 'Android SDK: %s\nsdkmanager: %s\navdmanager: %s\nadb: %s\naapt: %s\n' "$SDK_ROOT" "$SDKMANAGER" "$AVDMANAGER" "$ADB_BIN" "$AAPT_BIN"
           test -x "$SDKMANAGER"
           test -x "$AVDMANAGER"
+          test -x "$ADB_BIN"
           test -x "$AAPT_BIN"
 
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platform-tools" "emulator" "platforms;android-35" "system-images;android-35;google_apis;x86_64"
+
+          EMULATOR_BIN="$SDK_ROOT/emulator/emulator"
+          if [[ ! -x "$EMULATOR_BIN" ]]; then EMULATOR_BIN="$(command -v emulator || true)"; fi
+          test -x "$EMULATOR_BIN"
+          printf 'emulator: %s\n' "$EMULATOR_BIN"
+
           echo "no" | "$AVDMANAGER" create avd -n useit-ci -k "system-images;android-35;google_apis;x86_64" --force
           "$EMULATOR_BIN" -avd useit-ci -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect >/tmp/useit-emulator.log 2>&1 &
           EMULATOR_PID=$!
