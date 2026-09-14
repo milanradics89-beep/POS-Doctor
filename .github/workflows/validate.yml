@@ -41,6 +41,19 @@ jobs:
           npx expo prebuild --platform android --no-install
           cd android
           ./gradlew assembleRelease --no-daemon
+      - name: Enable KVM for Android emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -e /dev/kvm ]]; then
+            echo "::error::/dev/kvm is not available on this runner; Android x86_64 emulator cannot use hardware acceleration."
+            exit 1
+          fi
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo chmod 0666 /dev/kvm
+          ls -l /dev/kvm
       - name: Install and launch Android emulator smoke test
         shell: bash
         run: |
@@ -89,7 +102,7 @@ jobs:
           "$EMULATOR_BIN" -list-avds | grep -Fxq "$AVD_NAME"
 
           echo "=== emulator acceleration check ==="
-          "$EMULATOR_BIN" -accel-check || true
+          "$EMULATOR_BIN" -accel-check
 
           EMULATOR_LOG="$RUNNER_TEMP/useit-emulator.log"
           EMULATOR_PID=""
@@ -111,6 +124,7 @@ jobs:
             -no-snapshot \
             -wipe-data \
             -gpu swiftshader_indirect \
+            -accel on \
             </dev/null >"$EMULATOR_LOG" 2>&1 &
           EMULATOR_PID=$!
           "$ADB_BIN" start-server
