@@ -11,6 +11,7 @@ permissions:
 jobs:
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -47,6 +48,14 @@ jobs:
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           test -n "$SDK_ROOT"
 
+          # Keep all Android user/AVD state under the canonical path. Ubuntu 24.04
+          # runners can otherwise split avdmanager state between ~/.config/.android
+          # and ~/.android, leaving the emulator unable to discover the AVD.
+          export ANDROID_USER_HOME="$HOME/.android"
+          export ANDROID_EMULATOR_HOME="$ANDROID_USER_HOME"
+          export ANDROID_AVD_HOME="$ANDROID_EMULATOR_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+
           SDKMANAGER="$(command -v sdkmanager || true)"
           AVDMANAGER="$(command -v avdmanager || true)"
           ADB_BIN="$(command -v adb || true)"
@@ -71,19 +80,71 @@ jobs:
           test -x "$EMULATOR_BIN"
           printf 'emulator: %s\n' "$EMULATOR_BIN"
 
-          echo "no" | "$AVDMANAGER" create avd -n useit-ci -k "system-images;android-35;google_apis;x86_64" --force
-          "$EMULATOR_BIN" -avd useit-ci -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect >/tmp/useit-emulator.log 2>&1 &
-          EMULATOR_PID=$!
+          AVD_NAME="useit-ci"
+          echo "no" | "$AVDMANAGER" create avd -n "$AVD_NAME" -k "system-images;android-35;google_apis;x86_64" --force
+
+          echo "=== configured AVDs ==="
+          "$EMULATOR_BIN" -list-avds
+          "$AVDMANAGER" list avd
+          "$EMULATOR_BIN" -list-avds | grep -Fxq "$AVD_NAME"
+
+          echo "=== emulator acceleration check ==="
+          "$EMULATOR_BIN" -accel-check || true
+
+          EMULATOR_LOG="$RUNNER_TEMP/useit-emulator.log"
+          EMULATOR_PID=""
           cleanup() {
             "$ADB_BIN" -s emulator-5554 emu kill >/dev/null 2>&1 || true
-            kill "$EMULATOR_PID" >/dev/null 2>&1 || true
+            if [[ -n "$EMULATOR_PID" ]]; then
+              kill "$EMULATOR_PID" >/dev/null 2>&1 || true
+            fi
           }
           trap cleanup EXIT
 
-          "$ADB_BIN" wait-for-device
-          timeout 180 bash -c '
-            until "$0" -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d "\\r" | grep -q "^1$"; do sleep 2; done
-          ' "$ADB_BIN"
+          echo "Starting emulator..."
+          setsid "$EMULATOR_BIN" \
+            -avd "$AVD_NAME" \
+            -port 5554 \
+            -no-window \
+            -no-audio \
+            -no-boot-anim \
+            -no-snapshot \
+            -wipe-data \
+            -gpu swiftshader_indirect \
+            </dev/null >"$EMULATOR_LOG" 2>&1 &
+          EMULATOR_PID=$!
+          "$ADB_BIN" start-server
+
+          if ! timeout 120 "$ADB_BIN" -s emulator-5554 wait-for-device; then
+            echo "Android emulator did not become visible to ADB within 120 seconds."
+            echo "=== emulator log ==="
+            cat "$EMULATOR_LOG" || true
+            echo "=== adb devices ==="
+            "$ADB_BIN" devices -l || true
+            echo "=== emulator/qemu processes ==="
+            ps -ef | grep -E '[e]mulator|[q]emu' || true
+            exit 1
+          fi
+
+          BOOT_TIMEOUT=300
+          BOOT_DEADLINE=$((SECONDS + BOOT_TIMEOUT))
+          while (( SECONDS < BOOT_DEADLINE )); do
+            BOOT_COMPLETED="$("$ADB_BIN" -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
+            if [[ "$BOOT_COMPLETED" == "1" ]]; then
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$("$ADB_BIN" -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)" != "1" ]]; then
+            echo "Android emulator did not finish booting within ${BOOT_TIMEOUT} seconds."
+            echo "=== emulator log ==="
+            cat "$EMULATOR_LOG" || true
+            echo "=== adb devices ==="
+            "$ADB_BIN" devices -l || true
+            echo "=== boot properties ==="
+            "$ADB_BIN" -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null || true
+            exit 1
+          fi
 
           APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
           test -f "$APK_PATH"
