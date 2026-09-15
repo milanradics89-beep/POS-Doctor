@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, Mock, patch
 from fastapi.testclient import TestClient
 
 from backend.api_auth import issue_session_token, verify_session_token
+from backend.attestation import issue_challenge
 from backend.main import app
 
 client = TestClient(app)
@@ -17,13 +18,68 @@ def test_health_remains_public_when_api_key_is_configured():
 
 
 def test_session_endpoint_is_public_and_issues_short_lived_token():
-    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32}, clear=False):
+    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32, "USEIT_ATTESTATION_MODE": "disabled"}, clear=False):
         response = client.post("/v1/session")
         assert response.status_code == 200
         payload = response.json()
         assert payload["tokenType"] == "Bearer"
         assert payload["expiresIn"] <= 3600
         assert verify_session_token(payload["accessToken"]) is True
+
+
+def test_required_attestation_rejects_missing_evidence():
+    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32, "USEIT_ATTESTATION_MODE": "required"}, clear=False):
+        response = client.post("/v1/session")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "attestation_required"
+
+
+def test_optional_attestation_fails_closed_until_provider_verifier_exists():
+    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32, "USEIT_ATTESTATION_MODE": "optional", "USEIT_ATTESTATION_PROVIDER": "apple_app_attest"}, clear=False):
+        challenge = issue_challenge(ttl_seconds=60)
+        response = client.post(
+            "/v1/session",
+            json={
+                "provider": challenge.provider.value,
+                "challenge": challenge.challenge,
+                "assertion": "test-assertion",
+                "appId": challenge.app_id,
+            },
+        )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "attestation_provider_unavailable"
+
+
+def test_required_attestation_rejects_replayed_challenge():
+    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32, "USEIT_ATTESTATION_MODE": "required", "USEIT_ATTESTATION_PROVIDER": "apple_app_attest"}, clear=False):
+        challenge = issue_challenge(ttl_seconds=60)
+        payload = {
+            "provider": challenge.provider.value,
+            "challenge": challenge.challenge,
+            "assertion": "test-assertion",
+            "appId": challenge.app_id,
+        }
+        first = client.post("/v1/session", json=payload)
+        second = client.post("/v1/session", json=payload)
+    assert first.status_code == 503
+    assert second.status_code == 401
+    assert second.json()["detail"] == "challenge_invalid_or_replayed"
+
+
+def test_required_attestation_rejects_wrong_app():
+    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32, "USEIT_ATTESTATION_MODE": "required", "USEIT_ATTESTATION_PROVIDER": "apple_app_attest", "USEIT_ATTESTATION_APP_ID": "com.useit.app"}, clear=False):
+        challenge = issue_challenge(ttl_seconds=60)
+        response = client.post(
+            "/v1/session",
+            json={
+                "provider": challenge.provider.value,
+                "challenge": challenge.challenge,
+                "assertion": "test-assertion",
+                "appId": "com.attacker.app",
+            },
+        )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "wrong_app"
 
 
 def test_session_token_rejects_tampering():
@@ -56,7 +112,7 @@ def test_protected_endpoint_accepts_valid_api_key():
 def test_protected_endpoint_accepts_valid_session_token():
     mock_client = Mock()
     mock_client.chat.completions.create = AsyncMock(return_value=Mock(choices=[Mock(message=Mock(content='{"sceneType":"room","summary":"test","items":[],"constraints":[],"opportunities":[],"safetyNotes":[]}'))]))
-    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32, "OPENAI_API_KEY": "test-key"}, clear=False), patch("backend.main._get_client", return_value=mock_client):
+    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32, "USEIT_ATTESTATION_MODE": "disabled", "OPENAI_API_KEY": "test-key"}, clear=False), patch("backend.main._get_client", return_value=mock_client):
         token, _ = issue_session_token()
         response = client.post(
             "/v1/analyze",
