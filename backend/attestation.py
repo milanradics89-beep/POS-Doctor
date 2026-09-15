@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol
 
+from redis.asyncio import Redis
+
 
 class AttestationMode(StrEnum):
     DISABLED = "disabled"
@@ -48,7 +50,7 @@ class AttestationChallenge:
 
 
 class ChallengeStore:
-    """Single-use challenge store. Production deployments should use shared storage."""
+    """In-memory challenge store retained for tests and local development."""
 
     def __init__(self) -> None:
         self._issued: dict[str, tuple[int, AttestationProvider, str]] = {}
@@ -112,6 +114,10 @@ def configured_attestation_app_id() -> str:
     return os.environ.get("USEIT_ATTESTATION_APP_ID", "").strip()
 
 
+def configured_redis_url() -> str:
+    return os.environ.get("USEIT_REDIS_URL", "").strip()
+
+
 def issue_challenge(ttl_seconds: int | None = None) -> AttestationChallenge:
     ttl = ttl_seconds if ttl_seconds is not None else attestation_challenge_ttl_seconds()
     ttl = max(30, min(ttl, MAX_CHALLENGE_TTL_SECONDS))
@@ -131,6 +137,48 @@ def validate_challenge_binding(evidence: AttestationEvidence) -> AttestationResu
     valid, provider, app_id = _CHALLENGE_STORE.consume(evidence.challenge)
     if not valid:
         return AttestationResult(False, "challenge_invalid_or_replayed")
+    if provider is not evidence.provider:
+        return AttestationResult(False, "wrong_provider")
+    if app_id and app_id != evidence.app_id:
+        return AttestationResult(False, "wrong_app")
+    if not evidence.assertion.strip():
+        return AttestationResult(False, "assertion_missing")
+    return AttestationResult(True, "challenge_bound")
+
+
+async def issue_challenge_async(ttl_seconds: int | None = None) -> AttestationChallenge:
+    ttl = ttl_seconds if ttl_seconds is not None else attestation_challenge_ttl_seconds()
+    ttl = max(30, min(ttl, MAX_CHALLENGE_TTL_SECONDS))
+    provider = configured_attestation_provider()
+    app_id = configured_attestation_app_id()
+    now = int(time.time())
+    challenge = secrets.token_urlsafe(32)
+
+    if configured_redis_url():
+        from backend.attestation_store import RedisChallengeStore
+
+        store = RedisChallengeStore(Redis.from_url(configured_redis_url(), decode_responses=False))
+        await store.put(challenge, provider, app_id, ttl)
+    else:
+        challenge = _CHALLENGE_STORE.issue(provider, app_id, ttl)
+
+    return AttestationChallenge(challenge=challenge, provider=provider, app_id=app_id, expires_at=now + ttl)
+
+
+async def validate_challenge_binding_async(evidence: AttestationEvidence) -> AttestationResult:
+    if configured_redis_url():
+        from backend.attestation_store import RedisChallengeStore
+
+        store = RedisChallengeStore(Redis.from_url(configured_redis_url(), decode_responses=False))
+        record = await store.consume(evidence.challenge)
+        if record is None:
+            return AttestationResult(False, "challenge_invalid_or_replayed")
+        provider, app_id = record.provider, record.app_id
+    else:
+        valid, provider, app_id = _CHALLENGE_STORE.consume(evidence.challenge)
+        if not valid:
+            return AttestationResult(False, "challenge_invalid_or_replayed")
+
     if provider is not evidence.provider:
         return AttestationResult(False, "wrong_provider")
     if app_id and app_id != evidence.app_id:
