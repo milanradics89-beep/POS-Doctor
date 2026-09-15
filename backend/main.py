@@ -19,9 +19,10 @@ from backend.attestation import (
     configured_attestation_app_id,
     configured_attestation_mode,
     configured_attestation_provider,
+    configured_redis_url,
     evaluate_attestation,
-    issue_challenge,
-    validate_challenge_binding,
+    issue_challenge_async,
+    validate_challenge_binding_async,
 )
 from backend.runtime_auth import install_runtime_auth_guard
 from backend.google_search import router as google_search_router
@@ -136,7 +137,7 @@ def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
 
 @app.get("/health")
 async def health():
-    return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyConfigured":bool(configured_api_key()),"apiKeyRequired":bool(configured_api_key() or configured_session_secret()),"sessionAuthConfigured":bool(configured_session_secret()),"attestationMode":configured_attestation_mode().value,"attestationProvider":configured_attestation_provider().value,"attestationAppIdConfigured":bool(configured_attestation_app_id()),"attestationChallengeTtlSeconds":attestation_challenge_ttl_seconds()}
+    return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyConfigured":bool(configured_api_key()),"apiKeyRequired":bool(configured_api_key() or configured_session_secret()),"sessionAuthConfigured":bool(configured_session_secret()),"attestationMode":configured_attestation_mode().value,"attestationProvider":configured_attestation_provider().value,"attestationAppIdConfigured":bool(configured_attestation_app_id()),"attestationChallengeTtlSeconds":attestation_challenge_ttl_seconds(),"attestationSharedStorageConfigured":bool(configured_redis_url())}
 
 @app.get("/ready")
 async def ready():
@@ -144,14 +145,16 @@ async def ready():
     if production_mode():
         dependencies_ready = dependencies_ready and bool(configured_api_key() or configured_session_secret())
         if configured_attestation_mode() is AttestationMode.REQUIRED:
-            dependencies_ready = dependencies_ready and bool(configured_attestation_app_id())
+            dependencies_ready = dependencies_ready and bool(configured_attestation_app_id()) and bool(configured_redis_url())
     if not dependencies_ready:
         raise HTTPException(status_code=503, detail="Service is not ready.")
     return {"status": "ready"}
 
 @app.post("/v1/session/challenge")
 async def create_attestation_challenge(response: Response):
-    challenge = issue_challenge()
+    if production_mode() and configured_attestation_mode() is AttestationMode.REQUIRED and not configured_redis_url():
+        raise HTTPException(status_code=503, detail="Attestation shared storage is not configured.")
+    challenge = await issue_challenge_async()
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
     return {"challenge": challenge.challenge, "provider": challenge.provider.value, "appId": challenge.app_id, "expiresAt": challenge.expires_at}
@@ -165,6 +168,8 @@ async def create_session(request: SessionRequest | None = None, response: Respon
 
     mode = configured_attestation_mode()
     if mode is not AttestationMode.DISABLED:
+        if production_mode() and mode is AttestationMode.REQUIRED and not configured_redis_url():
+            raise HTTPException(status_code=503, detail="Attestation shared storage is not configured.")
         if request.provider is None or request.challenge is None or request.assertion is None or request.appId is None:
             result = evaluate_attestation(None, None, mode)
             raise HTTPException(status_code=401, detail=result.reason)
@@ -174,7 +179,7 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             assertion=request.assertion,
             app_id=request.appId,
         )
-        binding = validate_challenge_binding(evidence)
+        binding = await validate_challenge_binding_async(evidence)
         if not binding.verified:
             raise HTTPException(status_code=401, detail=binding.reason)
         expected_provider = configured_attestation_provider()
