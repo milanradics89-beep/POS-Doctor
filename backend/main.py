@@ -11,7 +11,18 @@ from pydantic import BaseModel, Field, field_validator
 
 from backend.action_layer import router as action_router
 from backend.api_auth import configured_api_key, configured_session_secret, issue_session_token, session_ttl_seconds
-from backend.attestation import issue_challenge
+from backend.attestation import (
+    AttestationEvidence,
+    AttestationMode,
+    AttestationProvider,
+    attestation_challenge_ttl_seconds,
+    configured_attestation_app_id,
+    configured_attestation_mode,
+    configured_attestation_provider,
+    evaluate_attestation,
+    issue_challenge,
+    validate_challenge_binding,
+)
 from backend.runtime_auth import install_runtime_auth_guard
 from backend.google_search import router as google_search_router
 from backend.knowledge_search import router as knowledge_search_router
@@ -81,6 +92,12 @@ class UseItAnalyzeRequest(AnalyzeRequest):
     discoverProducts: bool = True
     productLimit: int = Field(default=8, ge=1, le=12)
 
+class SessionRequest(BaseModel):
+    provider: AttestationProvider | None = None
+    challenge: str | None = Field(default=None, min_length=16, max_length=512)
+    assertion: str | None = Field(default=None, min_length=1, max_length=64_000)
+    appId: str | None = Field(default=None, max_length=512)
+
 def _get_client() -> AsyncOpenAI:
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key: raise HTTPException(503, "Vision service is not configured.")
@@ -119,13 +136,15 @@ def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
 
 @app.get("/health")
 async def health():
-    return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyConfigured":bool(configured_api_key()),"apiKeyRequired":bool(configured_api_key() or configured_session_secret()),"sessionAuthConfigured":bool(configured_session_secret())}
+    return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyConfigured":bool(configured_api_key()),"apiKeyRequired":bool(configured_api_key() or configured_session_secret()),"sessionAuthConfigured":bool(configured_session_secret()),"attestationMode":configured_attestation_mode().value,"attestationProvider":configured_attestation_provider().value,"attestationAppIdConfigured":bool(configured_attestation_app_id()),"attestationChallengeTtlSeconds":attestation_challenge_ttl_seconds()}
 
 @app.get("/ready")
 async def ready():
     dependencies_ready = bool(os.environ.get("OPENAI_API_KEY"))
     if production_mode():
         dependencies_ready = dependencies_ready and bool(configured_api_key() or configured_session_secret())
+        if configured_attestation_mode() is AttestationMode.REQUIRED:
+            dependencies_ready = dependencies_ready and bool(configured_attestation_app_id())
     if not dependencies_ready:
         raise HTTPException(status_code=503, detail="Service is not ready.")
     return {"status": "ready"}
@@ -138,9 +157,33 @@ async def create_attestation_challenge(response: Response):
     return {"challenge": challenge.challenge, "provider": challenge.provider.value, "appId": challenge.app_id, "expiresAt": challenge.expires_at}
 
 @app.post("/v1/session")
-async def create_session(response: Response):
+async def create_session(request: SessionRequest, response: Response):
     if not configured_session_secret():
         raise HTTPException(status_code=503, detail="Session authentication is not configured.")
+
+    mode = configured_attestation_mode()
+    if mode is not AttestationMode.DISABLED:
+        if request.provider is None or request.challenge is None or request.assertion is None or request.appId is None:
+            result = evaluate_attestation(None, None, mode)
+            raise HTTPException(status_code=401, detail=result.reason)
+        evidence = AttestationEvidence(
+            provider=request.provider,
+            challenge=request.challenge,
+            assertion=request.assertion,
+            app_id=request.appId,
+        )
+        binding = validate_challenge_binding(evidence)
+        if not binding.verified:
+            raise HTTPException(status_code=401, detail=binding.reason)
+        expected_provider = configured_attestation_provider()
+        if evidence.provider is not expected_provider:
+            raise HTTPException(status_code=401, detail="wrong_provider")
+        if configured_attestation_app_id() and evidence.app_id != configured_attestation_app_id():
+            raise HTTPException(status_code=401, detail="wrong_app")
+        # Provider-backed verification is deliberately fail-closed until the native
+        # Apple App Attest / Google Play Integrity verifiers are wired in.
+        raise HTTPException(status_code=503, detail="attestation_provider_unavailable")
+
     token, expires_at = issue_session_token()
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
