@@ -157,7 +157,9 @@ async def create_attestation_challenge(response: Response):
     return {"challenge": challenge.challenge, "provider": challenge.provider.value, "appId": challenge.app_id, "expiresAt": challenge.expires_at}
 
 @app.post("/v1/session")
-async def create_session(request: SessionRequest, response: Response):
+async def create_session(request: SessionRequest | None = None, response: Response = None):
+    if request is None:
+        request = SessionRequest()
     if not configured_session_secret():
         raise HTTPException(status_code=503, detail="Session authentication is not configured.")
 
@@ -180,13 +182,12 @@ async def create_session(request: SessionRequest, response: Response):
             raise HTTPException(status_code=401, detail="wrong_provider")
         if configured_attestation_app_id() and evidence.app_id != configured_attestation_app_id():
             raise HTTPException(status_code=401, detail="wrong_app")
-        # Provider-backed verification is deliberately fail-closed until the native
-        # Apple App Attest / Google Play Integrity verifiers are wired in.
         raise HTTPException(status_code=503, detail="attestation_provider_unavailable")
 
     token, expires_at = issue_session_token()
-    response.headers["Cache-Control"] = "no-store"
-    response.headers["Pragma"] = "no-cache"
+    if response is not None:
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Pragma"] = "no-cache"
     return {"accessToken": token, "tokenType": "Bearer", "expiresAt": expires_at, "expiresIn": session_ttl_seconds()}
 
 @app.post("/v1/analyze")
