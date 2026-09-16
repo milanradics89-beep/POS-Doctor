@@ -154,7 +154,11 @@ async def ready():
 async def create_attestation_challenge(response: Response):
     if production_mode() and configured_attestation_mode() is AttestationMode.REQUIRED and not configured_redis_url():
         raise HTTPException(status_code=503, detail="Attestation shared storage is not configured.")
-    challenge = await issue_challenge_async()
+    try:
+        challenge = await issue_challenge_async()
+    except Exception as exc:
+        logger.exception("Attestation challenge storage unavailable")
+        raise HTTPException(status_code=503, detail="Attestation challenge storage is unavailable.") from exc
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
     return {"challenge": challenge.challenge, "provider": challenge.provider.value, "appId": challenge.app_id, "expiresAt": challenge.expires_at}
@@ -179,7 +183,11 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             assertion=request.assertion,
             app_id=request.appId,
         )
-        binding = await validate_challenge_binding_async(evidence)
+        try:
+            binding = await validate_challenge_binding_async(evidence)
+        except Exception as exc:
+            logger.exception("Attestation challenge storage unavailable")
+            raise HTTPException(status_code=503, detail="Attestation challenge storage is unavailable.") from exc
         if not binding.verified:
             raise HTTPException(status_code=401, detail=binding.reason)
         expected_provider = configured_attestation_provider()
