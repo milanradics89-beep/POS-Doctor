@@ -29,7 +29,7 @@ export class UseitApiProvider implements IntelligenceProvider {
       'Content-Type': 'application/json',
       Accept: 'application/json',
       ...(this.apiKey ? { 'X-API-Key': this.apiKey } : {}),
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   }
 
