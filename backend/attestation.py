@@ -7,9 +7,12 @@ import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import AsyncIterator, Protocol
+from typing import TYPE_CHECKING, AsyncIterator, Protocol
 
 from redis.asyncio import Redis
+
+if TYPE_CHECKING:
+    from backend.attestation_store import ChallengeStoreBackend
 
 
 class AttestationMode(StrEnum):
@@ -120,7 +123,7 @@ def configured_redis_url() -> str:
 
 
 @asynccontextmanager
-async def _redis_challenge_store() -> AsyncIterator[object]:
+async def _redis_challenge_store() -> AsyncIterator[ChallengeStoreBackend]:
     from backend.attestation_store import RedisChallengeStore
 
     redis = Redis.from_url(configured_redis_url(), decode_responses=False)
