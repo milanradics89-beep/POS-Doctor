@@ -199,6 +199,15 @@ async def validate_challenge_binding_async(evidence: AttestationEvidence) -> Att
     return AttestationResult(True, "challenge_bound")
 
 
+async def verify_attestation_provider(evidence: AttestationEvidence) -> AttestationResult:
+    """Dispatch evidence to the configured real provider verifier."""
+    if evidence.provider is AttestationProvider.PLAY_INTEGRITY:
+        from backend.google_play_integrity import GooglePlayIntegrityVerifier
+
+        return await GooglePlayIntegrityVerifier().verify(evidence)
+    return AttestationResult(False, "provider_unavailable")
+
+
 def evaluate_attestation(
     evidence: AttestationEvidence | None,
     result: AttestationResult | None,
