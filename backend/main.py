@@ -23,6 +23,7 @@ from backend.attestation import (
     evaluate_attestation,
     issue_challenge_async,
     validate_challenge_binding_async,
+    verify_attestation_provider,
 )
 from backend.runtime_auth import install_runtime_auth_guard
 from backend.google_search import router as google_search_router
@@ -154,11 +155,7 @@ async def ready():
 async def create_attestation_challenge(response: Response):
     if production_mode() and configured_attestation_mode() is AttestationMode.REQUIRED and not configured_redis_url():
         raise HTTPException(status_code=503, detail="Attestation shared storage is not configured.")
-    try:
-        challenge = await issue_challenge_async()
-    except Exception as exc:
-        logger.exception("Attestation challenge storage unavailable")
-        raise HTTPException(status_code=503, detail="Attestation challenge storage is unavailable.") from exc
+    challenge = await issue_challenge_async()
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
     return {"challenge": challenge.challenge, "provider": challenge.provider.value, "appId": challenge.app_id, "expiresAt": challenge.expires_at}
@@ -183,11 +180,7 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             assertion=request.assertion,
             app_id=request.appId,
         )
-        try:
-            binding = await validate_challenge_binding_async(evidence)
-        except Exception as exc:
-            logger.exception("Attestation challenge storage unavailable")
-            raise HTTPException(status_code=503, detail="Attestation challenge storage is unavailable.") from exc
+        binding = await validate_challenge_binding_async(evidence)
         if not binding.verified:
             raise HTTPException(status_code=401, detail=binding.reason)
         expected_provider = configured_attestation_provider()
@@ -195,7 +188,11 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             raise HTTPException(status_code=401, detail="wrong_provider")
         if configured_attestation_app_id() and evidence.app_id != configured_attestation_app_id():
             raise HTTPException(status_code=401, detail="wrong_app")
-        raise HTTPException(status_code=503, detail="attestation_provider_unavailable")
+        provider_result = await verify_attestation_provider(evidence)
+        result = evaluate_attestation(evidence, provider_result, mode)
+        if not result.verified:
+            status_code = 503 if result.reason == "provider_unavailable" else 401
+            raise HTTPException(status_code=status_code, detail=result.reason)
 
     token, expires_at = issue_session_token()
     if response is not None:
