@@ -10,4 +10,5 @@ export USEIT_ALLOW_DOCS="false"
 export USEIT_RATE_LIMIT_MODE="memory"
 
 python -m compileall -q backend
-python -m pytest -q backend/test_api_auth.py backend/test_production_security.py backend/test_production_security_additional.py backend/test_privacy_logging.py
+USEIT_ENV=development python -m pytest -q backend/test_api_auth.py
+python -m pytest -q backend/test_production_security.py backend/test_production_security_additional.py backend/test_privacy_logging.py
