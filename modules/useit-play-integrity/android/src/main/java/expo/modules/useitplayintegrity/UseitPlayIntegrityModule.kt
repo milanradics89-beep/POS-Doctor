@@ -7,6 +7,7 @@ import com.google.android.play.core.integrity.StandardIntegrityManager
 import com.google.android.play.core.integrity.StandardIntegrityTokenRequest
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import java.security.MessageDigest
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
@@ -29,10 +30,14 @@ class UseitPlayIntegrityModule : Module() {
       }
     }
 
-    AsyncFunction("requestIntegrityToken") Coroutine { cloudProjectNumber: Long, requestHash: String ->
+    AsyncFunction("requestIntegrityToken") Coroutine { cloudProjectNumber: Long, challenge: String ->
       require(cloudProjectNumber > 0) { "cloudProjectNumber must be positive" }
-      require(requestHash.isNotBlank()) { "requestHash must not be blank" }
-      require(requestHash.length <= 500) { "requestHash must be at most 500 characters" }
+      require(challenge.isNotBlank()) { "challenge must not be blank" }
+      require(challenge.length <= 512) { "challenge must be at most 512 characters" }
+
+      val requestHash = MessageDigest.getInstance("SHA-256")
+        .digest(challenge.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
 
       val context = appContext.reactContext ?: error("Android application context is unavailable")
       val provider = providerMutex.withLock {
