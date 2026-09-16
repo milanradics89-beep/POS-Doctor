@@ -14,11 +14,13 @@
       "typedRoutes": true
     },
     "android": {
+      "package": "com.useit.app",
       "adaptiveIcon": {
         "backgroundColor": "#F7F7F2"
       }
     },
     "ios": {
+      "bundleIdentifier": "com.useit.app",
       "supportsTablet": true
     }
   }
