@@ -10,13 +10,6 @@ from backend.attestation import AttestationEvidence, AttestationProvider, Attest
 from backend.google_play_integrity import GooglePlayIntegrityVerifier
 
 
-class FakeCredentials:
-    token = "test-access-token"
-
-    def refresh(self, request):
-        self.token = "test-access-token"
-
-
 def make_payload(challenge: str, *, now_ms: int | None = None) -> dict:
     return {
         "tokenPayloadExternal": {
@@ -41,7 +34,7 @@ async def test_google_verifier_accepts_valid_provider_response(monkeypatch):
     monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
     transport = httpx.MockTransport(lambda request: httpx.Response(200, json=make_payload("challenge")))
     async with httpx.AsyncClient(transport=transport) as client:
-        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=FakeCredentials)
+        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
         result = await verifier.verify(
             AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
         )
@@ -53,7 +46,7 @@ async def test_google_verifier_rejects_wrong_request_hash(monkeypatch):
     monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
     transport = httpx.MockTransport(lambda request: httpx.Response(200, json=make_payload("different-challenge")))
     async with httpx.AsyncClient(transport=transport) as client:
-        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=FakeCredentials)
+        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
         result = await verifier.verify(
             AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
         )
@@ -67,7 +60,7 @@ async def test_google_verifier_rejects_unlicensed_app(monkeypatch):
     payload["tokenPayloadExternal"]["accountDetails"]["appLicensingVerdict"] = "UNLICENSED"
     transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
     async with httpx.AsyncClient(transport=transport) as client:
-        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=FakeCredentials)
+        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
         result = await verifier.verify(
             AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
         )
@@ -80,7 +73,7 @@ async def test_google_verifier_rejects_stale_token(monkeypatch):
     stale_ms = int((time.time() - 301) * 1000)
     transport = httpx.MockTransport(lambda request: httpx.Response(200, json=make_payload("challenge", now_ms=stale_ms)))
     async with httpx.AsyncClient(transport=transport) as client:
-        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=FakeCredentials)
+        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
         result = await verifier.verify(
             AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
         )
@@ -92,7 +85,7 @@ async def test_google_verifier_maps_provider_failure(monkeypatch):
     monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
     transport = httpx.MockTransport(lambda request: httpx.Response(503, json={"error": "unavailable"}))
     async with httpx.AsyncClient(transport=transport) as client:
-        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=FakeCredentials)
+        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
         result = await verifier.verify(
             AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
         )
