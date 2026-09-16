@@ -1,14 +1,15 @@
 package expo.modules.useitplayintegrity
 
 import android.content.pm.PackageManager
+import com.google.android.play.core.integrity.IntegrityManagerFactory
 import com.google.android.play.core.integrity.PrepareIntegrityTokenRequest
 import com.google.android.play.core.integrity.StandardIntegrityManager
-import com.google.android.play.core.integrity.StandardIntegrityManagerFactory
 import com.google.android.play.core.integrity.StandardIntegrityTokenRequest
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.tasks.await
 
 class UseitPlayIntegrityModule : Module() {
   private val providerMutex = Mutex()
@@ -36,7 +37,7 @@ class UseitPlayIntegrityModule : Module() {
       val context = appContext.reactContext ?: error("Android application context is unavailable")
       val provider = providerMutex.withLock {
         if (tokenProvider == null || preparedProjectNumber != cloudProjectNumber) {
-          val manager = StandardIntegrityManagerFactory.create(context)
+          val manager = IntegrityManagerFactory.createStandard(context)
           tokenProvider = manager.prepareIntegrityToken(
             PrepareIntegrityTokenRequest.builder()
               .setCloudProjectNumber(cloudProjectNumber)
@@ -60,7 +61,7 @@ class UseitPlayIntegrityModule : Module() {
         }
 
         val refreshedProvider = providerMutex.withLock {
-          val manager = StandardIntegrityManagerFactory.create(context)
+          val manager = IntegrityManagerFactory.createStandard(context)
           tokenProvider = manager.prepareIntegrityToken(
             PrepareIntegrityTokenRequest.builder()
               .setCloudProjectNumber(cloudProjectNumber)
