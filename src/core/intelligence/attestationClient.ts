@@ -18,24 +18,24 @@ let cachedSession: SessionResponse | null = null;
 let pendingSession: Promise<string> | null = null;
 
 export async function getSessionToken(baseUrl: string, apiKey?: string): Promise<string> {
+  if (apiKey?.trim()) return '';
   const now = Math.floor(Date.now() / 1000);
   if (cachedSession && cachedSession.expiresAt - now > 30) {
     return cachedSession.accessToken;
   }
   if (pendingSession) return pendingSession;
 
-  pendingSession = createSession(baseUrl, apiKey).finally(() => {
+  pendingSession = createSession(baseUrl).finally(() => {
     pendingSession = null;
   });
   return pendingSession;
 }
 
-async function createSession(baseUrl: string, apiKey?: string): Promise<string> {
+async function createSession(baseUrl: string): Promise<string> {
   const base = normalizeApiBaseUrl(baseUrl);
   const headers = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
-    ...(apiKey ? { 'X-API-Key': apiKey } : {}),
   };
 
   const direct = await fetch(`${base}/v1/session`, {
@@ -48,6 +48,9 @@ async function createSession(baseUrl: string, apiKey?: string): Promise<string> 
     return cacheSession(await parseSession(direct));
   }
 
+  // Development deployments may intentionally leave session authentication disabled.
+  // In that case the normal API auth boundary remains responsible for access control.
+  if (direct.status === 503) return '';
   if (direct.status !== 401) {
     throw new Error(`USEIT session bootstrap failed (${direct.status}).`);
   }
