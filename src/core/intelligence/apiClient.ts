@@ -12,6 +12,7 @@ import { googleProductProvider } from './googleProductProvider';
 import { validateImageUri } from './imageInput';
 import { normalizeApiBaseUrl } from './apiConfig';
 import { validateUseitAnalyzeResponse, type UseitAnalyzeResponse } from './useitAnalyzeContract';
+import { getSessionToken } from './attestationClient';
 
 export type UseitApiClientOptions = { apiKey?: string };
 
@@ -22,11 +23,13 @@ export class UseitApiProvider implements IntelligenceProvider {
     this.apiKey = options.apiKey?.trim() || undefined;
   }
 
-  private headers(): Record<string, string> {
+  private async headers(): Promise<Record<string, string>> {
+    const token = await getSessionToken(this.baseUrl, this.apiKey);
     return {
       'Content-Type': 'application/json',
       Accept: 'application/json',
       ...(this.apiKey ? { 'X-API-Key': this.apiKey } : {}),
+      Authorization: `Bearer ${token}`,
     };
   }
 
@@ -34,7 +37,7 @@ export class UseitApiProvider implements IntelligenceProvider {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
     const policy = createPromptPolicy(userIntent, 'hu-HU');
-    const response = await fetchWithPolicy(`${base}/v1/analyze`, { method: 'POST', headers: this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale }) }, { attempts: 1 });
+    const response = await fetchWithPolicy(`${base}/v1/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale }) }, { attempts: 1 });
     if (!response.ok) throw new Error(`USEIT API request failed (${response.status}).`);
     let payload: unknown;
     try { payload = await response.json(); } catch { throw new Error('USEIT API returned malformed JSON.'); }
@@ -46,7 +49,7 @@ export class UseitApiProvider implements IntelligenceProvider {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
     const policy = createPromptPolicy(intent, 'hu-HU');
-    const response = await fetchWithPolicy(`${base}/v1/useit/analyze`, { method: 'POST', headers: this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale, budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles ?? [], preferredColors: options.preferredColors ?? [], discoverProducts: options.discoverProducts ?? true, productLimit: options.productLimit ?? 8 }) }, { attempts: 1 });
+    const response = await fetchWithPolicy(`${base}/v1/useit/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale, budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles ?? [], preferredColors: options.preferredColors ?? [], discoverProducts: options.discoverProducts ?? true, productLimit: options.productLimit ?? 8 }) }, { attempts: 1 });
     if (!response.ok) throw new Error(`USEIT unified analysis failed (${response.status}).`);
     let payload: unknown;
     try { payload = await response.json(); } catch { throw new Error('USEIT unified analysis returned malformed JSON.'); }
@@ -57,7 +60,7 @@ export class UseitApiProvider implements IntelligenceProvider {
   async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; url: string; id?: string; confidence?: number }>): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
-    const response = await fetchWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: this.headers(), body: JSON.stringify({ imageUri, prompt, products }) }, { attempts: 1 });
+    const response = await fetchWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, prompt, products }) }, { attempts: 1 });
     if (!response.ok) throw new Error(`USEIT redesign request failed (${response.status}).`);
     if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('USEIT redesign API returned an unexpected response.');
     const payload: unknown = await response.json();
