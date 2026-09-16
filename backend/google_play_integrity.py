@@ -28,7 +28,7 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
     def __init__(
         self,
         client: httpx.AsyncClient | None = None,
-        credentials_factory: Callable[[], CredentialsLike] | None = None,
+        credentials_factory: Callable[[], CredentialsLike | str] | None = None,
         now: Callable[[], float] | None = None,
     ) -> None:
         self._client = client
@@ -45,9 +45,12 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
             return AttestationResult(False, "assertion_missing")
 
         try:
-            credentials = await asyncio.to_thread(self._credentials_factory)
-            await asyncio.to_thread(_refresh_credentials, credentials)
-            access_token = credentials.token
+            credential_source = await asyncio.to_thread(self._credentials_factory)
+            if isinstance(credential_source, str):
+                access_token = credential_source
+            else:
+                await asyncio.to_thread(_refresh_credentials, credential_source)
+                access_token = credential_source.token
             if not access_token:
                 return AttestationResult(False, "provider_unavailable")
 
@@ -72,9 +75,10 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
             return AttestationResult(False, "attestation_invalid")
 
         try:
-            payload = response.json().get("tokenPayloadExternal") or response.json().get("token_payload_external")
+            body = response.json()
         except ValueError:
             return AttestationResult(False, "attestation_invalid")
+        payload = body.get("tokenPayloadExternal") or body.get("token_payload_external") if isinstance(body, dict) else None
         if not isinstance(payload, dict):
             return AttestationResult(False, "attestation_invalid")
 
@@ -86,6 +90,9 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
         expected_hash = hashlib.sha256(evidence.challenge.encode("utf-8")).hexdigest()
         if request_hash != expected_hash:
             return AttestationResult(False, "request_hash_mismatch")
+        request_package = request_details.get("requestPackageName") or request_details.get("request_package_name")
+        if request_package != evidence.app_id:
+            return AttestationResult(False, "wrong_app")
 
         timestamp_raw = request_details.get("timestampMillis") or request_details.get("timestamp_millis")
         try:
