@@ -47,7 +47,7 @@ def test_optional_attestation_fails_closed_until_provider_verifier_exists():
             },
         )
     assert response.status_code == 503
-    assert response.json()["detail"] == "attestation_provider_unavailable"
+    assert response.json()["detail"] == "provider_unavailable"
 
 
 def test_required_attestation_rejects_replayed_challenge():
