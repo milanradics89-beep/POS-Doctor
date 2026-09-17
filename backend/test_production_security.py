@@ -28,9 +28,25 @@ def test_production_accepts_server_issued_session_secret(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
     monkeypatch.delenv("USEIT_API_KEY", raising=False)
     monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
+    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "com.useit.app")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "google_play_integrity")
+    monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
     monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
     validate_production_security()
+
+
+def test_production_rejects_optional_attestation_with_session_secret(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.delenv("USEIT_API_KEY", raising=False)
+    monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "optional")
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+    with pytest.raises(RuntimeError, match="USEIT_ATTESTATION_MODE must be required"):
+        validate_production_security()
 
 
 def test_production_rejects_short_session_secret(monkeypatch):
