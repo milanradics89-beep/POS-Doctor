@@ -2,9 +2,8 @@ package expo.modules.useitplayintegrity
 
 import android.content.pm.PackageManager
 import com.google.android.play.core.integrity.IntegrityManagerFactory
-import com.google.android.play.core.integrity.PrepareIntegrityTokenRequest
 import com.google.android.play.core.integrity.StandardIntegrityManager
-import com.google.android.play.core.integrity.StandardIntegrityTokenRequest
+import expo.modules.kotlin.functions.Coroutine
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.security.MessageDigest
@@ -44,7 +43,7 @@ class UseitPlayIntegrityModule : Module() {
         if (tokenProvider == null || preparedProjectNumber != cloudProjectNumber) {
           val manager = IntegrityManagerFactory.createStandard(context)
           tokenProvider = manager.prepareIntegrityToken(
-            PrepareIntegrityTokenRequest.builder()
+            StandardIntegrityManager.PrepareIntegrityTokenRequest.builder()
               .setCloudProjectNumber(cloudProjectNumber)
               .build()
           ).await()
@@ -55,7 +54,7 @@ class UseitPlayIntegrityModule : Module() {
 
       try {
         return@Coroutine provider.request(
-          StandardIntegrityTokenRequest.builder()
+          StandardIntegrityManager.StandardIntegrityTokenRequest.builder()
             .setRequestHash(requestHash)
             .build()
         ).await().token()
@@ -68,7 +67,7 @@ class UseitPlayIntegrityModule : Module() {
         val refreshedProvider = providerMutex.withLock {
           val manager = IntegrityManagerFactory.createStandard(context)
           tokenProvider = manager.prepareIntegrityToken(
-            PrepareIntegrityTokenRequest.builder()
+            StandardIntegrityManager.PrepareIntegrityTokenRequest.builder()
               .setCloudProjectNumber(cloudProjectNumber)
               .build()
           ).await()
@@ -78,7 +77,7 @@ class UseitPlayIntegrityModule : Module() {
 
         try {
           return@Coroutine refreshedProvider.request(
-            StandardIntegrityTokenRequest.builder()
+            StandardIntegrityManager.StandardIntegrityTokenRequest.builder()
               .setRequestHash(requestHash)
               .build()
           ).await().token()
