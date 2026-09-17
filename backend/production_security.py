@@ -4,6 +4,14 @@ import os
 
 from fastapi import HTTPException
 
+from backend.attestation import (
+    AttestationMode,
+    AttestationProvider,
+    configured_attestation_app_id,
+    configured_attestation_mode,
+    configured_attestation_provider,
+    configured_redis_url,
+)
 
 TRUE_VALUES = {"1", "true", "yes", "on"}
 MIN_SESSION_SECRET_LENGTH = 32
@@ -28,6 +36,18 @@ def validate_production_security() -> None:
         raise RuntimeError("Missing required production secrets: " + ", ".join(missing))
     if session_secret and len(session_secret) < MIN_SESSION_SECRET_LENGTH:
         raise RuntimeError("USEIT_SESSION_SECRET must be at least 32 characters")
+
+    if session_secret:
+        mode = configured_attestation_mode()
+        provider = configured_attestation_provider()
+        if mode is not AttestationMode.REQUIRED:
+            raise RuntimeError("USEIT_ATTESTATION_MODE must be required when USEIT_SESSION_SECRET is configured in production")
+        if not configured_attestation_app_id():
+            raise RuntimeError("USEIT_ATTESTATION_APP_ID is required for production session authentication")
+        if not configured_redis_url():
+            raise RuntimeError("USEIT_REDIS_URL is required for production attestation challenge storage")
+        if provider is AttestationProvider.PLAY_INTEGRITY and not os.getenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "").strip():
+            raise RuntimeError("USEIT_GOOGLE_PLAY_PACKAGE_NAME is required for Google Play Integrity")
 
     origins = [x.strip() for x in os.getenv("USEIT_CORS_ORIGINS", "").split(",") if x.strip()]
     if not origins or "*" in origins:
