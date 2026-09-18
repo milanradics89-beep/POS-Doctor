@@ -8,7 +8,8 @@
     "userInterfaceStyle": "light",
     "plugins": [
       "expo-router",
-      "expo-image-picker"
+      "expo-image-picker",
+      "./modules/useit-app-attest"
     ],
     "experiments": {
       "typedRoutes": true
@@ -21,7 +22,10 @@
     },
     "ios": {
       "bundleIdentifier": "com.useit.app",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "entitlements": {
+        "com.apple.developer.devicecheck.appattest-environment": "development"
+      }
     }
   }
 }
