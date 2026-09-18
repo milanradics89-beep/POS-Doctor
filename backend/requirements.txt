@@ -5,3 +5,5 @@ pydantic>=2.11,<3
 httpx>=0.28,<1
 redis>=5,<8
 google-auth>=2.40,<3
+cbor2>=5.6,<6
+cryptography>=44,<47
