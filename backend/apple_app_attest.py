@@ -7,10 +7,13 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+from redis.asyncio import Redis
+
 import cbor2
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from backend.attestation import AttestationEvidence, AttestationResult, AttestationVerifier
@@ -182,10 +185,9 @@ def _verify_attestation(evidence: AttestationEvidence) -> AppleAttestKey:
         raise ValueError("Apple App Attest RP ID mismatch")
     if counter != 0:
         raise ValueError("Apple App Attest initial counter must be zero")
-    if credential_id != _key_id_bytes(evidence.app_id):
-        # The session API passes the key identifier through appId for legacy
-        # compatibility only when the native client cannot add a separate field.
-        # Real clients use the explicit keyId field handled by main.py.
+    if not evidence.key_id:
+        raise ValueError("Apple App Attest keyId is missing")
+    if credential_id != _key_id_bytes(evidence.key_id):
         raise ValueError("Apple App Attest credential ID mismatch")
 
     public_key = _raw_public_key(leaf)
@@ -193,17 +195,132 @@ def _verify_attestation(evidence: AttestationEvidence) -> AppleAttestKey:
         raise ValueError("Apple App Attest public key hash mismatch")
     if auth_data[37:53] not in (PROD_AAGUID, DEV_AAGUID):
         raise ValueError("unsupported App Attest AAGUID")
-    return AppleAttestKey(key_id=evidence.app_id, public_key_der=leaf.public_bytes(Encoding.DER), counter=counter)
+    return AppleAttestKey(key_id=evidence.key_id, public_key_der=leaf.public_bytes(Encoding.DER), counter=counter)
+
+
+class _AppleKeyStore:
+    def __init__(self) -> None:
+        self._keys: dict[str, tuple[bytes, int, str]] = {}
+
+    async def put(self, key_id: str, public_key_der: bytes, app_id: str) -> None:
+        self._keys[key_id] = (public_key_der, 0, app_id)
+
+    async def get(self, key_id: str) -> tuple[bytes, int, str] | None:
+        return self._keys.get(key_id)
+
+    async def advance(self, key_id: str, counter: int) -> bool:
+        record = self._keys.get(key_id)
+        if record is None or counter <= record[1]:
+            return False
+        self._keys[key_id] = (record[0], counter, record[2])
+        return True
+
+
+_MEMORY_KEYS = _AppleKeyStore()
+
+
+def _redis() -> Redis:
+    return Redis.from_url(os.environ["USEIT_REDIS_URL"], decode_responses=False)
+
+
+async def _store_key(key: AppleAttestKey, app_id: str) -> None:
+    redis_url = os.environ.get("USEIT_REDIS_URL", "").strip()
+    if not redis_url:
+        await _MEMORY_KEYS.put(key.key_id, key.public_key_der, app_id)
+        return
+    client = _redis()
+    try:
+        await client.hset(
+            f"useit:app-attest:key:{hashlib.sha256(key.key_id.encode()).hexdigest()}",
+            mapping={"public_key": key.public_key_der, "counter": "0", "app_id": app_id},
+        )
+    finally:
+        await client.aclose()
+
+
+async def _load_key(key_id: str) -> tuple[bytes, int, str] | None:
+    redis_url = os.environ.get("USEIT_REDIS_URL", "").strip()
+    if not redis_url:
+        return await _MEMORY_KEYS.get(key_id)
+    client = _redis()
+    try:
+        data = await client.hgetall(f"useit:app-attest:key:{hashlib.sha256(key_id.encode()).hexdigest()}")
+        if not data:
+            return None
+        return data[b"public_key"], int(data[b"counter"]), data[b"app_id"].decode()
+    finally:
+        await client.aclose()
+
+
+async def _advance_key(key_id: str, counter: int) -> bool:
+    redis_url = os.environ.get("USEIT_REDIS_URL", "").strip()
+    if not redis_url:
+        return await _MEMORY_KEYS.advance(key_id, counter)
+    client = _redis()
+    try:
+        script = "local current = redis.call('HGET', KEYS[1], 'counter') if not current then return 0 end if tonumber(ARGV[1]) <= tonumber(current) then return 0 end redis.call('HSET', KEYS[1], 'counter', ARGV[1]) return 1"
+        key = f"useit:app-attest:key:{hashlib.sha256(key_id.encode()).hexdigest()}"
+        return bool(await client.eval(script, 1, key, str(counter)))
+    finally:
+        await client.aclose()
+
+
+def _verify_assertion(key: tuple[bytes, int, str], evidence: AttestationEvidence) -> int:
+    public_key_der, previous_counter, app_id = key
+    if app_id != evidence.app_id:
+        raise ValueError("Apple App Attest app binding mismatch")
+    if not evidence.client_data or len(evidence.client_data) > MAX_ASSERTION_CLIENT_DATA:
+        raise ValueError("Apple App Attest clientData is missing or too large")
+    try:
+        import json
+        client_data_bytes = evidence.client_data.encode("utf-8")
+        client_obj = json.loads(client_data_bytes)
+    except Exception as exc:
+        raise ValueError("Apple App Attest clientData is not valid JSON") from exc
+    if not isinstance(client_obj, dict) or client_obj.get("challenge") != evidence.challenge:
+        raise ValueError("Apple App Attest challenge is not bound to clientData")
+    assertion = cbor2.loads(_b64decode(evidence.assertion))
+    if not isinstance(assertion, dict):
+        raise ValueError("Apple App Attest assertion is malformed")
+    auth_data = assertion.get("authenticatorData")
+    signature = assertion.get("signature")
+    if not isinstance(auth_data, bytes) or not isinstance(signature, bytes):
+        raise ValueError("Apple App Attest assertion fields are missing")
+    if len(auth_data) < 37:
+        raise ValueError("Apple App Attest assertion authenticatorData is too short")
+    rp_id_hash = auth_data[:32]
+    counter = int.from_bytes(auth_data[33:37], "big")
+    if rp_id_hash != hashlib.sha256(app_id.encode()).digest():
+        raise ValueError("Apple App Attest assertion RP ID mismatch")
+    if counter <= previous_counter:
+        raise ValueError("Apple App Attest assertion counter did not increase")
+    public_key = x509.load_der_x509_certificate(public_key_der).public_key()
+    if not isinstance(public_key, ec.EllipticCurvePublicKey):
+        raise ValueError("stored App Attest key is not EC")
+    client_hash = hashlib.sha256(client_data_bytes).digest()
+    nonce = hashlib.sha256(auth_data + client_hash).digest()
+    public_key.verify(signature, nonce, ec.ECDSA(hashes.SHA256()))
+    return counter
 
 
 class AppleAppAttestVerifier(AttestationVerifier):
     async def verify(self, evidence: AttestationEvidence) -> AttestationResult:
         try:
-            _verify_attestation(evidence)
+            if evidence.client_data is None:
+                key = _verify_attestation(evidence)
+                await _store_key(key, evidence.app_id)
+                return AttestationResult(True, "provider_verified")
+            if not evidence.key_id:
+                return AttestationResult(False, "attestation_invalid")
+            stored = await _load_key(evidence.key_id)
+            if stored is None:
+                return AttestationResult(False, "attestation_invalid")
+            counter = _verify_assertion(stored, evidence)
+            if not await _advance_key(evidence.key_id, counter):
+                return AttestationResult(False, "attestation_replayed")
             return AttestationResult(True, "provider_verified")
-        except (ValueError, TypeError, cbor2.CBORDecodeError, x509.ExtensionNotFound):
+        except (ValueError, TypeError, cbor2.CBORDecodeError, x509.ExtensionNotFound, InvalidSignature):
             return AttestationResult(False, "attestation_invalid")
-
 
 def root_certificate_fingerprint() -> str:
     return APPLE_APP_ATTEST_ROOT_SHA256
