@@ -68,21 +68,28 @@ async function createSession(baseUrl: string): Promise<string> {
     throw new Error('USEIT attestation challenge was malformed.');
   }
 
-  if (challenge.provider !== 'google_play_integrity') {
-    throw new Error(`USEIT attestation provider is not supported on this client yet (${challenge.provider}).`);
-  }
+  let assertion: string;
+  let keyId: string | undefined;
+  let clientData: string | undefined;
 
-  const projectNumber = Number(process.env.EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER);
-  if (!Number.isSafeInteger(projectNumber) || projectNumber <= 0) {
-    throw new Error('EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER is not configured.');
+  if (challenge.provider === 'google_play_integrity') {
+    const projectNumber = Number(process.env.EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER);
+    if (!Number.isSafeInteger(projectNumber) || projectNumber <= 0) {
+      throw new Error('EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER is not configured.');
+    }
+    const nativeModule = await import('../../../modules/useit-play-integrity');
+    if (!nativeModule.default.isAvailable()) {
+      throw new Error('Google Play Integrity is not available on this Android device.');
+    }
+    assertion = await nativeModule.default.requestIntegrityToken(projectNumber, challenge.challenge);
+  } else {
+    const nativeModule = await import('../../../modules/useit-app-attest');
+    if (!nativeModule.default.isAvailable()) {
+      throw new Error('Apple App Attest is not available on this iOS device.');
+    }
+    keyId = await nativeModule.default.getOrCreateKeyId();
+    assertion = await nativeModule.default.attest(challenge.challenge, keyId);
   }
-
-  const nativeModule = await import('../../../modules/useit-play-integrity');
-  if (!nativeModule.default.isAvailable()) {
-    throw new Error('Google Play Integrity is not available on this Android device.');
-  }
-
-  const assertion = await nativeModule.default.requestIntegrityToken(projectNumber, challenge.challenge);
   const attested = await fetch(`${base}/v1/session`, {
     method: 'POST',
     headers,
@@ -91,6 +98,8 @@ async function createSession(baseUrl: string): Promise<string> {
       challenge: challenge.challenge,
       assertion,
       appId: challenge.appId,
+      ...(keyId ? { keyId } : {}),
+      ...(clientData ? { clientData } : {}),
     }),
   });
 
