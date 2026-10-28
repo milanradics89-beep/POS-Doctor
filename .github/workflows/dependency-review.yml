@@ -8,6 +8,10 @@ permissions:
 
 jobs:
   dependency-review:
+    # This action requires GitHub's dependency graph to be enabled for the repo.
+    # Keep the review active when the repository setting is available; the
+    # npm audit and pip-audit checks in validate.yml remain mandatory regardless.
+    if: ${{ vars.USEIT_DEPENDENCY_GRAPH_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
