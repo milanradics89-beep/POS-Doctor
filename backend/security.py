@@ -17,7 +17,7 @@ def _public_addresses(hostname: str, port: int) -> set[str]:
         raise HTTPException(400, "Product host could not be resolved.")
     for address in resolved:
         ip = ipaddress.ip_address(address)
-        if any((ip.is_private, ip.is_loopback, ip.is_link_local, ip.is_multicast, ip.is_reserved, ip.is_unspecified)):
+        if not ip.is_global:
             raise HTTPException(400, "Product host is not publicly reachable.")
     return resolved
 
