@@ -14,6 +14,10 @@ public class UseitAppAttestModule: Module {
       return self.service.isSupported
     }
 
+    Function("isKeyAttested") { (keyId: String) -> Bool in
+      return self.readAttestedKeyId() == keyId
+    }
+
     AsyncFunction("getOrCreateKeyId") { () -> String in
       if let existing = self.readKeyId() {
         return existing
@@ -51,7 +55,12 @@ public class UseitAppAttestModule: Module {
             continuation.resume(throwing: NSError(domain: "UseitAppAttest", code: 2, userInfo: [NSLocalizedDescriptionKey: "App Attest returned no attestation object."]))
             return
           }
-          continuation.resume(returning: data.base64EncodedString())
+          do {
+            try self.saveAttestedKeyId(keyId)
+            continuation.resume(returning: data.base64EncodedString())
+          } catch {
+            continuation.resume(throwing: error)
+          }
         }
       }
     }
@@ -90,11 +99,35 @@ public class UseitAppAttestModule: Module {
     }
   }
 
-  private func readKeyId() -> String? {
+  private func saveAttestedKeyId(_ keyId: String) throws {
+    let data = Data(keyId.utf8)
     let query: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: keychainService,
-      kSecAttrAccount as String: "keyId",
+      kSecAttrAccount as String: "attestedKeyId",
+      kSecValueData as String: data,
+      kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+    ]
+    SecItemDelete(query as CFDictionary)
+    let status = SecItemAdd(query as CFDictionary, nil)
+    guard status == errSecSuccess else {
+      throw NSError(domain: "UseitAppAttest", code: Int(status), userInfo: [NSLocalizedDescriptionKey: "Unable to persist App Attest enrollment state."])
+    }
+  }
+
+  private func readAttestedKeyId() -> String? {
+    return readValue(account: "attestedKeyId")
+  }
+
+  private func readKeyId() -> String? {
+    return readValue(account: "keyId")
+  }
+
+  private func readValue(account: String) -> String? {
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: keychainService,
+      kSecAttrAccount as String: account,
       kSecReturnData as String: true,
       kSecMatchLimit as String: kSecMatchLimitOne
     ]
