@@ -15,17 +15,22 @@ export type CandidateCollection = {
 
 function normalizeCandidateUrl(url: string): string {
   try {
-    const parsed = new URL(url);
+    const parsed = new URL(url.trim());
+    if (!['https:', 'http:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) return '';
+    if (parsed.port && parsed.port !== (parsed.protocol === 'https:' ? '443' : '80')) return '';
     for (const key of [...parsed.searchParams.keys()]) {
-      if (/^(utm_|fbclid|gclid|msclkid|mc_cid|mc_eid)$/i.test(key) || key.toLowerCase().startsWith('utm_')) {
-        parsed.searchParams.delete(key);
-      }
+      if (/^(utm_|fbclid|gclid|msclkid|mc_cid|mc_eid)$/i.test(key) || key.toLowerCase().startsWith('utm_')) parsed.searchParams.delete(key);
     }
     parsed.hash = '';
+    parsed.pathname = parsed.pathname.replace(/\\/+$/, '') || '/';
+    parsed.searchParams.sort();
     return parsed.toString();
-  } catch {
-    return url.trim();
-  }
+  } catch { return ''; }
+}
+function safeProviderError(reason: unknown): string {
+  if (reason instanceof Error && /timeout|timed out|abort/i.test(reason.message)) return 'Provider request timed out.';
+  if (reason instanceof Error && /network|fetch failed|connection/i.test(reason.message)) return 'Provider network request failed.';
+  return 'Provider request failed.';
 }
 
 function isProductCandidate(value: unknown): value is ProductCandidate {
@@ -33,7 +38,7 @@ function isProductCandidate(value: unknown): value is ProductCandidate {
   const candidate = value as Partial<ProductCandidate>;
   if (typeof candidate.id !== 'string' || !candidate.id.trim()) return false;
   if (typeof candidate.title !== 'string' || !candidate.title.trim()) return false;
-  if (typeof candidate.url !== 'string') return false;
+  if (typeof candidate.url !== 'string' || !normalizeCandidateUrl(candidate.url)) return false;
   if (typeof candidate.category !== 'string' || !candidate.category.trim()) return false;
   if (!candidate.attributes || typeof candidate.attributes !== 'object' || Array.isArray(candidate.attributes)) return false;
   if (typeof candidate.source !== 'string' || !candidate.source.trim()) return false;
@@ -67,7 +72,7 @@ export async function collectProductCandidates(decision: ShoppingDecision, provi
         return {
           provider: provider.id,
           candidates: [],
-          error: reason instanceof Error ? reason.message : String(reason),
+          error: safeProviderError(reason),
         };
       }
     }),

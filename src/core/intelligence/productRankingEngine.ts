@@ -34,12 +34,17 @@ function scoreBudget(candidate: ProductCandidate, decision: ShoppingDecision): n
 }
 
 function scoreAttribute(candidate: ProductCandidate, decision: ShoppingDecision, key: string): number {
-  const preferred = decision.constraints[`preferred${key[0].toUpperCase()}${key.slice(1)}s`];
-  if (!Array.isArray(preferred) || preferred.length === 0) return 0.5;
-  const value = candidate.attributes[key];
-  if (typeof value === 'string') return preferred.some(item => item.toLowerCase() === value.toLowerCase()) ? 1 : 0.25;
-  if (Array.isArray(value)) return preferred.some(item => value.map(String).map(v => v.toLowerCase()).includes(item.toLowerCase())) ? 1 : 0.25;
-  return 0.5;
+  const preferredValue = decision.constraints[`preferred${key[0].toUpperCase()}${key.slice(1)}s`];
+  if (!Array.isArray(preferredValue)) return 0.5;
+  const preferred = preferredValue.filter((item): item is string => typeof item === 'string' && Boolean(item.trim())).map(item => item.trim().toLocaleLowerCase());
+  if (preferred.length === 0) return 0.5;
+  const tagsKey = key === 'style' ? 'styleTags' : key === 'color' ? 'colorTags' : '';
+  const rawValue = candidate.attributes[key] ?? (tagsKey ? candidate.attributes[tagsKey] : undefined);
+  const values = (typeof rawValue === 'string' ? [rawValue] : Array.isArray(rawValue) ? rawValue : [])
+    .filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+    .map(item => item.trim().toLocaleLowerCase());
+  if (values.length === 0) return 0.5;
+  return preferred.some(item => values.includes(item)) ? 1 : 0.25;
 }
 
 function buildReasons(candidate: ProductCandidate, scores: Record<string, number>, scene: SceneModel): string[] {

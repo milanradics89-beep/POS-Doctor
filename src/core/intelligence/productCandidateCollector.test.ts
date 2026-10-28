@@ -91,4 +91,35 @@ describe('collectProductCandidates', () => {
     expect(result.candidates).toHaveLength(1);
     expect(result.candidates[0].id).toBe('p-1');
   });
+
+  it('rejects unsafe candidate URLs before ranking', async () => {
+    const providers: ProductProvider[] = [{
+      id: 'unsafe',
+      search: vi.fn().mockResolvedValue([
+        candidate({ id: 'js', url: 'javascript:alert(1)' }),
+        candidate({ id: 'credentials', url: 'https://user:pass@shop.example/product' }),
+        candidate({ id: 'port', url: 'https://shop.example:8443/product' }),
+        candidate({ id: 'safe', url: 'https://shop.example/product' }),
+      ]),
+    }];
+    const result = await collectProductCandidates(decision, providers);
+    expect(result.candidates.map(item => item.id)).toEqual(['safe']);
+    expect(result.errors).toEqual([{ provider: 'unsafe', message: 'Ignored 3 invalid candidate payloads.' }]);
+  });
+
+  it('normalizes trailing slashes and query order for duplicate detection', async () => {
+    const providers: ProductProvider[] = [
+      { id: 'a', search: vi.fn().mockResolvedValue([candidate({ url: 'https://shop.example/product/?b=2&a=1' })]) },
+      { id: 'b', search: vi.fn().mockResolvedValue([candidate({ id: 'second', url: 'https://shop.example/product?a=1&b=2' })]) },
+    ];
+    const result = await collectProductCandidates(decision, providers);
+    expect(result.candidates).toHaveLength(1);
+  });
+
+  it('does not expose raw provider exception messages', async () => {
+    const providers: ProductProvider[] = [{ id: 'leaky', search: vi.fn().mockRejectedValue(new Error('secret-token=abc')) }];
+    const result = await collectProductCandidates(decision, providers);
+    expect(result.errors).toEqual([{ provider: 'leaky', message: 'Provider request failed.' }]);
+    expect(JSON.stringify(result)).not.toContain('secret-token');
+  });
 });

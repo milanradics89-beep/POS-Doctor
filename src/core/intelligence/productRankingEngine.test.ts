@@ -55,4 +55,21 @@ describe('rankProducts', () => {
     const results = rankProducts(scene, decision(100000), [candidate('b', 10000), candidate('a', 10000)]);
     expect(results.map(item => item.id)).toEqual(['a', 'b']);
   });
+
+  it('matches normalized style and color tag arrays without throwing on malformed preferences', () => {
+    const tagged = { ...candidate('tagged', 10000), attributes: { styleTags: ['Scandinavian', 'Minimalist'], colorTags: ['Warm White'] } };
+    const result = rankProducts(scene, {
+      ...decision(20000),
+      constraints: { preferredStyles: [' scandinavian ', 7, null], preferredColors: ['warm white'] },
+    }, [tagged as ProductCandidate]);
+    expect(result[0].scoreBreakdown.styleFit).toBe(1);
+    expect(result[0].scoreBreakdown.colorFit).toBe(1);
+    expect(Number.isFinite(result[0].score)).toBe(true);
+  });
+
+  it('handles empty and malformed preferred attribute arrays deterministically', () => {
+    const result = rankProducts(scene, { ...decision(20000), constraints: { preferredStyles: [null, 4], preferredColors: [] } }, [candidate('plain', 10000)]);
+    expect(result[0].scoreBreakdown.styleFit).toBe(0.5);
+    expect(result[0].scoreBreakdown.colorFit).toBe(0.5);
+  });
 });
