@@ -9,7 +9,7 @@
     "plugins": [
       "expo-router",
       "expo-image-picker",
-      "./modules/useit-app-attest"
+      "./modules/useit-app-attest/app.plugin.js"
     ],
     "experiments": {
       "typedRoutes": true
@@ -23,9 +23,6 @@
     "ios": {
       "bundleIdentifier": "com.useit.app",
       "supportsTablet": true,
-      "entitlements": {
-        "com.apple.developer.devicecheck.appattest-environment": "development"
-      }
     }
   }
 }
