@@ -30,8 +30,6 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npm test -- --passWithNoTests
-      - name: Runtime dependency audit
-        run: npm audit --omit=dev --audit-level=high
       - name: Validate Expo project health
         run: npx expo-doctor
       - name: Validate Android export
@@ -170,6 +168,9 @@ jobs:
           "$ADB_BIN" -s emulator-5554 shell pidof "$PACKAGE_NAME"
           "$ADB_BIN" -s emulator-5554 shell am force-stop "$PACKAGE_NAME"
           echo "Android emulator smoke test passed for $PACKAGE_NAME"
+
+      - name: Runtime dependency audit
+        run: npm audit --omit=dev --audit-level=high
 
   ios:
     runs-on: macos-latest
