@@ -205,6 +205,12 @@ class _AppleKeyStore:
     async def put(self, key_id: str, public_key_der: bytes, app_id: str) -> None:
         self._keys[key_id] = (public_key_der, 0, app_id)
 
+    async def create(self, key_id: str, public_key_der: bytes, app_id: str) -> bool:
+        if key_id in self._keys:
+            return False
+        self._keys[key_id] = (public_key_der, 0, app_id)
+        return True
+
     async def get(self, key_id: str) -> tuple[bytes, int, str] | None:
         return self._keys.get(key_id)
 
@@ -226,14 +232,20 @@ def _redis() -> Redis:
 async def _store_key(key: AppleAttestKey, app_id: str) -> None:
     redis_url = os.environ.get("USEIT_REDIS_URL", "").strip()
     if not redis_url:
-        await _MEMORY_KEYS.put(key.key_id, key.public_key_der, app_id)
+        if not await _MEMORY_KEYS.create(key.key_id, key.public_key_der, app_id):
+            raise ValueError("Apple App Attest key is already registered")
         return
     client = _redis()
     try:
-        await client.hset(
-            f"useit:app-attest:key:{hashlib.sha256(key.key_id.encode()).hexdigest()}",
-            mapping={"public_key": key.public_key_der, "counter": "0", "app_id": app_id},
+        redis_key = f"useit:app-attest:key:{hashlib.sha256(key.key_id.encode()).hexdigest()}"
+        script = (
+            "if redis.call('EXISTS', KEYS[1]) == 1 then return 0 end "
+            "redis.call('HSET', KEYS[1], 'public_key', ARGV[1], 'counter', '0', 'app_id', ARGV[2]) "
+            "return 1"
         )
+        created = await client.eval(script, 1, redis_key, key.public_key_der, app_id)
+        if not created:
+            raise ValueError("Apple App Attest key is already registered")
     finally:
         await client.aclose()
 
