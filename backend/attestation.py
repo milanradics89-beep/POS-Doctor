@@ -32,6 +32,8 @@ class AttestationEvidence:
     challenge: str
     assertion: str
     app_id: str
+    key_id: str | None = None
+    client_data: str | None = None
 
 
 @dataclass(frozen=True)
@@ -201,6 +203,10 @@ async def validate_challenge_binding_async(evidence: AttestationEvidence) -> Att
 
 async def verify_attestation_provider(evidence: AttestationEvidence) -> AttestationResult:
     """Dispatch evidence to the configured real provider verifier."""
+    if evidence.provider is AttestationProvider.APP_ATTEST:
+        from backend.apple_app_attest import AppleAppAttestVerifier
+
+        return await AppleAppAttestVerifier().verify(evidence)
     if evidence.provider is AttestationProvider.PLAY_INTEGRITY:
         from backend.google_play_integrity import GooglePlayIntegrityVerifier
 
