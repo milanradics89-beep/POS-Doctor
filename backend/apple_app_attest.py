@@ -111,7 +111,7 @@ def _extension_nonce(cert: x509.Certificate) -> bytes:
             i += length
             if tag == 0x04 and len(value) == 32:
                 return value
-            nested = walk(value) if value and (value[0] & 0x20 or value[0] in (0x30, 0x31, 0xA1)) else None
+            nested = walk(value) if tag & 0x20 else None
             if nested is not None:
                 return nested
         return None
