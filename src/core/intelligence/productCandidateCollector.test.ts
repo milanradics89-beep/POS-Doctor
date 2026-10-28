@@ -32,7 +32,7 @@ describe('collectProductCandidates', () => {
 
     expect(result.candidates).toHaveLength(1);
     expect(result.providersUsed).toEqual(['good']);
-    expect(result.errors).toEqual([{ provider: 'broken', message: 'upstream unavailable' }]);
+    expect(result.errors).toEqual([{ provider: 'broken', message: 'Provider request failed.' }]);
   });
 
   it('ignores malformed provider candidates without failing the collection', async () => {
