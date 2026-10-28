@@ -90,3 +90,28 @@ async def test_google_verifier_maps_provider_failure(monkeypatch):
             AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
         )
     assert result == AttestationResult(False, "provider_unavailable")
+
+
+@pytest.mark.parametrize(
+    ("camel_case_package", "snake_case_package"),
+    [
+        ("com.attacker.app", "com.useit.app"),
+        ("com.useit.app", "com.attacker.app"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_google_verifier_rejects_conflicting_app_package_aliases(
+    monkeypatch, camel_case_package, snake_case_package
+):
+    monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
+    payload = make_payload("challenge")
+    integrity = payload["tokenPayloadExternal"]["appIntegrity"]
+    integrity["packageName"] = camel_case_package
+    integrity["package_name"] = snake_case_package
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    async with httpx.AsyncClient(transport=transport) as client:
+        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
+        result = await verifier.verify(
+            AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
+        )
+    assert result == AttestationResult(False, "wrong_app")

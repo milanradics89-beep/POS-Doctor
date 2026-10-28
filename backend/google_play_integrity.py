@@ -103,7 +103,19 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
             return AttestationResult(False, "token_stale")
 
         app_integrity = payload.get("appIntegrity") or payload.get("app_integrity") or {}
-        if app_integrity.get("packageName") != evidence.app_id and app_integrity.get("package_name") != evidence.app_id:
+        app_package_camel = app_integrity.get("packageName")
+        app_package_snake = app_integrity.get("package_name")
+        # If both supported field spellings are present, they must agree. Checking
+        # each only against the expected package with "and" would accept a
+        # contradictory provider payload whenever either spelling matched.
+        if (
+            app_package_camel is not None
+            and app_package_snake is not None
+            and app_package_camel != app_package_snake
+        ):
+            return AttestationResult(False, "wrong_app")
+        actual_app_package = app_package_camel if app_package_camel is not None else app_package_snake
+        if actual_app_package != evidence.app_id:
             return AttestationResult(False, "wrong_app")
         if app_integrity.get("appRecognitionVerdict") != "PLAY_RECOGNIZED":
             return AttestationResult(False, "app_not_recognized")
