@@ -66,7 +66,7 @@ def test_nonce_extension_parser_reads_der_wrapped_octet_string():
     nonce = b"n" * 32
     key = ec.generate_private_key(ec.SECP256R1())
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "USEIT nonce extension test")])
-    encoded_nonce = b"\\x30\\x24\\xa1\\x22\\x04\\x20" + nonce
+    encoded_nonce = b"\x30\x24\xa1\x22\x04\x20" + nonce
     cert = (
         x509.CertificateBuilder()
         .subject_name(name)
