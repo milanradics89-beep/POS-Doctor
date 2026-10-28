@@ -86,6 +86,8 @@ def _parse_auth_data(auth_data: bytes) -> tuple[bytes, int, bytes]:
 
 def _extension_nonce(cert: x509.Certificate) -> bytes:
     extension = cert.extensions.get_extension_for_oid(OID_NONCE).value
+    if not isinstance(extension, x509.UnrecognizedExtension):
+        raise ValueError("App Attest nonce extension has an unexpected encoding")
     # Apple encodes the nonce as a DER structure containing a context-specific
     # [1] wrapper and an OCTET STRING. Walk the DER payload defensively.
     def walk(data: bytes) -> bytes | None:
@@ -114,7 +116,7 @@ def _extension_nonce(cert: x509.Certificate) -> bytes:
                 return nested
         return None
 
-    nonce = walk(extension)
+    nonce = walk(extension.value)
     if nonce is None:
         raise ValueError("App Attest nonce extension is malformed")
     return nonce
@@ -158,6 +160,14 @@ def _raw_public_key(cert: x509.Certificate) -> bytes:
     return key.public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)
 
 
+def _validate_aaguid(aaguid: bytes) -> None:
+    if aaguid not in (PROD_AAGUID, DEV_AAGUID):
+        raise ValueError("unsupported App Attest AAGUID")
+    environment = os.environ.get("USEIT_ENV", "development").strip().lower()
+    if environment in {"production", "prod"} and aaguid != PROD_AAGUID:
+        raise ValueError("development App Attest keys are not allowed in production")
+
+
 def _verify_attestation(evidence: AttestationEvidence) -> AppleAttestKey:
     payload = _b64decode(evidence.assertion)
     obj = cbor2.loads(payload)
@@ -193,8 +203,7 @@ def _verify_attestation(evidence: AttestationEvidence) -> AppleAttestKey:
     public_key = _raw_public_key(leaf)
     if hashlib.sha256(public_key).digest() != credential_id:
         raise ValueError("Apple App Attest public key hash mismatch")
-    if auth_data[37:53] not in (PROD_AAGUID, DEV_AAGUID):
-        raise ValueError("unsupported App Attest AAGUID")
+    _validate_aaguid(auth_data[37:53])
     return AppleAttestKey(key_id=evidence.key_id, public_key_der=leaf.public_bytes(Encoding.DER), counter=counter)
 
 
