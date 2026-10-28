@@ -115,3 +115,71 @@ async def test_google_verifier_rejects_conflicting_app_package_aliases(
             AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
         )
     assert result == AttestationResult(False, "wrong_app")
+
+
+
+@pytest.mark.parametrize(
+    ("field", "malformed_value"),
+    [
+        ("requestDetails", "not-an-object"),
+        ("appIntegrity", ["not-an-object"]),
+        ("accountDetails", "not-an-object"),
+        ("deviceIntegrity", ["not-an-object"]),
+    ],
+)
+@pytest.mark.asyncio
+async def test_google_verifier_rejects_malformed_nested_payload_objects(
+    monkeypatch, field, malformed_value
+):
+    monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
+    payload = make_payload("challenge")
+    payload["tokenPayloadExternal"][field] = malformed_value
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    async with httpx.AsyncClient(transport=transport) as client:
+        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
+        result = await verifier.verify(
+            AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
+        )
+    assert result == AttestationResult(False, "attestation_invalid")
+
+
+@pytest.mark.asyncio
+async def test_google_verifier_rejects_malformed_certificate_digest_list(monkeypatch):
+    monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
+    monkeypatch.setenv("USEIT_GOOGLE_PLAY_CERT_SHA256", "CERTIFICATE")
+    payload = make_payload("challenge")
+    payload["tokenPayloadExternal"]["appIntegrity"]["certificateSha256Digest"] = "CERTIFICATE"
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    async with httpx.AsyncClient(transport=transport) as client:
+        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
+        result = await verifier.verify(
+            AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
+        )
+    assert result == AttestationResult(False, "attestation_invalid")
+
+
+@pytest.mark.asyncio
+async def test_google_verifier_rejects_malformed_device_verdict_list(monkeypatch):
+    monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
+    payload = make_payload("challenge")
+    payload["tokenPayloadExternal"]["deviceIntegrity"]["deviceRecognitionVerdict"] = "MEETS_DEVICE_INTEGRITY"
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    async with httpx.AsyncClient(transport=transport) as client:
+        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
+        result = await verifier.verify(
+            AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
+        )
+    assert result == AttestationResult(False, "attestation_invalid")
+
+
+@pytest.mark.asyncio
+async def test_google_verifier_rejects_non_finite_timestamp(monkeypatch):
+    monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
+    payload = make_payload("challenge", now_ms=float("inf"))
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    async with httpx.AsyncClient(transport=transport) as client:
+        verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
+        result = await verifier.verify(
+            AttestationEvidence(AttestationProvider.PLAY_INTEGRITY, "challenge", "integrity-token", "com.useit.app")
+        )
+    assert result == AttestationResult(False, "timestamp_invalid")
