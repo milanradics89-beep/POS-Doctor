@@ -92,7 +92,7 @@ async def test_discovery_skips_malformed_search_entries_and_bounds_resolutions(m
 
     async def fake_resolve(request):
         resolved_urls.append(request.url)
-        return {"name": request.url.rsplit("/", 1)[-1], "url": request.url, "qualityScore": float("nan")}
+        return {"name": request.url.rsplit("/", 1)[-1], "url": request.url, "qualityScore": 0.5}
 
     monkeypatch.setattr(discovery, "product_search", fake_search)
     monkeypatch.setattr(discovery, "resolve_product", fake_resolve)
@@ -104,7 +104,7 @@ async def test_discovery_skips_malformed_search_entries_and_bounds_resolutions(m
     assert resolved_urls == ["https://shop.example/one"]
     assert len(result["candidates"]) == 1
     assert result["candidates"][0]["name"] == "one"
-    assert result["candidates"][0]["qualityScore"] == 0.0
+    assert result["candidates"][0]["qualityScore"] == 0.5
     assert result["candidates"][0]["availability"] == "unknown"
     assert result["errors"] == []
 
@@ -203,3 +203,9 @@ async def test_discovery_rejects_incomplete_and_low_quality_resolutions(monkeypa
         "product resolution returned incomplete product data",
         "product quality below minimum threshold",
     ]
+
+
+def test_finite_score_safely_normalizes_invalid_numbers():
+    assert discovery._finite_score(float("nan")) == 0.0
+    assert discovery._finite_score(float("inf")) == 0.0
+    assert discovery._finite_score("not-a-number") == 0.0
