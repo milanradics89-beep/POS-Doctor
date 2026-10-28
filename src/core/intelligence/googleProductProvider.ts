@@ -47,20 +47,20 @@ function finiteNonNegative(value: unknown): number | undefined {
 }
 
 const CATEGORY_ALIASES: Record<string, string[]> = {
-  sofa: ['couch', 'sectional', 'settee'],
-  coffee_table: ['cocktail table', 'end table'],
-  lighting: ['lamp', 'light fixture', 'ceiling light', 'chandelier', 'sconce', 'pendant light', 'desk lamp', 'floor lamp', 'table lamp'],
-  decor: ['decoration', 'vase', 'wall art', 'ornament', 'throw pillow', 'cushion', 'rug', 'carpet'],
-  top: ['shirt', 'blouse', 't-shirt', 'sweater'],
-  bottom: ['pants', 'trousers', 'jeans', 'skirt', 'shorts'],
-  shoes: ['sneaker', 'boot', 'sandal', 'footwear'],
-  accessory: ['bag', 'belt', 'hat', 'scarf', 'jewelry'],
-  ingredient: ['food', 'produce'],
-  repair_part: ['repair part', 'spare part'],
+  sofa: ['couch', 'sectional', 'settee', 'kanape', 'hevero'],
+  coffee_table: ['cocktail table', 'end table', 'dohanyzoasztal', 'kisasztal', 'kavezoasztal'],
+  lighting: ['lamp', 'light fixture', 'ceiling light', 'chandelier', 'sconce', 'pendant light', 'desk lamp', 'floor lamp', 'table lamp', 'lampa', 'vilagitas', 'allolampa', 'asztali lampa', 'mennyezeti lampa', 'csillar', 'fali lampa'],
+  decor: ['decoration', 'vase', 'wall art', 'ornament', 'throw pillow', 'cushion', 'rug', 'carpet', 'dekoracio', 'disztargy', 'vaza', 'falikep', 'szonyeg', 'diszparna'],
+  top: ['shirt', 'blouse', 't-shirt', 'sweater', 'felso', 'ing', 'polo', 'bluz', 'pulover'],
+  bottom: ['pants', 'trousers', 'jeans', 'skirt', 'shorts', 'nadrag', 'farmer', 'szoknya', 'rovidnadrag'],
+  shoes: ['sneaker', 'boot', 'sandal', 'footwear', 'cipo', 'bakancs', 'szandal', 'sportcipo'],
+  accessory: ['bag', 'belt', 'hat', 'scarf', 'jewelry', 'kiegeszito', 'taska', 'ov', 'kalap', 'sal', 'ekszer'],
+  ingredient: ['food', 'produce', 'hozzavalo', 'elelmiszer', 'zoldseg', 'gyumolcs'],
+  repair_part: ['repair part', 'spare part', 'alkatresz', 'potalatresz'],
 };
 
 function normalizeCategoryText(value: string): string {
-  return value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
 function inferCategory(rawCategory: unknown, title: string, requestedCategories: string[]): string {

@@ -42,8 +42,8 @@ describe('googleProductProvider', () => {
     const request = await import('./request');
     vi.mocked(request.fetchWithPolicy).mockResolvedValue(new Response(JSON.stringify({
       candidates: [
-        { id: 'table', name: 'Wooden Coffee Table', url: 'https://shop.example/table', category: 'Furniture', availability: 'in_stock' },
-        { id: 'lamp', name: 'Modern Floor Lamp', url: 'https://shop.example/lamp', availability: 'in_stock' },
+        { id: 'table', name: 'Fa dohányzóasztal', url: 'https://shop.example/table', category: 'Bútor', availability: 'in_stock' },
+        { id: 'lamp', name: 'Modern állólámpa', url: 'https://shop.example/lamp', availability: 'in_stock' },
         { id: 'unknown', name: 'Home Essentials', url: 'https://shop.example/unknown', category: 'Home', availability: 'in_stock' },
       ],
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
