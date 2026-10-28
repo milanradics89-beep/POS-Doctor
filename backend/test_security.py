@@ -1,4 +1,5 @@
 import ipaddress
+import socket
 
 import pytest
 from fastapi import HTTPException
@@ -63,3 +64,23 @@ def test_connected_peer_requires_network_metadata():
     with pytest.raises(HTTPException) as exc:
         validate_connected_peer(type("Response", (), {"extensions": {}})())
     assert exc.value.status_code == 502
+
+
+@pytest.mark.parametrize("address", ["100.64.0.1", "192.0.2.1", "198.51.100.1", "203.0.113.1"])
+def test_rejects_non_global_ip_ranges_during_url_validation(monkeypatch, address):
+    monkeypatch.setattr(
+        "backend.security.socket.getaddrinfo",
+        lambda hostname, port, type: [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (address, port))
+        ],
+    )
+    with pytest.raises(HTTPException) as exc:
+        validate_public_http_url(f"https://{address}/product")
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.parametrize("address", ["100.64.0.1", "192.0.2.1", "198.51.100.1", "203.0.113.1"])
+def test_connected_peer_rejects_non_global_ip_ranges(address):
+    with pytest.raises(HTTPException) as exc:
+        validate_connected_peer(_Response(address))
+    assert exc.value.status_code == 400
