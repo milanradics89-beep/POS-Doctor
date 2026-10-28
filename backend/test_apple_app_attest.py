@@ -43,8 +43,7 @@ def test_authenticator_data_parser_extracts_counter_and_credential_id():
     assert parsed_credential == credential
 
 
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, PublicFormat
 from cryptography.x509 import NameOID
