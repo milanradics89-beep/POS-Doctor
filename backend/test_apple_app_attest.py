@@ -116,8 +116,8 @@ def test_assertion_verification_and_counter_replay():
         + b"\x01"
         + (1).to_bytes(4, "big")
     )
-    nonce = __import__("hashlib").sha256(auth_data + __import__("hashlib").sha256(client_data).digest()).digest()
-    signature = key.sign(nonce, ec.ECDSA(hashes.SHA256()))
+    signed_data = auth_data + __import__("hashlib").sha256(client_data).digest()
+    signature = key.sign(signed_data, ec.ECDSA(hashes.SHA256()))
     assertion = cbor2.dumps({"authenticatorData": auth_data, "signature": signature})
     asyncio.run(_MEMORY_KEYS.put(key_id, cert.public_bytes(Encoding.DER), app_id))
 
@@ -182,10 +182,8 @@ def test_assertion_rejects_tampered_authenticator_data_without_advancing_counter
     rp_id_hash = __import__("hashlib").sha256(app_id.encode()).digest()
     original_auth_data = rp_id_hash + b"\x01" + (1).to_bytes(4, "big")
     tampered_auth_data = rp_id_hash + b"\x01" + (2).to_bytes(4, "big")
-    original_nonce = __import__("hashlib").sha256(
-        original_auth_data + __import__("hashlib").sha256(client_data).digest()
-    ).digest()
-    signature = key.sign(original_nonce, ec.ECDSA(hashes.SHA256()))
+    original_signed_data = original_auth_data + __import__("hashlib").sha256(client_data).digest()
+    signature = key.sign(original_signed_data, ec.ECDSA(hashes.SHA256()))
     assertion = cbor2.dumps({
         "authenticatorData": tampered_auth_data,
         "signature": signature,
