@@ -323,4 +323,5 @@ class AppleAppAttestVerifier(AttestationVerifier):
             return AttestationResult(False, "attestation_invalid")
 
 def root_certificate_fingerprint() -> str:
-    return APPLE_APP_ATTEST_ROOT_SHA256
+    root = x509.load_pem_x509_certificate(APPLE_APP_ATTEST_ROOT_PEM.encode())
+    return hashlib.sha256(root.public_bytes(Encoding.DER)).hexdigest()
