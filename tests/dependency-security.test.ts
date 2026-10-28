@@ -6,6 +6,7 @@ type Lockfile = { packages: Record<string, LockPackage> };
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
   overrides?: Record<string, string>;
+  dependencies: Record<string, string>;
 };
 const lockfile = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8')) as Lockfile;
 
