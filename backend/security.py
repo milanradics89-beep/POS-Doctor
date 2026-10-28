@@ -23,17 +23,22 @@ def _public_addresses(hostname: str, port: int) -> set[str]:
 
 
 def validate_public_http_url(url: str) -> str:
-    parsed = urlparse(url)
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+    try:
+        parsed = urlparse(url)
+        hostname_value = parsed.hostname
+        port = parsed.port
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(400, "Invalid product URL.") from exc
+    if parsed.scheme.lower() not in {"http", "https"} or not hostname_value:
         raise HTTPException(400, "Only HTTP(S) product URLs are supported.")
     if parsed.username is not None or parsed.password is not None:
         raise HTTPException(400, "Product URLs must not contain embedded credentials.")
-    hostname = parsed.hostname.rstrip(".").lower()
+    hostname = hostname_value.rstrip(".").lower()
     if hostname in {"localhost", "localhost.localdomain"}:
         raise HTTPException(400, "Local product hosts are not allowed.")
-    if parsed.port not in {None, 80, 443}:
+    if port is not None and port != (443 if parsed.scheme.lower() == "https" else 80):
         raise HTTPException(400, "Only standard HTTP(S) ports are allowed.")
-    _public_addresses(hostname, parsed.port or (443 if parsed.scheme == "https" else 80))
+    _public_addresses(hostname, port or (443 if parsed.scheme.lower() == "https" else 80))
     return url
 
 
