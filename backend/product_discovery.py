@@ -72,7 +72,7 @@ def _price_number(value: Any) -> float | None:
     if isinstance(value, bool) or value is None:
         return None
     if isinstance(value, (int, float)):
-        number = _finite_score(value)
+        number = float(value)
         return number if math.isfinite(number) and number >= 0 else None
     if not isinstance(value, str):
         return None
@@ -122,7 +122,8 @@ def _normalize_candidate(value: Any) -> dict[str, Any] | None:
     candidate = dict(value)
     candidate["name"] = name.strip()
     candidate["url"] = url
-    candidate["id"] = url
+    candidate_id = value.get("id")
+    candidate["id"] = candidate_id.strip() if isinstance(candidate_id, str) and candidate_id.strip() else url
     retailer = value.get("retailer")
     candidate["retailer"] = retailer.strip().lower() if isinstance(retailer, str) and retailer.strip() else parsed.hostname.lower()
     score = _finite_score(value.get("qualityScore", 0))
