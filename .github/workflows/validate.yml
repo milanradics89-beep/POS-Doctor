@@ -191,6 +191,8 @@ jobs:
       - name: Install dependencies reproducibly
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Generate native iOS project
+        env:
+          EAS_BUILD_PROFILE: production
         run: npx expo prebuild --platform ios --no-install
       - name: Install CocoaPods dependencies
         run: npx pod-install ios
