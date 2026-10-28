@@ -91,6 +91,31 @@ def test_assertion_verification_and_counter_replay():
     )
     result = asyncio.run(AppleAppAttestVerifier().verify(evidence))
     assert result.verified is True
+
+    # A valid signature must not be accepted when clientData binds a different challenge.
+    wrong_challenge = AttestationEvidence(
+        provider=AttestationProvider.APP_ATTEST,
+        challenge="different-challenge",
+        assertion=base64.b64encode(assertion).decode(),
+        app_id=app_id,
+        key_id=key_id,
+        client_data=client_data.decode(),
+    )
+    wrong_challenge_result = asyncio.run(AppleAppAttestVerifier().verify(wrong_challenge))
+    assert wrong_challenge_result.verified is False
+
+    # The registered key must also remain bound to its original app identity.
+    wrong_app = AttestationEvidence(
+        provider=AttestationProvider.APP_ATTEST,
+        challenge=challenge,
+        assertion=base64.b64encode(assertion).decode(),
+        app_id="TEAM123456.com.other.app",
+        key_id=key_id,
+        client_data=client_data.decode(),
+    )
+    wrong_app_result = asyncio.run(AppleAppAttestVerifier().verify(wrong_app))
+    assert wrong_app_result.verified is False
+
     stored = asyncio.run(_MEMORY_KEYS.get(key_id))
     assert stored is not None and stored[1] == 1
 
