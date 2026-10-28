@@ -121,3 +121,31 @@ def test_unknown_availability_is_not_promoted_to_in_stock():
     product = _extract(parser, 'https://shop.example/p')
     assert product is not None
     assert product['availability'] == 'unknown'
+
+
+
+def test_untrusted_product_metadata_cannot_inject_executable_urls():
+    parser = parse('''
+    <link rel="canonical" href="javascript:alert(1)">
+    <script type="application/ld+json">
+    {"@type":"Product","name":"Unsafe metadata","image":"data:text/html,evil","offers":{"price":"100","priceCurrency":"HUF"}}
+    </script>
+    ''')
+    product = _extract(parser, "https://shop.example/product")
+    assert product is not None
+    assert product["url"] == "https://shop.example/product"
+    assert product["id"] == "https://shop.example/product"
+    assert product["imageUrl"] is None
+
+
+def test_product_canonical_cannot_redirect_identity_to_another_host():
+    parser = parse('''
+    <link rel="canonical" href="https://attacker.example/fake-product">
+    <script type="application/ld+json">
+    {"@type":"Product","name":"Misleading canonical","offers":{"price":"100","priceCurrency":"HUF"}}
+    </script>
+    ''')
+    product = _extract(parser, "https://shop.example/product")
+    assert product is not None
+    assert product["url"] == "https://shop.example/product"
+    assert product["retailer"] == "shop.example"
