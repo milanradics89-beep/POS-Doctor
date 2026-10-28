@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import math
 from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -164,6 +165,44 @@ def _candidate_identity(candidate: dict[str, Any]) -> str:
     return normalized_url or f"{candidate.get('retailer', '')}:{candidate['name'].casefold()}"
 
 
+MAX_SEARCH_URL_LENGTH = 4000
+
+def _safe_search_url(value: Any) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    url = value.strip()
+    if len(url) > MAX_SEARCH_URL_LENGTH:
+        return None
+    try:
+        parsed = urlparse(url)
+        port = parsed.port
+        if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+            return None
+        if parsed.username is not None or parsed.password is not None:
+            return None
+        if port is not None and port != (443 if parsed.scheme.lower() == "https" else 80):
+            return None
+    except ValueError:
+        return None
+    return url
+
+
+def _safe_error_url(value: str) -> str:
+    """Keep useful product-page context but never echo query tokens or fragments."""
+    try:
+        parsed = urlparse(value)
+        port = parsed.port
+        if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+            return ""
+        if parsed.username is not None or parsed.password is not None:
+            return ""
+        if port is not None and port != (443 if parsed.scheme.lower() == "https" else 80):
+            return ""
+        return urlunparse((parsed.scheme.lower(), parsed.netloc, parsed.path, "", "", ""))
+    except ValueError:
+        return ""
+
+
 def _search_items(search: Any) -> list[dict[str, Any]]:
     if not isinstance(search, dict):
         return []
@@ -174,15 +213,15 @@ def _search_items(search: Any) -> list[dict[str, Any]]:
     for index, raw in enumerate(raw_results, start=1):
         if not isinstance(raw, dict):
             continue
-        url = raw.get("url")
-        if not isinstance(url, str) or not url.strip():
+        url = _safe_search_url(raw.get("url"))
+        if not url:
             continue
         title = raw.get("title")
         snippet = raw.get("snippet")
         items.append({
-            "url": url.strip(),
-            "title": title.strip() if isinstance(title, str) else "",
-            "snippet": snippet.strip() if isinstance(snippet, str) else "",
+            "url": url,
+            "title": title.strip()[:500] if isinstance(title, str) else "",
+            "snippet": snippet.strip()[:1000] if isinstance(snippet, str) else "",
             "rank": _rank(raw.get("rank"), index),
         })
     return items
@@ -234,14 +273,14 @@ async def discover_products(request: ProductDiscoveryRequest):
     results = await asyncio.gather(*(resolve(item) for item in items_to_resolve))
     for item, result in zip(items_to_resolve, results):
         if result.get("_error"):
-            errors.append({"url": item["url"], "message": str(result["_error"])})
+            errors.append({"url": _safe_error_url(item["url"]), "message": str(result["_error"])})
             continue
         normalized_result = _normalize_candidate(result)
         if normalized_result is None:
-            errors.append({"url": item["url"], "message": "product resolution returned incomplete product data"})
+            errors.append({"url": _safe_error_url(item["url"]), "message": "product resolution returned incomplete product data"})
             continue
         if normalized_result["qualityScore"] < 0.25:
-            errors.append({"url": item["url"], "message": "product quality below minimum threshold"})
+            errors.append({"url": _safe_error_url(item["url"]), "message": "product quality below minimum threshold"})
             continue
         normalized_result.update({
             "searchRank": item["rank"],

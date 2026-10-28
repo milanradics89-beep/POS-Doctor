@@ -206,6 +206,53 @@ async def test_discovery_rejects_incomplete_and_low_quality_resolutions(monkeypa
     ]
 
 
+
+@pytest.mark.asyncio
+async def test_discovery_rejects_malformed_and_oversized_search_urls(monkeypatch):
+    resolved_urls = []
+
+    async def fake_search(request):
+        return {"results": [
+            {"url": "javascript:alert(1)", "title": "Executable"},
+            {"url": "https://user:pass@shop.example/product", "title": "Credentials"},
+            {"url": "https://shop.example/" + "x" * 4100, "title": "Oversized"},
+        ]}
+
+    async def fake_resolve(request):
+        resolved_urls.append(request.url)
+        return {"name": "Unexpected", "url": request.url, "qualityScore": 0.9}
+
+    monkeypatch.setattr(discovery, "product_search", fake_search)
+    monkeypatch.setattr(discovery, "resolve_product", fake_resolve)
+
+    result = await discovery.discover_products(discovery.ProductDiscoveryRequest(query="lamp"))
+
+    assert resolved_urls == []
+    assert result["candidates"] == []
+    assert result["errors"] == [{"url": "", "message": "product search returned no usable results"}]
+
+
+@pytest.mark.asyncio
+async def test_discovery_redacts_query_parameters_from_product_error_urls(monkeypatch):
+    async def fake_search(request):
+        return {"results": [
+            {"url": "https://shop.example/product?access_token=secret-value#details", "title": "Product"},
+        ]}
+
+    async def fake_resolve(request):
+        raise HTTPException(status_code=422, detail="not available")
+
+    monkeypatch.setattr(discovery, "product_search", fake_search)
+    monkeypatch.setattr(discovery, "resolve_product", fake_resolve)
+
+    result = await discovery.discover_products(discovery.ProductDiscoveryRequest(query="lamp"))
+
+    assert result["errors"] == [{
+        "url": "https://shop.example/product",
+        "message": "product resolution unavailable (422)",
+    }]
+    assert "secret-value" not in str(result)
+
 def test_finite_score_safely_normalizes_invalid_numbers():
     assert discovery._finite_score(float("nan")) == 0.0
     assert discovery._finite_score(float("inf")) == 0.0
