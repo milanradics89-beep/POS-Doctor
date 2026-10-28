@@ -99,6 +99,8 @@ class SessionRequest(BaseModel):
     challenge: str | None = Field(default=None, min_length=16, max_length=512)
     assertion: str | None = Field(default=None, min_length=1, max_length=64_000)
     appId: str | None = Field(default=None, max_length=512)
+    keyId: str | None = Field(default=None, max_length=512)
+    clientData: str | None = Field(default=None, max_length=64_000)
 
 def _get_client() -> AsyncOpenAI:
     api_key = os.environ.get("OPENAI_API_KEY")
@@ -179,6 +181,8 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             challenge=request.challenge,
             assertion=request.assertion,
             app_id=request.appId,
+            key_id=request.keyId,
+            client_data=request.clientData,
         )
         binding = await validate_challenge_binding_async(evidence)
         if not binding.verified:
