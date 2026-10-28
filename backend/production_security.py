@@ -46,8 +46,11 @@ def validate_production_security() -> None:
             raise RuntimeError("USEIT_ATTESTATION_APP_ID is required for production session authentication")
         if not configured_redis_url():
             raise RuntimeError("USEIT_REDIS_URL is required for production attestation challenge storage")
-        if provider is AttestationProvider.PLAY_INTEGRITY and not os.getenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "").strip():
-            raise RuntimeError("USEIT_GOOGLE_PLAY_PACKAGE_NAME is required for Google Play Integrity")
+        if provider is AttestationProvider.PLAY_INTEGRITY:
+            if not os.getenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "").strip():
+                raise RuntimeError("USEIT_GOOGLE_PLAY_PACKAGE_NAME is required for Google Play Integrity")
+            if not os.getenv("USEIT_GOOGLE_PLAY_CERT_SHA256", "").strip():
+                raise RuntimeError("USEIT_GOOGLE_PLAY_CERT_SHA256 is required for production Google Play Integrity verification")
 
     origins = [x.strip() for x in os.getenv("USEIT_CORS_ORIGINS", "").split(",") if x.strip()]
     if not origins or "*" in origins:
