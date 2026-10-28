@@ -1,5 +1,3 @@
-import math
-
 import pytest
 from fastapi import HTTPException
 
@@ -106,7 +104,7 @@ async def test_discovery_skips_malformed_search_entries_and_bounds_resolutions(m
     assert resolved_urls == ["https://shop.example/one"]
     assert len(result["candidates"]) == 1
     assert result["candidates"][0]["name"] == "one"
-    assert math.isnan(result["candidates"][0]["qualityScore"])
+    assert result["candidates"][0]["qualityScore"] == 0.0
     assert result["errors"] == []
 
 
