@@ -46,6 +46,51 @@ function finiteNonNegative(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
 }
 
+const CATEGORY_ALIASES: Record<string, string[]> = {
+  sofa: ['couch', 'sectional', 'settee'],
+  coffee_table: ['cocktail table', 'end table'],
+  lighting: ['lamp', 'light fixture', 'ceiling light', 'chandelier', 'sconce', 'pendant light', 'desk lamp', 'floor lamp', 'table lamp'],
+  decor: ['decoration', 'vase', 'wall art', 'ornament', 'throw pillow', 'cushion', 'rug', 'carpet'],
+  top: ['shirt', 'blouse', 't-shirt', 'sweater'],
+  bottom: ['pants', 'trousers', 'jeans', 'skirt', 'shorts'],
+  shoes: ['sneaker', 'boot', 'sandal', 'footwear'],
+  accessory: ['bag', 'belt', 'hat', 'scarf', 'jewelry'],
+  ingredient: ['food', 'produce'],
+  repair_part: ['repair part', 'spare part'],
+};
+
+function normalizeCategoryText(value: string): string {
+  return value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function inferCategory(rawCategory: unknown, title: string, requestedCategories: string[]): string {
+  const sourceCategory = textValue(rawCategory);
+  const normalizedCategory = normalizeCategoryText(sourceCategory ?? '');
+  const normalizedSource = normalizeCategoryText(`${sourceCategory ?? ''} ${title}`);
+  const requested = requestedCategories.map(category => ({
+    category,
+    normalized: normalizeCategoryText(category),
+    aliases: CATEGORY_ALIASES[category.toLocaleLowerCase()] ?? [],
+  }));
+
+  const exact = requested.find(item => item.normalized && normalizedCategory === item.normalized);
+  if (exact) return exact.category;
+
+  const sourcePadded = ` ${normalizedSource} `;
+  const matches = requested.map(item => {
+    const terms = [item.normalized, ...item.aliases.map(normalizeCategoryText)]
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length);
+    const match = terms.find(term => sourcePadded.includes(` ${term} `));
+    return { category: item.category, length: match?.length ?? 0 };
+  }).filter(item => item.length > 0).sort((a, b) => b.length - a.length);
+  if (matches.length > 0) return matches[0].category;
+
+  // Do not silently classify every result as the first category in a
+  // multi-category query. An unknown category is safer than a false match.
+  return sourceCategory ?? (requestedCategories.length === 1 ? requestedCategories[0] : 'general');
+}
+
 const API_BASE_URL = process.env.EXPO_PUBLIC_USEIT_API_URL ?? '';
 
 export const googleProductProvider: ProductProvider = {
@@ -103,7 +148,7 @@ export const googleProductProvider: ProductProvider = {
         title: name,
         url,
         ...(priceHuf !== undefined ? { priceHuf: Math.round(priceHuf) } : {}),
-        category: decision.categories[0] ?? 'general',
+        category: inferCategory(item.category, name, decision.categories),
         attributes: {
           ...(brand ? { brand } : {}),
           ...(productCategory ? { productCategory } : {}),

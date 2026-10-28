@@ -38,6 +38,29 @@ describe('googleProductProvider', () => {
     expect(candidates[0].attributes).not.toHaveProperty('imageUrl');
   });
 
+  it('maps products to the requested category instead of assigning the first query category to every result', async () => {
+    const request = await import('./request');
+    vi.mocked(request.fetchWithPolicy).mockResolvedValue(new Response(JSON.stringify({
+      candidates: [
+        { id: 'table', name: 'Wooden Coffee Table', url: 'https://shop.example/table', category: 'Furniture', availability: 'in_stock' },
+        { id: 'lamp', name: 'Modern Floor Lamp', url: 'https://shop.example/lamp', availability: 'in_stock' },
+        { id: 'unknown', name: 'Home Essentials', url: 'https://shop.example/unknown', category: 'Home', availability: 'in_stock' },
+      ],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    const { googleProductProvider } = await import('./googleProductProvider');
+    const candidates = await googleProductProvider.search({
+      query: 'room sofa coffee table lighting decor',
+      categories: ['sofa', 'coffee_table', 'lighting', 'decor'],
+      preserveExisting: true,
+      constraints: {},
+      candidateSlots: 6,
+    });
+
+    expect(candidates.map(candidate => candidate.category)).toEqual(['coffee_table', 'lighting', 'Home']);
+    expect(candidates.find(candidate => candidate.id === 'unknown')?.category).not.toBe('sofa');
+  });
+
   it('does not expose raw upstream error response bodies', async () => {
     const request = await import('./request');
     vi.mocked(request.fetchWithPolicy).mockResolvedValue(new Response('secret-token=hidden', { status: 502 }));
