@@ -113,6 +113,13 @@ async function createSession(baseUrl: string): Promise<string> {
     throw new Error(`USEIT attestation failed (${attested.status})${detail ? `: ${detail}` : '.'}`);
   }
 
+  // Only persist local enrollment after the server has verified the attestation
+  // and issued a session. Otherwise a transient failure would strand this key.
+  if (challenge.provider === 'apple_app_attest' && keyId && !clientData) {
+    const nativeModule = await import('../../../modules/useit-app-attest');
+    nativeModule.default.markKeyAttested(keyId);
+  }
+
   return cacheSession(await parseSession(attested));
 }
 
