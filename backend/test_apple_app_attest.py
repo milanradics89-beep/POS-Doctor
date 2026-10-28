@@ -2,13 +2,19 @@ import base64
 import asyncio
 import json
 
+import pytest
 import cbor2
 from cryptography import x509
 
 from backend.apple_app_attest import (
     APPLE_APP_ATTEST_ROOT_PEM,
     APPLE_APP_ATTEST_ROOT_SHA256,
+    DEV_AAGUID,
+    OID_NONCE,
+    PROD_AAGUID,
+    _extension_nonce,
     _parse_auth_data,
+    _validate_aaguid,
     root_certificate_fingerprint,
     AppleAttestKey,
     _store_key,
@@ -54,6 +60,38 @@ from datetime import datetime, timedelta, timezone
 
 from backend.apple_app_attest import AppleAppAttestVerifier, _MEMORY_KEYS
 from backend.attestation import AttestationEvidence, AttestationProvider
+
+
+def test_nonce_extension_parser_reads_der_wrapped_octet_string():
+    nonce = b"n" * 32
+    key = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "USEIT nonce extension test")])
+    encoded_nonce = b"\\x30\\x24\\xa1\\x22\\x04\\x20" + nonce
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(3)
+        .not_valid_before(datetime.now(timezone.utc) - timedelta(minutes=1))
+        .not_valid_after(datetime.now(timezone.utc) + timedelta(minutes=10))
+        .add_extension(x509.UnrecognizedExtension(OID_NONCE, encoded_nonce), critical=False)
+        .sign(key, hashes.SHA256())
+    )
+    assert _extension_nonce(cert) == nonce
+
+
+def test_production_app_attest_rejects_development_aaguid(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    _validate_aaguid(PROD_AAGUID)
+    with pytest.raises(ValueError, match="not allowed in production"):
+        _validate_aaguid(DEV_AAGUID)
+
+
+def test_development_app_attest_accepts_development_aaguid(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "development")
+    _validate_aaguid(DEV_AAGUID)
+
 
 
 def test_assertion_verification_and_counter_replay():
