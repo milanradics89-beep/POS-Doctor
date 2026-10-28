@@ -17,7 +17,8 @@ def test_pinned_apple_root_is_parseable_and_pinned():
     cert = x509.load_pem_x509_certificate(APPLE_APP_ATTEST_ROOT_PEM.encode())
     assert cert.subject == cert.issuer
     assert root_certificate_fingerprint() == APPLE_APP_ATTEST_ROOT_SHA256
-    assert len(cert.public_key().public_numbers().x) > 0
+    assert __import__("hashlib").sha256(cert.public_bytes(Encoding.DER)).hexdigest() == APPLE_APP_ATTEST_ROOT_SHA256
+    assert cert.public_key().public_numbers().x > 0
 
 
 def test_authenticator_data_parser_rejects_truncated_data():
@@ -43,6 +44,7 @@ def test_authenticator_data_parser_extracts_counter_and_credential_id():
 
 
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, PublicFormat
 from cryptography.x509 import NameOID
