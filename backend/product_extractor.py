@@ -124,7 +124,7 @@ def _safe_product_link(candidate: Any, base_url: str, *, same_host: bool = False
             return None
         if parsed.username is not None or parsed.password is not None:
             return None
-        if parsed.port not in {None, 80, 443}:
+        if parsed.port is not None and parsed.port != (443 if parsed.scheme.lower() == "https" else 80):
             return None
         if same_host and parsed.hostname.rstrip(".").lower() != (base.hostname or "").rstrip(".").lower():
             return None
@@ -161,10 +161,12 @@ async def _fetch_product_page(url: str) -> tuple[str, str, bytes]:
     current = validate_public_http_url(url)
     headers = {"User-Agent": "USEIT/1.0 (+product-discovery)"}
     async with httpx.AsyncClient(timeout=10, follow_redirects=False, headers=headers) as client:
-        for _ in range(MAX_REDIRECTS):
+        for redirect_count in range(MAX_REDIRECTS + 1):
             async with client.stream("GET", current) as response:
                 validate_connected_peer(response)
                 if response.is_redirect or response.is_permanent_redirect:
+                    if redirect_count >= MAX_REDIRECTS:
+                        raise HTTPException(508, "Product page redirect chain is too long.")
                     location = response.headers.get("location")
                     if not location: raise HTTPException(502, "Product page returned an invalid redirect.")
                     current = validate_public_http_url(urljoin(current, location))
