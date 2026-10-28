@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import time
-from collections import defaultdict, deque
+from collections import deque
 from collections.abc import Awaitable, Callable
 
 from fastapi import Request, Response
@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc"})
 SESSION_PATH = "/v1/session"
 DEFAULT_SESSION_RATE_LIMIT = 10
+MAX_MEMORY_RATE_LIMIT_BUCKETS = 10_000
 
 
 def configured_rate_limit() -> int:
@@ -65,8 +66,19 @@ async def _redis_allowed(request: Request, limit: int, namespace: str = "rate") 
         await client.aclose()
 
 
+def _prune_expired_buckets(
+    buckets: dict[tuple[str, str], deque[float]], cutoff: float
+) -> None:
+    """Drop inactive clients so memory-mode rate limiting stays bounded."""
+    for key, bucket in list(buckets.items()):
+        while bucket and bucket[0] <= cutoff:
+            bucket.popleft()
+        if not bucket:
+            buckets.pop(key, None)
+
+
 def install_rate_limit(app) -> None:
-    buckets: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+    buckets: dict[tuple[str, str], deque[float]] = {}
 
     @app.middleware("http")
     async def rate_limit(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
@@ -87,8 +99,20 @@ def install_rate_limit(app) -> None:
         else:
             now = time.monotonic()
             key = (namespace, _client_key(request))
-            bucket = buckets[key]
             cutoff = now - 60.0
+            bucket = buckets.get(key)
+            if bucket is None:
+                if len(buckets) >= MAX_MEMORY_RATE_LIMIT_BUCKETS:
+                    _prune_expired_buckets(buckets, cutoff)
+                if len(buckets) >= MAX_MEMORY_RATE_LIMIT_BUCKETS:
+                    # Fail closed rather than growing memory without bound or
+                    # evicting active clients and silently resetting their limits.
+                    return JSONResponse(
+                        status_code=503,
+                        content={"detail": "Rate limiting capacity is temporarily exhausted."},
+                    )
+                bucket = deque()
+                buckets[key] = bucket
             while bucket and bucket[0] <= cutoff:
                 bucket.popleft()
             if len(bucket) >= limit:
