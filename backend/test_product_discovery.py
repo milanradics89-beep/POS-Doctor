@@ -62,7 +62,7 @@ async def test_discovery_returns_partial_results_when_one_product_fails(monkeypa
     async def fake_resolve(request):
         if request.url.endswith("/bad"):
             raise HTTPException(status_code=422, detail="provider detail must not leak")
-        return {"name": "Good product", "qualityScore": 0.8}
+        return {"name": "Good product", "url": request.url, "qualityScore": 0.8, "price": "12,990", "currency": "huf"}
 
     monkeypatch.setattr(discovery, "product_search", fake_search)
     monkeypatch.setattr(discovery, "resolve_product", fake_resolve)
@@ -92,7 +92,7 @@ async def test_discovery_skips_malformed_search_entries_and_bounds_resolutions(m
 
     async def fake_resolve(request):
         resolved_urls.append(request.url)
-        return {"name": request.url.rsplit("/", 1)[-1], "qualityScore": float("nan")}
+        return {"name": request.url.rsplit("/", 1)[-1], "url": request.url, "qualityScore": float("nan")}
 
     monkeypatch.setattr(discovery, "product_search", fake_search)
     monkeypatch.setattr(discovery, "resolve_product", fake_resolve)
@@ -105,6 +105,7 @@ async def test_discovery_skips_malformed_search_entries_and_bounds_resolutions(m
     assert len(result["candidates"]) == 1
     assert result["candidates"][0]["name"] == "one"
     assert result["candidates"][0]["qualityScore"] == 0.0
+    assert result["candidates"][0]["availability"] == "unknown"
     assert result["errors"] == []
 
 
@@ -133,3 +134,72 @@ async def test_discovery_sanitizes_search_provider_errors(monkeypatch):
     assert result["candidates"] == []
     assert result["errors"] == [{"url": "", "message": "product search unavailable (RuntimeError)"}]
     assert "super-secret" not in str(result)
+
+
+@pytest.mark.asyncio
+async def test_discovery_deduplicates_and_normalizes_product_contract(monkeypatch):
+    async def fake_search(request):
+        return {"results": [
+            {"url": "https://shop.example/item", "title": "Item", "rank": 1},
+            {"url": "https://shop.example/item/", "title": "Duplicate", "rank": 2},
+            {"url": "https://shop.example/unsafe", "title": "Unsafe", "rank": 3},
+        ]}
+
+    async def fake_resolve(request):
+        if request.url.endswith("/unsafe"):
+            return {"name": "Unsafe", "url": "javascript:alert(1)", "qualityScore": 0.9}
+        return {
+            "name": "  Desk Lamp  ", "url": "https://shop.example/item",
+            "qualityScore": 1.8, "price": "12990", "currency": " huf ",
+            "availability": "IN_STOCK", "imageUrl": "data:image/png;base64,abc",
+        }
+
+    monkeypatch.setattr(discovery, "product_search", fake_search)
+    monkeypatch.setattr(discovery, "resolve_product", fake_resolve)
+    result = await discovery.discover_products(discovery.ProductDiscoveryRequest(query="lamp"))
+
+    assert len(result["candidates"]) == 1
+    candidate = result["candidates"][0]
+    assert candidate["name"] == "Desk Lamp"
+    assert candidate["qualityScore"] == 1.0
+    assert candidate["currency"] == "HUF"
+    assert candidate["priceHuf"] == 12990.0
+    assert candidate["availability"] == "in_stock"
+    assert candidate["imageUrl"] is None
+    assert len(result["errors"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_discovery_reports_nonempty_but_unusable_search_results(monkeypatch):
+    async def fake_search(request):
+        return {"results": [{"title": "Missing URL"}, None]}
+
+    monkeypatch.setattr(discovery, "product_search", fake_search)
+    result = await discovery.discover_products(discovery.ProductDiscoveryRequest(query="lamp"))
+
+    assert result["candidates"] == []
+    assert result["errors"] == [{"url": "", "message": "product search returned no usable results"}]
+
+
+@pytest.mark.asyncio
+async def test_discovery_rejects_incomplete_and_low_quality_resolutions(monkeypatch):
+    async def fake_search(request):
+        return {"results": [
+            {"url": "https://shop.example/incomplete", "title": "Incomplete"},
+            {"url": "https://shop.example/weak", "title": "Weak"},
+        ]}
+
+    async def fake_resolve(request):
+        if request.url.endswith("/weak"):
+            return {"name": "Weak", "url": request.url, "qualityScore": 0.1}
+        return {"name": "No URL"}
+
+    monkeypatch.setattr(discovery, "product_search", fake_search)
+    monkeypatch.setattr(discovery, "resolve_product", fake_resolve)
+    result = await discovery.discover_products(discovery.ProductDiscoveryRequest(query="lamp"))
+
+    assert result["candidates"] == []
+    assert [error["message"] for error in result["errors"]] == [
+        "product resolution returned incomplete product data",
+        "product quality below minimum threshold",
+    ]

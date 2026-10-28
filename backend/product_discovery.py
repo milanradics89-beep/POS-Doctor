@@ -68,6 +68,71 @@ def _rank(value: Any, fallback: int) -> int:
     return rank if rank >= 0 else fallback
 
 
+def _normalize_candidate(value: Any) -> dict[str, Any] | None:
+    """Normalize untrusted resolver output to a stable, client-safe product shape."""
+    if not isinstance(value, dict):
+        return None
+    name = value.get("name")
+    url = value.get("url") or value.get("id")
+    if not isinstance(name, str) or not name.strip() or not isinstance(url, str):
+        return None
+    url = url.strip()
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+            return None
+        if parsed.username is not None or parsed.password is not None:
+            return None
+        if parsed.port is not None and parsed.port != (443 if parsed.scheme.lower() == "https" else 80):
+            return None
+    except ValueError:
+        return None
+
+    candidate = dict(value)
+    candidate["name"] = name.strip()
+    candidate["url"] = url
+    candidate["id"] = url
+    retailer = value.get("retailer")
+    candidate["retailer"] = retailer.strip().lower() if isinstance(retailer, str) and retailer.strip() else parsed.hostname.lower()
+    score = _finite_score(value.get("qualityScore", 0))
+    candidate["qualityScore"] = min(1.0, max(0.0, score))
+    price = _finite_score(value.get("price")) if value.get("price") is not None else None
+    candidate["price"] = price if price is not None and price >= 0 else None
+    currency = value.get("currency")
+    currency = currency.strip().upper() if isinstance(currency, str) else ""
+    candidate["currency"] = currency if len(currency) == 3 and currency.isalpha() and currency.isascii() else None
+    raw_huf = value.get("priceHuf")
+    price_huf = _finite_score(raw_huf) if raw_huf is not None else (candidate["price"] if candidate["currency"] == "HUF" else None)
+    candidate["priceHuf"] = price_huf if price_huf is not None and price_huf >= 0 else None
+    availability = value.get("availability")
+    if not isinstance(availability, str) or availability.strip().lower() not in {"in_stock", "out_of_stock", "limited", "unknown"}:
+        availability = "unknown"
+    candidate["availability"] = availability.strip().lower()
+    image = value.get("imageUrl")
+    if isinstance(image, str) and image.strip():
+        try:
+            image_parsed = urlparse(image.strip())
+            if (image_parsed.scheme.lower() in {"http", "https"} and image_parsed.hostname
+                    and image_parsed.username is None and image_parsed.password is None
+                    and (image_parsed.port is None or image_parsed.port == (443 if image_parsed.scheme.lower() == "https" else 80))):
+                candidate["imageUrl"] = image.strip()
+            else:
+                candidate["imageUrl"] = None
+        except ValueError:
+            candidate["imageUrl"] = None
+    else:
+        candidate["imageUrl"] = None
+    return candidate
+
+
+def _candidate_identity(candidate: dict[str, Any]) -> str:
+    from urllib.parse import urlparse, urlunparse
+    parsed = urlparse(candidate["url"])
+    normalized_url = urlunparse((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path.rstrip("/"), "", parsed.query, ""))
+    return normalized_url or f"{candidate.get('retailer', '')}:{candidate['name'].casefold()}"
+
+
 def _search_items(search: Any) -> list[dict[str, Any]]:
     if not isinstance(search, dict):
         return []
@@ -111,13 +176,14 @@ async def discover_products(request: ProductDiscoveryRequest):
 
     items = _search_items(search)
     if not items:
-        return {
-            "query": request.query,
-            "candidates": [],
-            "errors": [] if isinstance(search, dict) and isinstance(search.get("results"), list) else [
-                {"url": "", "message": "product search returned invalid data"}
-            ],
-        }
+        raw_results = search.get("results") if isinstance(search, dict) else None
+        if isinstance(raw_results, list) and not raw_results:
+            errors = []
+        elif isinstance(raw_results, list):
+            errors = [{"url": "", "message": "product search returned no usable results"}]
+        else:
+            errors = [{"url": "", "message": "product search returned invalid data"}]
+        return {"query": request.query, "candidates": [], "errors": errors}
 
     candidates: list[dict[str, Any]] = []
     errors: list[dict[str, str]] = []
@@ -139,15 +205,26 @@ async def discover_products(request: ProductDiscoveryRequest):
         if result.get("_error"):
             errors.append({"url": item["url"], "message": str(result["_error"])})
             continue
-        normalized_result = dict(result)
-        if "qualityScore" in normalized_result:
-            normalized_result["qualityScore"] = _finite_score(normalized_result["qualityScore"])
-        candidates.append({
-            **normalized_result,
+        normalized_result = _normalize_candidate(result)
+        if normalized_result is None:
+            errors.append({"url": item["url"], "message": "product resolution returned incomplete product data"})
+            continue
+        if normalized_result["qualityScore"] < 0.25:
+            errors.append({"url": item["url"], "message": "product quality below minimum threshold"})
+            continue
+        normalized_result.update({
             "searchRank": item["rank"],
             "searchTitle": item["title"],
             "searchSnippet": item["snippet"],
         })
+        candidates.append(normalized_result)
 
-    candidates.sort(key=lambda item: (-_finite_score(item.get("qualityScore")), _rank(item.get("searchRank"), 999)))
+    unique: dict[str, dict[str, Any]] = {}
+    for candidate in candidates:
+        identity = _candidate_identity(candidate)
+        existing = unique.get(identity)
+        if existing is None or candidate["qualityScore"] > existing["qualityScore"]:
+            unique[identity] = candidate
+    candidates = list(unique.values())
+    candidates.sort(key=lambda item: (-item["qualityScore"], _rank(item.get("searchRank"), 999)))
     return {"query": request.query, "candidates": candidates, "errors": errors}
