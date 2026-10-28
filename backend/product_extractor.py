@@ -111,15 +111,39 @@ def _string(value: Any) -> str | None:
     if isinstance(value, dict) and isinstance(value.get("name"), str) and value["name"].strip(): return value["name"] .strip()
     return None
 
+def _safe_product_link(candidate: Any, base_url: str, *, same_host: bool = False) -> str | None:
+    if not isinstance(candidate, str) or not candidate.strip():
+        return None
+    resolved = urljoin(base_url, candidate.strip())
+    try:
+        parsed = urlparse(resolved)
+        base = urlparse(base_url)
+        # Product metadata is untrusted input. Never surface executable or
+        # credential-bearing URLs to the client as product links or images.
+        if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+            return None
+        if parsed.username is not None or parsed.password is not None:
+            return None
+        if parsed.port not in {None, 80, 443}:
+            return None
+        if same_host and parsed.hostname.rstrip(".").lower() != (base.hostname or "").rstrip(".").lower():
+            return None
+    except ValueError:
+        return None
+    return resolved
+
+
 def _extract(parser: _HTMLParser, url: str) -> dict[str, Any] | None:
     products = _product_objects(parser)
     if not products: return None
     product = next((item for item in products if item.get("offers")), products[0])
     offer = _offer(product)
-    canonical = urljoin(url, parser.canonical) if parser.canonical else url
+    canonical_candidate = urljoin(url, parser.canonical) if parser.canonical else url
+    canonical = _safe_product_link(canonical_candidate, url, same_host=True) or url
     name = _string(product.get("name")) or parser.meta.get("og:title")
     if not name: return None
-    image = _first_image(product.get("image"), url) or parser.meta.get("og:image")
+    image_candidate = _first_image(product.get("image"), url) or parser.meta.get("og:image")
+    image = _safe_product_link(image_candidate, url)
     brand = _string(product.get("brand")); color = _string(product.get("color")); material = _string(product.get("material")); category = _string(product.get("category"))
     price_number = _number(offer.get("price")); currency = _currency(offer.get("priceCurrency")); availability = _availability(offer.get("availability"))
     price_huf = price_number if currency == "HUF" else None
