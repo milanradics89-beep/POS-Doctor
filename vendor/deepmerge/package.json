@@ -6,5 +6,6 @@
   "license": "MIT",
   "dependencies": {
     "is-mergeable-object": "^1.1.0"
-  }
+  },
+  "types": "index.d.ts"
 }
