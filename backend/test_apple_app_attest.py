@@ -140,8 +140,8 @@ def test_assertion_rejects_tampered_authenticator_data_without_advancing_counter
     challenge = "challenge-for-tamper-test"
     client_data = json.dumps({"challenge": challenge}, separators=(",", ":")).encode()
     rp_id_hash = __import__("hashlib").sha256(app_id.encode()).digest()
-    original_auth_data = rp_id_hash + b"\\x01" + (1).to_bytes(4, "big")
-    tampered_auth_data = rp_id_hash + b"\\x01" + (2).to_bytes(4, "big")
+    original_auth_data = rp_id_hash + b"\x01" + (1).to_bytes(4, "big")
+    tampered_auth_data = rp_id_hash + b"\x01" + (2).to_bytes(4, "big")
     original_nonce = __import__("hashlib").sha256(
         original_auth_data + __import__("hashlib").sha256(client_data).digest()
     ).digest()
