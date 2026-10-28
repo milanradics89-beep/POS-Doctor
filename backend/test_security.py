@@ -84,3 +84,17 @@ def test_connected_peer_rejects_non_global_ip_ranges(address):
     with pytest.raises(HTTPException) as exc:
         validate_connected_peer(_Response(address))
     assert exc.value.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://[invalid-ipv6/product",
+        "https://example.com:not-a-port/product",
+        "https://example.com:99999/product",
+    ],
+)
+def test_rejects_malformed_urls_as_client_errors(url):
+    with pytest.raises(HTTPException) as exc:
+        validate_public_http_url(url)
+    assert exc.value.status_code == 400
