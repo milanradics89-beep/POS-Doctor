@@ -139,8 +139,11 @@ async def discover_products(request: ProductDiscoveryRequest):
         if result.get("_error"):
             errors.append({"url": item["url"], "message": str(result["_error"])})
             continue
+        normalized_result = dict(result)
+        if "qualityScore" in normalized_result:
+            normalized_result["qualityScore"] = _finite_score(normalized_result["qualityScore"])
         candidates.append({
-            **result,
+            **normalized_result,
             "searchRank": item["rank"],
             "searchTitle": item["title"],
             "searchSnippet": item["snippet"],
