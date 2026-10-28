@@ -22,7 +22,7 @@ function normalizeCandidateUrl(url: string): string {
       if (/^(utm_|fbclid|gclid|msclkid|mc_cid|mc_eid)$/i.test(key) || key.toLowerCase().startsWith('utm_')) parsed.searchParams.delete(key);
     }
     parsed.hash = '';
-    parsed.pathname = parsed.pathname.replace(/\\/+$/, '') || '/';
+    parsed.pathname = parsed.pathname.replace(/\/+$/, '') || '/';
     parsed.searchParams.sort();
     return parsed.toString();
   } catch { return ''; }

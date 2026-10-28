@@ -18,6 +18,43 @@ const decision = (budgetHuf: number): ShoppingDecision => ({
   preserveExisting: true,
   constraints: {},
   candidateSlots: 6,
+  it('scores products monotonically around the budget boundary', () => {
+    const results = rankProducts(scene, decision(10000), [
+      candidate('under', 8000),
+      candidate('at', 10000),
+      candidate('over', 11000),
+      candidate('far-over', 16000),
+    ]);
+    const byId = Object.fromEntries(results.map(item => [item.id, item.scoreBreakdown.budgetFit]));
+    expect(byId.under).toBeCloseTo(0.6);
+    expect(byId.at).toBe(0.5);
+    expect(byId.over).toBeCloseTo(0.4);
+    expect(byId['far-over']).toBe(0);
+    expect(byId.under).toBeGreaterThan(byId.at);
+    expect(byId.at).toBeGreaterThan(byId.over);
+  });
+
+  it('gives unpriced products a lower budget confidence than priced products', () => {
+    const results = rankProducts(scene, decision(10000), [
+      candidate('priced', 9000),
+      { ...candidate('unknown-price', 0), priceHuf: undefined },
+    ]);
+    const byId = Object.fromEntries(results.map(item => [item.id, item.scoreBreakdown.budgetFit]));
+    expect(byId.priced).toBeCloseTo(0.55);
+    expect(byId['unknown-price']).toBe(0.35);
+  });
+
+  it('matches category names case-insensitively and penalizes unknown availability', () => {
+    const results = rankProducts(scene, decision(10000), [
+      { ...candidate('category-case', 5000), category: 'SOFA', availability: 'unknown' },
+      { ...candidate('wrong-category', 5000), category: 'lamp', availability: 'unknown' },
+    ]);
+    const byId = Object.fromEntries(results.map(item => [item.id, item.scoreBreakdown]));
+    expect(byId['category-case'].categoryFit).toBe(1);
+    expect(byId['wrong-category'].categoryFit).toBe(0.35);
+    expect(byId['category-case'].availability).toBe(0.35);
+  });
+
 });
 
 const candidate = (id: string, priceHuf: number): ProductCandidate => ({
