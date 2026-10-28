@@ -121,3 +121,48 @@ def test_assertion_verification_and_counter_replay():
 
     replay = asyncio.run(AppleAppAttestVerifier().verify(evidence))
     assert replay.verified is False
+
+def test_assertion_rejects_tampered_authenticator_data_without_advancing_counter():
+    key = ec.generate_private_key(ec.SECP256R1())
+    subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "USEIT tamper test")])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(2)
+        .not_valid_before(datetime.now(timezone.utc) - timedelta(minutes=1))
+        .not_valid_after(datetime.now(timezone.utc) + timedelta(minutes=10))
+        .sign(key, hashes.SHA256())
+    )
+    key_id = "test-apple-key-tamper"
+    app_id = "TEAM123456.com.useit.app"
+    challenge = "challenge-for-tamper-test"
+    client_data = json.dumps({"challenge": challenge}, separators=(",", ":")).encode()
+    rp_id_hash = __import__("hashlib").sha256(app_id.encode()).digest()
+    original_auth_data = rp_id_hash + b"\\x01" + (1).to_bytes(4, "big")
+    tampered_auth_data = rp_id_hash + b"\\x01" + (2).to_bytes(4, "big")
+    original_nonce = __import__("hashlib").sha256(
+        original_auth_data + __import__("hashlib").sha256(client_data).digest()
+    ).digest()
+    signature = key.sign(original_nonce, ec.ECDSA(hashes.SHA256()))
+    assertion = cbor2.dumps({
+        "authenticatorData": tampered_auth_data,
+        "signature": signature,
+    })
+    asyncio.run(_MEMORY_KEYS.put(key_id, cert.public_bytes(Encoding.DER), app_id))
+
+    evidence = AttestationEvidence(
+        provider=AttestationProvider.APP_ATTEST,
+        challenge=challenge,
+        assertion=base64.b64encode(assertion).decode(),
+        app_id=app_id,
+        key_id=key_id,
+        client_data=client_data.decode(),
+    )
+    result = asyncio.run(AppleAppAttestVerifier().verify(evidence))
+
+    assert result.verified is False
+    stored = asyncio.run(_MEMORY_KEYS.get(key_id))
+    assert stored is not None and stored[1] == 0
+
