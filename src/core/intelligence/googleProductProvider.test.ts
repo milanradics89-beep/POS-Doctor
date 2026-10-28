@@ -43,12 +43,16 @@ describe('googleProductProvider', () => {
     vi.mocked(request.fetchWithPolicy).mockResolvedValue(new Response('secret-token=hidden', { status: 502 }));
 
     const { googleProductProvider } = await import('./googleProductProvider');
-    await expect(googleProductProvider.search({
-      query: 'lamp', categories: ['lighting'], preserveExisting: true, constraints: {}, candidateSlots: 6,
-    })).rejects.toThrow('Google product discovery failed (502).');
-    await expect(googleProductProvider.search({
-      query: 'lamp', categories: ['lighting'], preserveExisting: true, constraints: {}, candidateSlots: 6,
-    })).rejects.not.toThrow('secret-token');
+    let message = '';
+    try {
+      await googleProductProvider.search({
+        query: 'lamp', categories: ['lighting'], preserveExisting: true, constraints: {}, candidateSlots: 6,
+      });
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+    expect(message).toBe('Google product discovery failed (502).');
+    expect(message).not.toContain('secret-token');
   });
 
   it('reports invalid JSON and invalid response shapes clearly', async () => {
