@@ -49,6 +49,16 @@ def _safe_request_id(value: str | None) -> str:
     return secrets.token_hex(16)
 
 
+async def _read_limited_body(request: Request) -> bytes | None:
+    """Read request chunks incrementally and stop as soon as the size limit is crossed."""
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > MAX_REQUEST_BYTES:
+            return None
+    return bytes(body)
+
+
 def install_request_controls(app) -> None:
     @app.middleware("http")
     async def request_controls(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
@@ -65,9 +75,11 @@ def install_request_controls(app) -> None:
         request.state.request_id = request_id
 
         if request.method in {"POST", "PUT", "PATCH"}:
-            body = await request.body()
-            if len(body) > MAX_REQUEST_BYTES:
+            body = await _read_limited_body(request)
+            if body is None:
                 return JSONResponse(status_code=413, content={"detail": "Request body is too large."})
+            # Starlette's Request.stream() replays this cached body for downstream handlers.
+            request._body = body
 
         try:
             response = await asyncio.wait_for(call_next(request), timeout=configured_request_timeout())
