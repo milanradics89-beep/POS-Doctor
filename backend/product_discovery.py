@@ -68,6 +68,36 @@ def _rank(value: Any, fallback: int) -> int:
     return rank if rank >= 0 else fallback
 
 
+def _price_number(value: Any) -> float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        number = _finite_score(value)
+        return number if math.isfinite(number) and number >= 0 else None
+    if not isinstance(value, str):
+        return None
+    cleaned = "".join(value.strip().split())
+    cleaned = "".join(char for char in cleaned if char.isdigit() or char in ".,-")
+    if not cleaned or cleaned.startswith("-"):
+        return None
+    if "," in cleaned and "." in cleaned:
+        decimal = "," if cleaned.rfind(",") > cleaned.rfind(".") else "."
+        thousands = "." if decimal == "," else ","
+        cleaned = cleaned.replace(thousands, "").replace(decimal, ".")
+    elif "," in cleaned:
+        parts = cleaned.split(",")
+        cleaned = "".join(parts) if len(parts) > 1 and len(parts[-1]) == 3 else (".".join(parts) if len(parts) == 2 else "".join(parts))
+    elif "." in cleaned:
+        parts = cleaned.split(".")
+        if len(parts) > 2 or (len(parts) == 2 and len(parts[-1]) == 3):
+            cleaned = "".join(parts)
+    try:
+        number = float(cleaned)
+        return number if math.isfinite(number) and number >= 0 else None
+    except ValueError:
+        return None
+
+
 def _normalize_candidate(value: Any) -> dict[str, Any] | None:
     """Normalize untrusted resolver output to a stable, client-safe product shape."""
     if not isinstance(value, dict):
@@ -97,14 +127,14 @@ def _normalize_candidate(value: Any) -> dict[str, Any] | None:
     candidate["retailer"] = retailer.strip().lower() if isinstance(retailer, str) and retailer.strip() else parsed.hostname.lower()
     score = _finite_score(value.get("qualityScore", 0))
     candidate["qualityScore"] = min(1.0, max(0.0, score))
-    price = _finite_score(value.get("price")) if value.get("price") is not None else None
-    candidate["price"] = price if price is not None and price >= 0 else None
+    price = _price_number(value.get("price"))
+    candidate["price"] = price
     currency = value.get("currency")
     currency = currency.strip().upper() if isinstance(currency, str) else ""
     candidate["currency"] = currency if len(currency) == 3 and currency.isalpha() and currency.isascii() else None
     raw_huf = value.get("priceHuf")
-    price_huf = _finite_score(raw_huf) if raw_huf is not None else (candidate["price"] if candidate["currency"] == "HUF" else None)
-    candidate["priceHuf"] = price_huf if price_huf is not None and price_huf >= 0 else None
+    price_huf = _price_number(raw_huf) if raw_huf is not None else (candidate["price"] if candidate["currency"] == "HUF" else None)
+    candidate["priceHuf"] = price_huf
     availability = value.get("availability")
     if not isinstance(availability, str) or availability.strip().lower() not in {"in_stock", "out_of_stock", "limited", "unknown"}:
         availability = "unknown"

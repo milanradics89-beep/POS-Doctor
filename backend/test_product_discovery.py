@@ -163,6 +163,7 @@ async def test_discovery_deduplicates_and_normalizes_product_contract(monkeypatc
     assert candidate["name"] == "Desk Lamp"
     assert candidate["qualityScore"] == 1.0
     assert candidate["currency"] == "HUF"
+    assert candidate["price"] == 12990.0
     assert candidate["priceHuf"] == 12990.0
     assert candidate["availability"] == "in_stock"
     assert candidate["imageUrl"] is None
@@ -209,3 +210,17 @@ def test_finite_score_safely_normalizes_invalid_numbers():
     assert discovery._finite_score(float("nan")) == 0.0
     assert discovery._finite_score(float("inf")) == 0.0
     assert discovery._finite_score("not-a-number") == 0.0
+
+
+@pytest.mark.parametrize(("raw", "expected"), [
+    ("12,990", 12990.0),
+    ("12.990", 12990.0),
+    ("12.990,50", 12990.5),
+    ("12,990.50", 12990.5),
+    ("12,99", 12.99),
+    ("-20", None),
+    ("invalid", None),
+    (float("inf"), None),
+])
+def test_price_number_handles_locales_and_invalid_values(raw, expected):
+    assert discovery._price_number(raw) == expected
