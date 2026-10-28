@@ -3,7 +3,13 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.rate_limit import install_rate_limit
+from collections import deque
+
+from backend.rate_limit import (
+    MAX_MEMORY_RATE_LIMIT_BUCKETS,
+    _prune_expired_buckets,
+    install_rate_limit,
+)
 
 
 def test_rate_limit_returns_429_after_configured_limit(monkeypatch):
@@ -87,3 +93,21 @@ def test_rate_limit_does_not_block_options_or_public_paths(monkeypatch):
     assert client.options("/v1/test").status_code == 200
     assert client.get("/health").status_code == 200
     assert client.get("/ready").status_code == 200
+
+
+def test_memory_rate_limit_prunes_expired_buckets_without_dropping_active_clients():
+    buckets = {
+        ("rate", "expired"): deque([1.0, 2.0]),
+        ("rate", "active"): deque([95.0, 99.0]),
+        ("session-rate", "empty"): deque(),
+    }
+
+    _prune_expired_buckets(buckets, cutoff=90.0)
+
+    assert ("rate", "expired") not in buckets
+    assert ("session-rate", "empty") not in buckets
+    assert list(buckets[("rate", "active")]) == [95.0, 99.0]
+
+
+def test_memory_rate_limit_bucket_capacity_is_bounded():
+    assert MAX_MEMORY_RATE_LIMIT_BUCKETS == 10_000
