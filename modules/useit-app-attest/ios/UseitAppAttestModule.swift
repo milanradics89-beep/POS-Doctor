@@ -18,6 +18,10 @@ public class UseitAppAttestModule: Module {
       return self.readAttestedKeyId() == keyId
     }
 
+    Function("markKeyAttested") { (keyId: String) throws -> Void in
+      try self.saveAttestedKeyId(keyId)
+    }
+
     AsyncFunction("getOrCreateKeyId") { () -> String in
       if let existing = self.readKeyId() {
         return existing
@@ -55,12 +59,7 @@ public class UseitAppAttestModule: Module {
             continuation.resume(throwing: NSError(domain: "UseitAppAttest", code: 2, userInfo: [NSLocalizedDescriptionKey: "App Attest returned no attestation object."]))
             return
           }
-          do {
-            try self.saveAttestedKeyId(keyId)
-            continuation.resume(returning: data.base64EncodedString())
-          } catch {
-            continuation.resume(throwing: error)
-          }
+          continuation.resume(returning: data.base64EncodedString())
         }
       }
     }
