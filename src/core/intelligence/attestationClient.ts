@@ -88,7 +88,12 @@ async function createSession(baseUrl: string): Promise<string> {
       throw new Error('Apple App Attest is not available on this iOS device.');
     }
     keyId = await nativeModule.default.getOrCreateKeyId();
-    assertion = await nativeModule.default.attest(challenge.challenge, keyId);
+    if (nativeModule.default.isKeyAttested(keyId)) {
+      clientData = JSON.stringify({ challenge: challenge.challenge, action: "session" });
+      assertion = await nativeModule.default.generateAssertion(challenge.challenge, keyId, clientData);
+    } else {
+      assertion = await nativeModule.default.attest(challenge.challenge, keyId);
+    }
   }
   const attested = await fetch(`${base}/v1/session`, {
     method: 'POST',
