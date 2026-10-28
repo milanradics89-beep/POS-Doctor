@@ -51,5 +51,5 @@ def validate_connected_peer(response: object) -> None:
         ip = ipaddress.ip_address(address)
     except ValueError as exc:
         raise HTTPException(502, "Product host connection could not be verified.") from exc
-    if any((ip.is_private, ip.is_loopback, ip.is_link_local, ip.is_multicast, ip.is_reserved, ip.is_unspecified)):
+    if not ip.is_global:
         raise HTTPException(400, "Product host is not publicly reachable.")
