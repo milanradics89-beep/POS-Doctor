@@ -85,7 +85,11 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
         return self._validate_payload(payload, evidence)
 
     def _validate_payload(self, payload: dict[str, Any], evidence: AttestationEvidence) -> AttestationResult:
-        request_details = payload.get("requestDetails") or payload.get("request_details") or {}
+        request_details = payload.get("requestDetails")
+        if request_details is None:
+            request_details = payload.get("request_details")
+        if not isinstance(request_details, dict):
+            return AttestationResult(False, "attestation_invalid")
         request_hash = request_details.get("requestHash") or request_details.get("request_hash")
         expected_hash = hashlib.sha256(evidence.challenge.encode("utf-8")).hexdigest()
         if request_hash != expected_hash:
@@ -95,14 +99,20 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
             return AttestationResult(False, "wrong_app")
 
         timestamp_raw = request_details.get("timestampMillis") or request_details.get("timestamp_millis")
+        if isinstance(timestamp_raw, bool):
+            return AttestationResult(False, "timestamp_invalid")
         try:
             age_seconds = self._now() - (int(timestamp_raw) / 1000)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return AttestationResult(False, "timestamp_invalid")
         if age_seconds < -30 or age_seconds > max_token_age_seconds():
             return AttestationResult(False, "token_stale")
 
-        app_integrity = payload.get("appIntegrity") or payload.get("app_integrity") or {}
+        app_integrity = payload.get("appIntegrity")
+        if app_integrity is None:
+            app_integrity = payload.get("app_integrity")
+        if not isinstance(app_integrity, dict):
+            return AttestationResult(False, "attestation_invalid")
         app_package_camel = app_integrity.get("packageName")
         app_package_snake = app_integrity.get("package_name")
         # If both supported field spellings are present, they must agree. Checking
@@ -120,19 +130,38 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
         if app_integrity.get("appRecognitionVerdict") != "PLAY_RECOGNIZED":
             return AttestationResult(False, "app_not_recognized")
 
+        actual_certificates_raw = app_integrity.get("certificateSha256Digest")
+        if actual_certificates_raw is None:
+            actual_certificates_raw = app_integrity.get("certificate_sha256_digest", [])
+        if not isinstance(actual_certificates_raw, list) or not all(
+            isinstance(certificate, str) for certificate in actual_certificates_raw
+        ):
+            return AttestationResult(False, "attestation_invalid")
         required_certificates = configured_certificates()
-        if required_certificates:
-            actual_certificates = set(app_integrity.get("certificateSha256Digest") or app_integrity.get("certificate_sha256_digest") or [])
-            if not set(required_certificates).issubset(actual_certificates):
-                return AttestationResult(False, "certificate_mismatch")
+        if required_certificates and not set(required_certificates).issubset(set(actual_certificates_raw)):
+            return AttestationResult(False, "certificate_mismatch")
 
-        account_details = payload.get("accountDetails") or payload.get("account_details") or {}
+        account_details = payload.get("accountDetails")
+        if account_details is None:
+            account_details = payload.get("account_details")
+        if not isinstance(account_details, dict):
+            return AttestationResult(False, "attestation_invalid")
         if account_details.get("appLicensingVerdict") != "LICENSED":
             return AttestationResult(False, "app_not_licensed")
 
-        device_integrity = payload.get("deviceIntegrity") or payload.get("device_integrity") or {}
-        actual_device_verdicts = set(device_integrity.get("deviceRecognitionVerdict") or device_integrity.get("device_recognition_verdict") or [])
-        if not actual_device_verdicts.intersection(configured_device_verdicts()):
+        device_integrity = payload.get("deviceIntegrity")
+        if device_integrity is None:
+            device_integrity = payload.get("device_integrity")
+        if not isinstance(device_integrity, dict):
+            return AttestationResult(False, "attestation_invalid")
+        actual_device_verdicts_raw = device_integrity.get("deviceRecognitionVerdict")
+        if actual_device_verdicts_raw is None:
+            actual_device_verdicts_raw = device_integrity.get("device_recognition_verdict", [])
+        if not isinstance(actual_device_verdicts_raw, list) or not all(
+            isinstance(verdict, str) for verdict in actual_device_verdicts_raw
+        ):
+            return AttestationResult(False, "attestation_invalid")
+        if not set(actual_device_verdicts_raw).intersection(configured_device_verdicts()):
             return AttestationResult(False, "device_integrity_insufficient")
 
         return AttestationResult(True, "provider_verified")
