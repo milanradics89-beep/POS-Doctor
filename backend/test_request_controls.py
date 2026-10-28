@@ -8,7 +8,19 @@ from backend.request_controls import (
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
     configured_request_timeout,
     install_request_controls,
+    _read_limited_body,
 )
+
+class _ChunkedRequest:
+    def __init__(self, chunks: list[bytes]):
+        self.chunks = chunks
+        self.read_chunks = 0
+
+    async def stream(self):
+        for chunk in self.chunks:
+            self.read_chunks += 1
+            yield chunk
+
 
 
 def _client() -> TestClient:
@@ -41,6 +53,26 @@ def test_oversized_declared_body_is_rejected_before_handler() -> None:
     )
     assert response.status_code == 413
     assert response.json()["detail"] == "Request body is too large."
+
+
+@__import__("pytest").mark.asyncio
+async def test_streaming_body_reader_stops_at_limit_without_buffering_remaining_chunks() -> None:
+    request = _ChunkedRequest([b"a" * MAX_REQUEST_BYTES, b"b", b"must-not-be-read"])
+
+    body = await _read_limited_body(request)
+
+    assert body is None
+    assert request.read_chunks == 2
+
+
+@__import__("pytest").mark.asyncio
+async def test_streaming_body_reader_returns_small_body() -> None:
+    request = _ChunkedRequest([b"hello", b" ", b"world"])
+
+    body = await _read_limited_body(request)
+
+    assert body == b"hello world"
+    assert request.read_chunks == 3
 
 
 def test_invalid_content_length_is_rejected() -> None:
