@@ -178,6 +178,7 @@ jobs:
 
   ios:
     runs-on: macos-latest
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -208,6 +209,7 @@ jobs:
             -derivedDataPath build/ios-simulator \
             build
       - name: Install and launch iOS simulator smoke test
+        timeout-minutes: 10
         shell: bash
         run: |
           set -euo pipefail
@@ -226,6 +228,7 @@ jobs:
             exit 1
           fi
 
+          echo "Booting iOS simulator $DEVICE_UDID..."
           xcrun simctl boot "$DEVICE_UDID" 2>/dev/null || true
           xcrun simctl bootstatus "$DEVICE_UDID" -b
 
@@ -240,10 +243,13 @@ jobs:
           test -n "$BUNDLE_ID"
           echo "Installing $BUNDLE_ID from $APP_PATH"
 
+          echo "Installing app into simulator..."
           xcrun simctl install "$DEVICE_UDID" "$APP_PATH"
+          echo "Launching app in simulator..."
           xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID"
           sleep 3
           xcrun simctl spawn "$DEVICE_UDID" launchctl print system 2>/dev/null >/dev/null
+          echo "iOS simulator smoke test passed for $BUNDLE_ID"
 
   backend:
     runs-on: ubuntu-latest

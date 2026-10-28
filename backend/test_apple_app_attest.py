@@ -40,15 +40,37 @@ def test_authenticator_data_parser_rejects_truncated_data():
 
 def test_authenticator_data_parser_extracts_counter_and_credential_id():
     rp = b"\x01" * 32
-    flags = b"\x01"
+    flags = b"\x41"
     counter = (7).to_bytes(4, "big")
     aaguid = b"appattest" + b"\x00" * 7
     credential = b"\x02" * 32
-    payload = rp + flags + counter + aaguid + len(credential).to_bytes(2, "big") + credential
+    payload = rp + flags + counter + aaguid + len(credential).to_bytes(2, "big") + credential + b"\xa1\x01\x02"
     parsed_rp, parsed_counter, parsed_credential = _parse_auth_data(payload)
     assert parsed_rp == rp
     assert parsed_counter == 7
     assert parsed_credential == credential
+
+
+def test_authenticator_data_parser_rejects_missing_attested_credential_flag():
+    rp = b"\x01" * 32
+    flags = b"\x01"
+    counter = (0).to_bytes(4, "big")
+    aaguid = b"appattest" + b"\x00" * 7
+    credential = b"\x02" * 32
+    payload = rp + flags + counter + aaguid + len(credential).to_bytes(2, "big") + credential + b"\xa1\x01\x02"
+    with pytest.raises(ValueError, match="attested credential data flag"):
+        _parse_auth_data(payload)
+
+
+def test_authenticator_data_parser_rejects_missing_credential_public_key():
+    rp = b"\x01" * 32
+    flags = b"\x41"
+    counter = (0).to_bytes(4, "big")
+    aaguid = b"appattest" + b"\x00" * 7
+    credential = b"\x02" * 32
+    payload = rp + flags + counter + aaguid + len(credential).to_bytes(2, "big") + credential
+    with pytest.raises(ValueError, match="credential public key"):
+        _parse_auth_data(payload)
 
 
 from cryptography.hazmat.primitives import hashes

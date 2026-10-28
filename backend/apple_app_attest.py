@@ -74,13 +74,18 @@ def _key_id_bytes(key_id: str) -> bytes:
 def _parse_auth_data(auth_data: bytes) -> tuple[bytes, int, bytes]:
     if len(auth_data) < 55:
         raise ValueError("authenticatorData too short")
+    # App Attest attestation data must carry the WebAuthn AT (attested
+    # credential data) flag before the AAGUID and credential ID fields.
+    if not (auth_data[32] & 0x40):
+        raise ValueError("authenticatorData is missing the attested credential data flag")
     rp_id_hash = auth_data[:32]
     counter = int.from_bytes(auth_data[33:37], "big")
-    aaguid = auth_data[37:53]
     credential_len = int.from_bytes(auth_data[53:55], "big")
     end = 55 + credential_len
     if credential_len <= 0 or end > len(auth_data):
         raise ValueError("invalid credentialId length")
+    if end == len(auth_data):
+        raise ValueError("authenticatorData is missing the credential public key")
     return rp_id_hash, counter, auth_data[55:end]
 
 
