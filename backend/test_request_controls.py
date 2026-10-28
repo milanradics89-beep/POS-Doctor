@@ -1,3 +1,4 @@
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -55,7 +56,7 @@ def test_oversized_declared_body_is_rejected_before_handler() -> None:
     assert response.json()["detail"] == "Request body is too large."
 
 
-@__import__("pytest").mark.asyncio
+@pytest.mark.asyncio
 async def test_streaming_body_reader_stops_at_limit_without_buffering_remaining_chunks() -> None:
     request = _ChunkedRequest([b"a" * MAX_REQUEST_BYTES, b"b", b"must-not-be-read"])
 
@@ -65,7 +66,7 @@ async def test_streaming_body_reader_stops_at_limit_without_buffering_remaining_
     assert request.read_chunks == 2
 
 
-@__import__("pytest").mark.asyncio
+@pytest.mark.asyncio
 async def test_streaming_body_reader_returns_small_body() -> None:
     request = _ChunkedRequest([b"hello", b" ", b"world"])
 
