@@ -92,7 +92,12 @@ public class UseitAppAttestModule: Module {
       kSecValueData as String: data,
       kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
     ]
-    SecItemDelete(query as CFDictionary)
+    let deleteQuery: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: keychainService,
+      kSecAttrAccount as String: "keyId"
+    ]
+    SecItemDelete(deleteQuery as CFDictionary)
     let status = SecItemAdd(query as CFDictionary, nil)
     guard status == errSecSuccess else {
       throw NSError(domain: "UseitAppAttest", code: Int(status), userInfo: [NSLocalizedDescriptionKey: "Unable to persist App Attest key identifier."])
@@ -108,7 +113,12 @@ public class UseitAppAttestModule: Module {
       kSecValueData as String: data,
       kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
     ]
-    SecItemDelete(query as CFDictionary)
+    let deleteQuery: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: keychainService,
+      kSecAttrAccount as String: "attestedKeyId"
+    ]
+    SecItemDelete(deleteQuery as CFDictionary)
     let status = SecItemAdd(query as CFDictionary, nil)
     guard status == errSecSuccess else {
       throw NSError(domain: "UseitAppAttest", code: Int(status), userInfo: [NSLocalizedDescriptionKey: "Unable to persist App Attest enrollment state."])
