@@ -1,0 +1,42 @@
+name: Temporary dependency lock refresh
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/release-blockers-2026-10'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/release-blockers-2026-10
+          persist-credentials: true
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+      - name: Refresh dependency lock and apply non-breaking security updates
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts --no-audit --no-fund
+          npx expo install --fix
+          npm audit fix --omit=dev || true
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit lockfile updates
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "Dependency manifests are already current."
+            exit 0
+          fi
+          git commit -m "security: refresh npm dependency lockfile"
+          git push origin HEAD:fix/release-blockers-2026-10
