@@ -19,6 +19,31 @@ const candidate = (overrides: Partial<ProductCandidate> = {}): ProductCandidate 
   source: 'test',
   availability: 'in_stock',
   ...overrides,
+  it('canonicalizes accepted candidate URLs before returning them', async () => {
+    const providers: ProductProvider[] = [{
+      id: 'canonical',
+      search: vi.fn().mockResolvedValue([
+        candidate({ url: 'HTTPS://Shop.Example/p-1/?utm_source=campaign&b=2&a=1#details' }),
+      ]),
+    }];
+    const result = await collectProductCandidates(decision, providers);
+    expect(result.candidates[0].url).toBe('https://shop.example/p-1?a=1&b=2');
+  });
+
+  it('rejects candidates with malformed nested attribute values', async () => {
+    const providers: ProductProvider[] = [{
+      id: 'malformed-attributes',
+      search: vi.fn().mockResolvedValue([
+        candidate({ id: 'nested', attributes: { material: { name: 'linen' } } as never }),
+        candidate({ id: 'infinite', attributes: { weight: Number.POSITIVE_INFINITY } }),
+        candidate({ id: 'valid', attributes: { material: 'linen', tags: ['soft', 'neutral'] } }),
+      ]),
+    }];
+    const result = await collectProductCandidates(decision, providers);
+    expect(result.candidates.map(item => item.id)).toEqual(['valid']);
+    expect(result.errors).toEqual([{ provider: 'malformed-attributes', message: 'Ignored 2 invalid candidate payloads.' }]);
+  });
+
 });
 
 describe('collectProductCandidates', () => {

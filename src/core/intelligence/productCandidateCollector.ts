@@ -41,6 +41,12 @@ function isProductCandidate(value: unknown): value is ProductCandidate {
   if (typeof candidate.url !== 'string' || !normalizeCandidateUrl(candidate.url)) return false;
   if (typeof candidate.category !== 'string' || !candidate.category.trim()) return false;
   if (!candidate.attributes || typeof candidate.attributes !== 'object' || Array.isArray(candidate.attributes)) return false;
+  for (const attributeValue of Object.values(candidate.attributes)) {
+    if (typeof attributeValue === 'string' || typeof attributeValue === 'boolean') continue;
+    if (typeof attributeValue === 'number' && Number.isFinite(attributeValue)) continue;
+    if (Array.isArray(attributeValue) && attributeValue.every(item => typeof item === 'string')) continue;
+    return false;
+  }
   if (typeof candidate.source !== 'string' || !candidate.source.trim()) return false;
   if (candidate.priceHuf !== undefined && (!Number.isFinite(candidate.priceHuf) || candidate.priceHuf < 0)) return false;
   if (candidate.availability !== undefined && !['in_stock', 'out_of_stock', 'unknown'].includes(candidate.availability)) return false;
@@ -59,7 +65,7 @@ export async function collectProductCandidates(decision: ShoppingDecision, provi
         const validCandidates: ProductCandidate[] = [];
         let invalidCount = 0;
         for (const candidate of candidates) {
-          if (isProductCandidate(candidate)) validCandidates.push(candidate);
+          if (isProductCandidate(candidate)) validCandidates.push({ ...candidate, url: normalizeCandidateUrl(candidate.url) });
           else invalidCount += 1;
         }
 
