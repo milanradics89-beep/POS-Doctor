@@ -10,6 +10,8 @@ from backend.apple_app_attest import (
     APPLE_APP_ATTEST_ROOT_SHA256,
     _parse_auth_data,
     root_certificate_fingerprint,
+    AppleAttestKey,
+    _store_key,
 )
 
 
@@ -166,3 +168,24 @@ def test_assertion_rejects_tampered_authenticator_data_without_advancing_counter
     stored = asyncio.run(_MEMORY_KEYS.get(key_id))
     assert stored is not None and stored[1] == 0
 
+
+
+def test_registered_app_attest_key_cannot_be_replaced_or_reset(monkeypatch):
+    monkeypatch.delenv("USEIT_REDIS_URL", raising=False)
+    key_id = "test-immutable-apple-key"
+    original = AppleAttestKey(key_id, b"original-public-key", 0)
+    replacement = AppleAttestKey(key_id, b"replacement-public-key", 0)
+
+    asyncio.run(_store_key(original, "TEAM123456.com.useit.app"))
+    try:
+        try:
+            asyncio.run(_store_key(replacement, "TEAM123456.com.useit.app"))
+        except ValueError as exc:
+            assert "already registered" in str(exc)
+        else:
+            raise AssertionError("re-registering a key must be rejected")
+
+        stored = asyncio.run(_MEMORY_KEYS.get(key_id))
+        assert stored == (b"original-public-key", 0, "TEAM123456.com.useit.app")
+    finally:
+        _MEMORY_KEYS._keys.pop(key_id, None)
