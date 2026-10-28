@@ -319,8 +319,10 @@ def _verify_assertion(key: tuple[bytes, int, str], evidence: AttestationEvidence
     if not isinstance(public_key, ec.EllipticCurvePublicKey):
         raise ValueError("stored App Attest key is not EC")
     client_hash = hashlib.sha256(client_data_bytes).digest()
-    nonce = hashlib.sha256(auth_data + client_hash).digest()
-    public_key.verify(signature, nonce, ec.ECDSA(hashes.SHA256()))
+    # App Attest signs authenticatorData || clientDataHash using ECDSA-SHA256.
+    # Do not pre-hash this concatenation: ECDSA(SHA256) performs that hash itself.
+    signed_data = auth_data + client_hash
+    public_key.verify(signature, signed_data, ec.ECDSA(hashes.SHA256()))
     return counter
 
 
