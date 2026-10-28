@@ -34,7 +34,7 @@ def test_required_attestation_rejects_missing_evidence():
     assert response.json()["detail"] == "attestation_required"
 
 
-def test_optional_attestation_fails_closed_until_provider_verifier_exists():
+def test_optional_attestation_rejects_invalid_provider_evidence():
     with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32, "USEIT_ATTESTATION_MODE": "optional", "USEIT_ATTESTATION_PROVIDER": "apple_app_attest"}, clear=False):
         challenge = issue_challenge(ttl_seconds=60)
         response = client.post(
@@ -46,8 +46,8 @@ def test_optional_attestation_fails_closed_until_provider_verifier_exists():
                 "appId": challenge.app_id,
             },
         )
-    assert response.status_code == 503
-    assert response.json()["detail"] == "provider_unavailable"
+    assert response.status_code == 401
+    assert response.json()["detail"] == "attestation_invalid"
 
 
 def test_required_attestation_rejects_replayed_challenge():
@@ -61,7 +61,8 @@ def test_required_attestation_rejects_replayed_challenge():
         }
         first = client.post("/v1/session", json=payload)
         second = client.post("/v1/session", json=payload)
-    assert first.status_code == 503
+    assert first.status_code == 401
+    assert first.json()["detail"] == "attestation_invalid"
     assert second.status_code == 401
     assert second.json()["detail"] == "challenge_invalid_or_replayed"
 
