@@ -22,7 +22,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.useit.app",
-      "supportsTablet": true,
+      "supportsTablet": true
     }
   }
 }
