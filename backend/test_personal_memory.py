@@ -251,3 +251,36 @@ def test_memory_ciphertext_tampering_fails_closed(monkeypatch, tmp_path):
     read = client.get(f"/v1/memory/{MEMORY_A}")
     assert read.status_code == 503
     assert "do-not-leak" not in read.text
+
+
+
+def test_memory_legacy_migration_is_safe_under_concurrent_reads(monkeypatch, tmp_path):
+    _configure(monkeypatch, tmp_path)
+    identity_hash = memory._identity_hash(MEMORY_A)
+    db_path = tmp_path / "memory.sqlite3"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """CREATE TABLE memories (
+                identity_hash TEXT NOT NULL,
+                memory_key TEXT NOT NULL,
+                category TEXT NOT NULL,
+                value TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (identity_hash, memory_key)
+            )"""
+        )
+        connection.execute(
+            "INSERT INTO memories VALUES (?, ?, ?, ?, ?, ?)",
+            (identity_hash, "legacy_note", "profile", "legacy-private-value", "2026-01-01T00:00:00+00:00", "2026-01-01T00:00:00+00:00"),
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(lambda _: memory._read(identity_hash), range(2)))
+
+    assert all(entries[0].value == "legacy-private-value" for entries in results)
+    with sqlite3.connect(db_path) as connection:
+        version = connection.execute(
+            "SELECT metadata_value FROM memory_metadata WHERE metadata_key = 'encryption_version'"
+        ).fetchone()[0]
+    assert version == "1"

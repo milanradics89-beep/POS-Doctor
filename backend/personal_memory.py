@@ -117,24 +117,32 @@ def _connect() -> sqlite3.Connection:
         if version is None:
             if not _memory_secret():
                 raise HTTPException(503, "Personal memory is not configured.")
-            # One-time migration of legacy plaintext rows. The transaction prevents
-            # partially migrated records from being marked as encrypted.
+            # Acquire the write lock before re-checking the version. Concurrent
+            # first requests must not both attempt the one-time migration.
             connection.execute("BEGIN IMMEDIATE")
-            rows = connection.execute(
-                "SELECT identity_hash, memory_key, category, value FROM memories"
-            ).fetchall()
-            for identity_hash, key, category, stored in rows:
-                if stored.startswith(_MEMORY_CIPHER_PREFIX):
-                    continue
-                if stored.startswith("enc:"):
-                    raise HTTPException(503, "Personal memory uses an unsupported encryption version.")
+            version = connection.execute(
+                "SELECT metadata_value FROM memory_metadata WHERE metadata_key = 'encryption_version'"
+            ).fetchone()
+            if version is None:
+                # One-time migration of legacy plaintext rows. The transaction
+                # prevents partially migrated records from being marked encrypted.
+                rows = connection.execute(
+                    "SELECT identity_hash, memory_key, category, value FROM memories"
+                ).fetchall()
+                for identity_hash, key, category, stored in rows:
+                    if stored.startswith(_MEMORY_CIPHER_PREFIX):
+                        continue
+                    if stored.startswith("enc:"):
+                        raise HTTPException(503, "Personal memory uses an unsupported encryption version.")
+                    connection.execute(
+                        "UPDATE memories SET value = ? WHERE identity_hash = ? AND memory_key = ?",
+                        (_encrypt_value(identity_hash, key, category, stored), identity_hash, key),
+                    )
                 connection.execute(
-                    "UPDATE memories SET value = ? WHERE identity_hash = ? AND memory_key = ?",
-                    (_encrypt_value(identity_hash, key, category, stored), identity_hash, key),
+                    "INSERT INTO memory_metadata(metadata_key, metadata_value) VALUES ('encryption_version', '1')"
                 )
-            connection.execute(
-                "INSERT INTO memory_metadata(metadata_key, metadata_value) VALUES ('encryption_version', '1')"
-            )
+            elif version[0] != "1":
+                raise HTTPException(503, "Personal memory uses an unsupported encryption version.")
             connection.commit()
         elif version[0] != "1":
             raise HTTPException(503, "Personal memory uses an unsupported encryption version.")
