@@ -31,7 +31,7 @@ Required:
 When session authentication is enabled:
 - USEIT_ATTESTATION_MODE=required
 - USEIT_ATTESTATION_APP_ID set to the platform's real app identity.
-- USEIT_REDIS_URL for shared, persistent challenge and attestation-key state.
+- USEIT_REDIS_URL for shared, persistent challenge and attestation-key state. The in-memory challenge store is capped at 10,000 unexpired challenges and fails closed at capacity; it is for tests/local development only.
 - Select USEIT_ATTESTATION_PROVIDER=apple_app_attest or google_play_integrity to match the released platform and backend deployment.
 
 For Google Play Integrity:
