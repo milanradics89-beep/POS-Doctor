@@ -160,11 +160,12 @@ async function safeErrorDetail(response: Response): Promise<string> {
 }
 
 function cacheSession(session: SessionResponse, base: string, generation: number): string {
-  // A response started before clearSessionToken() must not repopulate the cache
-  // after credentials have been invalidated.
-  if (generation === sessionCacheGeneration) {
-    cachedSessions.set(base, session);
+  // A response started before clearSessionToken() must neither repopulate the
+  // cache nor return an invalidated credential to its original caller.
+  if (generation !== sessionCacheGeneration) {
+    throw new Error('USEIT session request was invalidated before completion.');
   }
+  cachedSessions.set(base, session);
   return session.accessToken;
 }
 
