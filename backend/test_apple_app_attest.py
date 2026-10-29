@@ -254,8 +254,8 @@ def test_registered_app_attest_key_cannot_be_replaced_or_reset(monkeypatch):
 @pytest.mark.parametrize(
     ("encoded", "expected"),
     [
-        (base64.b64encode(b"\\xfb\\xff\\xff").decode("ascii"), b"\\xfb\\xff\\xff"),
-        (base64.urlsafe_b64encode(b"\\xfb\\xff\\xff").decode("ascii").rstrip("="), b"\\xfb\\xff\\xff"),
+        (base64.b64encode(b"\xfb\xff\xff").decode("ascii"), b"\xfb\xff\xff"),
+        (base64.urlsafe_b64encode(b"\xfb\xff\xff").decode("ascii").rstrip("="), b"\xfb\xff\xff"),
         (base64.b64encode(b"payload").decode("ascii"), b"payload"),
         (base64.urlsafe_b64encode(b"payload").decode("ascii").rstrip("="), b"payload"),
     ],
@@ -273,7 +273,7 @@ def test_base64_decoder_accepts_canonical_standard_and_urlsafe_values(encoded, e
         "A",  # impossible Base64 length
         "+_8=",  # mixed standard and URL-safe alphabets
         "Y Q==",
-        "YQ==\\n",
+        "YQ==\n",
         "YR==",  # non-canonical unused pad bits
     ],
 )
