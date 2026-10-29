@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from backend.main import app
+from backend import personal_memory as memory
 
 client = TestClient(app)
 
@@ -106,3 +107,31 @@ def test_memory_fails_closed_with_weak_secret(monkeypatch, tmp_path):
     monkeypatch.setenv("USEIT_MEMORY_DB", str(tmp_path / "memory.sqlite3"))
     response = client.get(f"/v1/memory/{MEMORY_A}")
     assert response.status_code == 503
+
+def test_memory_capacity_check_takes_write_lock_before_count(monkeypatch, tmp_path):
+    _configure(monkeypatch, tmp_path)
+    statements = []
+    original_connect = memory._connect
+
+    class RecordingConnection:
+        def __init__(self, connection):
+            self.connection = connection
+
+        def execute(self, sql, parameters=()):
+            statements.append(" ".join(sql.split()).upper())
+            return self.connection.execute(sql, parameters)
+
+        def commit(self):
+            return self.connection.commit()
+
+        def close(self):
+            return self.connection.close()
+
+    monkeypatch.setattr(memory, "_connect", lambda: RecordingConnection(original_connect()))
+    identity_hash = memory._identity_hash(MEMORY_A)
+    memory._upsert(identity_hash, [memory.MemoryEntry(key="first", value="value", category="profile")])
+
+    begin_index = statements.index("BEGIN IMMEDIATE")
+    count_index = next(i for i, statement in enumerate(statements) if statement.startswith("SELECT COUNT(*)"))
+    assert begin_index < count_index
+
