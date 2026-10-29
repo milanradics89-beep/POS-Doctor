@@ -48,13 +48,24 @@ def _json_objects(raw: str) -> list[Any]:
     if isinstance(value, dict) and isinstance(value.get("@graph"), list): return value["@graph"]
     return [value]
 
+def _schema_type_name(value: Any) -> str:
+    """Normalize both compact and URL-form Schema.org @type values."""
+    if not isinstance(value, str):
+        return ""
+    normalized = value.strip().rstrip("/").lower()
+    return normalized.rsplit("/", 1)[-1].rsplit("#", 1)[-1]
+
+
 def _product_objects(parser: _HTMLParser) -> list[dict[str, Any]]:
     products: list[dict[str, Any]] = []
     for raw in parser.json_ld:
         for obj in _json_objects(raw):
-            if not isinstance(obj, dict): continue
-            kind = obj.get("@type"); kinds = kind if isinstance(kind, list) else [kind]
-            if any(str(k).lower() in {"product", "productgroup"} for k in kinds): products.append(obj)
+            if not isinstance(obj, dict):
+                continue
+            kind = obj.get("@type")
+            kinds = kind if isinstance(kind, list) else [kind]
+            if any(_schema_type_name(item) in {"product", "productgroup"} for item in kinds):
+                products.append(obj)
     return products
 
 def _first_image(value: Any, base_url: str) -> str | None:
