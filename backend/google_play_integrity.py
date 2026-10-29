@@ -14,6 +14,20 @@ from backend.attestation import AttestationEvidence, AttestationResult, Attestat
 GOOGLE_PLAY_INTEGRITY_SCOPE = "https://www.googleapis.com/auth/playintegrity"
 GOOGLE_PLAY_INTEGRITY_BASE_URL = "https://playintegrity.googleapis.com/v1"
 DEFAULT_MAX_TOKEN_AGE_SECONDS = 300
+_MISSING = object()
+
+
+def _aliased_value(mapping: dict[str, Any], primary: str, alternate: str) -> tuple[Any, bool]:
+    """Read supported camelCase/snake_case aliases without hiding conflicts."""
+    has_primary = primary in mapping
+    has_alternate = alternate in mapping
+    if has_primary and has_alternate and mapping[primary] != mapping[alternate]:
+        return _MISSING, True
+    if has_primary:
+        return mapping[primary], False
+    if has_alternate:
+        return mapping[alternate], False
+    return _MISSING, False
 
 
 class CredentialsLike(Protocol):
@@ -78,28 +92,32 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
             body = response.json()
         except ValueError:
             return AttestationResult(False, "attestation_invalid")
-        payload = body.get("tokenPayloadExternal") or body.get("token_payload_external") if isinstance(body, dict) else None
-        if not isinstance(payload, dict):
+        if not isinstance(body, dict):
+            return AttestationResult(False, "attestation_invalid")
+        payload, conflict = _aliased_value(body, "tokenPayloadExternal", "token_payload_external")
+        if conflict or not isinstance(payload, dict):
             return AttestationResult(False, "attestation_invalid")
 
         return self._validate_payload(payload, evidence)
 
     def _validate_payload(self, payload: dict[str, Any], evidence: AttestationEvidence) -> AttestationResult:
-        request_details = payload.get("requestDetails")
-        if request_details is None:
-            request_details = payload.get("request_details")
-        if not isinstance(request_details, dict):
+        request_details, conflict = _aliased_value(payload, "requestDetails", "request_details")
+        if conflict or not isinstance(request_details, dict):
             return AttestationResult(False, "attestation_invalid")
-        request_hash = request_details.get("requestHash") or request_details.get("request_hash")
+        request_hash, conflict = _aliased_value(request_details, "requestHash", "request_hash")
         expected_hash = hashlib.sha256(evidence.challenge.encode("utf-8")).hexdigest()
+        if conflict:
+            return AttestationResult(False, "attestation_invalid")
         if request_hash != expected_hash:
             return AttestationResult(False, "request_hash_mismatch")
-        request_package = request_details.get("requestPackageName") or request_details.get("request_package_name")
+        request_package, conflict = _aliased_value(request_details, "requestPackageName", "request_package_name")
+        if conflict:
+            return AttestationResult(False, "wrong_app")
         if request_package != evidence.app_id:
             return AttestationResult(False, "wrong_app")
 
-        timestamp_raw = request_details.get("timestampMillis") or request_details.get("timestamp_millis")
-        if isinstance(timestamp_raw, bool):
+        timestamp_raw, conflict = _aliased_value(request_details, "timestampMillis", "timestamp_millis")
+        if conflict or isinstance(timestamp_raw, bool):
             return AttestationResult(False, "timestamp_invalid")
         try:
             age_seconds = self._now() - (int(timestamp_raw) / 1000)
@@ -108,31 +126,24 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
         if age_seconds < -30 or age_seconds > max_token_age_seconds():
             return AttestationResult(False, "token_stale")
 
-        app_integrity = payload.get("appIntegrity")
-        if app_integrity is None:
-            app_integrity = payload.get("app_integrity")
-        if not isinstance(app_integrity, dict):
+        app_integrity, conflict = _aliased_value(payload, "appIntegrity", "app_integrity")
+        if conflict or not isinstance(app_integrity, dict):
             return AttestationResult(False, "attestation_invalid")
-        app_package_camel = app_integrity.get("packageName")
-        app_package_snake = app_integrity.get("package_name")
-        # If both supported field spellings are present, they must agree. Checking
-        # each only against the expected package with "and" would accept a
-        # contradictory provider payload whenever either spelling matched.
-        if (
-            app_package_camel is not None
-            and app_package_snake is not None
-            and app_package_camel != app_package_snake
-        ):
+        actual_app_package, conflict = _aliased_value(app_integrity, "packageName", "package_name")
+        if conflict:
             return AttestationResult(False, "wrong_app")
-        actual_app_package = app_package_camel if app_package_camel is not None else app_package_snake
         if actual_app_package != evidence.app_id:
             return AttestationResult(False, "wrong_app")
         if app_integrity.get("appRecognitionVerdict") != "PLAY_RECOGNIZED":
             return AttestationResult(False, "app_not_recognized")
 
-        actual_certificates_raw = app_integrity.get("certificateSha256Digest")
-        if actual_certificates_raw is None:
-            actual_certificates_raw = app_integrity.get("certificate_sha256_digest", [])
+        actual_certificates_raw, conflict = _aliased_value(
+            app_integrity, "certificateSha256Digest", "certificate_sha256_digest"
+        )
+        if conflict:
+            return AttestationResult(False, "attestation_invalid")
+        if actual_certificates_raw is _MISSING:
+            actual_certificates_raw = []
         if not isinstance(actual_certificates_raw, list) or not all(
             isinstance(certificate, str) for certificate in actual_certificates_raw
         ):
@@ -141,22 +152,22 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
         if required_certificates and not set(required_certificates).issubset(set(actual_certificates_raw)):
             return AttestationResult(False, "certificate_mismatch")
 
-        account_details = payload.get("accountDetails")
-        if account_details is None:
-            account_details = payload.get("account_details")
-        if not isinstance(account_details, dict):
+        account_details, conflict = _aliased_value(payload, "accountDetails", "account_details")
+        if conflict or not isinstance(account_details, dict):
             return AttestationResult(False, "attestation_invalid")
         if account_details.get("appLicensingVerdict") != "LICENSED":
             return AttestationResult(False, "app_not_licensed")
 
-        device_integrity = payload.get("deviceIntegrity")
-        if device_integrity is None:
-            device_integrity = payload.get("device_integrity")
-        if not isinstance(device_integrity, dict):
+        device_integrity, conflict = _aliased_value(payload, "deviceIntegrity", "device_integrity")
+        if conflict or not isinstance(device_integrity, dict):
             return AttestationResult(False, "attestation_invalid")
-        actual_device_verdicts_raw = device_integrity.get("deviceRecognitionVerdict")
-        if actual_device_verdicts_raw is None:
-            actual_device_verdicts_raw = device_integrity.get("device_recognition_verdict", [])
+        actual_device_verdicts_raw, conflict = _aliased_value(
+            device_integrity, "deviceRecognitionVerdict", "device_recognition_verdict"
+        )
+        if conflict:
+            return AttestationResult(False, "attestation_invalid")
+        if actual_device_verdicts_raw is _MISSING:
+            actual_device_verdicts_raw = []
         if not isinstance(actual_device_verdicts_raw, list) or not all(
             isinstance(verdict, str) for verdict in actual_device_verdicts_raw
         ):
