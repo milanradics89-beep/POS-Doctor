@@ -42,7 +42,14 @@ def _b64url(value: bytes) -> str:
 
 
 def _unb64url(value: str) -> bytes:
-    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+    # Session tokens use canonical, unpadded base64url. Python's default decoder
+    # silently ignores non-alphabet characters, which can make a modified
+    # signature decode to the same bytes as the original signature.
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    if not value or any(character not in alphabet for character in value):
+        raise ValueError("Invalid base64url encoding")
+    padded = value + "=" * (-len(value) % 4)
+    return base64.b64decode(padded, altchars=b"-_", validate=True)
 
 
 def issue_session_token(now: int | None = None) -> tuple[str, int]:
