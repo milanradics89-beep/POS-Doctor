@@ -48,7 +48,7 @@ describe('attestationClient session cache', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('does not reuse or cache an in-flight token after clearSessionToken', async () => {
+  it('rejects an in-flight token invalidated by clearSessionToken', async () => {
     let resolveFirst!: (response: Response) => void;
     let callCount = 0;
     const responseFor = (accessToken: string) => new Response(JSON.stringify({
@@ -78,7 +78,7 @@ describe('attestationClient session cache', () => {
     expect(freshToken).toBe('token-fresh');
 
     resolveFirst(responseFor('token-stale'));
-    expect(await staleRequest).toBe('token-stale');
+    await expect(staleRequest).rejects.toThrow('USEIT session request was invalidated before completion.');
     expect(await getSessionToken('https://api-a.example')).toBe('token-fresh');
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
