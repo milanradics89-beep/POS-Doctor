@@ -1,5 +1,6 @@
 import asyncio
 
+import httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -137,3 +138,28 @@ async def test_streaming_body_reader_reports_no_timeout_for_small_body() -> None
     body, timed_out = await _read_limited_body_with_timeout(_ChunkedRequest([b"hello"]), timeout=1)
     assert body == b"hello"
     assert timed_out is False
+
+
+
+@pytest.mark.asyncio
+async def test_slow_upload_returns_request_timeout(monkeypatch) -> None:
+    app = FastAPI()
+    install_request_controls(app)
+    monkeypatch.setattr("backend.request_controls.configured_request_timeout", lambda: 0.01)
+
+    @app.post("/upload")
+    async def upload():
+        return {"ok": True}
+
+    class SlowStream(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            await asyncio.Event().wait()
+            yield b"never"
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/upload", content=SlowStream())
+
+    assert response.status_code == 408
+    assert response.json()["detail"] == "Request body timed out."
+    assert response.headers.get("X-Request-ID")
