@@ -11,7 +11,7 @@ describe('CI auto-recovery workflow', () => {
     expect(workflow).toContain(
       `jq -r --arg title "$TITLE" 'first(.[] | select(.title == $title) | .number) // empty'`,
     );
-    expect(workflow).not.toContain('--jq '.[] | select(.title == "'');
+    expect(workflow).not.toContain("--jq '.[] | select(.title == \"'");
   });
 
   it('limits automatic retries to one failed attempt from this repository', () => {
