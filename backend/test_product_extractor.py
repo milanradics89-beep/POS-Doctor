@@ -246,3 +246,47 @@ async def test_fetch_product_page_rejects_redirect_chain_over_limit(monkeypatch)
 
     assert exc.value.status_code == 508
     assert len(client.requested_urls) == extractor.MAX_REDIRECTS + 1
+
+
+@pytest.mark.parametrize(
+    "product_type",
+    [
+        "https://schema.org/Product",
+        "http://schema.org/Product",
+        "https://schema.org/ProductGroup",
+        "Product",
+    ],
+)
+def test_extracts_schema_org_product_type_urls(product_type):
+    parser = parse(f"""
+    <script type="application/ld+json">
+    {{
+      "@context": "https://schema.org",
+      "@type": "{product_type}",
+      "name": "Schema URL Chair",
+      "offers": {{"@type": "https://schema.org/Offer", "price": "129990", "priceCurrency": "HUF"}}
+    }}
+    </script>
+    """)
+    product = _extract(parser, "https://shop.example/p")
+    assert product is not None
+    assert product["name"] == "Schema URL Chair"
+    assert product["priceHuf"] == 129990
+
+
+def test_extracts_product_from_schema_org_graph_type_url():
+    parser = parse("""
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {"@type": "https://schema.org/Organization", "name": "Shop"},
+        {"@type": "https://schema.org/Product", "name": "Graph Chair",
+         "offers": {"@type": "https://schema.org/Offer", "price": "100", "priceCurrency": "HUF"}}
+      ]
+    }
+    </script>
+    """)
+    product = _extract(parser, "https://shop.example/p")
+    assert product is not None
+    assert product["name"] == "Graph Chair"
