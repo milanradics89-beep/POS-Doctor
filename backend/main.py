@@ -206,7 +206,14 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             key_id=request.keyId,
             client_data=request.clientData,
         )
-        binding = await validate_challenge_binding_async(evidence)
+        try:
+            binding = await validate_challenge_binding_async(evidence)
+        except (RedisError, TimeoutError) as exc:
+            logger.warning("Attestation challenge storage is unavailable")
+            raise HTTPException(
+                status_code=503,
+                detail="Attestation challenge service is temporarily unavailable.",
+            ) from exc
         if not binding.verified:
             raise HTTPException(status_code=401, detail=binding.reason)
         expected_provider = configured_attestation_provider()
