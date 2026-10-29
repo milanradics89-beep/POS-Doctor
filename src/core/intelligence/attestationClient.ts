@@ -14,25 +14,30 @@ type ChallengeResponse = {
   expiresAt: number;
 };
 
-let cachedSession: SessionResponse | null = null;
-let pendingSession: Promise<string> | null = null;
+const cachedSessions = new Map<string, SessionResponse>();
+const pendingSessions = new Map<string, Promise<string>>();
 
 export async function getSessionToken(baseUrl: string, apiKey?: string): Promise<string> {
   if (apiKey?.trim()) return '';
+  const base = normalizeApiBaseUrl(baseUrl);
   const now = Math.floor(Date.now() / 1000);
-  if (cachedSession && cachedSession.expiresAt - now > 30) {
-    return cachedSession.accessToken;
+  const cached = cachedSessions.get(base);
+  if (cached && cached.expiresAt - now > 30) {
+    return cached.accessToken;
   }
-  if (pendingSession) return pendingSession;
+  if (cached) cachedSessions.delete(base);
 
-  pendingSession = createSession(baseUrl).finally(() => {
-    pendingSession = null;
+  const pending = pendingSessions.get(base);
+  if (pending) return pending;
+
+  const request = createSession(base).finally(() => {
+    if (pendingSessions.get(base) === request) pendingSessions.delete(base);
   });
-  return pendingSession;
+  pendingSessions.set(base, request);
+  return request;
 }
 
-async function createSession(baseUrl: string): Promise<string> {
-  const base = normalizeApiBaseUrl(baseUrl);
+async function createSession(base: string): Promise<string> {
   const headers = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -45,7 +50,7 @@ async function createSession(baseUrl: string): Promise<string> {
   });
 
   if (direct.ok) {
-    return cacheSession(await parseSession(direct));
+    return cacheSession(await parseSession(direct), base);
   }
 
   // Development deployments may intentionally leave session authentication disabled.
@@ -120,7 +125,7 @@ async function createSession(baseUrl: string): Promise<string> {
     nativeModule.default.markKeyAttested(keyId);
   }
 
-  return cacheSession(await parseSession(attested));
+  return cacheSession(await parseSession(attested), base);
 }
 
 async function parseSession(response: Response): Promise<SessionResponse> {
@@ -152,11 +157,11 @@ async function safeErrorDetail(response: Response): Promise<string> {
   }
 }
 
-function cacheSession(session: SessionResponse): string {
-  cachedSession = session;
+function cacheSession(session: SessionResponse, base: string): string {
+  cachedSessions.set(base, session);
   return session.accessToken;
 }
 
 export function clearSessionToken(): void {
-  cachedSession = null;
+  cachedSessions.clear();
 }
