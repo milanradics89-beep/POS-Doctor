@@ -106,6 +106,9 @@ def _validate_memory_id(memory_id: str) -> str:
 def _upsert(identity_hash: str, entries: list[MemoryEntry]) -> int:
     connection = _connect()
     try:
+        # Serialize the capacity check and writes so concurrent requests cannot
+        # both observe spare capacity and exceed MAX_ENTRIES.
+        connection.execute("BEGIN IMMEDIATE")
         existing = connection.execute("SELECT COUNT(*) FROM memories WHERE identity_hash = ?", (identity_hash,)).fetchone()[0]
         unique_new = {entry.key for entry in entries}
         existing_keys = {row[0] for row in connection.execute("SELECT memory_key FROM memories WHERE identity_hash = ?", (identity_hash,))}
