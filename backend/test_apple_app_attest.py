@@ -13,6 +13,7 @@ from backend.apple_app_attest import (
     OID_NONCE,
     PROD_AAGUID,
     _b64decode,
+    _key_id_bytes,
     _extension_nonce,
     _parse_auth_data,
     _validate_aaguid,
@@ -280,3 +281,19 @@ def test_base64_decoder_accepts_canonical_standard_and_urlsafe_values(encoded, e
 def test_base64_decoder_rejects_malformed_or_noncanonical_values(encoded):
     with pytest.raises(ValueError):
         _b64decode(encoded)
+
+@pytest.mark.parametrize("encoding", ["hex", "base64"])
+@pytest.mark.parametrize("position", ["prefix", "suffix"])
+def test_key_id_bytes_rejects_surrounding_whitespace(encoding, position):
+    key_bytes = bytes(range(32))
+    key_id = key_bytes.hex() if encoding == "hex" else base64.b64encode(key_bytes).decode("ascii")
+    malformed = f" {key_id}" if position == "prefix" else f"{key_id} "
+    with pytest.raises(ValueError, match="Invalid Apple App Attest key ID|Invalid Base64 encoding"):
+        _key_id_bytes(malformed)
+
+
+def test_key_id_bytes_accepts_supported_canonical_encodings():
+    key_bytes = bytes(range(32))
+    assert _key_id_bytes(key_bytes.hex()) == key_bytes
+    assert _key_id_bytes(base64.b64encode(key_bytes).decode("ascii")) == key_bytes
+
