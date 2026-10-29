@@ -231,3 +231,23 @@ def test_memory_migrates_legacy_plaintext_rows_once(monkeypatch, tmp_path):
     assert stored.startswith(memory._MEMORY_CIPHER_PREFIX)
     assert "legacy-private-value" not in stored
     assert version == "1"
+
+
+
+def test_memory_ciphertext_tampering_fails_closed(monkeypatch, tmp_path):
+    _configure(monkeypatch, tmp_path)
+    written = client.post(
+        f"/v1/memory/{MEMORY_A}",
+        json={"consent": True, "entries": [{"key": "private_note", "value": "do-not-leak", "category": "profile"}]},
+    )
+    assert written.status_code == 200
+
+    with sqlite3.connect(tmp_path / "memory.sqlite3") as connection:
+        connection.execute(
+            "UPDATE memories SET value = ? WHERE memory_key = 'private_note'",
+            (memory._MEMORY_CIPHER_PREFIX + "A" * 40,),
+        )
+
+    read = client.get(f"/v1/memory/{MEMORY_A}")
+    assert read.status_code == 503
+    assert "do-not-leak" not in read.text
