@@ -47,4 +47,39 @@ describe('attestationClient session cache', () => {
     expect(tokenB).toBe('token-b');
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
+  it('does not reuse or cache an in-flight token after clearSessionToken', async () => {
+    let resolveFirst!: (response: Response) => void;
+    let callCount = 0;
+    const responseFor = (accessToken: string) => new Response(JSON.stringify({
+      accessToken,
+      expiresAt: Math.floor(Date.now() / 1000) + 600,
+      expiresIn: 600,
+      tokenType: 'Bearer',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Promise<Response>((resolve) => {
+          resolveFirst = resolve;
+        });
+      }
+      return Promise.resolve(responseFor('token-fresh'));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken, clearSessionToken } = await import('./attestationClient');
+    const staleRequest = getSessionToken('https://api-a.example');
+
+    expect(resolveFirst).toBeDefined();
+    clearSessionToken();
+
+    const freshToken = await getSessionToken('https://api-a.example');
+    expect(freshToken).toBe('token-fresh');
+
+    resolveFirst(responseFor('token-stale'));
+    expect(await staleRequest).toBe('token-stale');
+    expect(await getSessionToken('https://api-a.example')).toBe('token-fresh');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });
