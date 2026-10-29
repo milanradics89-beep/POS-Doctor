@@ -4,6 +4,7 @@ import pytest
 
 from backend.attestation import (
     AttestationEvidence,
+    ChallengeStore,
     AttestationMode,
     AttestationProvider,
     AttestationResult,
@@ -113,3 +114,30 @@ def test_challenge_binding_is_single_use():
     evidence = AttestationEvidence(challenge.provider, challenge.challenge, "assertion", challenge.app_id)
     assert validate_challenge_binding(evidence).verified
     assert validate_challenge_binding(evidence) == AttestationResult(False, "challenge_invalid_or_replayed")
+
+
+
+def test_in_memory_challenge_store_fails_closed_at_capacity(monkeypatch):
+    import backend.attestation as attestation
+
+    monkeypatch.setattr(attestation, "MAX_IN_MEMORY_CHALLENGES", 2)
+    store = ChallengeStore()
+    store.issue(AttestationProvider.APP_ATTEST, "com.useit.app", ttl_seconds=60)
+    store.issue(AttestationProvider.APP_ATTEST, "com.useit.app", ttl_seconds=60)
+    with pytest.raises(RuntimeError, match="capacity is exhausted"):
+        store.issue(AttestationProvider.APP_ATTEST, "com.useit.app", ttl_seconds=60)
+    assert len(store._issued) == 2
+
+
+def test_in_memory_challenge_store_prunes_expired_before_capacity_check(monkeypatch):
+    import backend.attestation as attestation
+
+    monkeypatch.setattr(attestation, "MAX_IN_MEMORY_CHALLENGES", 1)
+    now = 1_000
+    monkeypatch.setattr(attestation.time, "time", lambda: now)
+    store = ChallengeStore()
+    store.issue(AttestationProvider.APP_ATTEST, "com.useit.app", ttl_seconds=30)
+    monkeypatch.setattr(attestation.time, "time", lambda: now + 31)
+    replacement = store.issue(AttestationProvider.APP_ATTEST, "com.useit.app", ttl_seconds=30)
+    assert replacement
+    assert len(store._issued) == 1
