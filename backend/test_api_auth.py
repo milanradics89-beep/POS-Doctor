@@ -1,3 +1,4 @@
+import base64
 import os
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -90,6 +91,15 @@ def test_session_token_rejects_tampering():
         parts = token.split(".")
         parts[1] = parts[1][:-1] + ("A" if parts[1][-1] != "A" else "B")
         assert verify_session_token(".".join(parts), now=1_100) is False
+
+
+def test_session_token_rejects_overflowing_numeric_timestamps():
+    encode = lambda value: base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+    header = encode(b'{"alg":"HS256","typ":"USEIT"}')
+    # Valid JSON exponent syntax that Python decodes as infinity. The token is
+    # intentionally unsigned; verification must reject it without raising.
+    payload = encode(b'{"v":1,"iat":1e10000,"exp":1e10001}')
+    assert verify_session_token(f"{header}.{payload}.invalid") is False
 
 
 def test_protected_endpoint_requires_api_key_or_session():
