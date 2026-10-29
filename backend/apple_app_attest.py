@@ -52,11 +52,43 @@ class AppleAttestKey:
 
 
 def _b64decode(value: str) -> bytes:
-    raw = value.strip()
-    try:
-        return base64.b64decode(raw, validate=True)
-    except Exception:
-        return base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4))
+    # Attestation payloads and key IDs may use standard or URL-safe Base64,
+    # but accepting ignored characters or mixed alphabets makes their textual
+    # representation malleable. Require one canonical encoding.
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise ValueError("Invalid Base64 encoding")
+    if any(character.isspace() for character in value):
+        raise ValueError("Invalid Base64 encoding")
+
+    has_standard_symbols = "+" in value or "/" in value
+    has_urlsafe_symbols = "-" in value or "_" in value
+    if has_standard_symbols and has_urlsafe_symbols:
+        raise ValueError("Mixed Base64 alphabets are not allowed")
+
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    alphabet += "-_" if has_urlsafe_symbols else "+/"
+    unpadded = value.rstrip("=")
+    padding = len(value) - len(unpadded)
+    if padding > 2 or "=" in unpadded or (padding and len(value) % 4 != 0):
+        raise ValueError("Invalid Base64 padding")
+    if len(unpadded) % 4 == 1:
+        raise ValueError("Invalid Base64 length")
+    if any(character not in alphabet for character in unpadded):
+        raise ValueError("Invalid Base64 character")
+
+    padded = unpadded + "=" * (-len(unpadded) % 4)
+    decoded = base64.b64decode(
+        padded,
+        altchars=b"-_" if has_urlsafe_symbols else None,
+        validate=True,
+    )
+    canonical = base64.b64encode(decoded).decode("ascii")
+    if has_urlsafe_symbols:
+        canonical = canonical.translate(str.maketrans("+/", "-_"))
+    expected = canonical if padding else canonical.rstrip("=")
+    if value != expected:
+        raise ValueError("Non-canonical Base64 encoding")
+    return decoded
 
 
 def _key_id_bytes(key_id: str) -> bytes:
