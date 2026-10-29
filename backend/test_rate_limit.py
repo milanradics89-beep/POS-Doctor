@@ -111,3 +111,23 @@ def test_memory_rate_limit_prunes_expired_buckets_without_dropping_active_client
 
 def test_memory_rate_limit_bucket_capacity_is_bounded():
     assert MAX_MEMORY_RATE_LIMIT_BUCKETS == 10_000
+
+
+
+def test_session_challenge_uses_dedicated_lower_rate_limit(monkeypatch):
+    monkeypatch.setenv("USEIT_RATE_LIMIT_PER_MINUTE", "60")
+    monkeypatch.setenv("USEIT_SESSION_RATE_LIMIT_PER_MINUTE", "2")
+    app = FastAPI()
+
+    @app.post("/v1/session/challenge")
+    async def challenge():
+        return {"challenge": "ok"}
+
+    install_rate_limit(app)
+    client = TestClient(app)
+
+    assert client.post("/v1/session/challenge").status_code == 200
+    assert client.post("/v1/session/challenge").status_code == 200
+    response = client.post("/v1/session/challenge")
+    assert response.status_code == 429
+    assert response.headers["Retry-After"] == "60"
