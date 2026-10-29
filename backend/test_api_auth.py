@@ -267,7 +267,7 @@ def test_session_challenge_storage_failures_return_service_unavailable(monkeypat
             "/v1/session",
             json={
                 "provider": "apple_app_attest",
-                "challenge": "test-challenge",
+                "challenge": "test-challenge-123",
                 "assertion": "test-assertion",
                 "appId": "TEAM123456.com.useit.app",
             },
