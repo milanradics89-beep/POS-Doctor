@@ -336,8 +336,12 @@ def _verify_assertion(key: tuple[bytes, int, str], evidence: AttestationEvidence
         client_obj = json.loads(client_data_bytes)
     except Exception as exc:
         raise ValueError("Apple App Attest clientData is not valid JSON") from exc
-    if not isinstance(client_obj, dict) or client_obj.get("challenge") != evidence.challenge:
-        raise ValueError("Apple App Attest challenge is not bound to clientData")
+    if (
+        not isinstance(client_obj, dict)
+        or client_obj.get("challenge") != evidence.challenge
+        or client_obj.get("action") != "session"
+    ):
+        raise ValueError("Apple App Attest clientData is not bound to a session challenge")
     assertion = cbor2.loads(_b64decode(evidence.assertion))
     if not isinstance(assertion, dict):
         raise ValueError("Apple App Attest assertion is malformed")
