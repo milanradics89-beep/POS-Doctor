@@ -8,6 +8,9 @@ permissions:
 
 jobs:
   dependency-review:
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
