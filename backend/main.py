@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
+from redis.exceptions import RedisError
 
 from backend.security import validate_public_http_url
 
@@ -174,7 +175,11 @@ async def ready():
 async def create_attestation_challenge(response: Response):
     if production_mode() and configured_attestation_mode() is AttestationMode.REQUIRED and not configured_redis_url():
         raise HTTPException(status_code=503, detail="Attestation shared storage is not configured.")
-    challenge = await issue_challenge_async()
+    try:
+        challenge = await issue_challenge_async()
+    except (RuntimeError, RedisError, TimeoutError) as exc:
+        logger.warning("Attestation challenge storage is unavailable")
+        raise HTTPException(status_code=503, detail="Attestation challenge service is temporarily unavailable.") from exc
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
     return {"challenge": challenge.challenge, "provider": challenge.provider.value, "appId": challenge.app_id, "expiresAt": challenge.expires_at}
