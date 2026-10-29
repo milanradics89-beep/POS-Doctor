@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -10,6 +12,7 @@ from backend.request_controls import (
     configured_request_timeout,
     install_request_controls,
     _read_limited_body,
+    _read_limited_body_with_timeout,
 )
 
 class _ChunkedRequest:
@@ -113,3 +116,24 @@ def test_unexpected_failure_returns_generic_error_with_correlation_id() -> None:
         "requestId": "phase27-error",
     }
     assert "secret internal implementation detail" not in response.text
+
+
+
+class _SlowRequest:
+    async def stream(self):
+        await asyncio.Event().wait()
+        yield b"never"
+
+
+@pytest.mark.asyncio
+async def test_streaming_body_reader_times_out_for_slow_upload() -> None:
+    body, timed_out = await _read_limited_body_with_timeout(_SlowRequest(), timeout=0.01)
+    assert body is None
+    assert timed_out is True
+
+
+@pytest.mark.asyncio
+async def test_streaming_body_reader_reports_no_timeout_for_small_body() -> None:
+    body, timed_out = await _read_limited_body_with_timeout(_ChunkedRequest([b"hello"]), timeout=1)
+    assert body == b"hello"
+    assert timed_out is False

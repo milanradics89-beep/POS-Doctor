@@ -59,6 +59,20 @@ async def _read_limited_body(request: Request) -> bytes | None:
     return bytes(body)
 
 
+async def _read_limited_body_with_timeout(
+    request: Request, timeout: float | None = None
+) -> tuple[bytes | None, bool]:
+    """Bound client upload time as well as body size to prevent slow-body exhaustion."""
+    try:
+        body = await asyncio.wait_for(
+            _read_limited_body(request),
+            timeout=configured_request_timeout() if timeout is None else timeout,
+        )
+        return body, False
+    except asyncio.TimeoutError:
+        return None, True
+
+
 def install_request_controls(app) -> None:
     @app.middleware("http")
     async def request_controls(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
@@ -75,7 +89,13 @@ def install_request_controls(app) -> None:
         request.state.request_id = request_id
 
         if request.method in {"POST", "PUT", "PATCH"}:
-            body = await _read_limited_body(request)
+            body, body_timed_out = await _read_limited_body_with_timeout(request)
+            if body_timed_out:
+                return JSONResponse(
+                    status_code=408,
+                    content={"detail": "Request body timed out.", "requestId": request_id},
+                    headers={"X-Request-ID": request_id},
+                )
             if body is None:
                 return JSONResponse(status_code=413, content={"detail": "Request body is too large."})
             # Starlette's Request.stream() replays this cached body for downstream handlers.
