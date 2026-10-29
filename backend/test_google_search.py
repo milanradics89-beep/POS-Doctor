@@ -8,6 +8,8 @@ from backend import google_search
 
 
 def mock_provider(monkeypatch, *, payload=None, content=None, status_code=200):
+    real_async_client = httpx.AsyncClient
+
     def handler(request):
         if content is not None:
             return httpx.Response(status_code, content=content, headers={"content-type": "application/json"})
@@ -16,7 +18,7 @@ def mock_provider(monkeypatch, *, payload=None, content=None, status_code=200):
     monkeypatch.setattr(
         google_search.httpx,
         "AsyncClient",
-        lambda **kwargs: httpx.AsyncClient(transport=transport, **kwargs),
+        lambda **kwargs: real_async_client(transport=transport, **kwargs),
     )
 
 
