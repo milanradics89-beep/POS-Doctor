@@ -12,6 +12,7 @@ from backend.apple_app_attest import (
     DEV_AAGUID,
     OID_NONCE,
     PROD_AAGUID,
+    _b64decode,
     _extension_nonce,
     _parse_auth_data,
     _validate_aaguid,
@@ -247,3 +248,35 @@ def test_registered_app_attest_key_cannot_be_replaced_or_reset(monkeypatch):
         assert stored == (b"original-public-key", 0, "TEAM123456.com.useit.app")
     finally:
         _MEMORY_KEYS._keys.pop(key_id, None)
+
+
+
+@pytest.mark.parametrize(
+    ("encoded", "expected"),
+    [
+        (base64.b64encode(b"\\xfb\\xff\\xff").decode("ascii"), b"\\xfb\\xff\\xff"),
+        (base64.urlsafe_b64encode(b"\\xfb\\xff\\xff").decode("ascii").rstrip("="), b"\\xfb\\xff\\xff"),
+        (base64.b64encode(b"payload").decode("ascii"), b"payload"),
+        (base64.urlsafe_b64encode(b"payload").decode("ascii").rstrip("="), b"payload"),
+    ],
+)
+def test_base64_decoder_accepts_canonical_standard_and_urlsafe_values(encoded, expected):
+    assert _b64decode(encoded) == expected
+
+
+@pytest.mark.parametrize(
+    "encoded",
+    [
+        "YQ==!!!!",  # ignored characters were previously accepted by the URL-safe fallback
+        "YQ=",
+        "YQ===",
+        "A",  # impossible Base64 length
+        "+_8=",  # mixed standard and URL-safe alphabets
+        "Y Q==",
+        "YQ==\\n",
+        "YR==",  # non-canonical unused pad bits
+    ],
+)
+def test_base64_decoder_rejects_malformed_or_noncanonical_values(encoded):
+    with pytest.raises(ValueError):
+        _b64decode(encoded)
