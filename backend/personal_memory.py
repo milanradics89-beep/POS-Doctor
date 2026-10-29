@@ -131,7 +131,15 @@ def _connect() -> sqlite3.Connection:
                 ).fetchall()
                 for identity_hash, key, category, stored in rows:
                     if stored.startswith(_MEMORY_CIPHER_PREFIX):
-                        continue
+                        # The marker can also occur in legitimate legacy plaintext.
+                        # Keep a row only when its ciphertext authenticates for this
+                        # identity/key/category; otherwise migrate the original text.
+                        try:
+                            _decrypt_value(identity_hash, key, category, stored)
+                        except HTTPException:
+                            pass
+                        else:
+                            continue
                     connection.execute(
                         "UPDATE memories SET value = ? WHERE identity_hash = ? AND memory_key = ?",
                         (_encrypt_value(identity_hash, key, category, stored), identity_hash, key),
