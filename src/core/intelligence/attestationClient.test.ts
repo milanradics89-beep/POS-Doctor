@@ -83,6 +83,126 @@ describe('attestationClient session cache', () => {
     expect(await getSessionToken('https://api-a.example')).toBe('token-fresh');
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+  it('retries the same Apple attestation after a transient fetch failure', async () => {
+    const nativeModule = {
+      isAvailable: vi.fn(() => true),
+      isKeyAttested: vi.fn(() => false),
+      markKeyAttested: vi.fn(),
+      getOrCreateKeyId: vi.fn(async () => 'apple-key-id'),
+      attest: vi.fn(async () => 'attestation-object'),
+      generateAssertion: vi.fn(async () => 'assertion-object'),
+    };
+    vi.doMock('../../../modules/useit-app-attest', () => ({ default: nativeModule }));
+
+    let challengeCount = 0;
+    let enrollmentAttempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/v1/session/challenge')) {
+        challengeCount += 1;
+        return new Response(JSON.stringify({
+          challenge: 'challenge-initial',
+          provider: 'apple_app_attest',
+          appId: 'TEAMID.com.useit.app',
+          expiresAt: Math.floor(Date.now() / 1000) + 300,
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+
+      const payload = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+      if (!payload.provider) {
+        return new Response(JSON.stringify({ detail: 'attestation_required' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      enrollmentAttempts += 1;
+      if (enrollmentAttempts === 1) throw new TypeError('Network request failed');
+      return new Response(JSON.stringify({
+        accessToken: 'session-token',
+        expiresAt: Math.floor(Date.now() / 1000) + 600,
+        expiresIn: 600,
+        tokenType: 'Bearer',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    await expect(getSessionToken('https://api-a.example')).resolves.toBe('session-token');
+
+    expect(challengeCount).toBe(1);
+    expect(enrollmentAttempts).toBe(2);
+    expect(nativeModule.attest).toHaveBeenCalledTimes(1);
+    expect(nativeModule.generateAssertion).not.toHaveBeenCalled();
+    expect(nativeModule.markKeyAttested).toHaveBeenCalledWith('apple-key-id');
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('recovers with an assertion when the first attestation response is lost after server acceptance', async () => {
+    const nativeModule = {
+      isAvailable: vi.fn(() => true),
+      isKeyAttested: vi.fn(() => false),
+      markKeyAttested: vi.fn(),
+      getOrCreateKeyId: vi.fn(async () => 'apple-key-id'),
+      attest: vi.fn(async () => 'attestation-object'),
+      generateAssertion: vi.fn(async () => 'assertion-object'),
+    };
+    vi.doMock('../../../modules/useit-app-attest', () => ({ default: nativeModule }));
+
+    let challengeCount = 0;
+    let enrollmentAttempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/v1/session/challenge')) {
+        challengeCount += 1;
+        return new Response(JSON.stringify({
+          challenge: challengeCount === 1 ? 'challenge-initial' : 'challenge-recovery',
+          provider: 'apple_app_attest',
+          appId: 'TEAMID.com.useit.app',
+          expiresAt: Math.floor(Date.now() / 1000) + 300,
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+
+      const payload = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+      if (!payload.provider) {
+        return new Response(JSON.stringify({ detail: 'attestation_required' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (!payload.clientData) {
+        enrollmentAttempts += 1;
+        if (enrollmentAttempts === 1) throw new TypeError('Network request failed');
+        return new Response(JSON.stringify({ detail: 'challenge_invalid_or_replayed' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        accessToken: 'recovered-session-token',
+        expiresAt: Math.floor(Date.now() / 1000) + 600,
+        expiresIn: 600,
+        tokenType: 'Bearer',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    await expect(getSessionToken('https://api-a.example')).resolves.toBe('recovered-session-token');
+
+    expect(challengeCount).toBe(2);
+    expect(enrollmentAttempts).toBe(2);
+    expect(nativeModule.attest).toHaveBeenCalledTimes(1);
+    expect(nativeModule.generateAssertion).toHaveBeenCalledWith(
+      'challenge-recovery',
+      'apple-key-id',
+      JSON.stringify({ challenge: 'challenge-recovery', action: 'session' }),
+    );
+    expect(nativeModule.markKeyAttested).toHaveBeenCalledWith('apple-key-id');
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+  });
+
   it('recovers when the server already registered an Apple key but the first response was lost', async () => {
     const nativeModule = {
       isAvailable: vi.fn(() => true),

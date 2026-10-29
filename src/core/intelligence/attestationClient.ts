@@ -92,7 +92,19 @@ async function createSession(base: string, generation: number): Promise<string> 
     }
   }
 
-  let attested = await submitAttestation(base, headers, challenge, assertion, keyId, clientData);
+  let attested: Response;
+  try {
+    attested = await submitAttestation(base, headers, challenge, assertion, keyId, clientData);
+  } catch {
+    // A rejected fetch is ambiguous: the server may not have received the request,
+    // or it may have consumed the challenge and registered the key before the
+    // response was lost. Retry the exact same evidence once before recovery.
+    try {
+      attested = await submitAttestation(base, headers, challenge, assertion, keyId, clientData);
+    } catch {
+      throw new Error('USEIT attestation request failed; retry session creation.');
+    }
+  }
   let shouldMarkAppleKeyAttested = challenge.provider === 'apple_app_attest' && Boolean(keyId) && !clientData;
 
   if (!attested.ok) {
@@ -106,7 +118,7 @@ async function createSession(base: string, generation: number): Promise<string> 
       keyId &&
       !clientData &&
       attested.status === 401 &&
-      detail === 'attestation_invalid'
+      (detail === 'attestation_invalid' || detail === 'challenge_invalid_or_replayed')
     ) {
       const recoveryChallenge = await requestAttestationChallenge(base, headers);
       if (recoveryChallenge.provider !== 'apple_app_attest') {
