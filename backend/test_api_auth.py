@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from backend.api_auth import issue_session_token, verify_session_token
 from backend.attestation import issue_challenge
+import backend.main as main
 from backend.main import app
 
 client = TestClient(app)
@@ -212,3 +213,15 @@ def test_cors_preflight_rejects_unknown_origin():
         )
     assert response.status_code == 400
     assert "access-control-allow-origin" not in response.headers
+
+
+
+def test_challenge_storage_capacity_failure_returns_service_unavailable(monkeypatch):
+    monkeypatch.setattr(
+        main,
+        "issue_challenge_async",
+        AsyncMock(side_effect=RuntimeError("capacity is exhausted")),
+    )
+    response = client.post("/v1/session/challenge")
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Attestation challenge service is temporarily unavailable."
