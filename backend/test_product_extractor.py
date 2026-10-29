@@ -290,3 +290,44 @@ def test_extracts_product_from_schema_org_graph_type_url():
     product = _extract(parser, "https://shop.example/p")
     assert product is not None
     assert product["name"] == "Graph Chair"
+
+
+@pytest.mark.parametrize(
+    "product_type",
+    [
+        "https://attacker.example/Product",
+        "https://schema.org.attacker.example/Product",
+        "https://schema.org.evil/Product",
+        "https://schema.org/vocab/Product",
+        "https://schema.org:443/Product",
+    ],
+)
+def test_rejects_non_schema_org_product_type_urls(product_type):
+    parser = parse(f"""
+    <script type="application/ld+json">
+    {{
+      "@context": "https://schema.org",
+      "@type": "{product_type}",
+      "name": "Spoofed Product",
+      "offers": {{"@type": "Offer", "price": "100", "priceCurrency": "HUF"}}
+    }}
+    </script>
+    """)
+    assert _extract(parser, "https://shop.example/p") is None
+
+
+def test_extracts_schema_org_fragment_product_type():
+    parser = parse("""
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "https://schema.org/#Product",
+      "name": "Fragment Type Chair",
+      "offers": {"@type": "Offer", "price": "100", "priceCurrency": "HUF"}
+    }
+    </script>
+    """)
+    product = _extract(parser, "https://shop.example/p")
+    assert product is not None
+    assert product["name"] == "Fragment Type Chair"
+    assert product["priceHuf"] == 100
