@@ -62,18 +62,7 @@ async function createSession(base: string, generation: number): Promise<string> 
     throw new Error(`USEIT session bootstrap failed (${direct.status}).`);
   }
 
-  const challengeResponse = await fetch(`${base}/v1/session/challenge`, {
-    method: 'POST',
-    headers,
-  });
-  if (!challengeResponse.ok) {
-    throw new Error(`USEIT attestation challenge failed (${challengeResponse.status}).`);
-  }
-
-  const challenge = (await challengeResponse.json()) as Partial<ChallengeResponse>;
-  if (!challenge.challenge || !challenge.provider || !challenge.appId) {
-    throw new Error('USEIT attestation challenge was malformed.');
-  }
+  const challenge = await requestAttestationChallenge(base, headers);
 
   let assertion: string;
   let keyId: string | undefined;
@@ -102,7 +91,99 @@ async function createSession(base: string, generation: number): Promise<string> 
       assertion = await nativeModule.default.attest(challenge.challenge, keyId);
     }
   }
-  const attested = await fetch(`${base}/v1/session`, {
+
+  let attested = await submitAttestation(base, headers, challenge, assertion, keyId, clientData);
+  let shouldMarkAppleKeyAttested = challenge.provider === 'apple_app_attest' && Boolean(keyId) && !clientData;
+
+  if (!attested.ok) {
+    let detail = await safeErrorDetail(attested);
+
+    // A previous request may have reached the server and registered this key,
+    // while its response was lost. The server rejects a duplicate attestation;
+    // retry once with a fresh challenge and an assertion to recover that state.
+    if (
+      challenge.provider === 'apple_app_attest' &&
+      keyId &&
+      !clientData &&
+      attested.status === 401 &&
+      detail === 'attestation_invalid'
+    ) {
+      const recoveryChallenge = await requestAttestationChallenge(base, headers);
+      if (recoveryChallenge.provider !== 'apple_app_attest') {
+        throw new Error('USEIT App Attest recovery returned a different provider.');
+      }
+
+      const recoveryClientData = JSON.stringify({
+        challenge: recoveryChallenge.challenge,
+        action: 'session',
+      });
+      const nativeModule = await import('../../../modules/useit-app-attest');
+      const recoveryAssertion = await nativeModule.default.generateAssertion(
+        recoveryChallenge.challenge,
+        keyId,
+        recoveryClientData,
+      );
+      attested = await submitAttestation(
+        base,
+        headers,
+        recoveryChallenge,
+        recoveryAssertion,
+        keyId,
+        recoveryClientData,
+      );
+
+      if (!attested.ok) {
+        detail = await safeErrorDetail(attested);
+        throw new Error('USEIT attestation failed (' + attested.status + ')' + (detail ? ': ' + detail : '.'));
+      }
+      shouldMarkAppleKeyAttested = true;
+    } else {
+      throw new Error('USEIT attestation failed (' + attested.status + ')' + (detail ? ': ' + detail : '.'));
+    }
+  }
+
+  // Persist only after the server accepts the enrollment or a recovery
+  // assertion proves that the key was already registered.
+  if (challenge.provider === 'apple_app_attest' && keyId && shouldMarkAppleKeyAttested) {
+    const nativeModule = await import('../../../modules/useit-app-attest');
+    nativeModule.default.markKeyAttested(keyId);
+  }
+
+  return cacheSession(await parseSession(attested), base, generation);
+}
+
+async function requestAttestationChallenge(
+  base: string,
+  headers: Record<string, string>,
+): Promise<ChallengeResponse> {
+  const response = await fetch(base + '/v1/session/challenge', {
+    method: 'POST',
+    headers,
+  });
+  if (!response.ok) {
+    throw new Error('USEIT attestation challenge failed (' + response.status + ').');
+  }
+
+  const payload = (await response.json()) as Partial<ChallengeResponse>;
+  if (
+    !payload.challenge ||
+    (payload.provider !== 'apple_app_attest' && payload.provider !== 'google_play_integrity') ||
+    !payload.appId
+  ) {
+    throw new Error('USEIT attestation challenge was malformed.');
+  }
+  return payload as ChallengeResponse;
+}
+
+async function submitAttestation(
+  base: string,
+  headers: Record<string, string>,
+  challenge: ChallengeResponse,
+  assertion: string,
+  keyId?: string,
+  clientData?: string,
+): Promise<Response> {
+  return fetch(base + '/v1/session', {
     method: 'POST',
     headers,
     body: JSON.stringify({
@@ -114,20 +195,6 @@ async function createSession(base: string, generation: number): Promise<string> 
       ...(clientData ? { clientData } : {}),
     }),
   });
-
-  if (!attested.ok) {
-    const detail = await safeErrorDetail(attested);
-    throw new Error(`USEIT attestation failed (${attested.status})${detail ? `: ${detail}` : '.'}`);
-  }
-
-  // Only persist local enrollment after the server has verified the attestation
-  // and issued a session. Otherwise a transient failure would strand this key.
-  if (challenge.provider === 'apple_app_attest' && keyId && !clientData) {
-    const nativeModule = await import('../../../modules/useit-app-attest');
-    nativeModule.default.markKeyAttested(keyId);
-  }
-
-  return cacheSession(await parseSession(attested), base, generation);
 }
 
 async function parseSession(response: Response): Promise<SessionResponse> {
