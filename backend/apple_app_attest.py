@@ -92,16 +92,15 @@ def _b64decode(value: str) -> bytes:
 
 
 def _key_id_bytes(key_id: str) -> bytes:
-    # Key IDs are opaque identifiers. Do not trim or otherwise normalize
-    # caller input: a non-canonical spelling must not become a second key.
-    if not isinstance(key_id, str) or not key_id or key_id != key_id.strip():
-        raise ValueError("Invalid Apple App Attest key ID")
-
-    # Keep the legacy 64-character hex form, but validate it before calling
-    # bytes.fromhex(), which otherwise silently ignores embedded whitespace.
-    if len(key_id) == 64 and all(character in "0123456789abcdefABCDEF" for character in key_id):
-        return bytes.fromhex(key_id)
-    return _b64decode(key_id)
+    raw = key_id.strip()
+    try:
+        if len(raw) % 2 == 0:
+            decoded = bytes.fromhex(raw)
+            if len(decoded) == 32:
+                return decoded
+    except ValueError:
+        pass
+    return _b64decode(raw)
 
 
 def _parse_auth_data(auth_data: bytes) -> tuple[bytes, int, bytes]:

@@ -283,11 +283,16 @@ def test_base64_decoder_rejects_malformed_or_noncanonical_values(encoded):
         _b64decode(encoded)
 
 @pytest.mark.parametrize("encoding", ["hex", "base64"])
-@pytest.mark.parametrize("position", ["prefix", "suffix"])
-def test_key_id_bytes_rejects_surrounding_whitespace(encoding, position):
+@pytest.mark.parametrize("position", ["prefix", "suffix", "embedded"])
+def test_key_id_bytes_rejects_noncanonical_whitespace(encoding, position):
     key_bytes = bytes(range(32))
     key_id = key_bytes.hex() if encoding == "hex" else base64.b64encode(key_bytes).decode("ascii")
-    malformed = f" {key_id}" if position == "prefix" else f"{key_id} "
+    if position == "prefix":
+        malformed = f" {key_id}"
+    elif position == "suffix":
+        malformed = f"{key_id} "
+    else:
+        malformed = f"{key_id[:32]} {key_id[32:]}"
     with pytest.raises(ValueError, match="Invalid Apple App Attest key ID|Invalid Base64 encoding"):
         _key_id_bytes(malformed)
 
