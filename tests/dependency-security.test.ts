@@ -9,6 +9,10 @@ const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.me
   dependencies: Record<string, string>;
 };
 const lockfile = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8')) as Lockfile;
+const dependencyReviewWorkflow = readFileSync(
+  new URL('../.github/workflows/dependency-review.yml', import.meta.url),
+  'utf8',
+);
 
 function versionAtLeast(actual: string | undefined, minimum: string): boolean {
   if (!actual) return false;
@@ -46,5 +50,13 @@ describe('runtime dependency security overrides', () => {
   it('uses the locally patched deepmerge package', () => {
     expect(packageJson.dependencies.deepmerge).toBe('file:vendor/deepmerge');
     expect(lockfile.packages['vendor/deepmerge']?.version).toBe('4.3.2');
+  });
+
+  it('does not silently skip the required dependency review gate', () => {
+    expect(dependencyReviewWorkflow).not.toMatch(
+      /^\s*if:\s*\$\{\{\s*vars\.USEIT_DEPENDENCY_GRAPH_ENABLED/m,
+    );
+    expect(dependencyReviewWorkflow).toContain('actions/dependency-review-action@');
+    expect(dependencyReviewWorkflow).toContain('fail-on-severity: high');
   });
 });
