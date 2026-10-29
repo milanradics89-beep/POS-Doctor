@@ -163,7 +163,7 @@ def test_assertion_verification_and_counter_replay():
     ).encode()
     wrong_action_auth_data = (
         __import__("hashlib").sha256(app_id.encode()).digest()
-        + b"\\x01"
+        + b"\x01"
         + (2).to_bytes(4, "big")
     )
     wrong_action_signature = key.sign(
