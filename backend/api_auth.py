@@ -75,7 +75,7 @@ def verify_session_token(token: str, now: int | None = None) -> bool:
         expires_at = int(decoded_payload["exp"])
         if int(decoded_payload["v"]) != 1:
             return False
-    except (ValueError, TypeError, KeyError, json.JSONDecodeError, UnicodeDecodeError):
+    except (ValueError, TypeError, KeyError, OverflowError, json.JSONDecodeError, UnicodeDecodeError):
         return False
 
     current = int(time.time() if now is None else now)
