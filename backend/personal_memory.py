@@ -50,11 +50,11 @@ def _encryption_key() -> bytes:
     if not secret:
         raise HTTPException(503, "Personal memory is not configured.")
     # Domain separation prevents the identity-HMAC key from being reused directly.
-    return hashlib.sha256(b"useit:personal-memory-encryption:v1\\0" + secret).digest()
+    return hashlib.sha256(b"useit:personal-memory-encryption:v1\0" + secret).digest()
 
 
 def _associated_data(identity_hash: str, key: str, category: str) -> bytes:
-    return f"{identity_hash}\\0{key}\\0{category}\\0v1".encode("utf-8")
+    return f"{identity_hash}\0{key}\0{category}\0v1".encode("utf-8")
 
 
 def _encrypt_value(identity_hash: str, key: str, category: str, value: str) -> str:
