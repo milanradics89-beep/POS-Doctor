@@ -3,13 +3,14 @@ from __future__ import annotations
 import hashlib
 import hmac
 import os
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StrictBool, field_validator
 
 router = APIRouter(prefix="/v1/memory", tags=["memory"])
 
@@ -17,6 +18,8 @@ MAX_ENTRIES = 100
 MEMORY_ID_MAX = 128
 MEMORY_KEY_MAX = 80
 MEMORY_VALUE_MAX = 1000
+MIN_MEMORY_SECRET_LENGTH = 32
+_MEMORY_ID_RE = re.compile(r"^[A-Za-z0-9_-]{32,128}$")
 
 
 def _db_path() -> Path:
@@ -25,7 +28,9 @@ def _db_path() -> Path:
 
 def _memory_secret() -> bytes | None:
     value = os.environ.get("USEIT_MEMORY_SECRET")
-    return value.encode("utf-8") if value else None
+    if not value or len(value.encode("utf-8")) < MIN_MEMORY_SECRET_LENGTH:
+        return None
+    return value.encode("utf-8")
 
 
 def _identity_hash(memory_id: str) -> str:
@@ -65,7 +70,7 @@ class MemoryEntry(BaseModel):
         value = value.strip()
         if not value:
             raise ValueError("Memory text cannot be empty")
-        if value.startswith("data:image/"):
+        if value.lower().startswith("data:image/"):
             raise ValueError("Raw image data cannot be stored as personal memory")
         if any(ord(char) < 32 and char not in "\t\n" for char in value):
             raise ValueError("Memory text contains unsupported control characters")
@@ -73,7 +78,7 @@ class MemoryEntry(BaseModel):
 
 
 class MemoryWriteRequest(BaseModel):
-    consent: bool
+    consent: StrictBool
     entries: list[MemoryEntry] = Field(min_length=1, max_length=20)
 
     @field_validator("consent")
@@ -91,8 +96,10 @@ class MemoryReadResponse(BaseModel):
 
 
 def _validate_memory_id(memory_id: str) -> str:
-    if not 1 <= len(memory_id) <= MEMORY_ID_MAX or any(ord(char) < 32 for char in memory_id):
-        raise HTTPException(422, "Invalid memory identity.")
+    # The ID acts as a capability for a memory record, so it must be an opaque,
+    # high-entropy URL-safe token rather than a guessable username or profile ID.
+    if not _MEMORY_ID_RE.fullmatch(memory_id):
+        raise HTTPException(422, "Memory identity must be an opaque URL-safe token of at least 32 characters.")
     return memory_id
 
 
