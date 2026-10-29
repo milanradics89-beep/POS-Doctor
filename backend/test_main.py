@@ -71,3 +71,22 @@ def test_unsupported_image_mime_is_rejected():
 def test_oversized_prompt_is_rejected_by_validation():
     r = client.post('/v1/analyze', json={'imageUri':'data:image/jpeg;base64,' + 'a' * 32,'prompt':'x' * 20_001})
     assert r.status_code == 422
+
+
+
+def test_user_intent_length_is_bounded():
+    r = client.post('/v1/analyze', json={
+        'imageUri': 'data:image/jpeg;base64,' + 'a' * 32,
+        'userIntent': 'x' * 2_001,
+    })
+    assert r.status_code == 422
+
+
+def test_malformed_image_base64_is_rejected():
+    r = client.post('/v1/analyze', json={'imageUri': 'data:image/jpeg;base64,not valid base64!!!'})
+    assert r.status_code == 422
+
+
+def test_image_url_rejects_localhost_before_model_call():
+    r = client.post('/v1/analyze', json={'imageUri': 'http://localhost:8000/image.jpg'})
+    assert r.status_code == 422

@@ -124,3 +124,15 @@ async def test_analyze_surfaces_missing_vision_configuration(monkeypatch):
         await _analyze(AnalyzeRequest(imageUri="data:image/jpeg;base64," + ("A" * 32)))
 
     assert exc.value.status_code == 503
+
+
+
+def test_image_request_accepts_public_http_url_after_public_host_validation(monkeypatch):
+    monkeypatch.setattr(main, "validate_public_http_url", lambda value: value)
+    request = AnalyzeRequest(imageUri="https://images.example.com/photo.jpg")
+    assert request.imageUri == "https://images.example.com/photo.jpg"
+
+
+def test_image_request_rejects_embedded_url_credentials():
+    with pytest.raises(ValueError):
+        AnalyzeRequest(imageUri="https://user:password@images.example.com/photo.jpg")

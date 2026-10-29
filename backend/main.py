@@ -1,3 +1,5 @@
+import base64
+import binascii
 import json
 import logging
 import os
@@ -8,6 +10,8 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
+
+from backend.security import validate_public_http_url
 
 from backend.action_layer import router as action_router
 from backend.api_auth import configured_api_key, configured_session_secret, issue_session_token, session_ttl_seconds
@@ -69,7 +73,7 @@ MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
 
 class AnalyzeRequest(BaseModel):
     imageUri: str = Field(min_length=20, max_length=8_000_000)
-    userIntent: Optional[str] = None
+    userIntent: Optional[str] = Field(default=None, max_length=2_000)
     prompt: Optional[str] = Field(default=None, max_length=20_000)
     locale: str = Field(default="hu-HU", max_length=20)
     responseFormat: str = Field(default="scene_analysis_v1", max_length=64)
@@ -77,15 +81,28 @@ class AnalyzeRequest(BaseModel):
     @field_validator("imageUri")
     @classmethod
     def validate_image_uri(cls, value: str) -> str:
-        if value.startswith("data:image/"):
+        if value.lower().startswith("data:image/"):
             header, separator, payload = value.partition(",")
-            if not separator or not payload: raise ValueError("Invalid image data URI")
-            mime = header[5:].split(";", 1)[0].lower()
-            if mime not in {"image/jpeg", "image/png", "image/webp", "image/gif"}: raise ValueError("Unsupported image MIME type")
+            if not separator or not payload:
+                raise ValueError("Invalid image data URI")
+            parts = header[5:].split(";")
+            mime = parts[0].lower()
+            if mime not in {"image/jpeg", "image/png", "image/webp", "image/gif"}:
+                raise ValueError("Unsupported image MIME type")
+            if not any(part.strip().lower() == "base64" for part in parts[1:]):
+                raise ValueError("Image data URI must use base64 encoding")
+            try:
+                decoded = base64.b64decode(payload, validate=True)
+            except (binascii.Error, ValueError) as exc:
+                raise ValueError("Image data URI contains invalid base64") from exc
+            if not decoded:
+                raise ValueError("Image data URI payload is empty")
             return value
-        parsed = urlparse(value)
-        if parsed.scheme in {"https", "http"} and parsed.netloc: return value
-        raise ValueError("imageUri must be an image data URI or HTTP(S) URL")
+
+        try:
+            return validate_public_http_url(value)
+        except HTTPException as exc:
+            raise ValueError(exc.detail) from exc
 
 class UseItAnalyzeRequest(AnalyzeRequest):
     budgetHuf: int | None = Field(default=None, ge=0, le=100_000_000)
