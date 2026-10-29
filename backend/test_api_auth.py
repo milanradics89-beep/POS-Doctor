@@ -93,6 +93,18 @@ def test_session_token_rejects_tampering():
         assert verify_session_token(".".join(parts), now=1_100) is False
 
 
+def test_session_token_rejects_non_base64url_signature_characters():
+    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32}, clear=False):
+        token, _ = issue_session_token(now=1_000)
+        assert verify_session_token(token, now=1_100) is True
+        # The default urlsafe_b64decode silently ignores these characters;
+        # with four appended characters it previously decoded to the original
+        # signature and accepted a non-canonical bearer token.
+        parts = token.split(".")
+        parts[2] += "!!!!"
+        assert verify_session_token(".".join(parts), now=1_100) is False
+
+
 def test_session_token_rejects_overflowing_numeric_timestamps():
     encode = lambda value: base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
     header = encode(b'{"alg":"HS256","typ":"USEIT"}')
