@@ -2,7 +2,9 @@ import base64
 import os
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from fastapi.testclient import TestClient
+from redis.exceptions import RedisError
 
 from backend.api_auth import issue_session_token, verify_session_token
 from backend.attestation import issue_challenge
@@ -216,11 +218,20 @@ def test_cors_preflight_rejects_unknown_origin():
 
 
 
-def test_challenge_storage_capacity_failure_returns_service_unavailable(monkeypatch):
+@pytest.mark.parametrize(
+    "failure",
+    [
+        RuntimeError("capacity is exhausted"),
+        RedisError("redis is unavailable"),
+        TimeoutError("challenge storage timed out"),
+    ],
+    ids=["capacity", "redis", "timeout"],
+)
+def test_challenge_storage_failures_return_service_unavailable(monkeypatch, failure):
     monkeypatch.setattr(
         main,
         "issue_challenge_async",
-        AsyncMock(side_effect=RuntimeError("capacity is exhausted")),
+        AsyncMock(side_effect=failure),
     )
     response = client.post("/v1/session/challenge")
     assert response.status_code == 503
