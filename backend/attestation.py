@@ -63,9 +63,13 @@ class ChallengeStore:
 
     def issue(self, provider: AttestationProvider, app_id: str, ttl_seconds: int = 300) -> str:
         now = int(time.time())
+        self._prune(now)
+        if len(self._issued) >= MAX_IN_MEMORY_CHALLENGES:
+            # Never evict unexpired challenges: doing so would break active
+            # sessions unpredictably. Fail closed rather than grow without bound.
+            raise RuntimeError("In-memory attestation challenge capacity is exhausted.")
         nonce = secrets.token_urlsafe(32)
         self._issued[hashlib.sha256(nonce.encode()).hexdigest()] = (now + ttl_seconds, provider, app_id)
-        self._prune(now)
         return nonce
 
     def consume(self, challenge: str, now: int | None = None) -> tuple[bool, AttestationProvider | None, str | None]:
@@ -85,6 +89,7 @@ class ChallengeStore:
 _CHALLENGE_STORE = ChallengeStore()
 DEFAULT_CHALLENGE_TTL_SECONDS = 300
 MAX_CHALLENGE_TTL_SECONDS = 600
+MAX_IN_MEMORY_CHALLENGES = 10_000
 
 
 def configured_attestation_mode() -> AttestationMode:
