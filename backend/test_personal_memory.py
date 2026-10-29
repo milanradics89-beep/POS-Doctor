@@ -291,7 +291,12 @@ def test_memory_migrates_legacy_values_that_start_with_enc_prefix(monkeypatch, t
     _configure(monkeypatch, tmp_path)
     identity_hash = memory._identity_hash(MEMORY_A)
     db_path = tmp_path / "memory.sqlite3"
-    legacy_value = "enc: this is ordinary user text"
+    # Legacy user text may start with the exact marker; an actual encrypted row
+    # from an interrupted pre-metadata migration must still be recognized.
+    legacy_value = "enc:v1:this is ordinary user text"
+    already_encrypted = memory._encrypt_value(
+        identity_hash, "partially_migrated", "profile", "already-encrypted-value"
+    )
     with sqlite3.connect(db_path) as connection:
         connection.execute(
             """CREATE TABLE memories (
@@ -304,10 +309,26 @@ def test_memory_migrates_legacy_values_that_start_with_enc_prefix(monkeypatch, t
                 PRIMARY KEY (identity_hash, memory_key)
             )"""
         )
-        connection.execute(
+        connection.executemany(
             "INSERT INTO memories VALUES (?, ?, ?, ?, ?, ?)",
-            (identity_hash, "legacy_note", "profile", legacy_value, "2026-01-01T00:00:00+00:00", "2026-01-01T00:00:00+00:00"),
+            [
+                (identity_hash, "legacy_note", "profile", legacy_value, "2026-01-01T00:00:00+00:00", "2026-01-01T00:00:00+00:00"),
+                (identity_hash, "partially_migrated", "profile", already_encrypted, "2026-01-01T00:00:00+00:00", "2026-01-01T00:00:00+00:00"),
+            ],
         )
 
-    entries = memory._read(identity_hash)
-    assert entries[0].value == legacy_value
+    entries = {entry.key: entry.value for entry in memory._read(identity_hash)}
+    assert entries == {
+        "legacy_note": legacy_value,
+        "partially_migrated": "already-encrypted-value",
+    }
+
+    with sqlite3.connect(db_path) as connection:
+        stored = dict(connection.execute("SELECT memory_key, value FROM memories"))
+        version = connection.execute(
+            "SELECT metadata_value FROM memory_metadata WHERE metadata_key = 'encryption_version'"
+        ).fetchone()[0]
+    assert stored["legacy_note"].startswith(memory._MEMORY_CIPHER_PREFIX)
+    assert stored["legacy_note"] != legacy_value
+    assert stored["partially_migrated"] == already_encrypted
+    assert version == "1"
