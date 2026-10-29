@@ -105,6 +105,22 @@ def test_session_token_rejects_non_base64url_signature_characters():
         assert verify_session_token(".".join(parts), now=1_100) is False
 
 
+def test_session_token_rejects_noncanonical_signature_pad_bits():
+    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32}, clear=False):
+        token, _ = issue_session_token(now=1_000)
+        assert verify_session_token(token, now=1_100) is True
+
+        parts = token.split(".")
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        last_index = alphabet.index(parts[2][-1])
+        # A 32-byte SHA-256 signature uses 2 zero pad bits in its final
+        # base64url sextet. Setting either unused bit preserves the decoded
+        # signature, so verification must reject this alternate spelling.
+        assert last_index % 4 == 0
+        parts[2] = parts[2][:-1] + alphabet[last_index + 1]
+        assert verify_session_token(".".join(parts), now=1_100) is False
+
+
 def test_session_token_rejects_overflowing_numeric_timestamps():
     encode = lambda value: base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
     header = encode(b'{"alg":"HS256","typ":"USEIT"}')
