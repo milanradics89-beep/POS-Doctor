@@ -59,4 +59,11 @@ describe('runtime dependency security overrides', () => {
     expect(dependencyReviewWorkflow).toContain('actions/dependency-review-action@');
     expect(dependencyReviewWorkflow).toContain('fail-on-severity: high');
   });
+
+  it('grants PR-comment permission only to the dependency review job', () => {
+    expect(dependencyReviewWorkflow).toMatch(
+      /dependency-review:\s*\n\s+permissions:\s*\n\s+contents:\s*read\s*\n\s+pull-requests:\s*write/m,
+    );
+    expect(dependencyReviewWorkflow).toContain('comment-summary-in-pr: always');
+  });
 });
