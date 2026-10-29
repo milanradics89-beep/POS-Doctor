@@ -132,8 +132,6 @@ def _connect() -> sqlite3.Connection:
                 for identity_hash, key, category, stored in rows:
                     if stored.startswith(_MEMORY_CIPHER_PREFIX):
                         continue
-                    if stored.startswith("enc:"):
-                        raise HTTPException(503, "Personal memory uses an unsupported encryption version.")
                     connection.execute(
                         "UPDATE memories SET value = ? WHERE identity_hash = ? AND memory_key = ?",
                         (_encrypt_value(identity_hash, key, category, stored), identity_hash, key),
