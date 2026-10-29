@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc"})
 SESSION_PATH = "/v1/session"
+SESSION_CHALLENGE_PATH = "/v1/session/challenge"
 DEFAULT_SESSION_RATE_LIMIT = 10
 MAX_MEMORY_RATE_LIMIT_BUCKETS = 10_000
 
@@ -86,8 +87,9 @@ def install_rate_limit(app) -> None:
             return await call_next(request)
 
         is_session = request.url.path == SESSION_PATH and request.method == "POST"
-        limit = configured_session_rate_limit() if is_session else configured_rate_limit()
-        namespace = "session-rate" if is_session else "rate"
+        is_challenge = request.url.path == SESSION_CHALLENGE_PATH and request.method == "POST"
+        limit = configured_session_rate_limit() if is_session or is_challenge else configured_rate_limit()
+        namespace = "session-rate" if is_session else "challenge-rate" if is_challenge else "rate"
 
         if rate_limit_mode() == "redis":
             try:
