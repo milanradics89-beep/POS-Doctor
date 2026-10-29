@@ -156,6 +156,37 @@ def test_assertion_verification_and_counter_replay():
     result = asyncio.run(AppleAppAttestVerifier().verify(evidence))
     assert result.verified is True
 
+    # A correctly signed assertion for a different action must not authenticate a session.
+    wrong_action_data = json.dumps(
+        {"challenge": challenge, "action": "product_discovery"},
+        separators=(",", ":"),
+    ).encode()
+    wrong_action_auth_data = (
+        __import__("hashlib").sha256(app_id.encode()).digest()
+        + b"\\x01"
+        + (2).to_bytes(4, "big")
+    )
+    wrong_action_signature = key.sign(
+        wrong_action_auth_data + __import__("hashlib").sha256(wrong_action_data).digest(),
+        ec.ECDSA(hashes.SHA256()),
+    )
+    wrong_action_assertion = cbor2.dumps({
+        "authenticatorData": wrong_action_auth_data,
+        "signature": wrong_action_signature,
+    })
+    wrong_action_evidence = AttestationEvidence(
+        provider=AttestationProvider.APP_ATTEST,
+        challenge=challenge,
+        assertion=base64.b64encode(wrong_action_assertion).decode(),
+        app_id=app_id,
+        key_id=key_id,
+        client_data=wrong_action_data.decode(),
+    )
+    wrong_action_result = asyncio.run(AppleAppAttestVerifier().verify(wrong_action_evidence))
+    assert wrong_action_result.verified is False
+    stored_after_wrong_action = asyncio.run(_MEMORY_KEYS.get(key_id))
+    assert stored_after_wrong_action is not None and stored_after_wrong_action[1] == 1
+
     # A valid signature must not be accepted when clientData binds a different challenge.
     wrong_challenge = AttestationEvidence(
         provider=AttestationProvider.APP_ATTEST,
@@ -202,7 +233,7 @@ def test_assertion_rejects_tampered_authenticator_data_without_advancing_counter
     key_id = "test-apple-key-tamper"
     app_id = "TEAM123456.com.useit.app"
     challenge = "challenge-for-tamper-test"
-    client_data = json.dumps({"challenge": challenge}, separators=(",", ":")).encode()
+    client_data = json.dumps({"challenge": challenge, "action": "session"}, separators=(",", ":")).encode()
     rp_id_hash = __import__("hashlib").sha256(app_id.encode()).digest()
     original_auth_data = rp_id_hash + b"\x01" + (1).to_bytes(4, "big")
     tampered_auth_data = rp_id_hash + b"\x01" + (2).to_bytes(4, "big")
