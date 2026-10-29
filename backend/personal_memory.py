@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import os
@@ -9,6 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, StrictBool, field_validator
 
@@ -20,6 +23,8 @@ MEMORY_KEY_MAX = 80
 MEMORY_VALUE_MAX = 1000
 MIN_MEMORY_SECRET_LENGTH = 32
 _MEMORY_ID_RE = re.compile(r"^[A-Za-z0-9_-]{32,128}$")
+_MEMORY_CIPHER_PREFIX = "enc:v1:"
+_MEMORY_NONCE_BYTES = 12
 
 
 def _db_path() -> Path:
@@ -40,6 +45,52 @@ def _identity_hash(memory_id: str) -> str:
     return hmac.new(secret, memory_id.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
+def _encryption_key() -> bytes:
+    secret = _memory_secret()
+    if not secret:
+        raise HTTPException(503, "Personal memory is not configured.")
+    # Domain separation prevents the identity-HMAC key from being reused directly.
+    return hashlib.sha256(b"useit:personal-memory-encryption:v1\\0" + secret).digest()
+
+
+def _associated_data(identity_hash: str, key: str, category: str) -> bytes:
+    return f"{identity_hash}\\0{key}\\0{category}\\0v1".encode("utf-8")
+
+
+def _encrypt_value(identity_hash: str, key: str, category: str, value: str) -> str:
+    nonce = os.urandom(_MEMORY_NONCE_BYTES)
+    ciphertext = AESGCM(_encryption_key()).encrypt(
+        nonce,
+        value.encode("utf-8"),
+        _associated_data(identity_hash, key, category),
+    )
+    encoded = base64.urlsafe_b64encode(nonce + ciphertext).decode("ascii").rstrip("=")
+    return _MEMORY_CIPHER_PREFIX + encoded
+
+
+def _decrypt_value(identity_hash: str, key: str, category: str, stored: str) -> str:
+    if not stored.startswith(_MEMORY_CIPHER_PREFIX):
+        raise HTTPException(503, "Personal memory data is not encrypted.")
+    encoded = stored[len(_MEMORY_CIPHER_PREFIX):]
+    if not encoded or not re.fullmatch(r"[A-Za-z0-9_-]+", encoded):
+        raise HTTPException(503, "Personal memory data could not be decrypted.")
+    try:
+        payload = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
+        if base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=") != encoded:
+            raise ValueError("Non-canonical ciphertext encoding")
+        if len(payload) < _MEMORY_NONCE_BYTES + 16:
+            raise ValueError("Ciphertext is too short")
+        nonce, ciphertext = payload[:_MEMORY_NONCE_BYTES], payload[_MEMORY_NONCE_BYTES:]
+        plaintext = AESGCM(_encryption_key()).decrypt(
+            nonce,
+            ciphertext,
+            _associated_data(identity_hash, key, category),
+        )
+        return plaintext.decode("utf-8")
+    except (InvalidTag, ValueError, UnicodeDecodeError) as exc:
+        raise HTTPException(503, "Personal memory data could not be decrypted.") from exc
+
+
 def _connect() -> sqlite3.Connection:
     path = _db_path()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -56,6 +107,40 @@ def _connect() -> sqlite3.Connection:
         )"""
     )
     connection.execute("CREATE INDEX IF NOT EXISTS idx_memories_identity ON memories(identity_hash)")
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS memory_metadata (metadata_key TEXT PRIMARY KEY, metadata_value TEXT NOT NULL)"
+    )
+    try:
+        version = connection.execute(
+            "SELECT metadata_value FROM memory_metadata WHERE metadata_key = 'encryption_version'"
+        ).fetchone()
+        if version is None:
+            if not _memory_secret():
+                raise HTTPException(503, "Personal memory is not configured.")
+            # One-time migration of legacy plaintext rows. The transaction prevents
+            # partially migrated records from being marked as encrypted.
+            connection.execute("BEGIN IMMEDIATE")
+            rows = connection.execute(
+                "SELECT identity_hash, memory_key, category, value FROM memories"
+            ).fetchall()
+            for identity_hash, key, category, stored in rows:
+                if stored.startswith(_MEMORY_CIPHER_PREFIX):
+                    continue
+                if stored.startswith("enc:"):
+                    raise HTTPException(503, "Personal memory uses an unsupported encryption version.")
+                connection.execute(
+                    "UPDATE memories SET value = ? WHERE identity_hash = ? AND memory_key = ?",
+                    (_encrypt_value(identity_hash, key, category, stored), identity_hash, key),
+                )
+            connection.execute(
+                "INSERT INTO memory_metadata(metadata_key, metadata_value) VALUES ('encryption_version', '1')"
+            )
+            connection.commit()
+        elif version[0] != "1":
+            raise HTTPException(503, "Personal memory uses an unsupported encryption version.")
+    except Exception:
+        connection.close()
+        raise
     return connection
 
 
@@ -121,7 +206,7 @@ def _upsert(identity_hash: str, entries: list[MemoryEntry]) -> int:
                    VALUES (?, ?, ?, ?, ?, ?)
                    ON CONFLICT(identity_hash, memory_key) DO UPDATE SET
                      category = excluded.category, value = excluded.value, updated_at = excluded.updated_at""",
-                (identity_hash, entry.key, entry.category, entry.value, now, now),
+                (identity_hash, entry.key, entry.category, _encrypt_value(identity_hash, entry.key, entry.category, entry.value), now, now),
             )
         connection.commit()
         return len(entries)
@@ -132,8 +217,18 @@ def _upsert(identity_hash: str, entries: list[MemoryEntry]) -> int:
 def _read(identity_hash: str) -> list[MemoryEntry]:
     connection = _connect()
     try:
-        rows = connection.execute("SELECT memory_key, value, category FROM memories WHERE identity_hash = ? ORDER BY memory_key", (identity_hash,)).fetchall()
-        return [MemoryEntry(key=key, value=value, category=category) for key, value, category in rows]
+        rows = connection.execute(
+            "SELECT memory_key, category, value FROM memories WHERE identity_hash = ? ORDER BY memory_key",
+            (identity_hash,),
+        ).fetchall()
+        return [
+            MemoryEntry(
+                key=key,
+                value=_decrypt_value(identity_hash, key, category, stored),
+                category=category,
+            )
+            for key, category, stored in rows
+        ]
     finally:
         connection.close()
 

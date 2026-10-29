@@ -1,3 +1,4 @@
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 
@@ -175,3 +176,58 @@ def test_memory_capacity_limit_holds_under_concurrent_writes(monkeypatch, tmp_pa
 
     assert sorted(results) == ["capacity", "stored"]
     assert len(memory._read(identity_hash)) == memory.MAX_ENTRIES
+
+
+
+def test_memory_values_are_encrypted_at_rest(monkeypatch, tmp_path):
+    _configure(monkeypatch, tmp_path)
+    response = client.post(
+        f"/v1/memory/{MEMORY_A}",
+        json={"consent": True, "entries": [{"key": "favorite_color", "value": "private-blue-value", "category": "preference"}]},
+    )
+    assert response.status_code == 200
+
+    with sqlite3.connect(tmp_path / "memory.sqlite3") as connection:
+        stored = connection.execute(
+            "SELECT value FROM memories WHERE memory_key = 'favorite_color'"
+        ).fetchone()[0]
+    assert stored.startswith(memory._MEMORY_CIPHER_PREFIX)
+    assert "private-blue-value" not in stored
+
+    read = client.get(f"/v1/memory/{MEMORY_A}")
+    assert read.status_code == 200
+    assert read.json()["entries"][0]["value"] == "private-blue-value"
+
+
+def test_memory_migrates_legacy_plaintext_rows_once(monkeypatch, tmp_path):
+    _configure(monkeypatch, tmp_path)
+    identity_hash = memory._identity_hash(MEMORY_A)
+    db_path = tmp_path / "memory.sqlite3"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """CREATE TABLE memories (
+                identity_hash TEXT NOT NULL,
+                memory_key TEXT NOT NULL,
+                category TEXT NOT NULL,
+                value TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (identity_hash, memory_key)
+            )"""
+        )
+        connection.execute(
+            "INSERT INTO memories VALUES (?, ?, ?, ?, ?, ?)",
+            (identity_hash, "legacy_note", "profile", "legacy-private-value", "2026-01-01T00:00:00+00:00", "2026-01-01T00:00:00+00:00"),
+        )
+
+    entries = memory._read(identity_hash)
+    assert entries[0].value == "legacy-private-value"
+
+    with sqlite3.connect(db_path) as connection:
+        stored = connection.execute("SELECT value FROM memories WHERE memory_key = 'legacy_note'").fetchone()[0]
+        version = connection.execute(
+            "SELECT metadata_value FROM memory_metadata WHERE metadata_key = 'encryption_version'"
+        ).fetchone()[0]
+    assert stored.startswith(memory._MEMORY_CIPHER_PREFIX)
+    assert "legacy-private-value" not in stored
+    assert version == "1"
