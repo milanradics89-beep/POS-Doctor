@@ -284,3 +284,30 @@ def test_memory_legacy_migration_is_safe_under_concurrent_reads(monkeypatch, tmp
             "SELECT metadata_value FROM memory_metadata WHERE metadata_key = 'encryption_version'"
         ).fetchone()[0]
     assert version == "1"
+
+
+
+def test_memory_migrates_legacy_values_that_start_with_enc_prefix(monkeypatch, tmp_path):
+    _configure(monkeypatch, tmp_path)
+    identity_hash = memory._identity_hash(MEMORY_A)
+    db_path = tmp_path / "memory.sqlite3"
+    legacy_value = "enc: this is ordinary user text"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """CREATE TABLE memories (
+                identity_hash TEXT NOT NULL,
+                memory_key TEXT NOT NULL,
+                category TEXT NOT NULL,
+                value TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (identity_hash, memory_key)
+            )"""
+        )
+        connection.execute(
+            "INSERT INTO memories VALUES (?, ?, ?, ?, ?, ?)",
+            (identity_hash, "legacy_note", "profile", legacy_value, "2026-01-01T00:00:00+00:00", "2026-01-01T00:00:00+00:00"),
+        )
+
+    entries = memory._read(identity_hash)
+    assert entries[0].value == legacy_value
