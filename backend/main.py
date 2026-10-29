@@ -214,7 +214,14 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             raise HTTPException(status_code=401, detail="wrong_provider")
         if configured_attestation_app_id() and evidence.app_id != configured_attestation_app_id():
             raise HTTPException(status_code=401, detail="wrong_app")
-        provider_result = await verify_attestation_provider(evidence)
+        try:
+            provider_result = await verify_attestation_provider(evidence)
+        except (RedisError, TimeoutError) as exc:
+            logger.warning("App Attest verification storage is unavailable")
+            raise HTTPException(
+                status_code=503,
+                detail="Attestation verification service is temporarily unavailable.",
+            ) from exc
         result = evaluate_attestation(evidence, provider_result, mode)
         if not result.verified:
             status_code = 503 if result.reason == "provider_unavailable" else 401
