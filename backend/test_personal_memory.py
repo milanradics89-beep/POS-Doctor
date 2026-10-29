@@ -1,3 +1,7 @@
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from backend.main import app
@@ -108,6 +112,7 @@ def test_memory_fails_closed_with_weak_secret(monkeypatch, tmp_path):
     response = client.get(f"/v1/memory/{MEMORY_A}")
     assert response.status_code == 503
 
+
 def test_memory_capacity_check_takes_write_lock_before_count(monkeypatch, tmp_path):
     _configure(monkeypatch, tmp_path)
     statements = []
@@ -135,3 +140,38 @@ def test_memory_capacity_check_takes_write_lock_before_count(monkeypatch, tmp_pa
     count_index = next(i for i, statement in enumerate(statements) if statement.startswith("SELECT COUNT(*)"))
     assert begin_index < count_index
 
+
+def test_memory_capacity_limit_holds_under_concurrent_writes(monkeypatch, tmp_path):
+    _configure(monkeypatch, tmp_path)
+    identity_hash = memory._identity_hash(MEMORY_A)
+
+    # Leave exactly one slot. Separate batches keep setup realistic while
+    # avoiding the API's per-request limit of 20 entries.
+    for start in range(0, memory.MAX_ENTRIES - 1, 20):
+        entries = [
+            memory.MemoryEntry(key=f"seed_{index}", value="value", category="profile")
+            for index in range(start, min(start + 20, memory.MAX_ENTRIES - 1))
+        ]
+        memory._upsert(identity_hash, entries)
+
+    barrier = Barrier(2)
+
+    def insert(key: str) -> str:
+        barrier.wait(timeout=5)
+        try:
+            memory._upsert(identity_hash, [memory.MemoryEntry(key=key, value="value", category="profile")])
+            return "stored"
+        except HTTPException as exc:
+            if exc.status_code == 422:
+                return "capacity"
+            raise
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        outcomes = [
+            executor.submit(insert, "concurrent_a"),
+            executor.submit(insert, "concurrent_b"),
+        ]
+        results = [future.result(timeout=10) for future in outcomes]
+
+    assert sorted(results) == ["capacity", "stored"]
+    assert len(memory._read(identity_hash)) == memory.MAX_ENTRIES
