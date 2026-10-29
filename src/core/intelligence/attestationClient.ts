@@ -16,10 +16,12 @@ type ChallengeResponse = {
 
 const cachedSessions = new Map<string, SessionResponse>();
 const pendingSessions = new Map<string, Promise<string>>();
+let sessionCacheGeneration = 0;
 
 export async function getSessionToken(baseUrl: string, apiKey?: string): Promise<string> {
   if (apiKey?.trim()) return '';
   const base = normalizeApiBaseUrl(baseUrl);
+  const generation = sessionCacheGeneration;
   const now = Math.floor(Date.now() / 1000);
   const cached = cachedSessions.get(base);
   if (cached && cached.expiresAt - now > 30) {
@@ -30,14 +32,14 @@ export async function getSessionToken(baseUrl: string, apiKey?: string): Promise
   const pending = pendingSessions.get(base);
   if (pending) return pending;
 
-  const request = createSession(base).finally(() => {
+  const request = createSession(base, generation).finally(() => {
     if (pendingSessions.get(base) === request) pendingSessions.delete(base);
   });
   pendingSessions.set(base, request);
   return request;
 }
 
-async function createSession(base: string): Promise<string> {
+async function createSession(base: string, generation: number): Promise<string> {
   const headers = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -50,7 +52,7 @@ async function createSession(base: string): Promise<string> {
   });
 
   if (direct.ok) {
-    return cacheSession(await parseSession(direct), base);
+    return cacheSession(await parseSession(direct), base, generation);
   }
 
   // Development deployments may intentionally leave session authentication disabled.
@@ -125,7 +127,7 @@ async function createSession(base: string): Promise<string> {
     nativeModule.default.markKeyAttested(keyId);
   }
 
-  return cacheSession(await parseSession(attested), base);
+  return cacheSession(await parseSession(attested), base, generation);
 }
 
 async function parseSession(response: Response): Promise<SessionResponse> {
@@ -157,11 +159,17 @@ async function safeErrorDetail(response: Response): Promise<string> {
   }
 }
 
-function cacheSession(session: SessionResponse, base: string): string {
-  cachedSessions.set(base, session);
+function cacheSession(session: SessionResponse, base: string, generation: number): string {
+  // A response started before clearSessionToken() must not repopulate the cache
+  // after credentials have been invalidated.
+  if (generation === sessionCacheGeneration) {
+    cachedSessions.set(base, session);
+  }
   return session.accessToken;
 }
 
 export function clearSessionToken(): void {
+  sessionCacheGeneration += 1;
   cachedSessions.clear();
+  pendingSessions.clear();
 }
