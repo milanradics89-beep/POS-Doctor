@@ -173,9 +173,11 @@ async def test_google_verifier_rejects_malformed_device_verdict_list(monkeypatch
 
 
 @pytest.mark.asyncio
-async def test_google_verifier_rejects_non_finite_timestamp(monkeypatch):
+async def test_google_verifier_rejects_out_of_range_timestamp(monkeypatch):
     monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
-    payload = make_payload("challenge", now_ms=float("inf"))
+    # A very large JSON integer is representable in JSON, but cannot be safely
+    # converted to the float seconds used for age calculation.
+    payload = make_payload("challenge", now_ms=10**400)
     transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
     async with httpx.AsyncClient(transport=transport) as client:
         verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
