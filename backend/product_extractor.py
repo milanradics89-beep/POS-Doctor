@@ -49,11 +49,29 @@ def _json_objects(raw: str) -> list[Any]:
     return [value]
 
 def _schema_type_name(value: Any) -> str:
-    """Normalize both compact and URL-form Schema.org @type values."""
+    """Accept compact product types or canonical Schema.org type IRIs only."""
     if not isinstance(value, str):
         return ""
-    normalized = value.strip().rstrip("/").lower()
-    return normalized.rsplit("/", 1)[-1].rsplit("#", 1)[-1]
+    normalized = value.strip().lower()
+    if normalized in {"product", "productgroup"}:
+        return normalized
+
+    try:
+        parsed = urlparse(value.strip())
+    except ValueError:
+        return ""
+    if (
+        parsed.scheme.lower() not in {"http", "https"}
+        or parsed.netloc.lower() != "schema.org"
+        or parsed.query
+    ):
+        return ""
+
+    if parsed.path.lower() in {"/product", "/productgroup"} and not parsed.fragment:
+        return parsed.path.rsplit("/", 1)[-1].lower()
+    if parsed.path in {"", "/"} and parsed.fragment.lower() in {"product", "productgroup"}:
+        return parsed.fragment.lower()
+    return ""
 
 
 def _product_objects(parser: _HTMLParser) -> list[dict[str, Any]]:
