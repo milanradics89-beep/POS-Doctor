@@ -49,7 +49,12 @@ def _unb64url(value: str) -> bytes:
     if not value or any(character not in alphabet for character in value):
         raise ValueError("Invalid base64url encoding")
     padded = value + "=" * (-len(value) % 4)
-    return base64.b64decode(padded, altchars=b"-_", validate=True)
+    decoded = base64.b64decode(padded, altchars=b"-_", validate=True)
+    # validate=True rejects non-alphabet characters but Python still accepts
+    # non-zero unused pad bits. Re-encoding closes that canonicality gap.
+    if _b64url(decoded) != value:
+        raise ValueError("Non-canonical base64url encoding")
+    return decoded
 
 
 def issue_session_token(now: int | None = None) -> tuple[str, int]:
