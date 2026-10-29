@@ -241,6 +241,48 @@ def test_challenge_storage_failures_return_service_unavailable(monkeypatch, fail
     "failure",
     [
         RedisError("redis is unavailable"),
+        TimeoutError("challenge storage timed out"),
+    ],
+    ids=["redis", "timeout"],
+)
+def test_session_challenge_storage_failures_return_service_unavailable(monkeypatch, failure):
+    monkeypatch.setattr(
+        main,
+        "validate_challenge_binding_async",
+        AsyncMock(side_effect=failure),
+    )
+    with patch.dict(
+        os.environ,
+        {
+            "USEIT_ENV": "development",
+            "USEIT_REDIS_URL": "",
+            "USEIT_SESSION_SECRET": "s" * 32,
+            "USEIT_ATTESTATION_MODE": "required",
+            "USEIT_ATTESTATION_PROVIDER": "apple_app_attest",
+            "USEIT_ATTESTATION_APP_ID": "TEAM123456.com.useit.app",
+        },
+        clear=False,
+    ):
+        response = client.post(
+            "/v1/session",
+            json={
+                "provider": "apple_app_attest",
+                "challenge": "test-challenge",
+                "assertion": "test-assertion",
+                "appId": "TEAM123456.com.useit.app",
+            },
+        )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "Attestation challenge service is temporarily unavailable."
+    )
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        RedisError("redis is unavailable"),
         TimeoutError("attestation storage timed out"),
     ],
     ids=["redis", "timeout"],
