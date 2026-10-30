@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import io
 import os
 import time
 from dataclasses import dataclass
@@ -104,12 +105,13 @@ def _key_id_bytes(key_id: str) -> bytes:
     return _b64decode(key_id)
 
 
-def _parse_auth_data(auth_data: bytes) -> tuple[bytes, int, bytes]:
+def _parse_auth_data(auth_data: bytes) -> tuple[bytes, int, bytes, dict[Any, Any]]:
     if len(auth_data) < 55:
         raise ValueError("authenticatorData too short")
     # App Attest attestation data must carry the WebAuthn AT (attested
     # credential data) flag before the AAGUID and credential ID fields.
-    if not (auth_data[32] & 0x40):
+    flags = auth_data[32]
+    if not (flags & 0x40):
         raise ValueError("authenticatorData is missing the attested credential data flag")
     rp_id_hash = auth_data[:32]
     counter = int.from_bytes(auth_data[33:37], "big")
@@ -119,7 +121,25 @@ def _parse_auth_data(auth_data: bytes) -> tuple[bytes, int, bytes]:
         raise ValueError("invalid credentialId length")
     if end == len(auth_data):
         raise ValueError("authenticatorData is missing the credential public key")
-    return rp_id_hash, counter, auth_data[55:end]
+
+    # The credential public key is a CBOR COSE_Key immediately following the
+    # credential ID. If the ED flag is set, WebAuthn extension data follows it
+    # as a second CBOR map. Reject malformed and unconsumed trailing bytes.
+    stream = io.BytesIO(auth_data[end:])
+    decoder = cbor2.CBORDecoder(stream)
+    try:
+        credential_public_key = decoder.decode()
+        if flags & 0x80:
+            extensions = decoder.decode()
+            if not isinstance(extensions, dict):
+                raise ValueError("invalid authenticator extensions")
+    except cbor2.CBORDecodeError as exc:
+        raise ValueError("invalid credential public key or authenticator extensions") from exc
+    if not isinstance(credential_public_key, dict):
+        raise ValueError("invalid credential public key")
+    if stream.read(1):
+        raise ValueError("unexpected trailing authenticatorData bytes")
+    return rp_id_hash, counter, auth_data[55:end], credential_public_key
 
 
 def _extension_nonce(cert: x509.Certificate) -> bytes:
@@ -206,6 +226,31 @@ def _validate_aaguid(aaguid: bytes) -> None:
         raise ValueError("development App Attest keys are not allowed in production")
 
 
+def _validate_cose_public_key(cose_key: Any, certificate_public_key: bytes) -> None:
+    # WebAuthn App Attest credentials use an ES256 COSE EC2 key on P-256.
+    # The COSE coordinates must identify the same point as the attestation
+    # certificate's Subject Public Key, not merely be present in authData.
+    if not isinstance(cose_key, dict):
+        raise ValueError("credential public key is not a COSE map")
+    if (
+        type(cose_key.get(1)) is not int
+        or cose_key[1] != 2
+        or type(cose_key.get(3)) is not int
+        or cose_key[3] != -7
+        or type(cose_key.get(-1)) is not int
+        or cose_key[-1] != 1
+    ):
+        raise ValueError("credential public key must be an ES256 P-256 COSE EC2 key")
+    x = cose_key.get(-2)
+    y = cose_key.get(-3)
+    if not isinstance(x, bytes) or len(x) != 32 or not isinstance(y, bytes) or len(y) != 32:
+        raise ValueError("credential public key coordinates are invalid")
+    if len(certificate_public_key) != 65 or certificate_public_key[0] != 0x04:
+        raise ValueError("attestation certificate public key is not an uncompressed P-256 point")
+    if x != certificate_public_key[1:33] or y != certificate_public_key[33:65]:
+        raise ValueError("credential public key does not match the attestation certificate")
+
+
 def _verify_attestation(evidence: AttestationEvidence) -> AppleAttestKey:
     payload = _b64decode(evidence.assertion)
     obj = cbor2.loads(payload)
@@ -227,7 +272,7 @@ def _verify_attestation(evidence: AttestationEvidence) -> AppleAttestKey:
     if _extension_nonce(leaf) != nonce:
         raise ValueError("Apple App Attest nonce mismatch")
 
-    rp_id_hash, counter, credential_id = _parse_auth_data(auth_data)
+    rp_id_hash, counter, credential_id, credential_public_key = _parse_auth_data(auth_data)
     expected_rp = hashlib.sha256(evidence.app_id.encode()).digest()
     if rp_id_hash != expected_rp:
         raise ValueError("Apple App Attest RP ID mismatch")
@@ -241,6 +286,7 @@ def _verify_attestation(evidence: AttestationEvidence) -> AppleAttestKey:
     public_key = _raw_public_key(leaf)
     if hashlib.sha256(public_key).digest() != credential_id:
         raise ValueError("Apple App Attest public key hash mismatch")
+    _validate_cose_public_key(credential_public_key, public_key)
     _validate_aaguid(auth_data[37:53])
     return AppleAttestKey(key_id=evidence.key_id, public_key_der=leaf.public_bytes(Encoding.DER), counter=counter)
 

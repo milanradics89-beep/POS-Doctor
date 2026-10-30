@@ -16,6 +16,7 @@ from backend.apple_app_attest import (
     _key_id_bytes,
     _extension_nonce,
     _parse_auth_data,
+    _validate_cose_public_key,
     _validate_aaguid,
     root_certificate_fingerprint,
     AppleAttestKey,
@@ -46,11 +47,13 @@ def test_authenticator_data_parser_extracts_counter_and_credential_id():
     counter = (7).to_bytes(4, "big")
     aaguid = b"appattest" + b"\x00" * 7
     credential = b"\x02" * 32
-    payload = rp + flags + counter + aaguid + len(credential).to_bytes(2, "big") + credential + b"\xa1\x01\x02"
-    parsed_rp, parsed_counter, parsed_credential = _parse_auth_data(payload)
+    cose_key = {1: 2, 3: -7, -1: 1, -2: b"x" * 32, -3: b"y" * 32}
+    payload = rp + flags + counter + aaguid + len(credential).to_bytes(2, "big") + credential + cbor2.dumps(cose_key)
+    parsed_rp, parsed_counter, parsed_credential, parsed_cose_key = _parse_auth_data(payload)
     assert parsed_rp == rp
     assert parsed_counter == 7
     assert parsed_credential == credential
+    assert parsed_cose_key == cose_key
 
 
 def test_authenticator_data_parser_rejects_missing_attested_credential_flag():
@@ -75,6 +78,21 @@ def test_authenticator_data_parser_rejects_missing_credential_public_key():
         _parse_auth_data(payload)
 
 
+def test_authenticator_data_parser_rejects_malformed_or_trailing_cose_data():
+    rp = b"\x01" * 32
+    flags = b"\x41"
+    counter = (0).to_bytes(4, "big")
+    aaguid = b"appattest" + b"\x00" * 7
+    credential = b"\x02" * 32
+    prefix = rp + flags + counter + aaguid + len(credential).to_bytes(2, "big") + credential
+
+    with pytest.raises(ValueError, match="invalid credential public key"):
+        _parse_auth_data(prefix + cbor2.dumps([1, 2]))
+    valid_cose_key = cbor2.dumps({1: 2, 3: -7, -1: 1, -2: b"x" * 32, -3: b"y" * 32})
+    with pytest.raises(ValueError, match="trailing"):
+        _parse_auth_data(prefix + valid_cose_key + b"\x00")
+
+
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, PublicFormat
@@ -83,6 +101,47 @@ from cryptography import x509
 from datetime import datetime, timedelta, timezone
 
 from backend.apple_app_attest import AppleAppAttestVerifier, _MEMORY_KEYS
+
+
+def test_cose_public_key_must_match_attestation_certificate_key():
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    raw_public_key = private_key.public_key().public_bytes(
+        Encoding.X962,
+        PublicFormat.UncompressedPoint,
+    )
+    cose_key = {
+        1: 2,
+        3: -7,
+        -1: 1,
+        -2: raw_public_key[1:33],
+        -3: raw_public_key[33:65],
+    }
+
+    _validate_cose_public_key(cose_key, raw_public_key)
+
+    other_key = ec.generate_private_key(ec.SECP256R1()).public_key().public_bytes(
+        Encoding.X962,
+        PublicFormat.UncompressedPoint,
+    )
+    with pytest.raises(ValueError, match="does not match"):
+        _validate_cose_public_key(cose_key, other_key)
+
+
+@pytest.mark.parametrize(
+    "invalid_cose_key",
+    [
+        {1: 3, 3: -7, -1: 1, -2: b"x" * 32, -3: b"y" * 32},
+        {1: 2, 3: -8, -1: 1, -2: b"x" * 32, -3: b"y" * 32},
+        {1: 2, 3: -7, -1: 2, -2: b"x" * 32, -3: b"y" * 32},
+        {1: 2, 3: -7, -1: 1, -2: b"x" * 31, -3: b"y" * 32},
+        {1: 2, 3: -7, -1: 1, -2: b"x" * 32, -3: "not-bytes"},
+    ],
+)
+def test_cose_public_key_rejects_invalid_parameters(invalid_cose_key):
+    with pytest.raises(ValueError):
+        _validate_cose_public_key(invalid_cose_key, b"\x04" + b"\x00" * 64)
+
+
 from backend.attestation import AttestationEvidence, AttestationProvider
 
 
