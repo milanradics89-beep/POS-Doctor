@@ -24,16 +24,19 @@ function sessionAuthEligible(input: RequestInfo | URL, init: RequestInit): URL |
   return url;
 }
 
-async function obtainSession(url: URL, forceRefresh = false): Promise<SessionState | null> {
+async function obtainSession(url: URL, forceRefresh = false, timeoutMs = 10_000): Promise<SessionState | null> {
   const now = Date.now();
   if (!forceRefresh && sessionState && sessionState.expiresAt > now + 30_000) return sessionState;
   if (sessionPromise) return sessionPromise;
 
   sessionPromise = (async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), Math.min(30_000, Math.max(1_000, timeoutMs)));
     try {
       const response = await fetch(new URL('/v1/session', url.origin), {
         method: 'POST',
         headers: { Accept: 'application/json' },
+        signal: controller.signal,
       });
       if (!response.ok) return null;
       const payload: unknown = await response.json();
@@ -45,6 +48,7 @@ async function obtainSession(url: URL, forceRefresh = false): Promise<SessionSta
     } catch {
       return null;
     } finally {
+      clearTimeout(timer);
       sessionPromise = null;
     }
   })();
@@ -75,14 +79,14 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
     try {
       let requestInit = init;
       if (sessionUrl) {
-        const session = await obtainSession(sessionUrl);
+        const session = await obtainSession(sessionUrl, false, timeoutMs);
         if (session) requestInit = withSessionHeader(init, session.token);
       }
       const response = await fetch(input, { ...requestInit, signal: controller.signal });
 
       if (response.status === 401 && sessionUrl) {
         sessionState = null;
-        const refreshed = await obtainSession(sessionUrl, true);
+        const refreshed = await obtainSession(sessionUrl, true, timeoutMs);
         if (refreshed) {
           const retryController = new AbortController();
           const retryTimer = setTimeout(() => retryController.abort(), timeoutMs);
