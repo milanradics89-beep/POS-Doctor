@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createPreferencesStore, type PreferencesStorage } from './profilePreferencesStore';
+import { createProfilePreferencesController } from './profilePreferencesController';
 import { DEFAULT_PROFILE_PREFERENCES, type ProfilePreferences } from './profilePreferences';
 
 function createMemoryStorage(): PreferencesStorage {
@@ -22,6 +23,39 @@ describe('profile preferences store', () => {
     const value: ProfilePreferences = { personalizedIdeas: false, productSuggestions: true, saveHistory: true };
     await store.write(value);
     await expect(store.read()).resolves.toEqual(value);
+  });
+
+
+  it('publishes preference changes to every mounted screen and persists them', async () => {
+    const storage = createMemoryStorage();
+    const controller = createProfilePreferencesController(storage, 'prefs');
+    let observed = controller.getSnapshot();
+    const unsubscribe = controller.subscribe(() => {
+      observed = controller.getSnapshot();
+    });
+
+    await controller.hydrate();
+    controller.updatePreference('productSuggestions', false);
+    expect(observed.preferences.productSuggestions).toBe(false);
+    await controller.flush();
+
+    const saved = JSON.parse((await storage.getItem('prefs')) || '{}') as ProfilePreferences;
+    expect(saved.productSuggestions).toBe(false);
+    unsubscribe();
+  });
+
+  it('serializes rapid preference changes without losing earlier fields', async () => {
+    const storage = createMemoryStorage();
+    const controller = createProfilePreferencesController(storage, 'prefs');
+    await controller.hydrate();
+
+    controller.updatePreference('personalizedIdeas', false);
+    controller.updatePreference('productSuggestions', false);
+    await controller.flush();
+
+    const saved = JSON.parse((await storage.getItem('prefs')) || '{}') as ProfilePreferences;
+    expect(saved.personalizedIdeas).toBe(false);
+    expect(saved.productSuggestions).toBe(false);
   });
 
   it('does not accept non-boolean values for preference flags', async () => {
