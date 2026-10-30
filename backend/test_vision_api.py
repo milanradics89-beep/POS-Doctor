@@ -1,4 +1,5 @@
 import json
+import logging
 
 import pytest
 from fastapi import HTTPException
@@ -17,7 +18,10 @@ class FakeCompletions:
         return type(
             "Response",
             (),
-            {"choices": [type("Choice", (), {"message": type("Message", (), {"content": self.content})()})()]},
+            {
+                "choices": [type("Choice", (), {"message": type("Message", (), {"content": self.content})()})()],
+                "usage": type("Usage", (), {"prompt_tokens": 120, "completion_tokens": 80, "total_tokens": 200})(),
+            },
         )()
 
 
@@ -126,6 +130,28 @@ async def test_analyze_surfaces_missing_vision_configuration(monkeypatch):
     assert exc.value.status_code == 503
 
 
+
+
+@pytest.mark.asyncio
+async def test_analyze_logs_token_usage_without_logging_user_content(monkeypatch, caplog):
+    fake = FakeClient(json.dumps(valid_scene()))
+    monkeypatch.setattr(main, "_get_client", lambda: fake)
+
+    with caplog.at_level(logging.INFO, logger="useit"):
+        await _analyze(
+            AnalyzeRequest(
+                imageUri="data:image/jpeg;base64," + ("PRIVATE_IMAGE_SENTINEL" * 4),
+                userIntent="PRIVATE_INTENT_SENTINEL",
+                locale="hu-HU",
+            )
+        )
+
+    assert "vision_usage" in caplog.text
+    assert '"promptTokens": 120' in caplog.text
+    assert '"completionTokens": 80' in caplog.text
+    assert '"totalTokens": 200' in caplog.text
+    assert "PRIVATE_IMAGE_SENTINEL" not in caplog.text
+    assert "PRIVATE_INTENT_SENTINEL" not in caplog.text
 
 def test_image_request_accepts_public_http_url_after_public_host_validation(monkeypatch):
     monkeypatch.setattr(main, "validate_public_http_url", lambda value: value)
