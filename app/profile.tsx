@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -6,12 +6,12 @@ import { useProfilePreferences } from '../src/ui/useProfilePreferences';
 import { BrandMark, FadeIn, SectionHeader } from '../src/ui/components';
 import { theme } from '../src/ui/theme';
 
-type PreferenceRowProps = { title: string; description: string; value: boolean; onValueChange: (value: boolean) => void };
-function PreferenceRow({ title, description, value, onValueChange }: PreferenceRowProps) {
+type PreferenceRowProps = { title: string; description: string; value: boolean; onValueChange: (value: boolean) => void; disabled?: boolean };
+function PreferenceRow({ title, description, value, onValueChange, disabled = false }: PreferenceRowProps) {
   return (
     <View style={styles.preferenceRow}>
       <View style={styles.preferenceCopy}><Text style={styles.preferenceTitle}>{title}</Text><Text style={styles.preferenceDescription}>{description}</Text></View>
-      <Switch value={value} onValueChange={onValueChange} trackColor={{ false: theme.colors.line, true: theme.colors.accentDark }} thumbColor={theme.colors.surface} />
+      <Switch disabled={disabled} value={value} onValueChange={onValueChange} trackColor={{ false: theme.colors.line, true: theme.colors.accentDark }} thumbColor={theme.colors.surface} />
     </View>
   );
 }
@@ -40,11 +40,11 @@ export default function ProfileScreen() {
 
           <SectionHeader eyebrow="YOUR PREFERENCES" detail="CONTROL YOUR EXPERIENCE" />
           <View style={styles.card}>
-            <PreferenceRow title="Personalized ideas" description="Use your selected preferences to shape suggestions." value={preferences.personalizedIdeas} onValueChange={(value) => updatePreference('personalizedIdeas', value)} />
+            <PreferenceRow title="Personalized ideas" description="Use your selected intent to make each recommendation more relevant." value={preferences.personalizedIdeas} onValueChange={(value) => updatePreference('personalizedIdeas', value)} />
             <View style={styles.separator} />
-            <PreferenceRow title="Product suggestions" description="Include relevant products when they add real value." value={preferences.productSuggestions} onValueChange={(value) => updatePreference('productSuggestions', value)} />
+            <PreferenceRow title="Product suggestions" description="Show matching products alongside practical ideas." value={preferences.productSuggestions} onValueChange={(value) => updatePreference('productSuggestions', value)} />
             <View style={styles.separator} />
-            <PreferenceRow title="Save my activity" description="Keep a history of analyses on this device." value={preferences.saveHistory} onValueChange={(value) => updatePreference('saveHistory', value)} />
+            <PreferenceRow title="Activity history" description="Coming soon. Analyses are not saved in this release." value={false} onValueChange={() => undefined} disabled />
           </View>
           <Text style={styles.preferenceFootnote}>{hydrated ? 'Preferences are saved locally on this device. Account sync is not enabled.' : 'Loading your preferences…'}</Text>
           {error ? <Text accessibilityRole="alert" style={styles.saveError}>{error}</Text> : null}
