@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from redis.exceptions import RedisError
 
 from backend.api_auth import issue_session_token, verify_session_token
-from backend.attestation import issue_challenge
+from backend.attestation import AttestationChallenge, AttestationProvider, issue_challenge
 import backend.main as main
 from backend.main import app
 
@@ -326,20 +326,26 @@ def test_attestation_verifier_storage_failures_return_service_unavailable(monkey
 
 
 def test_attestation_challenge_bootstrap_is_public_when_api_key_is_configured(monkeypatch):
-    challenge = {
-        "challenge": "c" * 43,
-        "provider": "apple_app_attest",
-        "appId": "TEAM123456.com.useit.app",
-        "expiresAt": 2_000_000_000,
-    }
+    challenge = AttestationChallenge(
+        challenge="c" * 43,
+        provider=AttestationProvider.APP_ATTEST,
+        app_id="TEAM123456.com.useit.app",
+        expires_at=2_000_000_000,
+    )
     monkeypatch.setenv("USEIT_API_KEY", "server-only-api-key")
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
     monkeypatch.setenv("USEIT_REDIS_URL", "redis://unused")
-    monkeypatch.setattr(main, "issue_challenge_async", AsyncMock(return_value=Mock(**challenge)))
+    monkeypatch.setattr(main, "issue_challenge_async", AsyncMock(return_value=challenge))
 
     response = client.post("/v1/session/challenge")
 
     assert response.status_code == 200
-    assert response.json() == challenge
+    assert response.json() == {
+        "challenge": challenge.challenge,
+        "provider": AttestationProvider.APP_ATTEST.value,
+        "appId": challenge.app_id,
+        "expiresAt": challenge.expires_at,
+    }
     assert response.headers["cache-control"] == "no-store"
+    assert response.headers["pragma"] == "no-cache"
