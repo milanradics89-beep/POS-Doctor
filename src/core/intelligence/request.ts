@@ -63,8 +63,12 @@ async function obtainSession(url: URL, forceRefresh = false, timeoutMs = 10_000)
   return sessionPromise;
 }
 
-function withSessionHeader(init: RequestInit, token: string): RequestInit {
-  const headers = new Headers(init.headers);
+function withSessionHeader(input: RequestInfo | URL, init: RequestInit, token: string): RequestInit {
+  const request = typeof Request !== 'undefined' && input instanceof Request ? input : null;
+  // When init.headers is omitted, Fetch inherits the Request headers. Preserve
+  // them while adding the session token instead of replacing them with a
+  // one-header object. Explicit init.headers still replaces Request headers.
+  const headers = new Headers(init.headers ?? request?.headers);
   headers.set('Authorization', `Bearer ${token}`);
   return { ...init, headers };
 }
@@ -88,7 +92,7 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
       let requestInit = init;
       if (sessionUrl) {
         const session = await obtainSession(sessionUrl, false, timeoutMs);
-        if (session) requestInit = withSessionHeader(init, session.token);
+        if (session) requestInit = withSessionHeader(input, init, session.token);
       }
       const response = await fetch(input, { ...requestInit, signal: controller.signal });
 
@@ -99,7 +103,7 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
           const retryController = new AbortController();
           const retryTimer = setTimeout(() => retryController.abort(), timeoutMs);
           try {
-            return await fetch(input, { ...withSessionHeader(init, refreshed.token), signal: retryController.signal });
+            return await fetch(input, { ...withSessionHeader(input, init, refreshed.token), signal: retryController.signal });
           } finally {
             clearTimeout(retryTimer);
           }

@@ -121,6 +121,35 @@ describe('fetchWithPolicy', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('preserves Request headers when adding session auth without init headers', async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        accessToken: 'session-token',
+        expiresAt,
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response('{}', { status: 200 }));
+    const request = new Request('https://example.test/v1/action', {
+      headers: {
+        Accept: 'application/json',
+        'X-Trace-ID': 'trace-123',
+      },
+    });
+
+    const response = await fetchWithPolicy(request, {}, { attempts: 1, baseDelayMs: 0 });
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[0][0])).toBe('https://example.test/v1/session');
+    const outgoingHeaders = new Headers(fetchMock.mock.calls[1][1]?.headers);
+    expect(outgoingHeaders.get('Authorization')).toBe('Bearer session-token');
+    expect(outgoingHeaders.get('Accept')).toBe('application/json');
+    expect(outgoingHeaders.get('X-Trace-ID')).toBe('trace-123');
+  });
+
   it('does not trust Request credentials when init.headers replaces them', async () => {
     const expiresAt = Math.floor(Date.now() / 1000) + 3600;
     const fetchMock = vi.spyOn(globalThis, 'fetch')
@@ -144,7 +173,7 @@ describe('fetchWithPolicy', () => {
 
     expect(response.status).toBe(503);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0][0]).toBe('https://example.test/v1/session');
+    expect(String(fetchMock.mock.calls[0][0])).toBe('https://example.test/v1/session');
     expect(fetchMock.mock.calls[1][0]).toBe(request);
     const outgoingHeaders = new Headers(fetchMock.mock.calls[1][1]?.headers);
     expect(outgoingHeaders.get('Authorization')).toBe('Bearer session-token');
