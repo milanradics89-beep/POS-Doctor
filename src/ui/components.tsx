@@ -32,7 +32,7 @@ export function ProductCard({ title, category, source, price, onPress }: {
       </View>
       <View style={styles.productPrice}>
         {typeof price === 'number' ? <Text style={styles.price}>{price.toLocaleString('hu-HU')} Ft</Text> : null}
-        <Text style={styles.link}>VIEW ↗</Text>
+        {onPress ? <Text style={styles.link}>VIEW ↗</Text> : <Text style={styles.unavailable}>DETAILS UNAVAILABLE</Text>}
       </View>
     </Pressable>
   );
@@ -81,6 +81,7 @@ const styles = StyleSheet.create({
   productPrice: { alignItems: 'flex-end' },
   price: { color: theme.colors.ink, fontSize: 11, fontWeight: '900' },
   link: { color: theme.colors.accentDark, fontSize: 8, fontWeight: '900', letterSpacing: 0.8, marginTop: 5 },
+  unavailable: { color: theme.colors.subtle, fontSize: 7, fontWeight: '800', letterSpacing: 0.35, marginTop: 5 },
   pressed: { opacity: 0.76, transform: [{ scale: 0.99 }] },
   statePanel: { alignItems: 'center', padding: 24, borderRadius: 22, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line },
   errorPanel: { backgroundColor: '#FBF1EE', borderColor: '#EED8D2' },
