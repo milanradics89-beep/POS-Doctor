@@ -2,6 +2,16 @@
 
 Complete this record before promoting a build beyond internal testing. Do not enter secrets, raw attestation payloads, personal data, or bearer tokens.
 
+## Latest fully validated CI baseline (not a production sign-off)
+
+Last fully validated source commit before the bounded-attestation-timeout follow-up: `dba16ec4dac65e31370c641389e374fa361fad76`.
+
+- [Validation run 41127335652](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41127335652): frontend, Android Release/emulator, iOS Release/simulator, backend with Redis 7.4, production-readiness checks and runtime/dependency audits passed.
+- [CodeQL run 41127335666](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41127335666): passed.
+- [Dependency Review run 41127335640](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41127335640): passed with 1 unknown-license warning and 2 OpenSSF Scorecard warnings.
+
+The follow-up commit adds bounded attestation HTTP deadlines and timeout/recovery tests. These links do not validate that later SHA; record its own completed runs before release. CI simulator/emulator results do not satisfy physical-device attestation, production configuration, backup/restore, pilot, or approval gates.
+
 ## Release identity
 
 - [ ] Release version:

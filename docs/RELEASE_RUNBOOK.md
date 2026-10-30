@@ -13,7 +13,7 @@ For the exact commit intended for release, require all of the following to pass:
 - [ ] Backend compilation, full backend test suite, production-readiness checks, and dependency audit.
 - [ ] Runtime JavaScript dependency audit at high severity or above.
 - [ ] Client automatic retries are restricted to safe HTTP methods; do not enable POST retries until the backend provides and tests idempotency-key enforcement.
-- [ ] Client attestation session/challenge/submission requests have explicit bounded deadlines, with regression tests for aborts and same-evidence recovery after network loss.
+- [ ] Client attestation session/challenge/submission requests use a 10-second AbortController-backed deadline, with regression tests for aborts and exact same-evidence recovery after a timed-out submission.
 - [ ] CodeQL and dependency-review checks.
 - [ ] Review all remaining PR comments and verify that each security finding is fixed or explicitly accepted by the project owner.
 

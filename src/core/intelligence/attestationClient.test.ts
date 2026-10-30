@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+async function flushMicrotasks(): Promise<void> {
+  for (let index = 0; index < 24; index += 1) await Promise.resolve();
+}
+
 describe('attestationClient session cache', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -16,6 +20,7 @@ describe('attestationClient session cache', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.doUnmock('../../../modules/useit-app-attest');
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
@@ -620,6 +625,116 @@ describe('attestationClient session cache', () => {
     expect(nativeModule.attest).toHaveBeenNthCalledWith(2, 'same-server-challenge', 'same-apple-key');
     expect(nativeModule.discardKey).not.toHaveBeenCalled();
     expect(nativeModule.markKeyAttested).toHaveBeenCalledWith('same-apple-key');
+  });
+
+
+  it('aborts session bootstrap after the attestation request deadline', async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      signal = init?.signal as AbortSignal;
+      return new Promise<Response>(() => undefined);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    const pending = getSessionToken('https://api-a.example');
+    await flushMicrotasks();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await expect(pending).rejects.toThrow('USEIT attestation request timed out.');
+    expect(signal?.aborted).toBe(true);
+  });
+
+  it('aborts attestation challenge requests after the bounded deadline', async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    let challengeSignal: AbortSignal | undefined;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      calls += 1;
+      if (String(input).endsWith('/v1/session')) {
+        return Promise.resolve(new Response(
+          JSON.stringify({ detail: 'attestation_required' }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } },
+        ));
+      }
+      challengeSignal = init?.signal as AbortSignal;
+      return new Promise<Response>(() => undefined);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    const pending = getSessionToken('https://api-a.example');
+    await flushMicrotasks();
+
+    expect(calls).toBe(2);
+    expect(challengeSignal).toBeDefined();
+    await vi.advanceTimersByTimeAsync(10_000);
+    await expect(pending).rejects.toThrow('USEIT attestation request timed out.');
+    expect(challengeSignal?.aborted).toBe(true);
+  });
+
+  it('aborts a timed-out attestation submission and retries the exact same evidence once', async () => {
+    vi.useFakeTimers();
+    const nativeModule = {
+      isAvailable: vi.fn(() => true),
+      isKeyAttestationPending: vi.fn(() => false),
+      markKeyAttestationPending: vi.fn(),
+      markKeyAttested: vi.fn(),
+      getOrCreateKeyId: vi.fn(async () => 'apple-key-id'),
+      attest: vi.fn(async () => 'attestation-object'),
+    };
+    vi.doMock('../../../modules/useit-app-attest', () => ({ default: nativeModule }));
+
+    const submittedBodies: string[] = [];
+    const submittedSignals: AbortSignal[] = [];
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/v1/session/challenge')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          challenge: 'deadline-challenge',
+          provider: 'apple_app_attest',
+          appId: 'TEAMID.com.useit.app',
+          expiresAt: Math.floor(Date.now() / 1000) + 300,
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      }
+
+      const body = String(init?.body ?? '{}');
+      if (body === '{}') {
+        return Promise.resolve(new Response(
+          JSON.stringify({ detail: 'attestation_required' }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } },
+        ));
+      }
+
+      submittedBodies.push(body);
+      submittedSignals.push(init?.signal as AbortSignal);
+      if (submittedBodies.length === 1) return new Promise<Response>(() => undefined);
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accessToken: 'session-token-after-timeout-retry',
+        expiresAt: Math.floor(Date.now() / 1000) + 600,
+        expiresIn: 600,
+        tokenType: 'Bearer',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    const pending = getSessionToken('https://api-a.example');
+    await flushMicrotasks();
+
+    expect(submittedBodies).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await expect(pending).resolves.toBe('session-token-after-timeout-retry');
+
+    expect(submittedBodies).toHaveLength(2);
+    expect(submittedBodies[1]).toBe(submittedBodies[0]);
+    expect(submittedSignals[0].aborted).toBe(true);
+    expect(submittedSignals[1].aborted).toBe(false);
+    expect(nativeModule.attest).toHaveBeenCalledTimes(1);
+    expect(nativeModule.markKeyAttested).toHaveBeenCalledWith('apple-key-id');
   });
 
 });

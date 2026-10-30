@@ -27,6 +27,35 @@ const cachedSessions = new Map<string, SessionResponse>();
 const pendingSessions = new Map<string, Promise<string>>();
 let sessionCacheGeneration = 0;
 
+const ATTESTATION_REQUEST_TIMEOUT_MS = 10_000;
+
+async function fetchWithAttestationTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+): Promise<Response> {
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutError = new Error('USEIT attestation request timed out.');
+  const deadline = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      controller.abort();
+      reject(timeoutError);
+    }, ATTESTATION_REQUEST_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([
+      fetch(input, { ...init, signal: controller.signal }),
+      deadline,
+    ]);
+  } catch (error) {
+    if (controller.signal.aborted) throw timeoutError;
+    throw error;
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
+}
+
 export async function getSessionToken(baseUrl: string, apiKey?: string): Promise<string> {
   if (apiKey?.trim()) return '';
   const base = normalizeApiBaseUrl(baseUrl);
@@ -54,7 +83,7 @@ async function createSession(base: string, generation: number): Promise<string> 
     'Content-Type': 'application/json',
   };
 
-  const direct = await fetch(`${base}/v1/session`, {
+  const direct = await fetchWithAttestationTimeout(`${base}/v1/session`, {
     method: 'POST',
     headers,
     body: '{}',
@@ -318,7 +347,7 @@ async function requestAttestationChallenge(
   base: string,
   headers: Record<string, string>,
 ): Promise<ChallengeResponse> {
-  const response = await fetch(base + '/v1/session/challenge', {
+  const response = await fetchWithAttestationTimeout(base + '/v1/session/challenge', {
     method: 'POST',
     headers,
   });
@@ -345,7 +374,7 @@ async function submitAttestation(
   keyId?: string,
   clientData?: string,
 ): Promise<Response> {
-  return fetch(base + '/v1/session', {
+  return fetchWithAttestationTimeout(base + '/v1/session', {
     method: 'POST',
     headers,
     body: JSON.stringify({
