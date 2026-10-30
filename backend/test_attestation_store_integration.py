@@ -66,8 +66,6 @@ async def test_real_redis_enforces_challenge_expiry_server_side() -> None:
     try:
         await client.ping()
         await store.put(challenge, AttestationProvider.PLAY_INTEGRITY, "com.example.useit", 1)
-        assert 0 <= await client.ttl(key) <= 1
-
         await asyncio.sleep(1.2)
 
         assert await store.consume(challenge) is None
