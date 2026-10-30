@@ -102,7 +102,7 @@ describe('fetchWithPolicy', () => {
 
     expect(response.status).toBe(503);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(String(fetchMock.mock.calls[0][0])).toBe('https://example.test/v1/action');
+    expect(fetchMock.mock.calls[0][0]).toBe(request);
   });
 
   it('merges Request headers with init headers before session eligibility checks', async () => {
