@@ -321,8 +321,7 @@ export default function Home() {
                 ) : null}
                 <Pressable accessibilityRole="button" onPress={reset} style={s.secondaryButton}><Text style={s.secondaryButtonText}>TRY ANOTHER PHOTO</Text></Pressable>
               </View>
-            ) : (
-              {!preferencesHydrated ? (
+            ) : !preferencesHydrated ? (
                 <View style={s.loadingCard} accessibilityRole="progressbar" accessibilityLabel="Loading saved preferences">
                   <ActivityIndicator size="large" color={theme.colors.ink} />
                   <Text style={s.loadingTitle}>Getting things ready…</Text>
@@ -348,7 +347,6 @@ export default function Home() {
                   )}
                   <Pressable accessibilityRole="button" accessibilityLabel="Use a different photo" onPress={reset} style={s.changePhoto}><Text style={s.changePhotoText}>USE A DIFFERENT PHOTO</Text></Pressable>
                 </View>
-              )}
             )}
           </View>
         )}
