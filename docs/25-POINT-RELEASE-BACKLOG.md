@@ -36,8 +36,8 @@ The validation workflow includes Android release APK build/emulator launch, iOS 
 | 11 | Mobile regression | **In Progress** | Android emulator and iOS simulator smoke tests pass in CI. Full user-flow regression and physical-device coverage are not yet evidenced. |
 | 12 | Camera/image pipeline | **In Progress** | Image validation and bounded request upload are automated. Camera permission, capture quality, memory, and image lifecycle require device-level validation. |
 | 13 | Offline/weak network | **In Progress** | Session recovery work exists; a complete offline/weak-network acceptance matrix and real-device evidence are still needed. |
-| 14 | API timeout/retry | **In Progress** | Backend request/body deadlines and tests exist. Verify client retry policy, idempotency, cancellation, and real network recovery before marking complete. |
-| 15 | Backend load testing | **In Progress** | No reproducible load-test report or agreed capacity threshold is attached yet. |
+| 14 | API timeout/retry | **In Progress** | Backend request/body deadlines exist. Client session bootstrap now has a bounded timeout; automatic retries are limited to safe methods or POSTs carrying an explicit `Idempotency-Key`, with regression tests. Validate cancellation and real network recovery on devices. |
+| 15 | Backend load testing | **In Progress** | Added `scripts/load-test.mjs`: bounded staging probe (1–1,000 requests, concurrency capped at 20), timeout, status distribution, throughput and p50/p95/max latency. No staging run, capacity threshold or signed-off report exists yet. |
 | 16 | Backup/restore | **Blocked** | Requires production datastore/Redis backup access, retention policy, restore target, and a witnessed restore rehearsal. |
 | 17 | AI cost optimization | **In Progress** | Per-session cost is listed as a pilot metric; measured baseline, budgets, and optimization results are not recorded. |
 | 18 | Product recognition accuracy | **Blocked** | Requires a representative, approved, labelled image/product benchmark and agreed precision/recall or task-success thresholds. |
@@ -49,9 +49,17 @@ The validation workflow includes Android release APK build/emulator launch, iOS 
 | 24 | Automated release pipeline | **In Progress** | CI validates builds and tests; signed store artifact publication, environment promotion, and rollback automation are not yet evidenced. |
 | 25 | Pilot/business validation | **Blocked** | Requires an approved pilot cohort, product/business acceptance thresholds, named approvers, and real usage/cost/support evidence. |
 
-## Next engineering action
+## Engineering work started on 2026-10-30
 
-Harden privacy of exception logs. Do not log exception messages or tracebacks from request, vision-provider, or product-discovery failures because upstream exceptions may contain user-supplied data or provider response content. Preserve only the exception class and safe request correlation ID. Add regression tests that deliberately raise exceptions containing sentinel private strings and assert those strings never appear in captured logs.
+- API retry safety: prevent duplicate billable/state-changing POST work by requiring an explicit idempotency key before retrying POST requests; bound session bootstrap time; add regression tests.
+- Load testing: add a bounded, opt-in Node.js harness for staging with explicit POST opt-in and machine-readable latency/status metrics.
+- Privacy: exception-message suppression and sentinel regression tests are present in the current branch; verify them in the current-head CI run.
+
+## Remaining engineering actions
+
+- Validate client cancellation and retry behavior under real network loss.
+- Execute the load harness against an approved staging target and agree capacity thresholds before interpreting results.
+- Continue the UI-state matrix, AI cost measurement, monitoring/alert wiring, and release artifact workflow where repository-only work is possible.
 
 ## Release decision
 
