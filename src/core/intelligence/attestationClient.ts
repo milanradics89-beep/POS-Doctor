@@ -89,18 +89,19 @@ async function createSession(base: string, generation: number): Promise<string> 
     }
 
     keyId = await nativeModule.default.getOrCreateKeyId();
-    let pending: {
+    type PendingAppleAttestation = {
       challenge: string;
       provider: 'apple_app_attest';
       appId: string;
       expiresAt: number;
       attestationObject?: string;
-    } | null = null;
+    };
+    let pending: PendingAppleAttestation | null = null;
     const pendingRaw = nativeModule.default.getPendingAttestation?.(keyId);
     const hasPendingMarker = nativeModule.default.isKeyAttestationPending(keyId);
     if (pendingRaw) {
       try {
-        const parsed = JSON.parse(pendingRaw) as typeof pending;
+        const parsed = JSON.parse(pendingRaw) as PendingAppleAttestation | null;
         if (
           parsed &&
           parsed.provider === 'apple_app_attest' &&
