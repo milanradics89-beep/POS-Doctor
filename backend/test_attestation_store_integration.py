@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import secrets
+import sys
 import uuid
 
 import pytest
@@ -108,8 +109,6 @@ async def test_challenge_lifecycle_uses_configured_shared_redis_and_rejects_repl
 @pytest.mark.asyncio
 async def test_real_redis_challenge_is_single_use_across_separate_backend_processes() -> None:
     """Separate worker processes must observe the same atomic Redis challenge state."""
-    import sys
-
     url = _integration_redis_url()
     parent_client = Redis.from_url(url, decode_responses=False)
     challenge = secrets.token_urlsafe(32)
@@ -144,7 +143,12 @@ asyncio.run(main())
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await process.communicate()
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=15)
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.wait()
+            raise AssertionError("Redis worker process did not finish within 15 seconds")
         assert process.returncode == 0, stderr.decode("utf-8", errors="replace")
         return stdout.decode("utf-8").strip()
 
