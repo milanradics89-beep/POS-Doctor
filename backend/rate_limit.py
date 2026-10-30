@@ -15,6 +15,21 @@ SESSION_CHALLENGE_PATH = "/v1/session/challenge"
 DEFAULT_SESSION_RATE_LIMIT = 10
 MAX_MEMORY_RATE_LIMIT_BUCKETS = 10_000
 
+# INCR and EXPIRE must be atomic. Otherwise a worker crash between the two
+# commands can leave a per-minute bucket without a TTL.
+_REDIS_RATE_LIMIT_INCREMENT_SCRIPT = """
+local current = redis.call('INCR', KEYS[1])
+local ttl = redis.call('TTL', KEYS[1])
+if current == 1 or ttl < 0 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+return current
+"""
+
+
+def _rate_limit_bucket() -> int:
+    return int(time.time() // 60)
+
 
 def configured_rate_limit() -> int:
     try:
@@ -56,12 +71,15 @@ async def _redis_allowed(request: Request, limit: int, namespace: str = "rate") 
     if not url:
         raise RuntimeError("Redis rate limiting requires USEIT_REDIS_URL.")
 
-    client = Redis.from_url(url, decode_responses=True)
-    key = f"useit:{namespace}:{_client_key(request)}:{int(time.time() // 60)}"
+    client = Redis.from_url(
+        url,
+        decode_responses=True,
+        socket_connect_timeout=2.0,
+        socket_timeout=5.0,
+    )
+    key = f"useit:{namespace}:{_client_key(request)}:{_rate_limit_bucket()}"
     try:
-        count = await client.incr(key)
-        if count == 1:
-            await client.expire(key, 61)
+        count = await client.eval(_REDIS_RATE_LIMIT_INCREMENT_SCRIPT, 1, key, 61)
         return int(count) <= limit
     finally:
         await client.aclose()

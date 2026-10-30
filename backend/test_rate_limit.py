@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+import asyncio
+import os
+import uuid
+from collections import deque
+
+import pytest
+import redis.asyncio as redis_asyncio
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-from collections import deque
+from redis.asyncio import Redis
+from starlette.requests import Request
 
 from backend.rate_limit import (
     MAX_MEMORY_RATE_LIMIT_BUCKETS,
     _prune_expired_buckets,
+    _redis_allowed,
     install_rate_limit,
 )
 
@@ -131,3 +139,115 @@ def test_session_challenge_uses_dedicated_lower_rate_limit(monkeypatch):
     response = client.post("/v1/session/challenge")
     assert response.status_code == 429
     assert response.headers["Retry-After"] == "60"
+
+
+
+def _redis_test_request(host: str = "203.0.113.42") -> Request:
+    return Request(
+        {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": "GET",
+            "scheme": "http",
+            "path": "/v1/test",
+            "raw_path": b"/v1/test",
+            "query_string": b"",
+            "headers": [],
+            "client": (host, 12345),
+            "server": ("testserver", 80),
+        }
+    )
+
+
+def _redis_integration_url() -> str:
+    url = os.environ.get("USEIT_TEST_REDIS_URL", "").strip()
+    if not url:
+        pytest.skip("USEIT_TEST_REDIS_URL is not configured; real Redis integration test skipped.")
+    return url
+
+
+@pytest.mark.asyncio
+async def test_redis_rate_limit_uses_atomic_increment_and_bounded_timeouts(monkeypatch):
+    captured = {}
+
+    class FakeRedis:
+        async def eval(self, script, numkeys, key, ttl):
+            captured["script"] = script
+            captured["numkeys"] = numkeys
+            captured["key"] = key
+            captured["ttl"] = ttl
+            return 1
+
+        async def aclose(self):
+            captured["closed"] = True
+
+    def fake_from_url(cls, url, **kwargs):
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        return FakeRedis()
+
+    monkeypatch.setattr(redis_asyncio.Redis, "from_url", classmethod(fake_from_url))
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.example.test:6379/0")
+    monkeypatch.setattr("backend.rate_limit._rate_limit_bucket", lambda: 123456)
+
+    allowed = await _redis_allowed(_redis_test_request(), limit=5, namespace="unit-test")
+
+    assert allowed is True
+    assert captured["url"] == "redis://redis.example.test:6379/0"
+    assert captured["kwargs"] == {
+        "decode_responses": True,
+        "socket_connect_timeout": 2.0,
+        "socket_timeout": 5.0,
+    }
+    assert captured["numkeys"] == 1
+    assert captured["ttl"] == 61
+    assert "redis.call('INCR'" in captured["script"]
+    assert "redis.call('TTL'" in captured["script"]
+    assert "redis.call('EXPIRE'" in captured["script"]
+    assert "ttl < 0" in captured["script"]
+    assert captured["closed"] is True
+
+
+@pytest.mark.asyncio
+async def test_redis_rate_limit_is_atomic_across_independent_clients(monkeypatch):
+    url = _redis_integration_url()
+    namespace = f"test-rate-limit-{uuid.uuid4().hex}"
+    concurrent_namespace = f"{namespace}-concurrent"
+    host = "203.0.113.42"
+    request = _redis_test_request(host)
+    monkeypatch.setenv("USEIT_REDIS_URL", url)
+    monkeypatch.setattr("backend.rate_limit._rate_limit_bucket", lambda: 123456)
+
+    client = Redis.from_url(
+        url,
+        decode_responses=True,
+        socket_connect_timeout=2.0,
+        socket_timeout=5.0,
+    )
+    orphan_key = f"useit:{namespace}:{host}:123456"
+    concurrent_key = f"useit:{concurrent_namespace}:{host}:123456"
+
+    try:
+        await client.ping()
+
+        # Repair a legacy bucket left without expiry by the previous
+        # non-atomic INCR/EXPIRE implementation.
+        await client.incr(orphan_key)
+        assert await client.ttl(orphan_key) == -1
+        assert await _redis_allowed(request, limit=100, namespace=namespace)
+        assert 1 <= await client.ttl(orphan_key) <= 61
+
+        outcomes = await asyncio.gather(
+            *(
+                _redis_allowed(request, limit=7, namespace=concurrent_namespace)
+                for _ in range(32)
+            )
+        )
+
+        assert sum(outcomes) == 7
+        assert await client.get(concurrent_key) == "32"
+        assert 1 <= await client.ttl(concurrent_key) <= 61
+    finally:
+        await client.delete(orphan_key, concurrent_key)
+        await client.aclose()

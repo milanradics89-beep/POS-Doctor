@@ -13,6 +13,7 @@ For the exact commit intended for release, require all of the following to pass:
 - [ ] Backend compilation, full backend test suite, production-readiness checks, and dependency audit.
 - [ ] Runtime JavaScript dependency audit at high severity or above.
 - [ ] Client automatic retries are restricted to safe HTTP methods; do not enable POST retries until the backend provides and tests idempotency-key enforcement.
+- [ ] Client attestation session/challenge/submission requests have explicit bounded deadlines, with regression tests for aborts and same-evidence recovery after network loss.
 - [ ] CodeQL and dependency-review checks.
 - [ ] Review all remaining PR comments and verify that each security finding is fixed or explicitly accepted by the project owner.
 
@@ -47,7 +48,7 @@ For Apple App Attest:
 - Production builds must use the production App Attest entitlement and production AAGUID.
 - Confirm the production Apple Developer capability is enabled for the correct App ID.
 
-For multi-instance deployments, use USEIT_RATE_LIMIT_MODE=redis and a shared Redis instance. Memory-mode rate limiting is process-local and is suitable only for development or a single-instance deployment. Set explicit rate limits and request timeouts based on observed traffic and cost.
+For multi-instance deployments, use USEIT_RATE_LIMIT_MODE=redis and a shared Redis instance. Memory-mode rate limiting is process-local and is suitable only for development or a single-instance deployment. Redis rate-limit increments must be atomic with their TTL assignment; the current implementation uses one Lua operation and explicit 2-second connection / 5-second socket timeouts. If Redis is unavailable, rate limiting fails closed with HTTP 503. Set explicit rate limits and request timeouts based on observed traffic and cost.
 
 ## 3. Mobile release configuration
 
