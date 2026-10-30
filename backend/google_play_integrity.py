@@ -83,7 +83,10 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
         except Exception:
             return AttestationResult(False, "provider_unavailable")
 
-        if response.status_code >= 500:
+        # Authentication, throttling, timeout, and server failures from Google's
+        # decode API are provider-side failures, not evidence that the client token
+        # is invalid. Keep them retryable and surface them as HTTP 503 upstream.
+        if response.status_code in {401, 403, 408, 429} or response.status_code >= 500:
             return AttestationResult(False, "provider_unavailable")
         if response.status_code != 200:
             return AttestationResult(False, "attestation_invalid")
