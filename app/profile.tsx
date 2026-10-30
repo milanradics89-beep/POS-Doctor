@@ -11,7 +11,7 @@ function PreferenceRow({ title, description, value, onValueChange, disabled = fa
   return (
     <View style={styles.preferenceRow}>
       <View style={styles.preferenceCopy}><Text style={styles.preferenceTitle}>{title}</Text><Text style={styles.preferenceDescription}>{description}</Text></View>
-      <Switch disabled={disabled} value={value} onValueChange={onValueChange} trackColor={{ false: theme.colors.line, true: theme.colors.accentDark }} thumbColor={theme.colors.surface} />
+      <Switch accessibilityLabel={title} accessibilityHint={description} disabled={disabled} value={value} onValueChange={onValueChange} trackColor={{ false: theme.colors.line, true: theme.colors.accentDark }} thumbColor={theme.colors.surface} />
     </View>
   );
 }
@@ -46,7 +46,7 @@ export default function ProfileScreen() {
             <View style={styles.separator} />
             <PreferenceRow title="Activity history" description="Coming soon. Analyses are not saved in this release." value={false} onValueChange={() => undefined} disabled />
           </View>
-          <Text style={styles.preferenceFootnote}>{hydrated ? 'Preferences are saved locally on this device. Account sync is not enabled.' : 'Loading your preferences…'}</Text>
+          <Text style={styles.preferenceFootnote}>{error ? 'Device storage is unavailable. Preference changes may not persist.' : hydrated ? 'Preferences are saved locally on this device. Account sync is not enabled.' : 'Loading your preferences…'}</Text>
           {error ? <Text accessibilityRole="alert" style={styles.saveError}>{error}</Text> : null}
 
           <SectionHeader eyebrow="ABOUT USEIT" />

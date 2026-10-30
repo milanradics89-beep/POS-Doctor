@@ -168,7 +168,7 @@ export default function Home() {
             </View>
 
             <Pressable accessibilityRole="button" accessibilityLabel="Take a photo" onPress={capture} style={({ pressed }) => [s.capture, pressed && s.pressed]}>
-              <LinearGradient colors={['#202522', '#111512']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.captureGradient}>
+              <LinearGradient colors={[theme.colors.captureStart, theme.colors.captureEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.captureGradient}>
                 <View style={s.cameraGlyph}><View style={s.cameraLens} /></View>
                 <View style={s.captureCopy}>
                   <Text style={s.captureTitle}>SHOW ME</Text>
@@ -309,7 +309,7 @@ export default function Home() {
                     <Text style={s.modeArrow}>↗</Text>
                   </Pressable>
                 ))}
-                <Pressable onPress={reset} style={s.changePhoto}><Text style={s.changePhotoText}>USE A DIFFERENT PHOTO</Text></Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel="Use a different photo" onPress={reset} style={s.changePhoto}><Text style={s.changePhotoText}>USE A DIFFERENT PHOTO</Text></Pressable>
               </View>
             )}
           </View>
@@ -331,7 +331,7 @@ const s = StyleSheet.create({
   logo: { color: theme.colors.ink, fontSize: 20, fontWeight: '900', letterSpacing: -1.1 },
   smallLogo: { color: theme.colors.ink, fontSize: 16, fontWeight: '900', letterSpacing: -0.7 },
   headerBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line, paddingHorizontal: 10, paddingVertical: 8, borderRadius: theme.radius.pill },
-  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#8BAA62' },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.status },
   headerBadgeText: { color: theme.colors.muted, fontSize: 8, fontWeight: '900', letterSpacing: 1 },
   profileShortcut: { width: 34, height: 34, borderRadius: 17, backgroundColor: theme.colors.ink, alignItems: 'center', justifyContent: 'center' },
   profileShortcutText: { color: theme.colors.accent, fontSize: 13, fontWeight: '900' },
@@ -341,11 +341,11 @@ const s = StyleSheet.create({
   heroSub: { color: theme.colors.muted, fontSize: 15, lineHeight: 23, marginTop: 17, maxWidth: 310 },
   capture: { borderRadius: 25, overflow: 'hidden', marginBottom: 12 },
   captureGradient: { minHeight: 112, paddingHorizontal: 19, paddingVertical: 19, flexDirection: 'row', alignItems: 'center' },
-  cameraGlyph: { width: 48, height: 48, borderRadius: 17, borderWidth: 1.5, borderColor: '#707970', alignItems: 'center', justifyContent: 'center' },
+  cameraGlyph: { width: 48, height: 48, borderRadius: 17, borderWidth: 1.5, borderColor: theme.colors.cameraOutline, alignItems: 'center', justifyContent: 'center' },
   cameraLens: { width: 19, height: 19, borderRadius: 10, borderWidth: 3, borderColor: theme.colors.accent },
   captureCopy: { flex: 1, marginLeft: 15 },
   captureTitle: { color: theme.colors.surface, fontSize: 17, fontWeight: '900', letterSpacing: 1 },
-  captureSub: { color: '#B7BEB7', fontSize: 12, marginTop: 4 },
+  captureSub: { color: theme.colors.captureTextMuted, fontSize: 12, marginTop: 4 },
   captureArrow: { width: 35, height: 35, borderRadius: 18, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' },
   captureArrowText: { color: theme.colors.ink, fontSize: 18, fontWeight: '800' },
   gallery: { minHeight: 76, backgroundColor: theme.colors.surface, borderRadius: 20, borderWidth: 1, borderColor: theme.colors.line, paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center' },
@@ -403,7 +403,7 @@ const s = StyleSheet.create({
   actionCard: { backgroundColor: theme.colors.dark, borderRadius: 22, padding: 20 },
   actionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   actionEyebrow: { color: theme.colors.darkMuted, fontSize: 9, fontWeight: '900', letterSpacing: 1.2, flex: 1 },
-  confidencePill: { backgroundColor: '#303A2D', borderRadius: theme.radius.pill, paddingHorizontal: 9, paddingVertical: 6 },
+  confidencePill: { backgroundColor: theme.colors.confidenceSurface, borderRadius: theme.radius.pill, paddingHorizontal: 9, paddingVertical: 6 },
   confidenceText: { color: theme.colors.accent, fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
   actionTitle: { color: theme.colors.surface, fontSize: 21, lineHeight: 26, fontWeight: '800', marginTop: 15 },
   actionType: { color: theme.colors.darkMuted, fontSize: 11, textTransform: 'capitalize', marginTop: 8 },
@@ -425,7 +425,7 @@ const s = StyleSheet.create({
   productMeta: { color: theme.colors.subtle, fontSize: 10, marginTop: 5 },
   productPriceWrap: { alignItems: 'flex-end' },
   price: { color: theme.colors.ink, fontSize: 11, fontWeight: '900' },
-  productLink: { color: '#718C47', fontSize: 8, fontWeight: '900', letterSpacing: 0.7, marginTop: 5 },
+  productLink: { color: theme.colors.productLink, fontSize: 8, fontWeight: '900', letterSpacing: 0.7, marginTop: 5 },
   primaryButton: { backgroundColor: theme.colors.accent, borderRadius: 18, paddingHorizontal: 18, paddingVertical: 18, marginTop: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   primaryButtonText: { color: theme.colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: 0.8 },
   primaryButtonArrow: { color: theme.colors.ink, fontSize: 18, fontWeight: '800' },
