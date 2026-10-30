@@ -59,9 +59,13 @@ function withSessionHeader(init: RequestInit, token: string): RequestInit {
 }
 
 export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestInit = {}, policy: RequestPolicy = {}): Promise<Response> {
-  const timeoutMs = policy.timeoutMs ?? 30_000;
-  const attempts = Math.max(1, policy.attempts ?? 2);
-  const baseDelayMs = policy.baseDelayMs ?? 500;
+  const timeoutMs = Number.isFinite(policy.timeoutMs) ? Math.min(120_000, Math.max(1_000, policy.timeoutMs!)) : 30_000;
+  const attempts = Number.isInteger(policy.attempts) ? Math.min(4, Math.max(1, policy.attempts!)) : 2;
+  const baseDelayMs = Number.isFinite(policy.baseDelayMs) ? Math.min(5_000, Math.max(0, policy.baseDelayMs!)) : 500;
+  const method = (init.method ?? 'GET').toUpperCase();
+  // Retrying a POST after a timeout/5xx can duplicate AI work or other side effects.
+  // Only replay safe HTTP methods unless the caller supplies an idempotency key.
+  const retryAllowed = ['GET', 'HEAD', 'OPTIONS'].includes(method) || hasHeader(init.headers, 'Idempotency-Key');
   const sessionUrl = sessionAuthEligible(input, init);
   let lastError: unknown;
 
@@ -90,11 +94,11 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
         }
       }
 
-      if (response.ok || response.status < 500 || attempt === attempts - 1) return response;
+      if (response.ok || response.status < 500 || !retryAllowed || attempt === attempts - 1) return response;
       lastError = new Error(`Transient API error (${response.status}).`);
     } catch (error) {
       lastError = error;
-      if (attempt === attempts - 1) break;
+      if (!retryAllowed || attempt === attempts - 1) break;
     } finally { clearTimeout(timer); }
     await new Promise(resolve => setTimeout(resolve, baseDelayMs * 2 ** attempt));
   }
