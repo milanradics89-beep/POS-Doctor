@@ -166,6 +166,70 @@ describe('attestationClient session cache', () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
+  it('does not persist Apple enrollment after network failures before server acceptance', async () => {
+    const nativeModule = {
+      isAvailable: vi.fn(() => true),
+      isKeyAttested: vi.fn(() => false),
+      markKeyAttested: vi.fn(),
+      getOrCreateKeyId: vi.fn(async () => 'apple-key-id'),
+      attest: vi.fn(async () => 'attestation-object'),
+      generateAssertion: vi.fn(async () => 'assertion-object'),
+    };
+    vi.doMock('../../../modules/useit-app-attest', () => ({ default: nativeModule }));
+
+    let challengeCount = 0;
+    let enrollmentAttempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/v1/session/challenge')) {
+        challengeCount += 1;
+        return new Response(JSON.stringify({
+          challenge: `challenge-${challengeCount}`,
+          provider: 'apple_app_attest',
+          appId: 'TEAMID.com.useit.app',
+          expiresAt: Math.floor(Date.now() / 1000) + 300,
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+
+      const payload = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+      if (!payload.provider) {
+        return new Response(JSON.stringify({ detail: 'attestation_required' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      enrollmentAttempts += 1;
+      if (enrollmentAttempts <= 2) throw new TypeError('Network request failed');
+      return new Response(JSON.stringify({
+        accessToken: 'session-token-after-retry',
+        expiresAt: Math.floor(Date.now() / 1000) + 600,
+        expiresIn: 600,
+        tokenType: 'Bearer',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    await expect(getSessionToken('https://api-a.example')).rejects.toThrow(
+      'USEIT attestation request failed; retry session creation.',
+    );
+
+    expect(nativeModule.markKeyAttested).not.toHaveBeenCalled();
+    expect(nativeModule.attest).toHaveBeenCalledTimes(1);
+    expect(nativeModule.generateAssertion).not.toHaveBeenCalled();
+
+    await expect(getSessionToken('https://api-a.example')).resolves.toBe('session-token-after-retry');
+
+    expect(nativeModule.attest).toHaveBeenCalledTimes(2);
+    expect(nativeModule.generateAssertion).not.toHaveBeenCalled();
+    expect(nativeModule.markKeyAttested).toHaveBeenCalledTimes(1);
+    expect(nativeModule.markKeyAttested).toHaveBeenCalledWith('apple-key-id');
+    expect(challengeCount).toBe(2);
+    expect(enrollmentAttempts).toBe(3);
+    expect(fetchMock).toHaveBeenCalledTimes(7);
+  });
+
   it('recovers with an assertion when the first attestation response is lost after server acceptance', async () => {
     const nativeModule = {
       isAvailable: vi.fn(() => true),
