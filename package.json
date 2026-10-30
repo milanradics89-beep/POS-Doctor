@@ -24,9 +24,9 @@
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
-    "@react-native-async-storage/async-storage": "^2.2.0",
     "zod": "^4.6.7",
-    "deepmerge": "file:vendor/deepmerge"
+    "deepmerge": "file:vendor/deepmerge",
+    "expo-file-system": "~57.0.7"
   },
   "devDependencies": {
     "@types/react": "~19.2.4",
