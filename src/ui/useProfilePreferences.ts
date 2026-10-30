@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { createPreferencesStore } from './profilePreferencesStore';
 import { getItem, setItem } from '../storage/deviceStorage';
-import { DEFAULT_PROFILE_PREFERENCES, PREFERENCES_KEY, parsePreferences, type ProfilePreferences } from './profilePreferences';
+import { DEFAULT_PROFILE_PREFERENCES, PREFERENCES_KEY, type ProfilePreferences } from './profilePreferences';
+
+const preferencesStore = createPreferencesStore({ getItem, setItem }, PREFERENCES_KEY);
 
 
 export function useProfilePreferences() {
@@ -10,11 +13,11 @@ export function useProfilePreferences() {
 
   useEffect(() => {
     let active = true;
-    getItem(PREFERENCES_KEY)
-      .then((raw) => {
+    preferencesStore.read()
+      .then((saved) => {
         if (!active) return;
         try {
-          setPreferences(parsePreferences(raw));
+          setPreferences(saved);
         } catch {
           setError('Saved preferences could not be read. Default settings are shown.');
         }
@@ -31,7 +34,7 @@ export function useProfilePreferences() {
   useEffect(() => {
     if (!hydrated) return;
     let active = true;
-    setItem(PREFERENCES_KEY, JSON.stringify(preferences))
+    preferencesStore.write(preferences)
       .then(() => { if (active) setError(null); })
       .catch(() => { if (active) setError('Preferences could not be saved on this device.'); });
     return () => { active = false; };
