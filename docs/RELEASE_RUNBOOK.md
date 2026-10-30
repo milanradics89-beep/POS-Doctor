@@ -35,8 +35,10 @@ When session authentication is enabled:
 - Select USEIT_ATTESTATION_PROVIDER=apple_app_attest or google_play_integrity to match the released platform and backend deployment.
 
 For Google Play Integrity:
+- Set `EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` in the EAS build environment to the numeric Google Cloud project number associated with the Play Integrity API. This identifier is embedded in the client build and is not a secret; the Android client fails closed if it is missing or invalid.
 - USEIT_GOOGLE_PLAY_PACKAGE_NAME must match the Android package.
 - USEIT_GOOGLE_PLAY_CERT_SHA256 must contain the production Play signing certificate digest(s) returned in the Play Integrity payload.
+- Set `USEIT_GOOGLE_PLAY_DEVICE_INTEGRITY` to the explicitly approved comma-separated device verdicts. The default is `MEETS_DEVICE_INTEGRITY`; do not weaken it without a documented risk decision.
 - Confirm the Google service account has the required Play Integrity permission and that the production app is published through the expected Play track.
 
 For Apple App Attest:

@@ -22,6 +22,7 @@ Complete this record before promoting a build beyond internal testing. Do not en
 - [ ] Production-readiness checks passed:
 - [ ] Staging readiness and health checks passed:
 - [ ] Shared Redis is configured; challenge replay and multi-instance tests passed:
+- [ ] EAS build environment contains the valid numeric `EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` for Play Integrity:
 - [ ] Google Play Integrity verified on a Play-installed physical Android device:
 - [ ] Apple App Attest verified on a physical iPhone using the production entitlement:
 - [ ] Camera permission grant/denial/recovery flows tested on both platforms:
