@@ -141,3 +141,34 @@ def test_in_memory_challenge_store_prunes_expired_before_capacity_check(monkeypa
     replacement = store.issue(AttestationProvider.APP_ATTEST, "com.useit.app", ttl_seconds=30)
     assert replacement
     assert len(store._issued) == 1
+
+
+
+@pytest.mark.asyncio
+async def test_redis_challenge_store_uses_bounded_connection_timeouts(monkeypatch):
+    import backend.attestation as attestation
+
+    captured = {}
+
+    class FakeRedis:
+        async def aclose(self):
+            captured["closed"] = True
+
+    def fake_from_url(url, **kwargs):
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        return FakeRedis()
+
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setattr(attestation.Redis, "from_url", fake_from_url)
+
+    async with attestation._redis_challenge_store():
+        pass
+
+    assert captured["url"] == "redis://redis.internal:6379/0"
+    assert captured["kwargs"] == {
+        "decode_responses": False,
+        "socket_connect_timeout": 2.0,
+        "socket_timeout": 5.0,
+    }
+    assert captured["closed"] is True
