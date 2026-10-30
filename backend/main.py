@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
+from redis import asyncio as redis_asyncio
 from redis.exceptions import RedisError
 
 from backend.security import validate_public_http_url
@@ -166,7 +167,24 @@ async def ready():
     if production_mode():
         dependencies_ready = dependencies_ready and bool(configured_api_key() or configured_session_secret())
         if configured_attestation_mode() is AttestationMode.REQUIRED:
-            dependencies_ready = dependencies_ready and bool(configured_attestation_app_id()) and bool(configured_redis_url())
+            dependencies_ready = (
+                dependencies_ready
+                and bool(configured_attestation_app_id())
+                and bool(configured_redis_url())
+            )
+            if dependencies_ready:
+                redis_client = redis_asyncio.Redis.from_url(
+                    configured_redis_url(),
+                    socket_connect_timeout=2,
+                    socket_timeout=2,
+                )
+                try:
+                    await redis_client.ping()
+                except (RedisError, TimeoutError, OSError, ValueError):
+                    logger.warning("Readiness check failed: attestation Redis is unavailable")
+                    dependencies_ready = False
+                finally:
+                    await redis_client.aclose()
     if not dependencies_ready:
         raise HTTPException(status_code=503, detail="Service is not ready.")
     return {"status": "ready"}
