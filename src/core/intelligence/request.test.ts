@@ -60,10 +60,9 @@ describe('fetchWithPolicy', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('retries a POST only when an idempotency key is supplied', async () => {
+  it('does not retry a POST merely because an idempotency header is present', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(new Response('{}', { status: 503 }))
-      .mockResolvedValueOnce(new Response('{}', { status: 200 }));
+      .mockResolvedValue(new Response('{}', { status: 503 }));
 
     const response = await fetchWithPolicy('https://example.test/v1/action', {
       method: 'POST',
@@ -71,8 +70,22 @@ describe('fetchWithPolicy', () => {
       body: JSON.stringify({ action: 'save' }),
     }, { attempts: 2, baseDelayMs: 0 });
 
-    expect(response.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(503);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('detects non-idempotent methods from a Request object', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 503 }));
+    const request = new Request('https://example.test/v1/action', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'save' }),
+    });
+
+    const response = await fetchWithPolicy(request, {}, { attempts: 2, baseDelayMs: 0 });
+
+    expect(response.status).toBe(503);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
 });
