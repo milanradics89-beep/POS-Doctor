@@ -493,4 +493,80 @@ describe('attestationClient session cache', () => {
     expect(fetchMock).toHaveBeenCalledTimes(5);
   });
 
+
+  it('retries Apple serverUnavailable with the same key and persisted challenge', async () => {
+    const pending = {
+      challenge: 'same-server-challenge',
+      provider: 'apple_app_attest' as const,
+      appId: 'TEAMID.com.useit.app',
+      expiresAt: Math.floor(Date.now() / 1000) + 300,
+    };
+    let attestationAttempts = 0;
+    const nativeModule = {
+      isAvailable: vi.fn(() => true),
+      isKeyAttested: vi.fn(() => false),
+      isKeyAttestationPending: vi.fn(() => true),
+      markKeyAttestationPending: vi.fn(),
+      markKeyAttested: vi.fn(),
+      getPendingAttestation: vi.fn(() => JSON.stringify(pending)),
+      storePendingAttestation: vi.fn((_keyId: string, state: string) => {
+        Object.assign(pending, JSON.parse(state));
+      }),
+      discardKey: vi.fn(),
+      getOrCreateKeyId: vi.fn(async () => 'same-apple-key'),
+      createNewKeyId: vi.fn(async () => 'replacement-key'),
+      attest: vi.fn(async (challenge: string, keyId: string) => {
+        expect(challenge).toBe('same-server-challenge');
+        expect(keyId).toBe('same-apple-key');
+        attestationAttempts += 1;
+        if (attestationAttempts === 1) {
+          throw new Error('USEIT_APP_ATTEST_SERVER_UNAVAILABLE');
+        }
+        return 'attestation-object';
+      }),
+      generateAssertion: vi.fn(),
+    };
+    vi.doMock('../../../modules/useit-app-attest', () => ({ default: nativeModule }));
+
+    let challengeRequests = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/v1/session/challenge')) {
+        challengeRequests += 1;
+        return new Response(JSON.stringify({
+          challenge: 'new-challenge-must-not-be-used',
+          provider: 'apple_app_attest',
+          appId: 'TEAMID.com.useit.app',
+          expiresAt: Math.floor(Date.now() / 1000) + 300,
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      const payload = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+      if (!payload.provider) {
+        return new Response(JSON.stringify({ detail: 'attestation_required' }), {
+          status: 401, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({
+        accessToken: 'session-after-retry',
+        expiresAt: Math.floor(Date.now() / 1000) + 600,
+        expiresIn: 600,
+        tokenType: 'Bearer',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    await expect(getSessionToken('https://api-a.example')).rejects.toThrow(
+      'Apple App Attest is temporarily unavailable.',
+    );
+    await expect(getSessionToken('https://api-a.example')).resolves.toBe('session-after-retry');
+
+    expect(challengeRequests).toBe(0);
+    expect(nativeModule.attest).toHaveBeenCalledTimes(2);
+    expect(nativeModule.attest).toHaveBeenNthCalledWith(1, 'same-server-challenge', 'same-apple-key');
+    expect(nativeModule.attest).toHaveBeenNthCalledWith(2, 'same-server-challenge', 'same-apple-key');
+    expect(nativeModule.discardKey).not.toHaveBeenCalled();
+    expect(nativeModule.markKeyAttested).toHaveBeenCalledWith('same-apple-key');
+  });
+
 });
