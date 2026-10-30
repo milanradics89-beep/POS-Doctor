@@ -14,6 +14,7 @@ from redis import asyncio as redis_asyncio
 from redis.exceptions import RedisError
 
 from backend.security import validate_public_http_url
+from backend.privacy_logging import log_event
 
 from backend.action_layer import router as action_router
 from backend.api_auth import configured_api_key, configured_session_secret, issue_session_token, session_ttl_seconds
@@ -143,6 +144,23 @@ async def _analyze(request: AnalyzeRequest):
             ],
             response_format={"type":"json_schema","json_schema":{"name":"useit_scene_analysis","strict":True,"schema":SCHEMA}},
         )
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            prompt_tokens = getattr(usage, "prompt_tokens", None)
+            completion_tokens = getattr(usage, "completion_tokens", None)
+            total_tokens = getattr(usage, "total_tokens", None)
+            token_counts = (prompt_tokens, completion_tokens, total_tokens)
+            if all(type(value) is int and value >= 0 for value in token_counts):
+                # Token counts provide a privacy-safe baseline for AI cost analysis.
+                # Never log prompts, images, model responses, or provider payloads.
+                log_event(
+                    logger,
+                    "vision_usage",
+                    model=MODEL,
+                    promptTokens=prompt_tokens,
+                    completionTokens=completion_tokens,
+                    totalTokens=total_tokens,
+                )
         content = response.choices[0].message.content
         if not content: raise HTTPException(502, "Vision analysis returned no structured content.")
         scene = quality_gate(json.loads(content))
