@@ -46,4 +46,33 @@ describe('fetchWithPolicy', () => {
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it('does not retry a POST after a server error without an idempotency key', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 503 }));
+
+    const response = await fetchWithPolicy('https://example.test/v1/analyze', {
+      method: 'POST',
+      body: JSON.stringify({ prompt: 'analyze once' }),
+    }, { attempts: 3, baseDelayMs: 0 });
+
+    expect(response.status).toBe(503);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries a POST only when an idempotency key is supplied', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('{}', { status: 503 }))
+      .mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await fetchWithPolicy('https://example.test/v1/action', {
+      method: 'POST',
+      headers: { 'Idempotency-Key': 'action-123' },
+      body: JSON.stringify({ action: 'save' }),
+    }, { attempts: 2, baseDelayMs: 0 });
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
 });
