@@ -149,7 +149,7 @@ async def _analyze(request: AnalyzeRequest):
         return normalize_scene_understanding(scene)
     except HTTPException: raise
     except Exception as exc:
-        logger.exception("Vision analysis failed")
+        logger.error("Vision analysis failed (exception_type=%s)", type(exc).__name__)
         raise HTTPException(502, "Vision analysis failed.") from exc
 
 def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
@@ -280,8 +280,8 @@ async def useit_analyze(request: UseItAnalyzeRequest):
         if query:
             try:
                 shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
-            except Exception:
-                logger.exception("Unified product discovery degraded")
+            except Exception as exc:
+                logger.error("Unified product discovery degraded (exception_type=%s)", type(exc).__name__)
                 shopping = {"query": query, "candidates": [], "errors": [{"url": "", "message": "product discovery unavailable"}]}
     suggestions = [{"id":o["id"],"title":o["title"],"description":o["description"],"kind":o["kind"],"effort":o["effort"],"durationMinutes":o["durationMinutes"],"visualizable":o["visualizable"],"score":o["score"],"preferenceScore":o.get("preferenceScore",0.0),"rank":o["rank"],"reasons":build_suggestion_reasons(o,intent,scene,context)} for o in ranked]
     scene["sceneFacts"] = derive_scene_facts(scene)

@@ -109,9 +109,13 @@ def install_request_controls(app) -> None:
                 content={"detail": "Request timed out.", "requestId": request_id},
                 headers={"X-Request-ID": request_id},
             )
-        except Exception:
-            # Keep unexpected failures generic while preserving the operational correlation ID.
-            logger.exception("Unhandled request failure")
+        except Exception as exc:
+            # Never log exception messages or tracebacks: provider errors may echo user data.
+            logger.error(
+                "Unhandled request failure (exception_type=%s, request_id=%s)",
+                type(exc).__name__,
+                request_id,
+            )
             return JSONResponse(
                 status_code=500,
                 content={"detail": "Internal server error.", "requestId": request_id},

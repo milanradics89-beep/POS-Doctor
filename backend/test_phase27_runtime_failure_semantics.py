@@ -33,7 +33,7 @@ def test_vision_failure_is_translated_to_safe_502(monkeypatch):
     assert response.json() == {"detail": "Vision analysis failed."}
 
 
-def test_product_discovery_failure_degrades_without_failing_analysis(monkeypatch):
+def test_product_discovery_failure_degrades_without_failing_analysis(monkeypatch, caplog):
     async def fake_analyze(_request):
         return dict(SCENE)
 
@@ -43,16 +43,19 @@ def test_product_discovery_failure_degrades_without_failing_analysis(monkeypatch
     monkeypatch.setattr(main, "_analyze", fake_analyze)
     monkeypatch.setattr(main, "discover_products", fail_discovery)
 
-    with TestClient(main.app) as client:
-        response = client.post(
-            "/v1/useit/analyze",
-            json={
-                "imageUri": "https://example.com/image.jpg",
-                "userIntent": "shopping",
-                "discoverProducts": True,
-            },
-        )
+    with caplog.at_level("ERROR", logger="useit"):
+        with TestClient(main.app) as client:
+            response = client.post(
+                "/v1/useit/analyze",
+                json={
+                    "imageUri": "https://example.com/image.jpg",
+                    "userIntent": "shopping",
+                    "discoverProducts": True,
+                },
+            )
 
+    assert "provider outage" not in caplog.text
+    assert "RuntimeError" in caplog.text
     assert response.status_code == 200
     payload = response.json()
     assert payload["contractVersion"] == "useit_analyze_v1"
@@ -74,3 +77,25 @@ def test_readiness_failure_does_not_disclose_dependency_details(monkeypatch):
 
     assert response.status_code == 503
     assert response.json() == {"detail": "Service is not ready."}
+
+
+
+def test_vision_provider_exception_message_is_not_logged(monkeypatch, caplog):
+    from unittest.mock import AsyncMock, Mock
+
+    mock_client = Mock()
+    mock_client.chat.completions.create = AsyncMock(
+        side_effect=RuntimeError("PRIVATE_VISION_PROVIDER_RESPONSE")
+    )
+    monkeypatch.setattr(main, "_get_client", lambda: mock_client)
+
+    with caplog.at_level("ERROR", logger="useit"):
+        with TestClient(main.app) as client:
+            response = client.post(
+                "/v1/analyze",
+                json={"imageUri": "https://example.com/image.jpg"},
+            )
+
+    assert response.status_code == 502
+    assert "RuntimeError" in caplog.text
+    assert "PRIVATE_VISION_PROVIDER_RESPONSE" not in caplog.text

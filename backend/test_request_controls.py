@@ -163,3 +163,23 @@ async def test_slow_upload_returns_request_timeout(monkeypatch) -> None:
     assert response.status_code == 408
     assert response.json()["detail"] == "Request body timed out."
     assert response.headers.get("X-Request-ID")
+
+
+
+def test_unexpected_failure_does_not_log_exception_message(caplog) -> None:
+    app = FastAPI()
+    install_request_controls(app)
+
+    @app.get("/private-boom")
+    async def private_boom():
+        raise RuntimeError("PRIVATE_PROVIDER_RESPONSE_AND_USER_DATA")
+
+    with TestClient(app) as client:
+        with caplog.at_level("ERROR", logger="useit.request_controls"):
+            response = client.get("/private-boom", headers={"X-Request-ID": "privacy-log-test"})
+
+    assert response.status_code == 500
+    assert response.headers["X-Request-ID"] == "privacy-log-test"
+    assert "RuntimeError" in caplog.text
+    assert "privacy-log-test" in caplog.text
+    assert "PRIVATE_PROVIDER_RESPONSE_AND_USER_DATA" not in caplog.text
