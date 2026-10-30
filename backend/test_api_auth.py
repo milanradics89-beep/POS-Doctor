@@ -322,3 +322,24 @@ def test_attestation_verifier_storage_failures_return_service_unavailable(monkey
         "Attestation verification service is temporarily unavailable."
     )
 
+
+
+
+def test_attestation_challenge_bootstrap_is_public_when_api_key_is_configured(monkeypatch):
+    challenge = {
+        "challenge": "c" * 43,
+        "provider": "apple_app_attest",
+        "appId": "TEAM123456.com.useit.app",
+        "expiresAt": 2_000_000_000,
+    }
+    monkeypatch.setenv("USEIT_API_KEY", "server-only-api-key")
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://unused")
+    monkeypatch.setattr(main, "issue_challenge_async", AsyncMock(return_value=Mock(**challenge)))
+
+    response = client.post("/v1/session/challenge")
+
+    assert response.status_code == 200
+    assert response.json() == challenge
+    assert response.headers["cache-control"] == "no-store"
