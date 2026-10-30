@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 type StorageAdapter = {
@@ -10,8 +11,11 @@ let adapter: StorageAdapter | null = null;
 function getAdapter(): StorageAdapter | null {
   if (adapter) return adapter;
   try {
-    // Keep the web build usable while the native storage dependency is absent.
-    if (Platform.OS === 'web' && typeof globalThis.localStorage !== 'undefined') {
+    if (Platform.OS !== 'web') {
+      adapter = AsyncStorage;
+      return adapter;
+    }
+    if (typeof globalThis.localStorage !== 'undefined') {
       adapter = {
         getItem: async (key) => globalThis.localStorage.getItem(key),
         setItem: async (key, value) => { globalThis.localStorage.setItem(key, value); },
