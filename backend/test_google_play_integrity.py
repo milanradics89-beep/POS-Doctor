@@ -80,10 +80,13 @@ async def test_google_verifier_rejects_stale_token(monkeypatch):
     assert result == AttestationResult(False, "token_stale")
 
 
+@pytest.mark.parametrize("status_code", [401, 403, 408, 429, 500, 503])
 @pytest.mark.asyncio
-async def test_google_verifier_maps_provider_failure(monkeypatch):
+async def test_google_verifier_maps_provider_and_transport_failures_to_unavailable(monkeypatch, status_code):
     monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
-    transport = httpx.MockTransport(lambda request: httpx.Response(503, json={"error": "unavailable"}))
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(status_code, json={"error": "provider unavailable"})
+    )
     async with httpx.AsyncClient(transport=transport) as client:
         verifier = GooglePlayIntegrityVerifier(client=client, credentials_factory=lambda: "test-access-token")
         result = await verifier.verify(
