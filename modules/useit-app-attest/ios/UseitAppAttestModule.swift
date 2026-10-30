@@ -18,8 +18,17 @@ public class UseitAppAttestModule: Module {
       return self.readAttestedKeyId() == keyId
     }
 
+    Function("isKeyAttestationPending") { (keyId: String) -> Bool in
+      return self.readPendingKeyId() == keyId
+    }
+
+    Function("markKeyAttestationPending") { (keyId: String) throws -> Void in
+      try self.savePendingKeyId(keyId)
+    }
+
     Function("markKeyAttested") { (keyId: String) throws -> Void in
       try self.saveAttestedKeyId(keyId)
+      self.deletePendingKeyId()
     }
 
     AsyncFunction("getOrCreateKeyId") { () -> String in
@@ -39,6 +48,29 @@ public class UseitAppAttestModule: Module {
           }
           do {
             try self.saveKeyId(keyId)
+            continuation.resume(returning: keyId)
+          } catch {
+            continuation.resume(throwing: error)
+          }
+        }
+      }
+    }
+
+    AsyncFunction("createNewKeyId") { () -> String in
+      return try await withCheckedThrowingContinuation { continuation in
+        self.service.generateKey { keyId, error in
+          if let error {
+            continuation.resume(throwing: error)
+            return
+          }
+          guard let keyId, !keyId.isEmpty else {
+            continuation.resume(throwing: NSError(domain: "UseitAppAttest", code: 4, userInfo: [NSLocalizedDescriptionKey: "App Attest returned no replacement key identifier."]))
+            return
+          }
+          do {
+            try self.saveKeyId(keyId)
+            self.deleteAttestedKeyId()
+            self.deletePendingKeyId()
             continuation.resume(returning: keyId)
           } catch {
             continuation.resume(throwing: error)
@@ -122,6 +154,43 @@ public class UseitAppAttestModule: Module {
     guard status == errSecSuccess else {
       throw NSError(domain: "UseitAppAttest", code: Int(status), userInfo: [NSLocalizedDescriptionKey: "Unable to persist App Attest enrollment state."])
     }
+  }
+
+  private func savePendingKeyId(_ keyId: String) throws {
+    let data = Data(keyId.utf8)
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: keychainService,
+      kSecAttrAccount as String: "pendingKeyId",
+      kSecValueData as String: data,
+      kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+    ]
+    deleteValue(account: "pendingKeyId")
+    let status = SecItemAdd(query as CFDictionary, nil)
+    guard status == errSecSuccess else {
+      throw NSError(domain: "UseitAppAttest", code: Int(status), userInfo: [NSLocalizedDescriptionKey: "Unable to persist pending App Attest enrollment state."])
+    }
+  }
+
+  private func readPendingKeyId() -> String? {
+    return readValue(account: "pendingKeyId")
+  }
+
+  private func deletePendingKeyId() {
+    deleteValue(account: "pendingKeyId")
+  }
+
+  private func deleteAttestedKeyId() {
+    deleteValue(account: "attestedKeyId")
+  }
+
+  private func deleteValue(account: String) {
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: keychainService,
+      kSecAttrAccount as String: account
+    ]
+    SecItemDelete(query as CFDictionary)
   }
 
   private func readAttestedKeyId() -> String? {

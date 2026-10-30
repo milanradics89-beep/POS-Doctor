@@ -88,11 +88,15 @@ async function createSession(base: string, generation: number): Promise<string> 
       throw new Error('Apple App Attest is not available on this iOS device.');
     }
     keyId = await nativeModule.default.getOrCreateKeyId();
-    if (nativeModule.default.isKeyAttested(keyId)) {
+    if (
+      nativeModule.default.isKeyAttested(keyId) ||
+      nativeModule.default.isKeyAttestationPending(keyId)
+    ) {
       clientData = JSON.stringify({ challenge: challenge.challenge, action: "session" });
       assertion = await nativeModule.default.generateAssertion(challenge.challenge, keyId, clientData);
     } else {
       assertion = await nativeModule.default.attest(challenge.challenge, keyId);
+      nativeModule.default.markKeyAttestationPending(keyId);
     }
   }
 
@@ -109,14 +113,9 @@ async function createSession(base: string, generation: number): Promise<string> 
       throw new Error('USEIT attestation request failed; retry session creation.');
     }
   }
-  let shouldMarkAppleKeyAttested = challenge.provider === 'apple_app_attest' && Boolean(keyId) && !clientData;
-
   if (!attested.ok) {
     let detail = await safeErrorDetail(attested);
 
-    // A previous request may have reached the server and registered this key,
-    // while its response was lost. The server rejects a duplicate attestation;
-    // retry once with a fresh challenge and an assertion to recover that state.
     if (
       challenge.provider === 'apple_app_attest' &&
       keyId &&
@@ -150,22 +149,65 @@ async function createSession(base: string, generation: number): Promise<string> 
 
       if (!attested.ok) {
         detail = await safeErrorDetail(attested);
-        throw new Error('USEIT attestation failed (' + attested.status + ')' + (detail ? ': ' + detail : '.'));
+        if (attested.status === 401 && detail === 'attestation_invalid') {
+          const replacement = await createFreshAppleEnrollment(base, headers, keyId);
+          attested = replacement.response;
+          keyId = replacement.keyId;
+        } else {
+          throw new Error('USEIT attestation failed (' + attested.status + ')' + (detail ? ': ' + detail : '.'));
+        }
       }
-      shouldMarkAppleKeyAttested = true;
+    } else if (
+      challenge.provider === 'apple_app_attest' &&
+      keyId &&
+      clientData &&
+      attested.status === 401 &&
+      detail === 'attestation_invalid'
+    ) {
+      const replacement = await createFreshAppleEnrollment(base, headers, keyId);
+      attested = replacement.response;
+      keyId = replacement.keyId;
     } else {
       throw new Error('USEIT attestation failed (' + attested.status + ')' + (detail ? ': ' + detail : '.'));
     }
   }
 
-  // Persist only after the server accepts the enrollment or a recovery
-  // assertion proves that the key was already registered.
-  if (challenge.provider === 'apple_app_attest' && keyId && shouldMarkAppleKeyAttested) {
+  if (challenge.provider === 'apple_app_attest' && keyId) {
     const nativeModule = await import('../../../modules/useit-app-attest');
     nativeModule.default.markKeyAttested(keyId);
   }
 
   return cacheSession(await parseSession(attested), base, generation);
+}
+
+async function createFreshAppleEnrollment(
+  base: string,
+  headers: Record<string, string>,
+  previousKeyId: string,
+): Promise<{ response: Response; keyId: string }> {
+  const challenge = await requestAttestationChallenge(base, headers);
+  if (challenge.provider !== 'apple_app_attest') {
+    throw new Error('USEIT App Attest re-enrollment returned a different provider.');
+  }
+
+  const nativeModule = await import('../../../modules/useit-app-attest');
+  const keyId = await nativeModule.default.createNewKeyId();
+  if (keyId === previousKeyId) {
+    throw new Error('USEIT App Attest did not generate a replacement key.');
+  }
+
+  const attestation = await nativeModule.default.attest(challenge.challenge, keyId);
+  nativeModule.default.markKeyAttestationPending(keyId);
+  const response = await submitAttestation(base, headers, challenge, attestation, keyId);
+
+  if (!response.ok) {
+    const detail = await safeErrorDetail(response);
+    throw new Error(
+      'USEIT App Attest re-enrollment failed (' + response.status + ')' + (detail ? ': ' + detail : '.'),
+    );
+  }
+
+  return { response, keyId };
 }
 
 async function requestAttestationChallenge(
