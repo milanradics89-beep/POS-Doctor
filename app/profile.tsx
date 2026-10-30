@@ -47,6 +47,7 @@ export default function ProfileScreen() {
             <View style={styles.separator} />
             <PreferenceRow title="Save my activity" description="Keep a history of analyses on this device." value={saveHistory} onValueChange={setSaveHistory} />
           </View>
+          <Text style={styles.preferenceFootnote}>Preview controls for this build. Saved preferences and account sync will be connected in a later release.</Text>
 
           <SectionHeader eyebrow="ABOUT USEIT" />
           <View style={styles.card}>
@@ -89,6 +90,7 @@ const styles = StyleSheet.create({
   preferenceTitle: { color: theme.colors.ink, fontSize: 13, fontWeight: '800' },
   preferenceDescription: { color: theme.colors.muted, fontSize: 10, lineHeight: 15, marginTop: 4 },
   separator: { height: 1, backgroundColor: theme.colors.line },
+  preferenceFootnote: { color: theme.colors.subtle, fontSize: 9, lineHeight: 14, marginTop: 9, marginHorizontal: 4 },
   infoRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   infoTitle: { color: theme.colors.ink, fontSize: 13, fontWeight: '800' },
   infoSub: { color: theme.colors.muted, fontSize: 10, marginTop: 4 },
