@@ -25,7 +25,7 @@ The validation workflow includes Android release APK build/emulator launch, iOS 
 |---:|---|---|---|
 | 1 | iOS CI completion | **Done** | iOS Release simulator build and launch job succeeded in validation run 41100762588. This is simulator evidence only. |
 | 2 | Protect `main` | **Blocked** | Repository rulesets endpoint returned an empty list; branch-protection read returned HTTP 403 to the integration. A repository administrator must create and verify a `main` ruleset with PR, exact required checks, force-push/deletion restrictions, and no routine admin bypass. See [issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47). |
-| 3 | Dependency Review warnings | **In Progress** | No high-or-higher vulnerabilities and no denied packages. Investigate dependencies with unknown license metadata and low Scorecard results; record the license/source and risk decision before release. |
+| 3 | Dependency Review warnings | **In Progress** | Lockfile inspection confirms MIT metadata for `@expo/devcert@1.2.2` and `is-mergeable-object@1.1.1`; the only entries without license metadata are the project root and an extraneous nested vendored path, not an installed dependency. Historical low OpenSSF Scorecard results for `@expo/devcert` and `is-mergeable-object` still need a documented owner risk decision. Latest Dependency Review run is pending. |
 | 4 | Physical iPhone App Attest | **Blocked** | Requires a physical iPhone, production App Attest entitlement/AAGUID, Apple Developer capability, and a production-like backend. Record device/build evidence without storing attestation payloads. |
 | 5 | Physical Play Integrity | **Blocked** | Requires a physical Android device, Play-installed build, Play App Signing certificate, valid Cloud project number, service-account permission, and Play Console configuration. |
 | 6 | Redis multi-instance challenge/replay tests | **Done** | Backend CI runs against Redis 7.4 and includes independent-client and separate-worker-process single-use/replay integration tests. |
@@ -48,6 +48,10 @@ The validation workflow includes Android release APK build/emulator launch, iOS 
 | 23 | User analytics | **Blocked** | Requires a product/privacy decision on event taxonomy, consent, retention, and analytics provider before implementation can be accepted. |
 | 24 | Automated release pipeline | **In Progress** | CI validates builds and tests; signed store artifact publication, environment promotion, and rollback automation are not yet evidenced. |
 | 25 | Pilot/business validation | **Blocked** | Requires an approved pilot cohort, product/business acceptance thresholds, named approvers, and real usage/cost/support evidence. |
+
+## Dependency review investigation
+
+The current `package-lock.json` records `MIT` for both packages previously called out for weak Scorecard signals: `@expo/devcert@1.2.2` and `is-mergeable-object@1.1.1`. The only missing-license entries are the root project metadata and an `extraneous` nested `node_modules/@expo/config/vendor/deepmerge` path. This removes the earlier uncertainty about those two packages' declared license metadata, but it does not resolve their upstream Scorecard posture; retain the warning for owner review rather than treating it as a vulnerability or silently suppressing it.
 
 ## Engineering work started on 2026-10-30
 
