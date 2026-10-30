@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { router } from 'expo-router';
 import {
   SafeAreaView,
   View,
@@ -18,6 +19,7 @@ import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/a
 import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { theme } from '../src/ui/theme';
+import { ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -35,11 +37,13 @@ export default function Home() {
   const [rendering, setRendering] = useState(false);
   const [rendered, setRendered] = useState<string | null>(null);
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const reset = () => {
     setPhoto(null);
     setResult(null);
     setRendered(null);
+    setAnalysisError(null);
   };
 
   async function analyze(intent?: OpportunityKind) {
@@ -49,12 +53,13 @@ export default function Home() {
     }
     if (!photo) return;
     setBusy(true);
+    setAnalysisError(null);
     setRendered(null);
     try {
       const response = await analyzeForConsumer(new UseitApiProvider(API_URL), photo, intent);
       setResult(response);
     } catch (error) {
-      Alert.alert('Could not understand the image', error instanceof Error ? error.message : 'Please try again with a clearer photo.');
+      setAnalysisError(error instanceof Error ? error.message : 'Please try again with a clearer photo.');
     } finally {
       setBusy(false);
     }
@@ -140,6 +145,7 @@ export default function Home() {
                 <Text style={s.logo}>USEIT</Text>
               </View>
               <View style={s.headerBadge}><View style={s.statusDot} /><Text style={s.headerBadgeText}>SEE WHAT'S POSSIBLE</Text></View>
+              <Pressable accessibilityRole="button" accessibilityLabel="Open profile and settings" onPress={() => router.push('/profile')} style={s.profileShortcut}><Text style={s.profileShortcutText}>U</Text></Pressable>
             </View>
 
             <View style={s.heroBlock}>
@@ -193,6 +199,8 @@ export default function Home() {
                 <Text style={s.loadingTitle}>{busy ? 'Finding the possibilities…' : 'Bringing the idea to life…'}</Text>
                 <Text style={s.loadingSub}>{busy ? 'Understanding the details in your photo.' : 'Creating a visual concept from your plan.'}</Text>
               </View>
+            ) : analysisError ? (
+              <View style={{ marginTop: 22 }}><StatePanel kind="error" title="We couldn't finish that" description={analysisError} actionLabel="TRY AGAIN" onAction={() => analyze()} /></View>
             ) : result ? (
               <View>
                 <View style={s.resultIntro}>
@@ -230,16 +238,14 @@ export default function Home() {
 
                 {(result.intelligence?.rankedCandidates?.length ?? 0) > 0 ? (
                   <View>
-                    <View style={s.sectionHeadingRow}><Text style={s.sectionLabel}>GOOD MATCHES</Text><Text style={s.sectionHint}>TOP PICKS</Text></View>
-                    {result.intelligence.rankedCandidates.slice(0, 5).map((item, index) => (
-                      <Pressable accessibilityRole="link" key={item.id} style={({ pressed }) => [s.productCard, pressed && s.pressed]} onPress={() => item.url && Linking.openURL(item.url)}>
-                        <View style={[s.productIndex, index % 2 === 0 ? s.productIndexLime : s.productIndexMint]}><Text style={s.productIndexText}>{String(index + 1).padStart(2, '0')}</Text></View>
-                        <View style={s.productMain}><Text style={s.productTitle}>{item.title}</Text><Text style={s.productMeta}>{item.category} · {item.source}</Text></View>
-                        <View style={s.productPriceWrap}><Text style={s.price}>{item.priceHuf?.toLocaleString('hu-HU') ?? 0} Ft</Text><Text style={s.productLink}>VIEW ↗</Text></View>
-                      </Pressable>
+                    <SectionHeader eyebrow="GOOD MATCHES" detail="TOP PICKS" />
+                    {result.intelligence.rankedCandidates.slice(0, 5).map((item) => (
+                      <ProductCard key={item.id} title={item.title} category={item.category} source={item.source} price={item.priceHuf} onPress={() => item.url && Linking.openURL(item.url)} />
                     ))}
                   </View>
-                ) : null}
+                ) : (
+                  <View style={{ marginTop: 22 }}><StatePanel kind="empty" title="No product matches yet" description="The idea is ready. We couldn't find a product worth recommending this time." /></View>
+                )}
 
                 {result.phase3?.redesign ? (
                   <Pressable accessibilityRole="button" onPress={createVisualConcept} style={({ pressed }) => [s.primaryButton, pressed && s.pressed]}>
@@ -284,6 +290,8 @@ const s = StyleSheet.create({
   headerBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line, paddingHorizontal: 10, paddingVertical: 8, borderRadius: theme.radius.pill },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#8BAA62' },
   headerBadgeText: { color: theme.colors.muted, fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  profileShortcut: { width: 34, height: 34, borderRadius: 17, backgroundColor: theme.colors.ink, alignItems: 'center', justifyContent: 'center' },
+  profileShortcutText: { color: theme.colors.accent, fontSize: 13, fontWeight: '900' },
   heroBlock: { marginBottom: 30 },
   overline: { color: theme.colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1.8, lineHeight: 14 },
   hero: { color: theme.colors.ink, fontSize: 48, lineHeight: 49, letterSpacing: -2.8, fontWeight: '800', marginTop: 14 },
