@@ -1,8 +1,8 @@
 export type RequestPolicy = { timeoutMs?: number; attempts?: number; baseDelayMs?: number };
 
 type SessionState = { token: string; expiresAt: number };
-let sessionState: SessionState | null = null;
-let sessionPromise: Promise<SessionState | null> | null = null;
+const sessionStates = new Map<string, SessionState>();
+const sessionPromises = new Map<string, Promise<SessionState | null>>();
 
 function requestUrl(input: RequestInfo | URL): URL | null {
   try {
@@ -33,10 +33,14 @@ function sessionAuthEligible(input: RequestInfo | URL, init: RequestInit): URL |
 
 async function obtainSession(url: URL, forceRefresh = false, timeoutMs = 10_000): Promise<SessionState | null> {
   const now = Date.now();
-  if (!forceRefresh && sessionState && sessionState.expiresAt > now + 30_000) return sessionState;
-  if (sessionPromise) return sessionPromise;
+  const cached = sessionStates.get(url.origin);
+  if (!forceRefresh && cached && cached.expiresAt > now + 30_000) return cached;
 
-  sessionPromise = (async () => {
+  const existing = sessionPromises.get(url.origin);
+  if (existing) return existing;
+
+  let pending: Promise<SessionState | null>;
+  pending = (async () => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), Math.min(30_000, Math.max(1_000, timeoutMs)));
     try {
@@ -50,17 +54,19 @@ async function obtainSession(url: URL, forceRefresh = false, timeoutMs = 10_000)
       if (!payload || typeof payload !== 'object') return null;
       const data = payload as { accessToken?: unknown; expiresAt?: unknown };
       if (typeof data.accessToken !== 'string' || typeof data.expiresAt !== 'number') return null;
-      sessionState = { token: data.accessToken, expiresAt: data.expiresAt * 1000 };
-      return sessionState;
+      const session = { token: data.accessToken, expiresAt: data.expiresAt * 1000 };
+      sessionStates.set(url.origin, session);
+      return session;
     } catch {
       return null;
     } finally {
       clearTimeout(timer);
-      sessionPromise = null;
+      if (sessionPromises.get(url.origin) === pending) sessionPromises.delete(url.origin);
     }
   })();
 
-  return sessionPromise;
+  sessionPromises.set(url.origin, pending);
+  return pending;
 }
 
 function withSessionHeader(input: RequestInfo | URL, init: RequestInit, token: string): RequestInit {
@@ -97,7 +103,7 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
       const response = await fetch(input, { ...requestInit, signal: controller.signal });
 
       if (response.status === 401 && sessionUrl) {
-        sessionState = null;
+        sessionStates.delete(sessionUrl.origin);
         const refreshed = await obtainSession(sessionUrl, true, timeoutMs);
         if (refreshed) {
           const retryController = new AbortController();

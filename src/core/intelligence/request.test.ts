@@ -161,7 +161,7 @@ describe('fetchWithPolicy', () => {
         headers: { 'Content-Type': 'application/json' },
       }))
       .mockResolvedValueOnce(new Response('{}', { status: 503 }));
-    const request = new Request('https://example.test/v1/action', {
+    const request = new Request('https://another.example.test/v1/action', {
       method: 'POST',
       headers: { Authorization: 'Bearer request-token' },
       body: JSON.stringify({ action: 'save' }),
@@ -173,7 +173,7 @@ describe('fetchWithPolicy', () => {
 
     expect(response.status).toBe(503);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(String(fetchMock.mock.calls[0][0])).toBe('https://example.test/v1/session');
+    expect(String(fetchMock.mock.calls[0][0])).toBe('https://another.example.test/v1/session');
     expect(fetchMock.mock.calls[1][0]).toBe(request);
     const outgoingHeaders = new Headers(fetchMock.mock.calls[1][1]?.headers);
     expect(outgoingHeaders.get('Authorization')).toBe('Bearer session-token');
