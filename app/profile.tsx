@@ -22,7 +22,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="dark" backgroundColor={theme.colors.canvas} />
+      <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
         <FadeIn>
           <View style={styles.header}>
