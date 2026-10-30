@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useProfilePreferences } from '../src/ui/useProfilePreferences';
 import { BrandMark, FadeIn, SectionHeader } from '../src/ui/components';
 import { theme } from '../src/ui/theme';
 
@@ -16,61 +16,8 @@ function PreferenceRow({ title, description, value, onValueChange }: PreferenceR
   );
 }
 
-type ProfilePreferences = {
-  personalizedIdeas: boolean;
-  productSuggestions: boolean;
-  saveHistory: boolean;
-};
-
-const PREFERENCES_KEY = '@useit/profile-preferences/v1';
-const DEFAULT_PREFERENCES: ProfilePreferences = {
-  personalizedIdeas: true,
-  productSuggestions: true,
-  saveHistory: false,
-};
-
 export default function ProfileScreen() {
-  const [preferences, setPreferences] = useState<ProfilePreferences>(DEFAULT_PREFERENCES);
-  const [hydrated, setHydrated] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    AsyncStorage.getItem(PREFERENCES_KEY)
-      .then((raw) => {
-        if (!active || !raw) return;
-        try {
-          const parsed: unknown = JSON.parse(raw);
-          if (!parsed || typeof parsed !== 'object') return;
-          const value = parsed as Partial<ProfilePreferences>;
-          setPreferences({
-            personalizedIdeas: typeof value.personalizedIdeas === 'boolean' ? value.personalizedIdeas : DEFAULT_PREFERENCES.personalizedIdeas,
-            productSuggestions: typeof value.productSuggestions === 'boolean' ? value.productSuggestions : DEFAULT_PREFERENCES.productSuggestions,
-            saveHistory: typeof value.saveHistory === 'boolean' ? value.saveHistory : DEFAULT_PREFERENCES.saveHistory,
-          });
-        } catch {
-          setSaveError('Saved preferences could not be read. Default settings are shown.');
-        }
-      })
-      .catch(() => {
-        if (active) setSaveError('Device storage is unavailable. Changes will remain temporary.');
-      })
-      .finally(() => {
-        if (active) setHydrated(true);
-      });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    AsyncStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences))
-      .then(() => setSaveError(null))
-      .catch(() => setSaveError('Preferences could not be saved on this device. Try changing the setting again.'));
-  }, [hydrated, preferences]);
-
-  const updatePreference = (key: keyof ProfilePreferences, value: boolean) => {
-    setPreferences((current) => ({ ...current, [key]: value }));
-  };
+  const { preferences, updatePreference, hydrated, error } = useProfilePreferences();
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -100,7 +47,7 @@ export default function ProfileScreen() {
             <PreferenceRow title="Save my activity" description="Keep a history of analyses on this device." value={preferences.saveHistory} onValueChange={(value) => updatePreference('saveHistory', value)} />
           </View>
           <Text style={styles.preferenceFootnote}>{hydrated ? 'Preferences are saved locally on this device. Account sync is not enabled.' : 'Loading your preferences…'}</Text>
-          {saveError ? <Text accessibilityRole="alert" style={styles.saveError}>{saveError}</Text> : null}
+          {error ? <Text accessibilityRole="alert" style={styles.saveError}>{error}</Text> : null}
 
           <SectionHeader eyebrow="ABOUT USEIT" />
           <View style={styles.card}>
