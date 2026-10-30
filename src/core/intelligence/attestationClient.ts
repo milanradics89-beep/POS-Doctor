@@ -66,13 +66,28 @@ async function createSession(base: string, generation: number): Promise<string> 
     throw new Error(`USEIT session bootstrap failed (${direct.status}).`);
   }
 
-  const challenge = await requestAttestationChallenge(base, headers);
-
+  let challenge: ChallengeResponse;
   let assertion: string;
   let keyId: string | undefined;
   let clientData: string | undefined;
 
+  const existingNativeModule = await import('../../../modules/useit-app-attest');
+  const existingKeyId = existingNativeModule.default.isAvailable()
+    ? await existingNativeModule.default.getOrCreateKeyId()
+    : null;
+  const existingPending = existingKeyId
+    ? existingNativeModule.default.getPendingAttestation?.(existingKeyId)
+    : null;
+  if (existingPending) {
+    // An unexpired pending Apple enrollment takes precedence over fetching a new nonce.
+    challenge = JSON.parse(existingPending) as ChallengeResponse;
+  } else {
+    challenge = await requestAttestationChallenge(base, headers);
+  }
   if (challenge.provider === 'google_play_integrity') {
+    if (challenge.provider !== 'google_play_integrity') {
+      throw new Error('USEIT attestation provider changed during bootstrap.');
+    }
     const projectNumber = Number(process.env.EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER);
     if (!Number.isSafeInteger(projectNumber) || projectNumber <= 0) {
       throw new Error('EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER is not configured.');
@@ -83,20 +98,75 @@ async function createSession(base: string, generation: number): Promise<string> 
     }
     assertion = await nativeModule.default.requestIntegrityToken(projectNumber, challenge.challenge);
   } else {
-    const nativeModule = await import('../../../modules/useit-app-attest');
+    const nativeModule = existingNativeModule;
     if (!nativeModule.default.isAvailable()) {
       throw new Error('Apple App Attest is not available on this iOS device.');
     }
-    keyId = await nativeModule.default.getOrCreateKeyId();
-    if (
-      nativeModule.default.isKeyAttested(keyId) ||
-      nativeModule.default.isKeyAttestationPending(keyId)
-    ) {
-      clientData = JSON.stringify({ challenge: challenge.challenge, action: "session" });
-      assertion = await nativeModule.default.generateAssertion(challenge.challenge, keyId, clientData);
-    } else {
-      assertion = await nativeModule.default.attest(challenge.challenge, keyId);
+
+    keyId = existingKeyId ?? await nativeModule.default.getOrCreateKeyId();
+    let pending: {
+      challenge: string;
+      provider: 'apple_app_attest';
+      appId: string;
+      expiresAt: number;
+      attestationObject?: string;
+    } | null = null;
+    const pendingRaw = existingPending ?? nativeModule.default.getPendingAttestation?.(keyId);
+    if (pendingRaw) {
+      try {
+        const parsed = JSON.parse(pendingRaw) as typeof pending;
+        if (
+          parsed &&
+          parsed.provider === 'apple_app_attest' &&
+          typeof parsed.challenge === 'string' &&
+          typeof parsed.appId === 'string' &&
+          typeof parsed.expiresAt === 'number' &&
+          parsed.expiresAt > Math.floor(Date.now() / 1000) + 5
+        ) {
+          pending = parsed;
+        }
+      } catch {
+        pending = null;
+      }
+    }
+
+    if (!pending) {
+      if (pendingRaw) {
+        nativeModule.default.discardKey?.(keyId);
+        keyId = await nativeModule.default.getOrCreateKeyId();
+      }
+      if (challenge.provider !== 'apple_app_attest') {
+        throw new Error('USEIT attestation provider changed during bootstrap.');
+      }
+      pending = {
+        challenge: challenge.challenge,
+        provider: 'apple_app_attest',
+        appId: challenge.appId,
+        expiresAt: challenge.expiresAt,
+      };
       nativeModule.default.markKeyAttestationPending(keyId);
+      nativeModule.default.storePendingAttestation?.(keyId, JSON.stringify(pending));
+    } else {
+      challenge = pending;
+    }
+
+    if (pending.attestationObject) {
+      assertion = pending.attestationObject;
+    } else {
+      try {
+        assertion = await nativeModule.default.attest(challenge.challenge, keyId);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes('USEIT_APP_ATTEST_SERVER_UNAVAILABLE')) {
+          // Apple explicitly requires retrying with the same key and clientDataHash.
+          // The key and server challenge remain in the device Keychain for the next attempt.
+          throw new Error('Apple App Attest is temporarily unavailable. The same key and challenge have been retained for retry.');
+        }
+        nativeModule.default.discardKey?.(keyId);
+        throw error;
+      }
+      pending.attestationObject = assertion;
+      nativeModule.default.storePendingAttestation?.(keyId, JSON.stringify(pending));
     }
   }
 
