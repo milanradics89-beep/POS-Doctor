@@ -123,22 +123,28 @@ def _parse_auth_data(auth_data: bytes) -> tuple[bytes, int, bytes, dict[Any, Any
         raise ValueError("authenticatorData is missing the credential public key")
 
     # The credential public key is a CBOR COSE_Key immediately following the
-    # credential ID. If the ED flag is set, WebAuthn extension data follows it
-    # as a second CBOR map. Reject malformed and unconsumed trailing bytes.
+    # credential ID. Apple App Attest also appends an extensions map on current
+    # devices even when its authenticatorData ED flag is not set, so parse one
+    # whenever bytes remain. If ED is set, the map is mandatory. In either case
+    # require exactly one map and reject malformed or unconsumed trailing data.
     stream = io.BytesIO(auth_data[end:])
     decoder = cbor2.CBORDecoder(stream)
     try:
         credential_public_key = decoder.decode()
-        if flags & 0x80:
-            extensions = decoder.decode()
+        extension_data = stream.read()
+        if flags & 0x80 and not extension_data:
+            raise ValueError("authenticatorData ED flag is set but extension data is missing")
+        if extension_data:
+            extension_stream = io.BytesIO(extension_data)
+            extensions = cbor2.CBORDecoder(extension_stream).decode()
             if not isinstance(extensions, dict):
                 raise ValueError("invalid authenticator extensions")
+            if extension_stream.read(1):
+                raise ValueError("unexpected trailing authenticatorData bytes")
     except cbor2.CBORDecodeError as exc:
         raise ValueError("invalid credential public key or authenticator extensions") from exc
     if not isinstance(credential_public_key, dict):
         raise ValueError("invalid credential public key")
-    if stream.read(1):
-        raise ValueError("unexpected trailing authenticatorData bytes")
     return rp_id_hash, counter, auth_data[55:end], credential_public_key
 
 
