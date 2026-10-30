@@ -21,8 +21,10 @@ async def test_redis_store_hashes_challenge_and_consumes_once() -> None:
     assert record is not None
     assert record.provider is AttestationProvider.APP_ATTEST
     assert record.app_id == "com.example.useit"
-    redis.set.assert_awaited_once_with(redis.set.await_args.args[0], b"apple_app_attest\ncom.example.useit", ex=300, nx=True)
-    key = redis.set.await_args.args[0]
+    redis.set.assert_awaited_once()
+    key, value = redis.set.await_args.args
+    assert value == "apple_app_attest\ncom.example.useit"
+    assert redis.set.await_args.kwargs == {"ex": 300, "nx": True}
     assert "secret-challenge" not in key
     redis.getdel.assert_awaited_once_with(key)
 
@@ -46,17 +48,17 @@ async def test_redis_store_returns_none_when_challenge_missing() -> None:
 
 class AtomicFakeRedis:
     def __init__(self) -> None:
-        self.values: dict[str, bytes] = {}
+        self.values: dict[str, str | bytes] = {}
         self.expiries: dict[str, int] = {}
 
-    async def set(self, key: str, value: bytes, *, ex: int, nx: bool) -> str | None:
+    async def set(self, key: str, value: str | bytes, *, ex: int, nx: bool) -> str | None:
         if nx and key in self.values:
             return None
         self.values[key] = value
         self.expiries[key] = ex
         return "OK"
 
-    async def getdel(self, key: str) -> bytes | None:
+    async def getdel(self, key: str) -> str | bytes | None:
         return self.values.pop(key, None)
 
 
