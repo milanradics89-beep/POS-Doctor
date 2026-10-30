@@ -355,6 +355,7 @@ describe('attestationClient session cache', () => {
 
       if (payload.keyId === 'apple-key-id-2') {
         replacementAttestationAttempts += 1;
+        if (replacementAttestationAttempts === 1) throw new TypeError('Network request failed');
         return new Response(JSON.stringify({
           accessToken: 'session-token-after-key-rotation',
           expiresAt: Math.floor(Date.now() / 1000) + 600,
@@ -383,6 +384,13 @@ describe('attestationClient session cache', () => {
     expect(nativeModule.markKeyAttestationPending).toHaveBeenCalledWith('apple-key-id');
     expect(nativeModule.markKeyAttested).not.toHaveBeenCalled();
 
+    await expect(getSessionToken('https://api-a.example')).rejects.toThrow('Network request failed');
+    expect(JSON.parse(pendingAttestation ?? '{}')).toMatchObject({
+      challenge: 'challenge-3',
+      provider: 'apple_app_attest',
+      attestationObject: 'attestation-apple-key-id-2',
+    });
+
     await expect(getSessionToken('https://api-a.example')).resolves.toBe('session-token-after-key-rotation');
 
     expect(nativeModule.generateAssertion).toHaveBeenCalledWith(
@@ -392,16 +400,17 @@ describe('attestationClient session cache', () => {
     );
     expect(nativeModule.createNewKeyId).toHaveBeenCalledTimes(1);
     expect(nativeModule.attest).toHaveBeenNthCalledWith(2, 'challenge-3', 'apple-key-id-2');
+    expect(nativeModule.storePendingAttestation).toHaveBeenCalledWith('apple-key-id-2', expect.stringContaining('attestation-apple-key-id-2'));
     expect(nativeModule.markKeyAttestationPending).toHaveBeenNthCalledWith(2, 'apple-key-id-2');
     expect(nativeModule.markKeyAttested).toHaveBeenCalledWith('apple-key-id-2');
     expect(activeKeyId).toBe('apple-key-id-2');
     expect(pendingKeyId).toBeNull();
     expect(attestedKeyId).toBe('apple-key-id-2');
-    expect(challengeCount).toBe(3);
+    expect(challengeCount).toBe(4);
     expect(initialAttestationAttempts).toBe(1);
     expect(assertionAttempts).toBe(1);
-    expect(replacementAttestationAttempts).toBe(1);
-    expect(fetchMock).toHaveBeenCalledTimes(8);
+    expect(replacementAttestationAttempts).toBe(2);
+    expect(fetchMock).toHaveBeenCalledTimes(10);
   });
 
   it('recovers with an assertion when the first attestation response is lost after server acceptance', async () => {

@@ -290,7 +290,18 @@ async function createFreshAppleEnrollment(
   }
 
   const attestation = await nativeModule.default.attest(challenge.challenge, keyId);
+  // Persist the exact challenge and evidence before contacting the server.
+  // If the response is lost, the next bootstrap can safely retry the same
+  // attestation instead of generating a second one for this key.
+  const pending: PendingAppleAttestation = {
+    challenge: challenge.challenge,
+    provider: 'apple_app_attest',
+    appId: challenge.appId,
+    expiresAt: challenge.expiresAt,
+    attestationObject: attestation,
+  };
   nativeModule.default.markKeyAttestationPending(keyId);
+  nativeModule.default.storePendingAttestation?.(keyId, JSON.stringify(pending));
   const response = await submitAttestation(base, headers, challenge, attestation, keyId);
 
   if (!response.ok) {
