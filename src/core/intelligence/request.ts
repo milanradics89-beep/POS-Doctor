@@ -39,8 +39,7 @@ async function obtainSession(url: URL, forceRefresh = false, timeoutMs = 10_000)
   const existing = sessionPromises.get(url.origin);
   if (existing) return existing;
 
-  let pending: Promise<SessionState | null>;
-  pending = (async () => {
+  const pending = Promise.resolve().then(async () => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), Math.min(30_000, Math.max(1_000, timeoutMs)));
     try {
@@ -63,7 +62,7 @@ async function obtainSession(url: URL, forceRefresh = false, timeoutMs = 10_000)
       clearTimeout(timer);
       if (sessionPromises.get(url.origin) === pending) sessionPromises.delete(url.origin);
     }
-  })();
+  });
 
   sessionPromises.set(url.origin, pending);
   return pending;
