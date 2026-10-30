@@ -333,13 +333,19 @@ export default function Home() {
                   <Text style={s.overline}>WHAT'S YOUR INTENTION?</Text>
                   <Text style={s.modeTitle}>What should we{ '\n' }do with this?</Text>
                   <Text style={s.modeSub}>Choose a direction. USEIT will take it from here.</Text>
-                  {modes.map((mode) => (
+                  {preferences.personalizedIdeas ? modes.map((mode) => (
                     <Pressable accessibilityRole="button" key={mode.id} onPress={() => analyze(mode.id)} style={({ pressed }) => [s.modeCard, pressed && s.pressed]}>
                       <View style={[s.modeSymbol, { backgroundColor: mode.tint }]}><Text style={s.modeSymbolText}>{mode.symbol}</Text></View>
                       <View style={s.modeCopy}><Text style={s.modeName}>{mode.title}</Text><Text style={s.modeDescription}>{mode.description}</Text></View>
                       <Text style={s.modeArrow}>↗</Text>
                     </Pressable>
-                  ))}
+                  )) : (
+                    <Pressable accessibilityRole="button" accessibilityLabel="Explore this photo without personalized ideas" onPress={() => analyze()} style={({ pressed }) => [s.modeCard, pressed && s.pressed]}>
+                      <View style={[s.modeSymbol, { backgroundColor: theme.colors.accent }]}><Text style={s.modeSymbolText}>✳</Text></View>
+                      <View style={s.modeCopy}><Text style={s.modeName}>EXPLORE</Text><Text style={s.modeDescription}>Let USEIT choose a useful direction without personalized intent.</Text></View>
+                      <Text style={s.modeArrow}>↗</Text>
+                    </Pressable>
+                  )}
                   <Pressable accessibilityRole="button" accessibilityLabel="Use a different photo" onPress={reset} style={s.changePhoto}><Text style={s.changePhotoText}>USE A DIFFERENT PHOTO</Text></Pressable>
                 </View>
               )}
