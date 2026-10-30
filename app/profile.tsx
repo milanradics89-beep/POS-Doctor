@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BrandMark, FadeIn, SectionHeader } from '../src/ui/components';
 import { theme } from '../src/ui/theme';
 
@@ -15,10 +16,61 @@ function PreferenceRow({ title, description, value, onValueChange }: PreferenceR
   );
 }
 
+type ProfilePreferences = {
+  personalizedIdeas: boolean;
+  productSuggestions: boolean;
+  saveHistory: boolean;
+};
+
+const PREFERENCES_KEY = '@useit/profile-preferences/v1';
+const DEFAULT_PREFERENCES: ProfilePreferences = {
+  personalizedIdeas: true,
+  productSuggestions: true,
+  saveHistory: false,
+};
+
 export default function ProfileScreen() {
-  const [personalizedIdeas, setPersonalizedIdeas] = useState(true);
-  const [productSuggestions, setProductSuggestions] = useState(true);
-  const [saveHistory, setSaveHistory] = useState(false);
+  const [preferences, setPreferences] = useState<ProfilePreferences>(DEFAULT_PREFERENCES);
+  const [hydrated, setHydrated] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(PREFERENCES_KEY)
+      .then((raw) => {
+        if (!active || !raw) return;
+        try {
+          const parsed: unknown = JSON.parse(raw);
+          if (!parsed || typeof parsed !== 'object') return;
+          const value = parsed as Partial<ProfilePreferences>;
+          setPreferences({
+            personalizedIdeas: typeof value.personalizedIdeas === 'boolean' ? value.personalizedIdeas : DEFAULT_PREFERENCES.personalizedIdeas,
+            productSuggestions: typeof value.productSuggestions === 'boolean' ? value.productSuggestions : DEFAULT_PREFERENCES.productSuggestions,
+            saveHistory: typeof value.saveHistory === 'boolean' ? value.saveHistory : DEFAULT_PREFERENCES.saveHistory,
+          });
+        } catch {
+          setSaveError('Saved preferences could not be read. Default settings are shown.');
+        }
+      })
+      .catch(() => {
+        if (active) setSaveError('Device storage is unavailable. Changes will remain temporary.');
+      })
+      .finally(() => {
+        if (active) setHydrated(true);
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    AsyncStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences))
+      .then(() => setSaveError(null))
+      .catch(() => setSaveError('Preferences could not be saved on this device. Try changing the setting again.'));
+  }, [hydrated, preferences]);
+
+  const updatePreference = (key: keyof ProfilePreferences, value: boolean) => {
+    setPreferences((current) => ({ ...current, [key]: value }));
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -41,13 +93,14 @@ export default function ProfileScreen() {
 
           <SectionHeader eyebrow="YOUR PREFERENCES" detail="CONTROL YOUR EXPERIENCE" />
           <View style={styles.card}>
-            <PreferenceRow title="Personalized ideas" description="Use your selected preferences to shape suggestions." value={personalizedIdeas} onValueChange={setPersonalizedIdeas} />
+            <PreferenceRow title="Personalized ideas" description="Use your selected preferences to shape suggestions." value={preferences.personalizedIdeas} onValueChange={(value) => updatePreference('personalizedIdeas', value)} />
             <View style={styles.separator} />
-            <PreferenceRow title="Product suggestions" description="Include relevant products when they add real value." value={productSuggestions} onValueChange={setProductSuggestions} />
+            <PreferenceRow title="Product suggestions" description="Include relevant products when they add real value." value={preferences.productSuggestions} onValueChange={(value) => updatePreference('productSuggestions', value)} />
             <View style={styles.separator} />
-            <PreferenceRow title="Save my activity" description="Keep a history of analyses on this device." value={saveHistory} onValueChange={setSaveHistory} />
+            <PreferenceRow title="Save my activity" description="Keep a history of analyses on this device." value={preferences.saveHistory} onValueChange={(value) => updatePreference('saveHistory', value)} />
           </View>
-          <Text style={styles.preferenceFootnote}>Preview controls for this build. Saved preferences and account sync will be connected in a later release.</Text>
+          <Text style={styles.preferenceFootnote}>{hydrated ? 'Preferences are saved locally on this device. Account sync is not enabled.' : 'Loading your preferences…'}</Text>
+          {saveError ? <Text accessibilityRole="alert" style={styles.saveError}>{saveError}</Text> : null}
 
           <SectionHeader eyebrow="ABOUT USEIT" />
           <View style={styles.card}>
@@ -91,6 +144,7 @@ const styles = StyleSheet.create({
   preferenceDescription: { color: theme.colors.muted, fontSize: 10, lineHeight: 15, marginTop: 4 },
   separator: { height: 1, backgroundColor: theme.colors.line },
   preferenceFootnote: { color: theme.colors.subtle, fontSize: 9, lineHeight: 14, marginTop: 9, marginHorizontal: 4 },
+  saveError: { color: theme.colors.danger, fontSize: 10, lineHeight: 15, marginTop: 8, marginHorizontal: 4 },
   infoRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   infoTitle: { color: theme.colors.ink, fontSize: 13, fontWeight: '800' },
   infoSub: { color: theme.colors.muted, fontSize: 10, marginTop: 4 },
