@@ -40,9 +40,9 @@ export default function ProfileScreen() {
 
           <SectionHeader eyebrow="YOUR PREFERENCES" detail="CONTROL YOUR EXPERIENCE" />
           <View style={styles.card}>
-            <PreferenceRow title="Personalized ideas" description="Use your selected intent to make each recommendation more relevant." value={preferences.personalizedIdeas} onValueChange={(value) => updatePreference('personalizedIdeas', value)} />
+            <PreferenceRow title="Personalized ideas" description="Use your selected intent to make each recommendation more relevant." value={preferences.personalizedIdeas} onValueChange={(value) => updatePreference('personalizedIdeas', value)} disabled={!hydrated} />
             <View style={styles.separator} />
-            <PreferenceRow title="Product suggestions" description="Show matching products alongside practical ideas." value={preferences.productSuggestions} onValueChange={(value) => updatePreference('productSuggestions', value)} />
+            <PreferenceRow title="Product suggestions" description="Show matching products alongside practical ideas." value={preferences.productSuggestions} onValueChange={(value) => updatePreference('productSuggestions', value)} disabled={!hydrated} />
             <View style={styles.separator} />
             <PreferenceRow title="Activity history" description="Coming soon. Analyses are not saved in this release." value={false} onValueChange={() => undefined} disabled />
           </View>
