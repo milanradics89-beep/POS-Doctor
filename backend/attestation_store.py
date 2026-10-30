@@ -37,7 +37,9 @@ class RedisChallengeStore:
     async def put(self, challenge: str, provider: AttestationProvider, app_id: str, ttl_seconds: int) -> None:
         key = self._key(challenge)
         value = f"{provider.value}\n{app_id}"
-        await self._redis.set(key, value, ex=ttl_seconds, nx=True)
+        created = await self._redis.set(key, value, ex=ttl_seconds, nx=True)
+        if not created:
+            raise RuntimeError("Could not store a unique attestation challenge.")
 
     async def consume(self, challenge: str) -> ChallengeRecord | None:
         key = self._key(challenge)
