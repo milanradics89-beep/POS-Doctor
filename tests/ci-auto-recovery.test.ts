@@ -11,7 +11,14 @@ describe('CI auto-recovery workflow', () => {
     expect(workflow).toContain(
       `jq -r --arg title "$TITLE" 'first(.[] | select(.title == $title) | .number) // empty'`,
     );
-    expect(workflow).not.toContain("--jq '.[] | select(.title == \"'");
+    expect(workflow).not.toContain("--jq '.[] | select(.title == \"");
+  });
+
+  it('narrows the GitHub issue search before performing an exact local title match', () => {
+    expect(workflow).toContain('--search');
+    expect(workflow).toContain('in:title');
+    expect(workflow).toContain('--json number,title --limit 1000');
+    expect(workflow).toContain('jq -r --arg title "$TITLE"');
   });
 
   it('limits automatic retries to one failed attempt from this repository', () => {
