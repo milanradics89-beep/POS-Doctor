@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getItem, setItem } from '../storage/deviceStorage';
 
 export type ProfilePreferences = {
   personalizedIdeas: boolean;
@@ -34,7 +34,7 @@ export function useProfilePreferences() {
 
   useEffect(() => {
     let active = true;
-    AsyncStorage.getItem(PREFERENCES_KEY)
+    getItem(PREFERENCES_KEY)
       .then((raw) => {
         if (!active) return;
         try {
@@ -55,7 +55,7 @@ export function useProfilePreferences() {
   useEffect(() => {
     if (!hydrated) return;
     let active = true;
-    AsyncStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences))
+    setItem(PREFERENCES_KEY, JSON.stringify(preferences))
       .then(() => { if (active) setError(null); })
       .catch(() => { if (active) setError('Preferences could not be saved on this device.'); });
     return () => { active = false; };
