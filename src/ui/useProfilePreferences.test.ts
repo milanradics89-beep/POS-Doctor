@@ -1,14 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_PROFILE_PREFERENCES, type ProfilePreferences } from './useProfilePreferences';
+import { DEFAULT_PROFILE_PREFERENCES, type ProfilePreferences, parsePreferences } from './profilePreferences';
 
-import { parsePreferences, PREFERENCES_KEY } from './profilePreferences';
 
 describe('profile preferences storage contract', () => {
-  afterEach(() => {
-
-  });
-
   it('uses conservative defaults for a new profile', () => {
     expect(DEFAULT_PROFILE_PREFERENCES).toEqual({
       personalizedIdeas: true,
@@ -17,7 +12,7 @@ describe('profile preferences storage contract', () => {
     });
   });
 
-  it('persists only the three supported preference flags', async () => {
+  it('parses only the three supported preference flags', () => {
     const value: ProfilePreferences = {
       personalizedIdeas: false,
       productSuggestions: true,
