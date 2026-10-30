@@ -97,6 +97,7 @@ async function createSession(base: string, generation: number): Promise<string> 
       attestationObject?: string;
     } | null = null;
     const pendingRaw = nativeModule.default.getPendingAttestation?.(keyId);
+    const hasPendingMarker = nativeModule.default.isKeyAttestationPending(keyId);
     if (pendingRaw) {
       try {
         const parsed = JSON.parse(pendingRaw) as typeof pending;
@@ -116,7 +117,7 @@ async function createSession(base: string, generation: number): Promise<string> 
     }
 
     if (!pending) {
-      if (pendingRaw) {
+      if (pendingRaw || hasPendingMarker) {
         nativeModule.default.discardKey?.(keyId);
         keyId = await nativeModule.default.getOrCreateKeyId();
       }
