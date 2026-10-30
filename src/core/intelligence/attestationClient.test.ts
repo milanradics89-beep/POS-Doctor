@@ -410,7 +410,7 @@ describe('attestationClient session cache', () => {
     expect(initialAttestationAttempts).toBe(1);
     expect(assertionAttempts).toBe(1);
     expect(replacementAttestationAttempts).toBe(2);
-    expect(fetchMock).toHaveBeenCalledTimes(10);
+    expect(fetchMock).toHaveBeenCalledTimes(11);
   });
 
   it('recovers with an assertion when the first attestation response is lost after server acceptance', async () => {
