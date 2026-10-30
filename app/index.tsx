@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
+import { useProfilePreferences } from '../src/ui/useProfilePreferences';
 import { theme } from '../src/ui/theme';
 import { FadeIn, ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 
@@ -32,6 +33,7 @@ const modes: { id: OpportunityKind; title: string; description: string; symbol: 
 ];
 
 export default function Home() {
+  const { preferences } = useProfilePreferences();
   const [photo, setPhoto] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [rendering, setRendering] = useState(false);
@@ -51,7 +53,8 @@ export default function Home() {
   };
 
   async function analyze(intent?: OpportunityKind) {
-    setLastIntent(intent);
+    const effectiveIntent = preferences.personalizedIdeas ? intent : undefined;
+    setLastIntent(effectiveIntent);
     if (!API_URL) {
       Alert.alert('USEIT is not connected', 'Set EXPO_PUBLIC_USEIT_API_URL before running the real vision flow.');
       return;
@@ -61,7 +64,7 @@ export default function Home() {
     setAnalysisError(null);
     setRendered(null);
     try {
-      const response = await analyzeForConsumer(new UseitApiProvider(API_URL), photo, intent);
+      const response = await analyzeForConsumer(new UseitApiProvider(API_URL), photo, effectiveIntent);
       setResult(response);
     } catch (error) {
       setAnalysisError(error instanceof Error ? error.message : 'Please try again with a clearer photo.');
@@ -275,7 +278,7 @@ export default function Home() {
                   </View>
                 ) : null}
 
-                {(result.intelligence?.rankedCandidates?.length ?? 0) > 0 ? (
+                {preferences.productSuggestions && (result.intelligence?.rankedCandidates?.length ?? 0) > 0 ? (
                   <View>
                     <SectionHeader eyebrow="GOOD MATCHES" detail="TOP PICKS" />
                     {result.intelligence.rankedCandidates.slice(0, 5).map((item) => (
@@ -283,7 +286,7 @@ export default function Home() {
                     ))}
                   </View>
                 ) : (
-                  <View style={{ marginTop: 22 }}><StatePanel kind="empty" title="No product matches yet" description="The idea is ready. We couldn't find a product worth recommending this time." /></View>
+                  <View style={{ marginTop: 22 }}><StatePanel kind="empty" title={preferences.productSuggestions ? 'No product matches yet' : 'Product suggestions are off'} description={preferences.productSuggestions ? "The idea is ready. We couldn't find a product worth recommending this time." : 'Turn product suggestions back on in your profile to see matching items.'} actionLabel={preferences.productSuggestions ? undefined : 'OPEN PREFERENCES'} onAction={preferences.productSuggestions ? undefined : () => router.push('/profile')} /></View>
                 )}
 
                 {renderError ? <View style={{ marginTop: 14 }}><StatePanel kind="error" title="The visual concept isn't ready" description={renderError} actionLabel="TRY AGAIN" onAction={createVisualConcept} /></View> : null}
