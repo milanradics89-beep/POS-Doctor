@@ -38,15 +38,20 @@ export default function Home() {
   const [rendered, setRendered] = useState<string | null>(null);
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [renderError, setRenderError] = useState<string | null>(null);
+  const [lastIntent, setLastIntent] = useState<OpportunityKind | undefined>(undefined);
 
   const reset = () => {
     setPhoto(null);
     setResult(null);
     setRendered(null);
     setAnalysisError(null);
+    setRenderError(null);
+    setLastIntent(undefined);
   };
 
   async function analyze(intent?: OpportunityKind) {
+    setLastIntent(intent);
     if (!API_URL) {
       Alert.alert('USEIT is not connected', 'Set EXPO_PUBLIC_USEIT_API_URL before running the real vision flow.');
       return;
@@ -68,6 +73,7 @@ export default function Home() {
   async function createVisualConcept() {
     if (!photo || !result?.phase3?.redesign) return;
     setRendering(true);
+    setRenderError(null);
     try {
       const api = new UseitApiProvider(API_URL);
       const products = result.phase3.redesign.products.map((product) => ({
@@ -79,8 +85,8 @@ export default function Home() {
       }));
       const renderedResult = await api.renderRedesign(photo, result.phase3.redesign.prompt, products);
       setRendered(renderedResult.imageDataUrl);
-    } catch {
-      Alert.alert('Visual concept failed', 'The redesign could not be rendered. The selected solution is still available.');
+    } catch (error) {
+      setRenderError(error instanceof Error ? error.message : 'The redesign could not be rendered. The selected solution is still available.');
     } finally {
       setRendering(false);
     }
@@ -107,6 +113,8 @@ export default function Home() {
     setPhoto(`data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`);
     setResult(null);
     setRendered(null);
+    setAnalysisError(null);
+    setRenderError(null);
   }
 
   async function capture() {
@@ -129,6 +137,8 @@ export default function Home() {
     setPhoto(`data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`);
     setResult(null);
     setRendered(null);
+    setAnalysisError(null);
+    setRenderError(null);
   }
 
   const confidence = Math.round((result?.intelligence?.intentConfidence || 0) * 100);
@@ -209,7 +219,7 @@ export default function Home() {
                 <Text style={s.loadingSub}>{busy ? 'Understanding the details in your photo.' : 'Creating a visual concept from your plan.'}</Text>
               </View>
             ) : analysisError ? (
-              <View style={{ marginTop: 22 }}><StatePanel kind="error" title="We couldn't finish that" description={analysisError} actionLabel="TRY AGAIN" onAction={() => analyze()} /></View>
+              <View style={{ marginTop: 22 }}><StatePanel kind="error" title="We couldn't finish that" description={analysisError} actionLabel="TRY AGAIN" onAction={() => analyze(lastIntent)} /></View>
             ) : result ? (
               <View>
                 <FadeIn>
@@ -276,6 +286,7 @@ export default function Home() {
                   <View style={{ marginTop: 22 }}><StatePanel kind="empty" title="No product matches yet" description="The idea is ready. We couldn't find a product worth recommending this time." /></View>
                 )}
 
+                {renderError ? <View style={{ marginTop: 14 }}><StatePanel kind="error" title="The visual concept isn't ready" description={renderError} actionLabel="TRY AGAIN" onAction={createVisualConcept} /></View> : null}
                 {result.phase3?.redesign ? (
                   <Pressable accessibilityRole="button" onPress={createVisualConcept} style={({ pressed }) => [s.primaryButton, pressed && s.pressed]}>
                     <Text style={s.primaryButtonText}>CREATE VISUAL CONCEPT</Text><Text style={s.primaryButtonArrow}>↗</Text>
