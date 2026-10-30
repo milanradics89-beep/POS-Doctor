@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_PROFILE_PREFERENCES, type ProfilePreferences, parsePreferences } from './profilePreferences';
+import { DEFAULT_PROFILE_PREFERENCES, PREFERENCES_KEY, type ProfilePreferences, parsePreferences } from './profilePreferences';
 
 
 describe('profile preferences storage contract', () => {
