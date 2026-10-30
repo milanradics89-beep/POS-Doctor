@@ -333,3 +333,26 @@ def test_key_id_bytes_accepts_supported_canonical_encodings():
     assert _key_id_bytes(key_bytes.hex()) == key_bytes
     assert _key_id_bytes(base64.b64encode(key_bytes).decode("ascii")) == key_bytes
 
+
+
+
+def test_apple_key_store_redis_client_uses_bounded_timeouts(monkeypatch):
+    from backend import apple_app_attest as apple_attest_module
+
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    captured = {}
+    sentinel = object()
+
+    def fake_from_url(url, **kwargs):
+        captured.update(url=url, **kwargs)
+        return sentinel
+
+    monkeypatch.setattr(apple_attest_module.Redis, "from_url", fake_from_url)
+
+    assert apple_attest_module._redis() is sentinel
+    assert captured == {
+        "url": "redis://redis.internal:6379/0",
+        "decode_responses": False,
+        "socket_connect_timeout": 2.0,
+        "socket_timeout": 5.0,
+    }
