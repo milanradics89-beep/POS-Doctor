@@ -58,6 +58,23 @@ For multi-instance deployments, use USEIT_RATE_LIMIT_MODE=redis and a shared Red
 - [ ] Test camera permission grant, denial, recovery through Settings, image capture, analysis failure, retry, product discovery, and no-results states on physical devices.
 - [ ] Test on at least one supported physical iOS device and one supported physical Android device. Simulator/emulator tests do not validate hardware-backed attestation.
 
+
+### Bounded staging load probe
+
+The repository includes `scripts/load-test.mjs` for a controlled HTTP load probe. Run it only against an approved staging environment after agreeing request volume and expected thresholds with the service owner.
+
+Example health/readiness probe:
+
+```bash
+USEIT_LOAD_BASE_URL=https://staging-api.example.com \
+USEIT_LOAD_PATH=/ready \
+USEIT_LOAD_REQUESTS=100 \
+USEIT_LOAD_CONCURRENCY=5 \
+node scripts/load-test.mjs
+```
+
+For POST endpoints, explicitly set `USEIT_LOAD_TEST_ALLOW_POST=YES`, provide `USEIT_LOAD_BODY_JSON`, and configure `USEIT_LOAD_API_KEY` if required. POST tests can trigger billable AI calls or state changes. The harness caps each run at 1,000 requests and concurrency at 20, reports status counts, throughput and p50/p95/max latency, and exits non-zero on any failed request. Do not treat a health-endpoint probe as evidence of AI-analysis capacity; use an approved representative payload and a cost ceiling for analysis tests.
+
 ## 4. Staged rollout
 
 1. Deploy the exact reviewed backend commit to staging.
