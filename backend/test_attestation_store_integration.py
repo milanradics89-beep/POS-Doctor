@@ -102,3 +102,63 @@ async def test_challenge_lifecycle_uses_configured_shared_redis_and_rejects_repl
 
     assert first == AttestationResult(True, "challenge_bound")
     assert replay == AttestationResult(False, "challenge_invalid_or_replayed")
+
+
+
+@pytest.mark.asyncio
+async def test_real_redis_challenge_is_single_use_across_separate_backend_processes() -> None:
+    """Separate worker processes must observe the same atomic Redis challenge state."""
+    import sys
+
+    url = _integration_redis_url()
+    parent_client = Redis.from_url(url, decode_responses=False)
+    challenge = secrets.token_urlsafe(32)
+    store = RedisChallengeStore(parent_client)
+
+    child_code = """
+import asyncio
+import os
+import sys
+from redis.asyncio import Redis
+from backend.attestation_store import RedisChallengeStore
+
+async def main():
+    client = Redis.from_url(os.environ["USEIT_TEST_REDIS_URL"], decode_responses=False)
+    try:
+        record = await RedisChallengeStore(client).consume(sys.argv[1])
+        print("consumed" if record is not None else "missing")
+    finally:
+        await client.aclose()
+
+asyncio.run(main())
+"""
+
+    async def consume_in_worker_process() -> str:
+        process = await asyncio.create_subprocess_exec(
+            sys.executable,
+            "-c",
+            child_code,
+            challenge,
+            cwd=os.getcwd(),
+            env=os.environ.copy(),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await process.communicate()
+        assert process.returncode == 0, stderr.decode("utf-8", errors="replace")
+        return stdout.decode("utf-8").strip()
+
+    try:
+        await parent_client.ping()
+        await store.put(challenge, AttestationProvider.APP_ATTEST, "com.example.useit", 30)
+
+        outcomes = await asyncio.gather(
+            consume_in_worker_process(),
+            consume_in_worker_process(),
+        )
+
+        assert sorted(outcomes) == ["consumed", "missing"]
+        assert await parent_client.exists(store._key(challenge)) == 0
+    finally:
+        await parent_client.delete(store._key(challenge))
+        await parent_client.aclose()
