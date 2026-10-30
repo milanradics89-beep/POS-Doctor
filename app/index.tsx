@@ -279,7 +279,7 @@ export default function Home() {
                   <View>
                     <SectionHeader eyebrow="GOOD MATCHES" detail="TOP PICKS" />
                     {result.intelligence.rankedCandidates.slice(0, 5).map((item) => (
-                      <ProductCard key={item.id} title={item.title} category={item.category} source={item.source} price={item.priceHuf} onPress={() => item.url && Linking.openURL(item.url)} />
+                      <ProductCard key={item.id} title={item.title} category={item.category} source={item.source} price={item.priceHuf} onPress={item.url ? () => Linking.openURL(item.url) : undefined} />
                     ))}
                   </View>
                 ) : (
