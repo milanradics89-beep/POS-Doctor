@@ -133,7 +133,12 @@ def configured_redis_url() -> str:
 async def _redis_challenge_store() -> AsyncIterator[ChallengeStoreBackend]:
     from backend.attestation_store import RedisChallengeStore
 
-    redis = Redis.from_url(configured_redis_url(), decode_responses=False)
+    redis = Redis.from_url(
+        configured_redis_url(),
+        decode_responses=False,
+        socket_connect_timeout=2.0,
+        socket_timeout=5.0,
+    )
     try:
         yield RedisChallengeStore(redis)
     finally:
