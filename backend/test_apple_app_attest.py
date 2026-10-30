@@ -95,6 +95,25 @@ def test_authenticator_data_parser_accepts_extension_map_after_cose_key(flags):
     assert parsed[3] == cose_key
 
 
+def test_authenticator_data_parser_accepts_apple_published_sample_extensions():
+    # Apple's published validation vector contains an extensions map after the
+    # COSE key while the authenticator flags byte is 0x40 (AT without ED).
+    auth_data = base64.b64decode(
+        "9EZtaPketsEGIMt+Y8coMkRoXuHWRntUFg51MXIFfwNAAAAAAGFwcGF0dGVzdAAAAAAAAAAA"
+        "IM4EmPWEg/u02g17LGOlpTj1UtSty5pPqRYZXElhPmVdpQECAyYgASFYIEMyVErPMj23dEQ8"
+        "qvM59W5+lcck+sLBQlnzZeJEVlCyIlggtfsoW89Um8tgWUQS52gqJCfuran7Ut/tCxqxftCf"
+        "qb2id2FwcGxlX2J1bmRsZV92ZXJzaW9uXzAxYTF4HGFwcGxlX3ZhbGlkYXRpb25fY2F0ZWdv"
+        "cnlfMDFEAQAAAA=="
+    )
+
+    assert auth_data[32] == 0x40
+    rp_id_hash, counter, credential_id, cose_key = _parse_auth_data(auth_data)
+    assert rp_id_hash == base64.b64decode("9EZtaPketsEGIMt+Y8coMkRoXuHWRntUFg51MXIFfwM=")
+    assert counter == 0
+    assert len(credential_id) == 32
+    assert cose_key[1] == 2
+    assert cose_key[3] == -7
+
 def test_authenticator_data_parser_requires_extensions_when_ed_flag_is_set():
     rp = b"\\x01" * 32
     flags = b"\\xC1"
