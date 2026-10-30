@@ -78,19 +78,52 @@ def test_authenticator_data_parser_rejects_missing_credential_public_key():
         _parse_auth_data(payload)
 
 
-def test_authenticator_data_parser_rejects_malformed_or_trailing_cose_data():
-    rp = b"\x01" * 32
-    flags = b"\x41"
+@pytest.mark.parametrize("flags", [b"\\x41", b"\\xC1"])
+def test_authenticator_data_parser_accepts_extension_map_after_cose_key(flags):
+    rp = b"\\x01" * 32
     counter = (0).to_bytes(4, "big")
-    aaguid = b"appattest" + b"\x00" * 7
-    credential = b"\x02" * 32
+    aaguid = b"appattest" + b"\\x00" * 7
+    credential = b"\\x02" * 32
     prefix = rp + flags + counter + aaguid + len(credential).to_bytes(2, "big") + credential
+    cose_key = {1: 2, 3: -7, -1: 1, -2: b"x" * 32, -3: b"y" * 32}
+    extensions = {
+        "apple_bundle_version_01": "1",
+        "apple_validation_category_01": b"\\x01\\x00\\x00\\x00",
+    }
+
+    parsed = _parse_auth_data(prefix + cbor2.dumps(cose_key) + cbor2.dumps(extensions))
+    assert parsed[3] == cose_key
+
+
+def test_authenticator_data_parser_requires_extensions_when_ed_flag_is_set():
+    rp = b"\\x01" * 32
+    flags = b"\\xC1"
+    counter = (0).to_bytes(4, "big")
+    aaguid = b"appattest" + b"\\x00" * 7
+    credential = b"\\x02" * 32
+    prefix = rp + flags + counter + aaguid + len(credential).to_bytes(2, "big") + credential
+    cose_key = {1: 2, 3: -7, -1: 1, -2: b"x" * 32, -3: b"y" * 32}
+
+    with pytest.raises(ValueError, match="ED flag"):
+        _parse_auth_data(prefix + cbor2.dumps(cose_key))
+
+
+def test_authenticator_data_parser_rejects_malformed_or_trailing_cose_data():
+    rp = b"\\x01" * 32
+    flags = b"\\x41"
+    counter = (0).to_bytes(4, "big")
+    aaguid = b"appattest" + b"\\x00" * 7
+    credential = b"\\x02" * 32
+    prefix = rp + flags + counter + aaguid + len(credential).to_bytes(2, "big") + credential
+    valid_cose_key = cbor2.dumps({1: 2, 3: -7, -1: 1, -2: b"x" * 32, -3: b"y" * 32})
 
     with pytest.raises(ValueError, match="invalid credential public key"):
         _parse_auth_data(prefix + cbor2.dumps([1, 2]))
-    valid_cose_key = cbor2.dumps({1: 2, 3: -7, -1: 1, -2: b"x" * 32, -3: b"y" * 32})
+    with pytest.raises(ValueError, match="authenticator extensions"):
+        _parse_auth_data(prefix + valid_cose_key + cbor2.dumps(["not a map"]))
     with pytest.raises(ValueError, match="trailing"):
-        _parse_auth_data(prefix + valid_cose_key + b"\x00")
+        _parse_auth_data(prefix + valid_cose_key + cbor2.dumps({"valid": True}) + b"\\x00")
+
 
 
 from cryptography.hazmat.primitives import hashes
