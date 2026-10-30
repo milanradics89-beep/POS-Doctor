@@ -55,9 +55,13 @@ async function createSession(base: string, generation: number): Promise<string> 
     return cacheSession(await parseSession(direct), base, generation);
   }
 
-  // Development deployments may intentionally leave session authentication disabled.
-  // In that case the normal API auth boundary remains responsible for access control.
-  if (direct.status === 503) return '';
+  // Only the explicit missing-session-secret response means this deployment intentionally
+  // runs without session auth. Other 503 responses represent outages and must fail closed.
+  if (direct.status === 503) {
+    const detail = await safeErrorDetail(direct);
+    if (detail === 'Session authentication is not configured.') return '';
+    throw new Error(`USEIT session bootstrap failed (503)${detail ? `: ${detail}` : '.'}`);
+  }
   if (direct.status !== 401) {
     throw new Error(`USEIT session bootstrap failed (${direct.status}).`);
   }

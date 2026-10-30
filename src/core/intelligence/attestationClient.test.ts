@@ -83,6 +83,34 @@ describe('attestationClient session cache', () => {
     expect(await getSessionToken('https://api-a.example')).toBe('token-fresh');
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+  it('returns an empty session only when session authentication is explicitly unconfigured', async () => {
+    const fetchMock = vi.fn(async () => new Response(
+      JSON.stringify({ detail: 'Session authentication is not configured.' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    await expect(getSessionToken('https://api-a.example')).resolves.toBe('');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed when session bootstrap returns a transient attestation storage outage', async () => {
+    const fetchMock = vi.fn(async () => new Response(
+      JSON.stringify({ detail: 'Attestation challenge service is temporarily unavailable.' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    await expect(getSessionToken('https://api-a.example')).rejects.toThrow(
+      'USEIT session bootstrap failed (503): Attestation challenge service is temporarily unavailable.',
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('retries the same Apple attestation after a transient fetch failure', async () => {
     const nativeModule = {
       isAvailable: vi.fn(() => true),
