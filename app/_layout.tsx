@@ -14,7 +14,7 @@ class AppErrorBoundary extends React.Component<React.PropsWithChildren, State> {
   }
 
   componentDidCatch(error: Error) {
-    console.error('[USEIT] Unhandled application error', error);
+    console.error('[USEIT] Unhandled application error', error?.name || 'Error');
   }
 
   reset = () => this.setState({ hasError: false });

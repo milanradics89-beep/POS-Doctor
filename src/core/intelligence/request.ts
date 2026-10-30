@@ -12,17 +12,21 @@ function requestUrl(input: RequestInfo | URL): URL | null {
   }
 }
 
-function hasHeader(headers: HeadersInit | undefined, name: string): boolean {
-  if (!headers) return false;
-  return Boolean(new Headers(headers).get(name)?.trim());
-}
-
 function sessionAuthEligible(input: RequestInfo | URL, init: RequestInit): URL | null {
-  if (hasHeader(init.headers, 'X-API-Key') || hasHeader(init.headers, 'Authorization') || (init.method || 'GET').toUpperCase() === 'OPTIONS') return null;
+  const request = typeof Request !== 'undefined' && input instanceof Request ? input : null;
+  const headers = new Headers(request?.headers);
+  new Headers(init.headers).forEach((value, name) => headers.set(name, value));
+  const method = (init.method ?? request?.method ?? 'GET').toUpperCase();
+
+  if (headers.get('X-API-Key')?.trim() || headers.get('Authorization')?.trim() || method === 'OPTIONS') {
+    return null;
+  }
+
   const url = requestUrl(input);
   if (!url || !url.pathname.startsWith('/v1/') || url.pathname === '/v1/session') return null;
   return url;
 }
+
 
 async function obtainSession(url: URL, forceRefresh = false, timeoutMs = 10_000): Promise<SessionState | null> {
   const now = Date.now();

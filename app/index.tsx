@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
+import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { useProfilePreferences } from '../src/ui/useProfilePreferences';
 import { theme } from '../src/ui/theme';
 import { FadeIn, ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
@@ -97,8 +98,19 @@ export default function Home() {
 
   async function chooseGallery() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Photos permission needed', 'Allow USEIT to access a photo you want to explore.');
+    const decision = permissionDecision(permission.granted, permission.canAskAgain);
+    if (decision !== 'granted') {
+      if (decision === 'open_settings') {
+        Alert.alert('Photos access is disabled', 'Enable photo library access in Settings to choose an image.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => { void Linking.openSettings(); } },
+        ]);
+      } else {
+        Alert.alert('Photos permission needed', 'USEIT needs access to a photo you want to explore.', [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Try again', onPress: () => { void chooseGallery(); } },
+        ]);
+      }
       return;
     }
     const selection = await ImagePicker.launchImageLibraryAsync({
@@ -122,8 +134,19 @@ export default function Home() {
 
   async function capture() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Camera permission needed', 'Allow USEIT to see what you want to explore.');
+    const decision = permissionDecision(permission.granted, permission.canAskAgain);
+    if (decision !== 'granted') {
+      if (decision === 'open_settings') {
+        Alert.alert('Camera access is disabled', 'Enable camera access in Settings to take a photo.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => { void Linking.openSettings(); } },
+        ]);
+      } else {
+        Alert.alert('Camera permission needed', 'USEIT needs camera access to photograph what you want to explore.', [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Try again', onPress: () => { void capture(); } },
+        ]);
+      }
       return;
     }
     const captureResult = await ImagePicker.launchCameraAsync({

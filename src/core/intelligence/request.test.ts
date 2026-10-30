@@ -88,4 +88,37 @@ describe('fetchWithPolicy', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+
+  it('uses Request headers and method when deciding whether session bootstrap is needed', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 503 }));
+    const request = new Request('https://example.test/v1/action', {
+      method: 'POST',
+      headers: { 'X-API-Key': 'test-key' },
+      body: JSON.stringify({ action: 'save' }),
+    });
+
+    const response = await fetchWithPolicy(request, {}, { attempts: 3, baseDelayMs: 0 });
+
+    expect(response.status).toBe(503);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0][0])).toBe('https://example.test/v1/action');
+  });
+
+  it('merges Request headers with init headers before session eligibility checks', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 503 }));
+    const request = new Request('https://example.test/v1/action', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'save' }),
+    });
+
+    const response = await fetchWithPolicy(request, {
+      headers: { Authorization: 'Bearer explicit-token' },
+    }, { attempts: 3, baseDelayMs: 0 });
+
+    expect(response.status).toBe(503);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
 });
