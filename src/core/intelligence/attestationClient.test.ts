@@ -561,7 +561,7 @@ describe('attestationClient session cache', () => {
     );
     await expect(getSessionToken('https://api-a.example')).resolves.toBe('session-after-retry');
 
-    expect(challengeRequests).toBe(0);
+    expect(challengeRequests).toBe(2);
     expect(nativeModule.attest).toHaveBeenCalledTimes(2);
     expect(nativeModule.attest).toHaveBeenNthCalledWith(1, 'same-server-challenge', 'same-apple-key');
     expect(nativeModule.attest).toHaveBeenNthCalledWith(2, 'same-server-challenge', 'same-apple-key');
