@@ -88,6 +88,7 @@ For POST endpoints, explicitly set `USEIT_LOAD_TEST_ALLOW_POST=YES`, provide `US
 ## 5. Monitoring, privacy, and rollback
 
 - [ ] Confirm structured logs include request IDs and status/latency but do not contain images, data URIs, API keys, bearer tokens, or raw provider responses.
+- [ ] Confirm `vision_usage` events contain only the model identifier and validated prompt/completion/total token counts; establish model-specific pricing and per-session budget alerts outside the application rather than hard-coding mutable provider prices.
 - [ ] Alert on sustained 5xx/429 rates, provider outages, readiness failures, unusual cost spikes, and repeated attestation failures.
 - [ ] Verify backups and recovery procedures for the production datastore and shared Redis state where applicable.
 - [ ] Document the on-call owner, hosting provider, alert destination, and incident escalation path before public launch.
