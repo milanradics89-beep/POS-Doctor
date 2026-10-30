@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 
@@ -140,7 +141,7 @@ async def test_analyze_logs_token_usage_without_logging_user_content(monkeypatch
     with caplog.at_level(logging.INFO, logger="useit"):
         await _analyze(
             AnalyzeRequest(
-                imageUri="data:image/jpeg;base64," + ("PRIVATE_IMAGE_SENTINEL" * 4),
+                imageUri="data:image/jpeg;base64," + base64.b64encode(b"PRIVATE_IMAGE_SENTINEL" * 4).decode("ascii"),
                 userIntent="PRIVATE_INTENT_SENTINEL",
                 locale="hu-HU",
             )
