@@ -173,18 +173,23 @@ async def ready():
                 and bool(configured_redis_url())
             )
             if dependencies_ready:
-                redis_client = redis_asyncio.Redis.from_url(
-                    configured_redis_url(),
-                    socket_connect_timeout=2,
-                    socket_timeout=2,
-                )
+                redis_client = None
                 try:
+                    redis_client = redis_asyncio.Redis.from_url(
+                        configured_redis_url(),
+                        socket_connect_timeout=2,
+                        socket_timeout=2,
+                    )
                     await redis_client.ping()
                 except (RedisError, TimeoutError, OSError, ValueError):
                     logger.warning("Readiness check failed: attestation Redis is unavailable")
                     dependencies_ready = False
                 finally:
-                    await redis_client.aclose()
+                    if redis_client is not None:
+                        try:
+                            await redis_client.aclose()
+                        except (RedisError, TimeoutError, OSError):
+                            logger.warning("Readiness check could not close the Redis client cleanly")
     if not dependencies_ready:
         raise HTTPException(status_code=503, detail="Service is not ready.")
     return {"status": "ready"}
