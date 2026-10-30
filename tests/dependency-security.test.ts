@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-type LockPackage = { version?: string };
+type LockPackage = { version?: string; resolved?: string; integrity?: string };
 type Lockfile = { packages: Record<string, LockPackage> };
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
@@ -38,12 +38,14 @@ describe('runtime dependency security overrides', () => {
   });
 
   it('pins decode-uri-component to its patched release throughout the installed dependency tree', () => {
-    expect(packageJson.overrides?.['decode-uri-component']).toBe('0.5.0');
+    expect(packageJson.overrides?.['decode-uri-component']).toBe('0.5.1');
     const packages = Object.entries(lockfile.packages)
       .filter(([path]) => path === 'node_modules/decode-uri-component' || path.endsWith('/node_modules/decode-uri-component'));
     expect(packages.length).toBeGreaterThan(0);
     for (const [path, pkg] of packages) {
-      expect(versionAtLeast(pkg.version, '0.5.0'), path).toBe(true);
+      expect(pkg.version, path).toBe('0.5.1');
+      expect(pkg.resolved, path).toBe('https://registry.npmjs.org/decode-uri-component/-/decode-uri-component-0.5.1.tgz');
+      expect(pkg.integrity, path).toMatch(/^sha512-[A-Za-z0-9+/]+=*$/);
     }
   });
 
