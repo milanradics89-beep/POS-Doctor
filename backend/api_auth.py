@@ -13,7 +13,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
 
-PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc", "/v1/session"})
+PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc", "/v1/session", "/v1/session/challenge"})
 DEFAULT_SESSION_TTL_SECONDS = 900
 MAX_SESSION_TTL_SECONDS = 3600
 
