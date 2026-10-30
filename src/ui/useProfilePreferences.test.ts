@@ -1,19 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { DEFAULT_PROFILE_PREFERENCES, type ProfilePreferences } from './useProfilePreferences';
 
-const storage = new Map<string, string>();
-const asyncStorage = {
-  getItem: vi.fn(async (key: string) => storage.get(key) ?? null),
-  setItem: vi.fn(async (key: string, value: string) => { storage.set(key, value); }),
-};
-
-vi.mock('@react-native-async-storage/async-storage', () => ({ default: asyncStorage }));
+import { parsePreferences, PREFERENCES_KEY } from './profilePreferences';
 
 describe('profile preferences storage contract', () => {
   afterEach(() => {
-    storage.clear();
-    vi.clearAllMocks();
+
   });
 
   it('uses conservative defaults for a new profile', () => {
@@ -30,11 +23,10 @@ describe('profile preferences storage contract', () => {
       productSuggestions: true,
       saveHistory: true,
     };
-    await asyncStorage.setItem('@useit/profile-preferences/v1', JSON.stringify(value));
-    expect(JSON.parse(storage.get('@useit/profile-preferences/v1') ?? '{}')).toEqual(value);
+    expect(parsePreferences(JSON.stringify(value))).toEqual(value);
   });
 
   it('keeps preferences scoped to this app and schema version', () => {
-    expect('@useit/profile-preferences/v1').toMatch(/^@useit\/profile-preferences\/v1$/);
+    expect(PREFERENCES_KEY).toMatch(/^@useit\/profile-preferences\/v1$/);
   });
 });
