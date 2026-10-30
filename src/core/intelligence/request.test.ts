@@ -105,7 +105,7 @@ describe('fetchWithPolicy', () => {
     expect(fetchMock.mock.calls[0][0]).toBe(request);
   });
 
-  it('merges Request headers with init headers before session eligibility checks', async () => {
+  it('uses init headers for session eligibility when supplied', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 503 }));
     const request = new Request('https://example.test/v1/action', {
@@ -119,6 +119,36 @@ describe('fetchWithPolicy', () => {
 
     expect(response.status).toBe(503);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not trust Request credentials when init.headers replaces them', async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        accessToken: 'session-token',
+        expiresAt,
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response('{}', { status: 503 }));
+    const request = new Request('https://example.test/v1/action', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer request-token' },
+      body: JSON.stringify({ action: 'save' }),
+    });
+
+    const response = await fetchWithPolicy(request, {
+      headers: { 'Content-Type': 'application/json' },
+    }, { attempts: 3, baseDelayMs: 0 });
+
+    expect(response.status).toBe(503);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://example.test/v1/session');
+    expect(fetchMock.mock.calls[1][0]).toBe(request);
+    const outgoingHeaders = new Headers(fetchMock.mock.calls[1][1]?.headers);
+    expect(outgoingHeaders.get('Authorization')).toBe('Bearer session-token');
+    expect(outgoingHeaders.get('Content-Type')).toBe('application/json');
   });
 
 });

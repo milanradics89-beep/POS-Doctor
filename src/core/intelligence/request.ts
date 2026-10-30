@@ -14,8 +14,11 @@ function requestUrl(input: RequestInfo | URL): URL | null {
 
 function sessionAuthEligible(input: RequestInfo | URL, init: RequestInit): URL | null {
   const request = typeof Request !== 'undefined' && input instanceof Request ? input : null;
-  const headers = new Headers(request?.headers);
-  new Headers(init.headers).forEach((value, name) => headers.set(name, value));
+  // Fetch replaces Request.headers when init.headers is supplied; inspect the
+  // effective outgoing headers rather than credentials that will be discarded.
+  const headers = request && init.headers === undefined
+    ? new Headers(request.headers)
+    : new Headers(init.headers);
   const method = (init.method ?? request?.method ?? 'GET').toUpperCase();
 
   if (headers.get('X-API-Key')?.trim() || headers.get('Authorization')?.trim() || method === 'OPTIONS') {
