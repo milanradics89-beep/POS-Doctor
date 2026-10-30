@@ -172,20 +172,36 @@ describe('attestationClient session cache', () => {
   it('keeps Apple enrollment pending after network failures and resumes with an assertion', async () => {
     let activeKeyId = 'apple-key-id';
     let pendingKeyId: string | null = null;
+    let pendingAttestation: string | null = null;
     let attestedKeyId: string | null = null;
     const nativeModule = {
       isAvailable: vi.fn(() => true),
       isKeyAttested: vi.fn((keyId: string) => attestedKeyId === keyId),
       isKeyAttestationPending: vi.fn((keyId: string) => pendingKeyId === keyId),
+      getPendingAttestation: vi.fn((keyId: string) => pendingKeyId === keyId ? pendingAttestation : null),
+      storePendingAttestation: vi.fn((keyId: string, state: string) => {
+        if (pendingKeyId === keyId) pendingAttestation = state;
+      }),
+      discardKey: vi.fn((keyId: string) => {
+        if (activeKeyId === keyId) {
+          pendingKeyId = null;
+          pendingAttestation = null;
+          attestedKeyId = null;
+        }
+      }),
       markKeyAttestationPending: vi.fn((keyId: string) => { pendingKeyId = keyId; }),
       markKeyAttested: vi.fn((keyId: string) => {
         attestedKeyId = keyId;
-        if (pendingKeyId === keyId) pendingKeyId = null;
+        if (pendingKeyId === keyId) {
+          pendingKeyId = null;
+          pendingAttestation = null;
+        }
       }),
       getOrCreateKeyId: vi.fn(async () => activeKeyId),
       createNewKeyId: vi.fn(async () => {
         activeKeyId = 'replacement-apple-key-id';
         pendingKeyId = null;
+        pendingAttestation = null;
         attestedKeyId = null;
         return activeKeyId;
       }),
@@ -232,6 +248,10 @@ describe('attestationClient session cache', () => {
       'USEIT attestation request failed; retry session creation.',
     );
 
+    expect(JSON.parse(pendingAttestation ?? '{}')).toMatchObject({
+      challenge: 'challenge-1',
+      needsAssertionRecovery: true,
+    });
     expect(nativeModule.markKeyAttested).not.toHaveBeenCalled();
     expect(nativeModule.markKeyAttestationPending).toHaveBeenCalledWith('apple-key-id');
     expect(nativeModule.attest).toHaveBeenCalledTimes(1);
@@ -256,20 +276,36 @@ describe('attestationClient session cache', () => {
   it('recovers from backend attestation storage failure by rotating an unregistered pending key', async () => {
     let activeKeyId = 'apple-key-id';
     let pendingKeyId: string | null = null;
+    let pendingAttestation: string | null = null;
     let attestedKeyId: string | null = null;
     const nativeModule = {
       isAvailable: vi.fn(() => true),
       isKeyAttested: vi.fn((keyId: string) => attestedKeyId === keyId),
       isKeyAttestationPending: vi.fn((keyId: string) => pendingKeyId === keyId),
+      getPendingAttestation: vi.fn((keyId: string) => pendingKeyId === keyId ? pendingAttestation : null),
+      storePendingAttestation: vi.fn((keyId: string, state: string) => {
+        if (pendingKeyId === keyId) pendingAttestation = state;
+      }),
+      discardKey: vi.fn((keyId: string) => {
+        if (activeKeyId === keyId) {
+          pendingKeyId = null;
+          pendingAttestation = null;
+          attestedKeyId = null;
+        }
+      }),
       markKeyAttestationPending: vi.fn((keyId: string) => { pendingKeyId = keyId; }),
       markKeyAttested: vi.fn((keyId: string) => {
         attestedKeyId = keyId;
-        if (pendingKeyId === keyId) pendingKeyId = null;
+        if (pendingKeyId === keyId) {
+          pendingKeyId = null;
+          pendingAttestation = null;
+        }
       }),
       getOrCreateKeyId: vi.fn(async () => activeKeyId),
       createNewKeyId: vi.fn(async () => {
         activeKeyId = 'apple-key-id-2';
         pendingKeyId = null;
+        pendingAttestation = null;
         attestedKeyId = null;
         return activeKeyId;
       }),
@@ -336,6 +372,14 @@ describe('attestationClient session cache', () => {
       'USEIT attestation failed (503): Attestation verification service is temporarily unavailable.',
     );
 
+    expect(JSON.parse(pendingAttestation ?? '{}')).toMatchObject({
+      challenge: 'challenge-1',
+      needsAssertionRecovery: true,
+    });
+    pendingAttestation = JSON.stringify({
+      ...JSON.parse(pendingAttestation ?? '{}'),
+      expiresAt: Math.floor(Date.now() / 1000) - 1,
+    });
     expect(nativeModule.markKeyAttestationPending).toHaveBeenCalledWith('apple-key-id');
     expect(nativeModule.markKeyAttested).not.toHaveBeenCalled();
 

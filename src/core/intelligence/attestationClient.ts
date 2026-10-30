@@ -14,6 +14,15 @@ type ChallengeResponse = {
   expiresAt: number;
 };
 
+type PendingAppleAttestation = {
+  challenge: string;
+  provider: 'apple_app_attest';
+  appId: string;
+  expiresAt: number;
+  attestationObject?: string;
+  needsAssertionRecovery?: boolean;
+};
+
 const cachedSessions = new Map<string, SessionResponse>();
 const pendingSessions = new Map<string, Promise<string>>();
 let sessionCacheGeneration = 0;
@@ -70,6 +79,7 @@ async function createSession(base: string, generation: number): Promise<string> 
   let assertion: string;
   let keyId: string | undefined;
   let clientData: string | undefined;
+  let markAppleRecoveryPending: (() => void) | undefined;
 
   challenge = await requestAttestationChallenge(base, headers);
   if (challenge.provider === 'google_play_integrity') {
@@ -89,13 +99,6 @@ async function createSession(base: string, generation: number): Promise<string> 
     }
 
     keyId = await nativeModule.default.getOrCreateKeyId();
-    type PendingAppleAttestation = {
-      challenge: string;
-      provider: 'apple_app_attest';
-      appId: string;
-      expiresAt: number;
-      attestationObject?: string;
-    };
     let pending: PendingAppleAttestation | null = null;
     const pendingRaw = nativeModule.default.getPendingAttestation?.(keyId);
     const hasPendingMarker = nativeModule.default.isKeyAttestationPending(keyId);
@@ -108,7 +111,7 @@ async function createSession(base: string, generation: number): Promise<string> 
           typeof parsed.challenge === 'string' &&
           typeof parsed.appId === 'string' &&
           typeof parsed.expiresAt === 'number' &&
-          parsed.expiresAt > Math.floor(Date.now() / 1000) + 5
+          (parsed.needsAssertionRecovery === true || parsed.expiresAt > Math.floor(Date.now() / 1000) + 5)
         ) {
           pending = parsed;
         }
@@ -133,12 +136,34 @@ async function createSession(base: string, generation: number): Promise<string> 
       };
       nativeModule.default.markKeyAttestationPending(keyId);
       nativeModule.default.storePendingAttestation?.(keyId, JSON.stringify(pending));
-    } else {
-      // Reuse the original nonce and hash while Apple's service is recovering.
+    } else if (!pending.needsAssertionRecovery) {
+      // Reuse the original nonce and evidence while the server outcome is ambiguous.
       challenge = pending;
     }
 
-    if (pending.attestationObject) {
+    markAppleRecoveryPending = () => {
+      if (!pending || !keyId) return;
+      pending.needsAssertionRecovery = true;
+      nativeModule.default.storePendingAttestation?.(keyId, JSON.stringify(pending));
+    };
+
+    if (pending.needsAssertionRecovery) {
+      // The enrollment result is ambiguous after a lost response or verifier outage.
+      // A fresh assertion distinguishes a stored key from an enrollment that must
+      // be safely recreated.
+      if (challenge.provider !== 'apple_app_attest') {
+        throw new Error('USEIT App Attest recovery returned a different provider.');
+      }
+      clientData = JSON.stringify({
+        challenge: challenge.challenge,
+        action: 'session',
+      });
+      assertion = await nativeModule.default.generateAssertion(
+        challenge.challenge,
+        keyId,
+        clientData,
+      );
+    } else if (pending.attestationObject) {
       assertion = pending.attestationObject;
     } else {
       try {
@@ -166,11 +191,23 @@ async function createSession(base: string, generation: number): Promise<string> 
     try {
       attested = await submitAttestation(base, headers, challenge, assertion, keyId, clientData);
     } catch {
+      markAppleRecoveryPending?.();
       throw new Error('USEIT attestation request failed; retry session creation.');
     }
   }
   if (!attested.ok) {
     let detail = await safeErrorDetail(attested);
+
+    if (
+      challenge.provider === 'apple_app_attest' &&
+      keyId &&
+      !clientData &&
+      attested.status === 503 &&
+      detail === 'Attestation verification service is temporarily unavailable.'
+    ) {
+      markAppleRecoveryPending?.();
+      throw new Error('USEIT attestation failed (' + attested.status + ')' + (detail ? ': ' + detail : '.'));
+    }
 
     if (
       challenge.provider === 'apple_app_attest' &&
