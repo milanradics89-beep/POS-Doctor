@@ -639,11 +639,12 @@ describe('attestationClient session cache', () => {
 
     const { getSessionToken } = await import('./attestationClient');
     const pending = getSessionToken('https://api-a.example');
+    const rejection = expect(pending).rejects.toThrow('USEIT attestation request timed out.');
     await flushMicrotasks();
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(10_000);
-    await expect(pending).rejects.toThrow('USEIT attestation request timed out.');
+    await rejection;
     expect(signal?.aborted).toBe(true);
   });
 
@@ -666,12 +667,13 @@ describe('attestationClient session cache', () => {
 
     const { getSessionToken } = await import('./attestationClient');
     const pending = getSessionToken('https://api-a.example');
+    const rejection = expect(pending).rejects.toThrow('USEIT attestation request timed out.');
     await flushMicrotasks();
 
     expect(calls).toBe(2);
     expect(challengeSignal).toBeDefined();
     await vi.advanceTimersByTimeAsync(10_000);
-    await expect(pending).rejects.toThrow('USEIT attestation request timed out.');
+    await rejection;
     expect(challengeSignal?.aborted).toBe(true);
   });
 
