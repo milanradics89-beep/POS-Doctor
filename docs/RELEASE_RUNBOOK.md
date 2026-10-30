@@ -12,6 +12,7 @@ For the exact commit intended for release, require all of the following to pass:
 - [ ] iOS native project generation, CocoaPods installation, simulator build, and launch smoke test.
 - [ ] Backend compilation, full backend test suite, production-readiness checks, and dependency audit.
 - [ ] Runtime JavaScript dependency audit at high severity or above.
+- [ ] Client automatic retries are restricted to safe HTTP methods; do not enable POST retries until the backend provides and tests idempotency-key enforcement.
 - [ ] CodeQL and dependency-review checks.
 - [ ] Review all remaining PR comments and verify that each security finding is fixed or explicitly accepted by the project owner.
 
