@@ -8,7 +8,13 @@ import uuid
 import pytest
 from redis.asyncio import Redis
 
-from .attestation import AttestationProvider
+from .attestation import (
+    AttestationEvidence,
+    AttestationProvider,
+    AttestationResult,
+    issue_challenge_async,
+    validate_challenge_binding_async,
+)
 from .attestation_store import RedisChallengeStore
 
 
@@ -73,3 +79,26 @@ async def test_real_redis_enforces_challenge_expiry_server_side() -> None:
     finally:
         await client.delete(key)
         await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_challenge_lifecycle_uses_configured_shared_redis_and_rejects_replay(monkeypatch) -> None:
+    url = _integration_redis_url()
+    app_id = "com.example.useit"
+    monkeypatch.setenv("USEIT_REDIS_URL", url)
+    monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", AttestationProvider.APP_ATTEST.value)
+    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", app_id)
+
+    challenge = await issue_challenge_async(ttl_seconds=30)
+    evidence = AttestationEvidence(
+        provider=challenge.provider,
+        challenge=challenge.challenge,
+        assertion="integration-test-assertion",
+        app_id=challenge.app_id,
+    )
+
+    first = await validate_challenge_binding_async(evidence)
+    replay = await validate_challenge_binding_async(evidence)
+
+    assert first == AttestationResult(True, "challenge_bound")
+    assert replay == AttestationResult(False, "challenge_invalid_or_replayed")
