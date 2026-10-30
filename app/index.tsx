@@ -34,7 +34,7 @@ const modes: { id: OpportunityKind; title: string; description: string; symbol: 
 ];
 
 export default function Home() {
-  const { preferences } = useProfilePreferences();
+  const { preferences, hydrated: preferencesHydrated } = useProfilePreferences();
   const [photo, setPhoto] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [rendering, setRendering] = useState(false);
@@ -54,6 +54,7 @@ export default function Home() {
   };
 
   async function analyze(intent?: OpportunityKind) {
+    if (!preferencesHydrated) return;
     const effectiveIntent = preferences.personalizedIdeas ? intent : undefined;
     setLastIntent(effectiveIntent);
     if (!API_URL) {
@@ -321,19 +322,27 @@ export default function Home() {
                 <Pressable accessibilityRole="button" onPress={reset} style={s.secondaryButton}><Text style={s.secondaryButtonText}>TRY ANOTHER PHOTO</Text></Pressable>
               </View>
             ) : (
-              <View style={s.modeBlock}>
-                <Text style={s.overline}>WHAT'S YOUR INTENTION?</Text>
-                <Text style={s.modeTitle}>What should we{ '\n' }do with this?</Text>
-                <Text style={s.modeSub}>Choose a direction. USEIT will take it from here.</Text>
-                {modes.map((mode) => (
-                  <Pressable accessibilityRole="button" key={mode.id} onPress={() => analyze(mode.id)} style={({ pressed }) => [s.modeCard, pressed && s.pressed]}>
-                    <View style={[s.modeSymbol, { backgroundColor: mode.tint }]}><Text style={s.modeSymbolText}>{mode.symbol}</Text></View>
-                    <View style={s.modeCopy}><Text style={s.modeName}>{mode.title}</Text><Text style={s.modeDescription}>{mode.description}</Text></View>
-                    <Text style={s.modeArrow}>↗</Text>
-                  </Pressable>
-                ))}
-                <Pressable accessibilityRole="button" accessibilityLabel="Use a different photo" onPress={reset} style={s.changePhoto}><Text style={s.changePhotoText}>USE A DIFFERENT PHOTO</Text></Pressable>
-              </View>
+              {!preferencesHydrated ? (
+                <View style={s.loadingCard} accessibilityRole="progressbar" accessibilityLabel="Loading saved preferences">
+                  <ActivityIndicator size="large" color={theme.colors.ink} />
+                  <Text style={s.loadingTitle}>Getting things ready…</Text>
+                  <Text style={s.loadingSub}>Loading your saved preferences before we personalize the result.</Text>
+                </View>
+              ) : (
+                <View style={s.modeBlock}>
+                  <Text style={s.overline}>WHAT'S YOUR INTENTION?</Text>
+                  <Text style={s.modeTitle}>What should we{ '\n' }do with this?</Text>
+                  <Text style={s.modeSub}>Choose a direction. USEIT will take it from here.</Text>
+                  {modes.map((mode) => (
+                    <Pressable accessibilityRole="button" key={mode.id} onPress={() => analyze(mode.id)} style={({ pressed }) => [s.modeCard, pressed && s.pressed]}>
+                      <View style={[s.modeSymbol, { backgroundColor: mode.tint }]}><Text style={s.modeSymbolText}>{mode.symbol}</Text></View>
+                      <View style={s.modeCopy}><Text style={s.modeName}>{mode.title}</Text><Text style={s.modeDescription}>{mode.description}</Text></View>
+                      <Text style={s.modeArrow}>↗</Text>
+                    </Pressable>
+                  ))}
+                  <Pressable accessibilityRole="button" accessibilityLabel="Use a different photo" onPress={reset} style={s.changePhoto}><Text style={s.changePhotoText}>USE A DIFFERENT PHOTO</Text></Pressable>
+                </View>
+              )}
             )}
           </View>
         )}
