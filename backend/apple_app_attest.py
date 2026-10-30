@@ -273,7 +273,12 @@ _MEMORY_KEYS = _AppleKeyStore()
 
 
 def _redis() -> Redis:
-    return Redis.from_url(os.environ["USEIT_REDIS_URL"], decode_responses=False)
+    return Redis.from_url(
+        os.environ["USEIT_REDIS_URL"],
+        decode_responses=False,
+        socket_connect_timeout=2.0,
+        socket_timeout=5.0,
+    )
 
 
 async def _store_key(key: AppleAttestKey, app_id: str) -> None:
