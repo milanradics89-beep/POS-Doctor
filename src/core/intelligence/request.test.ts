@@ -51,7 +51,7 @@ describe('fetchWithPolicy', () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 503 }));
 
-    const response = await fetchWithPolicy('https://example.test/v1/analyze', {
+    const response = await fetchWithPolicy('https://example.test/analyze', {
       method: 'POST',
       body: JSON.stringify({ prompt: 'analyze once' }),
     }, { attempts: 3, baseDelayMs: 0 });
@@ -64,7 +64,7 @@ describe('fetchWithPolicy', () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 503 }));
 
-    const response = await fetchWithPolicy('https://example.test/v1/action', {
+    const response = await fetchWithPolicy('https://example.test/action', {
       method: 'POST',
       headers: { 'Idempotency-Key': 'action-123' },
       body: JSON.stringify({ action: 'save' }),
@@ -77,7 +77,7 @@ describe('fetchWithPolicy', () => {
   it('detects non-idempotent methods from a Request object', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 503 }));
-    const request = new Request('https://example.test/v1/action', {
+    const request = new Request('https://example.test/action', {
       method: 'POST',
       body: JSON.stringify({ action: 'save' }),
     });
