@@ -46,3 +46,52 @@ async def test_production_readiness_is_ready_with_required_secrets(monkeypatch):
     monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
 
     assert await main.ready() == {"status": "ready"}
+
+
+
+@pytest.mark.asyncio
+async def test_production_readiness_checks_required_redis_connectivity(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
+    monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
+    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+
+    class FakeRedis:
+        async def ping(self):
+            return True
+
+        async def aclose(self):
+            return None
+
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", lambda *args, **kwargs: FakeRedis())
+
+    assert await main.ready() == {"status": "ready"}
+
+
+@pytest.mark.asyncio
+async def test_production_readiness_fails_when_required_redis_is_unavailable(monkeypatch):
+    from redis.exceptions import ConnectionError as RedisConnectionError
+
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
+    monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
+    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+
+    class UnavailableRedis:
+        async def ping(self):
+            raise RedisConnectionError("connection refused")
+
+        async def aclose(self):
+            return None
+
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", lambda *args, **kwargs: UnavailableRedis())
+
+    with pytest.raises(HTTPException) as exc_info:
+        await main.ready()
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Service is not ready."
