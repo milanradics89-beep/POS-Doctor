@@ -19,7 +19,7 @@ import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/a
 import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { theme } from '../src/ui/theme';
-import { ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
+import { FadeIn, ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -191,7 +191,16 @@ export default function Home() {
               <Image source={{ uri: rendered || photo }} style={rendered ? s.rendered : s.photo} resizeMode="cover" />
               <View style={s.photoPill}><View style={s.photoPillDot} /><Text style={s.photoPillText}>{rendered ? 'AI VISUAL CONCEPT' : 'YOUR PHOTO'}</Text></View>
             </View>
-            {rendered ? <Text style={s.disclosure}>{result?.phase3?.redesign?.disclosure}</Text> : null}
+            {rendered ? (
+              <View style={s.comparisonBlock}>
+                <Text style={s.comparisonHeading}>FROM IDEA TO VISUAL</Text>
+                <View style={s.comparisonRow}>
+                  <View style={s.comparisonItem}><Image source={{ uri: photo }} style={s.comparisonImage} /><Text style={s.comparisonLabel}>ORIGINAL</Text></View>
+                  <View style={s.comparisonItem}><Image source={{ uri: rendered }} style={s.comparisonImage} /><Text style={s.comparisonLabel}>USEIT CONCEPT</Text></View>
+                </View>
+                <Text style={s.disclosure}>{result?.phase3?.redesign?.disclosure}</Text>
+              </View>
+            ) : null}
 
             {busy || rendering ? (
               <View style={s.loadingCard}>
@@ -203,11 +212,13 @@ export default function Home() {
               <View style={{ marginTop: 22 }}><StatePanel kind="error" title="We couldn't finish that" description={analysisError} actionLabel="TRY AGAIN" onAction={() => analyze()} /></View>
             ) : result ? (
               <View>
-                <View style={s.resultIntro}>
-                  <Text style={s.overline}>ONE IDEA TO START WITH</Text>
-                  <Text style={s.resultTitle}>{result.hero?.title || result.intelligence?.action?.title || 'Here is what I found'}</Text>
-                  <Text style={s.resultSub}>{result.hero?.description || 'USEIT has turned the scene into a concrete next action.'}</Text>
-                </View>
+                <FadeIn>
+                  <View style={s.resultIntro}>
+                    <Text style={s.overline}>ONE IDEA TO START WITH</Text>
+                    <Text style={s.resultTitle}>{result.hero?.title || result.intelligence?.action?.title || 'Here is what I found'}</Text>
+                    <Text style={s.resultSub}>{result.hero?.description || 'USEIT has turned the scene into a concrete next action.'}</Text>
+                  </View>
+                </FadeIn>
 
                 {result.intelligence?.clarificationRequired ? (
                   <View style={s.notice}>
@@ -222,6 +233,24 @@ export default function Home() {
                   <Text style={s.actionTitle}>{result.intelligence?.action?.title || 'Next step'}</Text>
                   <Text style={s.actionType}>{result.intelligence?.action?.type?.replace(/_/g, ' ') || 'recommendation'}</Text>
                 </View>
+
+                {result.observed.length > 0 ? (
+                  <View>
+                    <SectionHeader eyebrow="WHAT WE NOTICED" detail={`${result.observed.length} DETAILS`} />
+                    <View style={s.observedWrap}>{result.observed.map((item) => <View key={item} style={s.observedChip}><Text style={s.observedText}>{item}</Text></View>)}</View>
+                  </View>
+                ) : null}
+
+                {result.alternatives.length > 0 ? (
+                  <View>
+                    <SectionHeader eyebrow="OTHER DIRECTIONS" detail="EXPLORE MORE" />
+                    {result.alternatives.map((item) => <View key={item.id} style={s.alternativeCard}><Text style={s.alternativeTitle}>{item.title}</Text><Text style={s.alternativeDescription}>{item.description}</Text><Text style={s.alternativeMeta}>{item.effort.toUpperCase()}{item.durationMinutes ? ` · ${item.durationMinutes} MIN` : ''}</Text></View>)}
+                  </View>
+                ) : null}
+
+                {result.cautions.length > 0 ? (
+                  <View style={s.cautionCard}><Text style={s.cautionTitle}>A NOTE BEFORE YOU START</Text>{result.cautions.map((item, index) => <Text key={`${index}-${item}`} style={s.cautionText}>•  {item}</Text>)}</View>
+                ) : null}
 
                 {result.phase3?.redesign ? (
                   <View>
@@ -330,7 +359,23 @@ const s = StyleSheet.create({
   photoPill: { position: 'absolute', left: 13, bottom: 13, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(20,24,21,0.82)', paddingHorizontal: 10, paddingVertical: 7, borderRadius: theme.radius.pill },
   photoPillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.accent },
   photoPillText: { color: theme.colors.surface, fontSize: 8, fontWeight: '900', letterSpacing: 1 },
-  disclosure: { color: theme.colors.muted, fontSize: 11, lineHeight: 17, marginTop: 10 },
+  comparisonBlock: { marginTop: 16, backgroundColor: theme.colors.surface, borderRadius: 20, padding: 12, borderWidth: 1, borderColor: theme.colors.line },
+  comparisonHeading: { color: theme.colors.muted, fontSize: 8, fontWeight: '900', letterSpacing: 1.4, marginBottom: 10 },
+  comparisonRow: { flexDirection: 'row', gap: 9 },
+  comparisonItem: { flex: 1 },
+  comparisonImage: { width: '100%', height: 118, borderRadius: 13, backgroundColor: theme.colors.surfaceMuted },
+  comparisonLabel: { color: theme.colors.muted, fontSize: 8, fontWeight: '900', letterSpacing: 0.8, marginTop: 7 },
+  disclosure: { color: theme.colors.muted, fontSize: 10, lineHeight: 16, marginTop: 10 },
+  observedWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  observedChip: { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line, borderRadius: theme.radius.pill, paddingHorizontal: 11, paddingVertical: 8 },
+  observedText: { color: theme.colors.ink, fontSize: 10, fontWeight: '700' },
+  alternativeCard: { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line, borderRadius: 17, padding: 15, marginBottom: 8 },
+  alternativeTitle: { color: theme.colors.ink, fontSize: 13, fontWeight: '800' },
+  alternativeDescription: { color: theme.colors.muted, fontSize: 11, lineHeight: 17, marginTop: 5 },
+  alternativeMeta: { color: theme.colors.accentDark, fontSize: 8, fontWeight: '900', letterSpacing: 0.9, marginTop: 9 },
+  cautionCard: { backgroundColor: theme.colors.peach, borderRadius: 17, padding: 15, marginTop: 18 },
+  cautionTitle: { color: theme.colors.ink, fontSize: 8, fontWeight: '900', letterSpacing: 1.1, marginBottom: 7 },
+  cautionText: { color: theme.colors.ink, fontSize: 10, lineHeight: 16, marginTop: 3 },
   loadingCard: { alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 22, padding: 28, marginTop: 18 },
   loadingTitle: { color: theme.colors.ink, fontSize: 17, fontWeight: '800', marginTop: 17 },
   loadingSub: { color: theme.colors.muted, fontSize: 12, marginTop: 6, textAlign: 'center' },
