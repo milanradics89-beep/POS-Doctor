@@ -66,10 +66,11 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
   const timeoutMs = Number.isFinite(policy.timeoutMs) ? Math.min(120_000, Math.max(1_000, policy.timeoutMs!)) : 30_000;
   const attempts = Number.isInteger(policy.attempts) ? Math.min(4, Math.max(1, policy.attempts!)) : 2;
   const baseDelayMs = Number.isFinite(policy.baseDelayMs) ? Math.min(5_000, Math.max(0, policy.baseDelayMs!)) : 500;
-  const method = (init.method ?? 'GET').toUpperCase();
+  const requestMethod = typeof Request !== 'undefined' && input instanceof Request ? input.method : 'GET';
+  const method = (init.method ?? requestMethod).toUpperCase();
   // Retrying a POST after a timeout/5xx can duplicate AI work or other side effects.
-  // Only replay safe HTTP methods unless the caller supplies an idempotency key.
-  const retryAllowed = ['GET', 'HEAD', 'OPTIONS'].includes(method) || hasHeader(init.headers, 'Idempotency-Key');
+  // No current backend endpoint enforces idempotency keys, so only replay safe methods.
+  const retryAllowed = ['GET', 'HEAD', 'OPTIONS'].includes(method);
   const sessionUrl = sessionAuthEligible(input, init);
   let lastError: unknown;
 
