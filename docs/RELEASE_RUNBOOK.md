@@ -11,7 +11,7 @@ For the exact commit intended for release, require all of the following to pass:
 - [ ] Android native release APK build and emulator install/launch smoke test.
 - [ ] iOS native project generation, CocoaPods installation, simulator build, and launch smoke test.
 - [ ] Backend compilation, full backend test suite, production-readiness checks, and dependency audit.
-- [ ] Runtime JavaScript dependency audit at high severity or above.
+- [ ] Runtime JavaScript dependency audit at high severity or above; record moderate findings separately and do not equate a passing high threshold with a clean dependency tree.
 - [ ] Client automatic retries are restricted to safe HTTP methods; do not enable POST retries until the backend provides and tests idempotency-key enforcement.
 - [ ] Client attestation session/challenge/submission requests use a 10-second AbortController-backed deadline, with regression tests for aborts and exact same-evidence recovery after a timed-out submission.
 - [ ] CodeQL and dependency-review checks.
@@ -21,13 +21,15 @@ Do not merge a commit whose CI is still running, cancelled, or failed. A cancell
 
 ### Latest exact-head CI record (2026-10-31)
 
-PR #41 head: `b48e295006dbf09a9bbfaae855ee31832f8ff19e`.
-- [Validation run 41155582219](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219): completed successfully. [Frontend job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219/job/124401547761) passed TypeScript typecheck, unit tests, Expo Doctor, Android export, Android Release build/emulator smoke test, and runtime dependency audit. [iOS job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219/job/124401547802) passed native project generation, CocoaPods installation, iOS Release simulator build, and simulator install/launch. [Backend job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219/job/124401547513) passed compilation, the full test suite with Redis 7.4, production-readiness checks, and the backend dependency audit.
-- [CodeQL run 41155582210](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582210): completed successfully.
-- [Dependency Review run 41155582212](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582212): completed successfully. Its summary reports 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license package, and 2 OpenSSF Scorecard warnings. Keep the warnings visible; a successful workflow is not an owner risk acceptance.
+PR #41 head: `e08a1bd47d45b8d2d7cb302c7f8b96df50a37c37`.
+
+- [Validation run 41181745213](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41181745213): completed successfully. [Frontend job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41181745213/job/124480393455) passed the source-boundary guard, TypeScript typecheck, unit tests, Expo Doctor, Android export, Android Release APK build, emulator install/launch smoke test, and the configured runtime dependency audit. [iOS job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41181745213/job/124480393874) passed native project generation, CocoaPods installation, iOS Release simulator build, and simulator install/launch. [Backend job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41181745213/job/124480393610) passed compilation, the full backend test suite with Redis 7.4, production-readiness checks, and the backend dependency audit.
+- [CodeQL run 41181745266](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41181745266): completed successfully; the exact-head CodeQL check reports no new alerts in code changed by this pull request.
+- [Dependency Review run 41181745217](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41181745217): completed successfully with 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license package, and 2 OpenSSF Scorecard warnings. Keep these warnings visible; a successful workflow is not an owner risk acceptance.
+- The frontend command `npm audit --omit=dev --audit-level=high` exited successfully at its configured high-severity threshold, but its report contains 11 **moderate** advisories in the transitive `glob@13.0.6` and `minimatch@10.2.6` dependency paths pulled through Expo SDK 57 tooling. No high/critical npm-audit findings were reported on this head. These npm-audit findings are separate from Dependency Review's 0 vulnerable-package summary and remain open under backlog item 3. The suggested `npm audit fix --force` would downgrade Expo to `51.0.39` (a breaking SDK change); do not apply that suggestion. Verify a compatible upstream fix or record an explicit owner risk decision.
+- Dependency Review's unknown-license entry is the local `deepmerge@4.3.2` link: its vendored package manifest and LICENSE declare MIT, while the lockfile link record omits license metadata. The two Scorecard warnings are `@expo/devcert@1.2.2` (2.9) and `is-mergeable-object@1.1.1` (1.5).
 
 These results validate automated CI for this exact SHA only. They do not prove production secrets/provider configuration, hardware-backed attestation, production hosting, backups, monitoring delivery, store rollout, or pilot approval.
-
 ## 2. Production backend configuration
 
 Configure secrets in the hosting platform's secret manager, never in source control, committed app config, logs, or client-side EXPO_PUBLIC variables.
