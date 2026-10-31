@@ -32,10 +32,13 @@ describe('fetchWithPolicy', () => {
         {},
         { attempts: 1, timeoutMs: 1_000 },
       );
+      // Attach the rejection observer before advancing the timeout. Otherwise
+      // Vitest sees the expected abort as an unhandled rejection for one tick.
+      const rejection = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
       await bodyReadStarted;
       await vi.advanceTimersByTimeAsync(1_000);
 
-      await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+      await rejection;
       expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
@@ -111,8 +114,9 @@ describe('fetchWithPolicy', () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 503 }));
 
-    const response = await fetchWithPolicy('https://example.test/analyze', {
+    const response = await fetchWithPolicy('https://example.test/v1/analyze', {
       method: 'POST',
+      headers: { 'X-API-Key': 'test-key' },
       body: JSON.stringify({ prompt: 'analyze once' }),
     }, { attempts: 3, baseDelayMs: 0 });
 
@@ -124,9 +128,12 @@ describe('fetchWithPolicy', () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 503 }));
 
-    const response = await fetchWithPolicy('https://example.test/action', {
+    const response = await fetchWithPolicy('https://example.test/v1/action', {
       method: 'POST',
-      headers: { 'Idempotency-Key': 'action-123' },
+      headers: {
+        'X-API-Key': 'test-key',
+        'Idempotency-Key': 'action-123',
+      },
       body: JSON.stringify({ action: 'save' }),
     }, { attempts: 2, baseDelayMs: 0 });
 
@@ -137,8 +144,9 @@ describe('fetchWithPolicy', () => {
   it('detects non-idempotent methods from a Request object', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 503 }));
-    const request = new Request('https://example.test/action', {
+    const request = new Request('https://example.test/v1/action', {
       method: 'POST',
+      headers: { 'X-API-Key': 'test-key' },
       body: JSON.stringify({ action: 'save' }),
     });
 
