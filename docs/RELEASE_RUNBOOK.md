@@ -19,6 +19,15 @@ For the exact commit intended for release, require all of the following to pass:
 
 Do not merge a commit whose CI is still running, cancelled, or failed. A cancelled run is not a pass.
 
+### Latest exact-head CI record (2026-10-31)
+
+PR #41 head: `b48e295006dbf09a9bbfaae855ee31832f8ff19e`.
+- [Validation run 41155582219](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219): completed successfully. [Frontend job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219/job/124401547761) passed TypeScript typecheck, unit tests, Expo Doctor, Android export, Android Release build/emulator smoke test, and runtime dependency audit. [iOS job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219/job/124401547802) passed native project generation, CocoaPods installation, iOS Release simulator build, and simulator install/launch. [Backend job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219/job/124401547513) passed compilation, the full test suite with Redis 7.4, production-readiness checks, and the backend dependency audit.
+- [CodeQL run 41155582210](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582210): completed successfully.
+- [Dependency Review run 41155582212](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582212): completed successfully. Its summary reports 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license package, and 2 OpenSSF Scorecard warnings. Keep the warnings visible; a successful workflow is not an owner risk acceptance.
+
+These results validate automated CI for this exact SHA only. They do not prove production secrets/provider configuration, hardware-backed attestation, production hosting, backups, monitoring delivery, store rollout, or pilot approval.
+
 ## 2. Production backend configuration
 
 Configure secrets in the hosting platform's secret manager, never in source control, committed app config, logs, or client-side EXPO_PUBLIC variables.

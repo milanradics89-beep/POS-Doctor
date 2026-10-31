@@ -4,13 +4,13 @@ Complete this record before promoting a build beyond internal testing. Do not en
 
 ## Latest fully validated CI baseline (not a production sign-off)
 
-Last fully validated source commit before the bounded-attestation-timeout follow-up: `dba16ec4dac65e31370c641389e374fa361fad76`.
+Latest fully validated source commit: `b48e295006dbf09a9bbfaae855ee31832f8ff19e` (2026-10-31).
 
-- [Validation run 41127335652](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41127335652): frontend, Android Release/emulator, iOS Release/simulator, backend with Redis 7.4, production-readiness checks and runtime/dependency audits passed.
-- [CodeQL run 41127335666](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41127335666): passed.
-- [Dependency Review run 41127335640](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41127335640): passed with 1 unknown-license warning and 2 OpenSSF Scorecard warnings.
+- [Validation run 41155582219](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219): passed. [Frontend job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219/job/124401547761) passed typecheck, unit tests, Expo Doctor, Android export, Android Release build/emulator smoke test, and runtime dependency audit. [iOS job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219/job/124401547802) passed native iOS generation, CocoaPods installation, Release simulator build, and install/launch smoke test. [Backend job](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219/job/124401547513) passed compilation, full tests with Redis 7.4, production-readiness checks, and dependency audit.
+- [CodeQL run 41155582210](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582210): passed.
+- [Dependency Review run 41155582212](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582212): passed with 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license package, and 2 OpenSSF Scorecard warnings.
 
-The follow-up commit adds bounded attestation HTTP deadlines and timeout/recovery tests. These links do not validate that later SHA; record its own completed runs before release. CI simulator/emulator results do not satisfy physical-device attestation, production configuration, backup/restore, pilot, or approval gates.
+The CI evidence above applies to the exact SHA shown. It is not a production sign-off. Simulator/emulator results do not satisfy physical-device App Attest or Play Integrity. Production secrets/provider settings, staging deployment, backup/restore, monitoring/alert delivery, rollout, pilot thresholds, and human approvals remain unverified.
 
 ## Release identity
 
@@ -26,10 +26,10 @@ The follow-up commit adds bounded attestation HTTP deadlines and timeout/recover
 
 ## Evidence gates
 
-- [ ] Full CI validation passed for the exact source SHA:
-- [ ] CodeQL passed for the exact source SHA:
-- [ ] Dependency Review passed for the exact source SHA:
-- [ ] Production-readiness checks passed:
+- [x] Full CI validation passed for the exact source SHA: `b48e295006dbf09a9bbfaae855ee31832f8ff19e` ([run 41155582219](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219)).
+- [x] CodeQL passed for the exact source SHA: `b48e295006dbf09a9bbfaae855ee31832f8ff19e` ([run 41155582210](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582210)).
+- [x] Dependency Review passed for the exact source SHA: `b48e295006dbf09a9bbfaae855ee31832f8ff19e` ([run 41155582212](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582212)); 1 unknown-license and 2 Scorecard warnings remain visible.
+- [x] Automated production-readiness checks passed in [validation run 41155582219](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41155582219); production environment configuration is still unverified.
 - [ ] Staging readiness and health checks passed:
 - [ ] Shared Redis is configured; challenge replay and multi-instance tests passed:
 - [ ] EAS build environment contains the valid numeric `EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` for Play Integrity:
