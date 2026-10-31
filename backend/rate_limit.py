@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 import time
 from collections import deque
@@ -13,23 +14,34 @@ PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc
 SESSION_PATH = "/v1/session"
 SESSION_CHALLENGE_PATH = "/v1/session/challenge"
 DEFAULT_SESSION_RATE_LIMIT = 10
+RATE_LIMIT_WINDOW_SECONDS = 60
+RATE_LIMIT_WINDOW_MS = RATE_LIMIT_WINDOW_SECONDS * 1000
 MAX_MEMORY_RATE_LIMIT_BUCKETS = 10_000
 
-# INCR and EXPIRE must be atomic. Otherwise a worker crash between the two
-# commands can leave a per-minute bucket without a TTL.
-_REDIS_RATE_LIMIT_INCREMENT_SCRIPT = """
-local current = redis.call('INCR', KEYS[1])
-local ttl = redis.call('TTL', KEYS[1])
-if current == 1 or ttl < 0 then
-  redis.call('EXPIRE', KEYS[1], ARGV[1])
+# Redis and memory modes share a rolling 60-second policy. Redis TIME avoids
+# worker clock skew; pruning, counting, admission and expiry are one Lua operation.
+_REDIS_RATE_LIMIT_SLIDING_WINDOW_SCRIPT = """
+local server_time = redis.call('TIME')
+local now_ms = tonumber(server_time[1]) * 1000 + math.floor(tonumber(server_time[2]) / 1000)
+local window_ms = tonumber(ARGV[1])
+local limit = tonumber(ARGV[2])
+local cutoff = now_ms - window_ms
+
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', cutoff)
+local count = redis.call('ZCARD', KEYS[1])
+if count >= limit then
+  local oldest = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
+  local retry_ms = window_ms - (now_ms - tonumber(oldest[2]))
+  return {0, math.max(1, math.ceil(retry_ms / 1000))}
 end
-return current
+
+local sequence = redis.call('INCR', KEYS[2])
+redis.call('PEXPIRE', KEYS[2], window_ms)
+local member = tostring(now_ms) .. ':' .. tostring(sequence)
+redis.call('ZADD', KEYS[1], now_ms, member)
+redis.call('PEXPIRE', KEYS[1], window_ms)
+return {1, 0}
 """
-
-
-def _rate_limit_bucket() -> int:
-    return int(time.time() // 60)
-
 
 def configured_rate_limit() -> int:
     try:
@@ -53,15 +65,14 @@ def _client_key(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def _limited_response() -> JSONResponse:
+def _limited_response(retry_after_seconds: int = RATE_LIMIT_WINDOW_SECONDS) -> JSONResponse:
     return JSONResponse(
         status_code=429,
         content={"detail": "Rate limit exceeded."},
-        headers={"Retry-After": "60"},
+        headers={"Retry-After": str(max(1, int(retry_after_seconds)))},
     )
 
-
-async def _redis_allowed(request: Request, limit: int, namespace: str = "rate") -> bool:
+async def _redis_allowed(request: Request, limit: int, namespace: str = "rate") -> tuple[bool, int]:
     try:
         from redis.asyncio import Redis
     except ImportError as exc:
@@ -77,13 +88,22 @@ async def _redis_allowed(request: Request, limit: int, namespace: str = "rate") 
         socket_connect_timeout=2.0,
         socket_timeout=5.0,
     )
-    key = f"useit:{namespace}:{_client_key(request)}:{_rate_limit_bucket()}"
+    events_key = f"useit:{namespace}:{_client_key(request)}:events"
+    sequence_key = f"{events_key}:sequence"
     try:
-        count = await client.eval(_REDIS_RATE_LIMIT_INCREMENT_SCRIPT, 1, key, 61)
-        return int(count) <= limit
+        result = await client.eval(
+            _REDIS_RATE_LIMIT_SLIDING_WINDOW_SCRIPT,
+            2,
+            events_key,
+            sequence_key,
+            RATE_LIMIT_WINDOW_MS,
+            limit,
+        )
+        allowed = int(result[0]) == 1
+        retry_after = int(result[1])
+        return allowed, 0 if allowed else max(1, retry_after)
     finally:
         await client.aclose()
-
 
 def _prune_expired_buckets(
     buckets: dict[tuple[str, str], deque[float]], cutoff: float
@@ -111,15 +131,15 @@ def install_rate_limit(app) -> None:
 
         if rate_limit_mode() == "redis":
             try:
-                allowed = await _redis_allowed(request, limit, namespace)
+                allowed, retry_after = await _redis_allowed(request, limit, namespace)
             except Exception:
                 return JSONResponse(status_code=503, content={"detail": "Rate limiting is temporarily unavailable."})
             if not allowed:
-                return _limited_response()
+                return _limited_response(retry_after)
         else:
             now = time.monotonic()
             key = (namespace, _client_key(request))
-            cutoff = now - 60.0
+            cutoff = now - RATE_LIMIT_WINDOW_SECONDS
             bucket = buckets.get(key)
             if bucket is None:
                 if len(buckets) >= MAX_MEMORY_RATE_LIMIT_BUCKETS:
@@ -136,7 +156,8 @@ def install_rate_limit(app) -> None:
             while bucket and bucket[0] <= cutoff:
                 bucket.popleft()
             if len(bucket) >= limit:
-                return _limited_response()
+                retry_after = math.ceil(bucket[0] + RATE_LIMIT_WINDOW_SECONDS - now)
+                return _limited_response(retry_after)
             bucket.append(now)
 
         return await call_next(request)

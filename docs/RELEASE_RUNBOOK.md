@@ -19,18 +19,20 @@ For the exact commit intended for release, require all of the following to pass:
 
 Do not merge a commit whose CI is still running, cancelled, or failed. A cancelled run is not a pass.
 
-### Latest exact-head CI record (2026-10-31; PR #41)
+### Latest fully validated parent baseline (2026-10-31; PR #41)
 
-Current PR #41 source head: `9da15a95b2515339c050d1ab3b22cda10d0db8f7` ([privacy fix commit](https://github.com/milanradics89-beep/POS-Doctor/commit/9da15a95b2515339c050d1ab3b22cda10d0db8f7)). The exact-head workflow set completed successfully:
+Last fully validated PR #41 parent SHA: f8148b30d5646ea3d196c791b26b2989d6bf0f6a.
 
-- [Validation run 41205714067](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41205714067): frontend, backend, and iOS jobs all completed successfully. Frontend passed the source-boundary guard, TypeScript typecheck, unit tests, Expo Doctor, Android export, native Android Release APK build, emulator install/launch smoke test, and runtime dependency audit. Backend passed compilation, the full test suite with Redis 7.4, production-readiness checks, and backend dependency audit. iOS passed native project generation, CocoaPods installation, Release simulator build, and simulator install/launch.
-- [CodeQL run 41205714005](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41205714005): completed successfully. The connected GitHub integration did not expose the repository code-scanning alert inventory; this record does not claim zero open alerts.
-- [Dependency Review run 41205713945](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41205713945): completed successfully. The review summary reports 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license metadata warning, and 2 OpenSSF Scorecard warnings. The known items are `vendor/deepmerge@4.3.2` (local-link license metadata), `@expo/devcert@1.2.2` (Scorecard 2.9), and `is-mergeable-object@1.1.1` (Scorecard 1.5).
-- The separate frontend `npm audit --omit=dev --audit-level=high` gate passed its configured high-severity threshold. The unchanged dependency graph's detailed report still records 11 moderate transitive advisories in `glob@13.0.6` and `minimatch@10.2.6`; a passing high threshold is not a clean dependency tree. Do not apply the forced Expo 51 downgrade.
-- Commit `9da15a9` redacts personal-memory capability IDs from `/v1/memory/{id}` request paths. Regression tests cover both successful and failed requests and verify that the capability sentinel never appears in logs.
-- The three inline PR review threads are resolved. The latest Codex review receipt found no major issues on `0ae7517`; there is no newer review receipt for `9da15a9` yet.
+- [Validation run 41210918327](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918327): all three jobs completed successfully. Frontend passed source-boundary guard, TypeScript, unit tests, Expo Doctor, Android export, native Android Release build/emulator install-launch, and runtime dependency audit. Backend passed compilation, the full Redis 7.4-backed test suite, production-readiness checks, and backend dependency audit. iOS passed native project generation, CocoaPods, Release simulator build, and simulator install-launch.
+- [CodeQL run 41210918374](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918374): completed successfully. The connected API did not expose the repository code-scanning alert inventory; this record does not claim zero open alerts.
+- [Dependency Review run 41210918324](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918324): completed successfully with 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license metadata warning, and 2 low OpenSSF Scorecard warnings. Known items include the local vendor/deepmerge@4.3.2 license metadata link, @expo/devcert@1.2.2 (Scorecard 2.9), and is-mergeable-object@1.1.1 (Scorecard 1.5).
+- The separate frontend npm audit high-severity gate passed, but 11 moderate transitive glob@13.0.6 / minimatch@10.2.6 advisories remain. Do not apply the forced Expo 51 downgrade.
+- The three historical inline PR review threads are resolved. The latest Codex review receipt is older than the f814 documentation head; current source inspection confirms the actionable Request/init, privacy-fixture, error-boundary and permission-recovery findings are addressed.
+- [Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open. The rulesets endpoint is empty and branch-protection read returns HTTP 403 to the integration, so no protection mutation was attempted.
 
-These results validate automated repository CI for source SHA `9da15a95b2515339c050d1ab3b22cda10d0db8f7` only. They do not prove production secrets/provider configuration, physical-device attestation, production hosting, backups, alert delivery, store rollout, or pilot approval. PR #41 remains open and unmerged.
+The current revision adds Redis server-time sliding-window rate limiting and boundary/concurrency tests. These changes are not covered by the f814 runs above; do not merge until validation, CodeQL and Dependency Review complete successfully for the new exact SHA.
+
+These results validate automated repository CI for SHA f814 only. They do not prove production secrets/provider configuration, physical-device attestation, production hosting, backups, alert delivery, store rollout, or pilot approval. PR #41 remains open and unmerged.
 
 ### Previous exact-head CI baseline (historical; superseded)
 
@@ -75,7 +77,7 @@ For Apple App Attest:
 - Production builds must use the production App Attest entitlement and production AAGUID.
 - Confirm the production Apple Developer capability is enabled for the correct App ID.
 
-For multi-instance deployments, use USEIT_RATE_LIMIT_MODE=redis and a shared Redis instance. Memory-mode rate limiting is process-local and is suitable only for development or a single-instance deployment. Redis rate-limit increments must be atomic with their TTL assignment; the current implementation uses one Lua operation and explicit 2-second connection / 5-second socket timeouts. If Redis is unavailable, rate limiting fails closed with HTTP 503. Set explicit rate limits and request timeouts based on observed traffic and cost.
+For multi-instance deployments, use USEIT_RATE_LIMIT_MODE=redis and a shared Redis instance. Memory-mode rate limiting is process-local and is suitable only for development or a single-instance deployment. Redis rate limiting uses one Lua operation with Redis server time, a sorted-set sliding 60-second window, atomic pruning/count/admission, and TTL assignment for the event and sequence keys. Redis connections use explicit 2-second connect and 5-second socket timeouts. If Redis is unavailable, rate limiting fails closed with HTTP 503. Set explicit rate limits and request timeouts based on observed traffic and cost.
 
 ## 3. Mobile release configuration
 

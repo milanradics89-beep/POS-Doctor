@@ -168,16 +168,16 @@ def _redis_integration_url() -> str:
 
 
 @pytest.mark.asyncio
-async def test_redis_rate_limit_uses_atomic_increment_and_bounded_timeouts(monkeypatch):
+async def test_redis_rate_limit_uses_atomic_sliding_window_and_bounded_timeouts(monkeypatch):
     captured = {}
 
     class FakeRedis:
-        async def eval(self, script, numkeys, key, ttl):
-            captured["script"] = script
-            captured["numkeys"] = numkeys
-            captured["key"] = key
-            captured["ttl"] = ttl
-            return 1
+        async def eval(self, script, numkeys, events_key, sequence_key, window_ms, limit):
+            captured.update({
+                "script": script, "numkeys": numkeys, "events_key": events_key,
+                "sequence_key": sequence_key, "window_ms": window_ms, "limit": limit,
+            })
+            return [1, 0]
 
         async def aclose(self):
             captured["closed"] = True
@@ -189,65 +189,81 @@ async def test_redis_rate_limit_uses_atomic_increment_and_bounded_timeouts(monke
 
     monkeypatch.setattr(redis_asyncio.Redis, "from_url", classmethod(fake_from_url))
     monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.example.test:6379/0")
-    monkeypatch.setattr("backend.rate_limit._rate_limit_bucket", lambda: 123456)
-
-    allowed = await _redis_allowed(_redis_test_request(), limit=5, namespace="unit-test")
+    allowed, retry_after = await _redis_allowed(_redis_test_request(), limit=5, namespace="unit-test")
 
     assert allowed is True
+    assert retry_after == 0
     assert captured["url"] == "redis://redis.example.test:6379/0"
-    assert captured["kwargs"] == {
-        "decode_responses": True,
-        "socket_connect_timeout": 2.0,
-        "socket_timeout": 5.0,
-    }
-    assert captured["numkeys"] == 1
-    assert captured["ttl"] == 61
-    assert "redis.call('INCR'" in captured["script"]
-    assert "redis.call('TTL'" in captured["script"]
-    assert "redis.call('EXPIRE'" in captured["script"]
-    assert "ttl < 0" in captured["script"]
+    assert captured["kwargs"] == {"decode_responses": True, "socket_connect_timeout": 2.0, "socket_timeout": 5.0}
+    assert captured["numkeys"] == 2
+    assert captured["events_key"] == "useit:unit-test:203.0.113.42:events"
+    assert captured["sequence_key"] == captured["events_key"] + ":sequence"
+    assert captured["window_ms"] == 60_000
+    assert captured["limit"] == 5
+    for command in ("TIME", "ZREMRANGEBYSCORE", "ZCARD", "ZRANGE", "INCR", "ZADD", "PEXPIRE"):
+        assert f"redis.call('{command}'" in captured["script"]
     assert captured["closed"] is True
+
+
+@pytest.mark.asyncio
+async def test_redis_rate_limit_enforces_sliding_window_across_minute_boundary(monkeypatch):
+    url = _redis_integration_url()
+    namespace = f"test-rate-window-{uuid.uuid4().hex}"
+    host = "203.0.113.42"
+    request = _redis_test_request(host)
+    monkeypatch.setenv("USEIT_REDIS_URL", url)
+    client = Redis.from_url(url, decode_responses=True, socket_connect_timeout=2.0, socket_timeout=5.0)
+    events_key = f"useit:{namespace}:{host}:events"
+    sequence_key = f"{events_key}:sequence"
+
+    try:
+        await client.ping()
+        seconds, microseconds = await client.time()
+        now_ms = seconds * 1000 + microseconds // 1000
+        await client.zadd(events_key, {
+            "request-before-boundary-1": now_ms - 59_000,
+            "request-before-boundary-2": now_ms - 58_000,
+        })
+        await client.pexpire(events_key, 60_000)
+
+        allowed, retry_after = await _redis_allowed(request, limit=2, namespace=namespace)
+        assert allowed is False
+        assert 1 <= retry_after <= 2
+
+        await client.zadd(events_key, {"request-before-boundary-1": now_ms - 60_001})
+        allowed, retry_after = await _redis_allowed(request, limit=2, namespace=namespace)
+
+        assert allowed is True
+        assert retry_after == 0
+        assert await client.zcard(events_key) == 2
+        assert 1 <= await client.pttl(events_key) <= 60_000
+        assert 1 <= await client.pttl(sequence_key) <= 60_000
+    finally:
+        await client.delete(events_key, sequence_key)
+        await client.aclose()
 
 
 @pytest.mark.asyncio
 async def test_redis_rate_limit_is_atomic_across_independent_clients(monkeypatch):
     url = _redis_integration_url()
     namespace = f"test-rate-limit-{uuid.uuid4().hex}"
-    concurrent_namespace = f"{namespace}-concurrent"
     host = "203.0.113.42"
     request = _redis_test_request(host)
     monkeypatch.setenv("USEIT_REDIS_URL", url)
-    monkeypatch.setattr("backend.rate_limit._rate_limit_bucket", lambda: 123456)
-
-    client = Redis.from_url(
-        url,
-        decode_responses=True,
-        socket_connect_timeout=2.0,
-        socket_timeout=5.0,
-    )
-    orphan_key = f"useit:{namespace}:{host}:123456"
-    concurrent_key = f"useit:{concurrent_namespace}:{host}:123456"
+    client = Redis.from_url(url, decode_responses=True, socket_connect_timeout=2.0, socket_timeout=5.0)
+    events_key = f"useit:{namespace}:{host}:events"
+    sequence_key = f"{events_key}:sequence"
 
     try:
         await client.ping()
-
-        # Repair a legacy bucket left without expiry by the previous
-        # non-atomic INCR/EXPIRE implementation.
-        await client.incr(orphan_key)
-        assert await client.ttl(orphan_key) == -1
-        assert await _redis_allowed(request, limit=100, namespace=namespace)
-        assert 1 <= await client.ttl(orphan_key) <= 61
-
         outcomes = await asyncio.gather(
-            *(
-                _redis_allowed(request, limit=7, namespace=concurrent_namespace)
-                for _ in range(32)
-            )
+            *(_redis_allowed(request, limit=7, namespace=namespace) for _ in range(32))
         )
-
-        assert sum(outcomes) == 7
-        assert await client.get(concurrent_key) == "32"
-        assert 1 <= await client.ttl(concurrent_key) <= 61
+        assert sum(allowed for allowed, _ in outcomes) == 7
+        assert await client.zcard(events_key) == 7
+        assert await client.get(sequence_key) == "7"
+        assert 1 <= await client.pttl(events_key) <= 60_000
+        assert 1 <= await client.pttl(sequence_key) <= 60_000
     finally:
-        await client.delete(orphan_key, concurrent_key)
+        await client.delete(events_key, sequence_key)
         await client.aclose()

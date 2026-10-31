@@ -4,15 +4,15 @@ Complete this record before promoting a build beyond internal testing. Do not en
 
 ## Latest fully validated CI baseline (not a production sign-off)
 
-Latest fully validated source commit: `9da15a95b2515339c050d1ab3b22cda10d0db8f7` (2026-10-31).
+Latest fully validated parent source commit: f8148b30d5646ea3d196c791b26b2989d6bf0f6a (2026-10-31).
 
-- [Validation run 41205714067](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41205714067): all three jobs passed. Frontend passed source-boundary validation, TypeScript, unit tests, Expo Doctor, Android export, Android Release build/emulator install-launch, and runtime dependency audit. Backend passed compilation, full Redis 7.4-backed tests, production-readiness checks, and backend dependency audit. iOS passed native generation, CocoaPods, Release simulator build, and simulator install/launch.
-- [CodeQL run 41205714005](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41205714005): completed successfully. The connected API did not expose the repository alert inventory, so no zero-alert claim is made.
-- [Dependency Review run 41205713945](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41205713945): completed successfully with 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license metadata warning, and 2 low Scorecard warnings. The separate npm audit report still records 11 moderate transitive `glob` / `minimatch` advisories; no forced Expo downgrade was applied.
-- Commit `9da15a9` adds request-path redaction for personal-memory bearer capabilities, with regression tests covering both successful and 500 responses. The earlier prompt/user-intent redaction remains covered by sentinel tests.
-- All three historical inline PR review threads are resolved. The latest Codex review receipt found no major issues on `0ae7517`; the current privacy commit has not yet received a newer review receipt.
+- [Validation run 41210918327](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918327): all three jobs passed. Frontend passed source-boundary validation, TypeScript, unit tests, Expo Doctor, Android export, Android Release build/emulator install-launch, and runtime dependency audit. Backend passed compilation, full Redis 7.4-backed tests, production-readiness checks, and backend dependency audit. iOS passed native generation, CocoaPods, Release simulator build, and simulator install/launch.
+- [CodeQL run 41210918374](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918374): completed successfully. The connected API did not expose the repository alert inventory, so no zero-alert claim is made.
+- [Dependency Review run 41210918324](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918324): completed successfully with 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license metadata warning, and 2 low Scorecard warnings. The separate npm audit report still records 11 moderate transitive glob / minimatch advisories; no high/critical npm-audit findings were reported.
+- Commit 9da15a9 adds request-path redaction for personal-memory bearer capabilities, with regression tests covering successful and 500 responses. Earlier prompt/user-intent redaction remains covered by sentinel tests.
+- All three historical inline PR review threads are resolved. The latest Codex review receipt is older than the f814 documentation head; current source inspection confirms the known Request/init, privacy-fixture, error-boundary and permission-recovery findings are addressed.
 
-This evidence applies to source SHA `9da15a95b2515339c050d1ab3b22cda10d0db8f7`, not automatically to a later documentation-only commit. The documentation update must itself pass the required CI before PR merge. It is not a production sign-off: simulator/emulator results do not satisfy physical-device App Attest or Play Integrity. Production secrets/provider settings, staging deployment, backup/restore, monitoring/alert delivery, rollout, pilot thresholds, and human approvals remain unverified.
+This evidence applies to source SHA f8148b30d5646ea3d196c791b26b2989d6bf0f6a only. The current revision adds Redis server-time sliding-window rate limiting plus boundary and concurrency tests; its exact-head CI is pending and is not covered by the runs above. This is not a production sign-off: simulator/emulator results do not satisfy physical-device App Attest or Play Integrity. Production secrets/provider settings, staging deployment, backup/restore, monitoring/alert delivery, rollout, pilot thresholds, moderate npm-audit risk decision, and human approvals remain unverified.
 
 ## Release identity
 
@@ -28,11 +28,11 @@ This evidence applies to source SHA `9da15a95b2515339c050d1ab3b22cda10d0db8f7`, 
 
 ## Evidence gates
 
-- [x] Full CI validation passed for the exact source SHA: `9da15a95b2515339c050d1ab3b22cda10d0db8f7` ([run 41205714067](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41205714067)).
-- [x] CodeQL passed for the exact source SHA: `9da15a95b2515339c050d1ab3b22cda10d0db8f7` ([run 41205714005](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41205714005)).
-- [x] Dependency Review passed for the exact source SHA: `9da15a95b2515339c050d1ab3b22cda10d0db8f7` ([run 41205713945](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41205713945)); 1 unknown-license metadata warning and 2 highlighted low Scorecard results remain visible.
+- [x] Full CI validation passed for the exact source SHA: `9da15a95b2515339c050d1ab3b22cda10d0db8f7` ([run 41210918327](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918327)).
+- [x] CodeQL passed for the exact source SHA: `9da15a95b2515339c050d1ab3b22cda10d0db8f7` ([run 41210918374](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918374)).
+- [x] Dependency Review passed for the exact source SHA: `9da15a95b2515339c050d1ab3b22cda10d0db8f7` ([run 41210918324](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918324)); 1 unknown-license metadata warning and 2 highlighted low Scorecard results remain visible.
 - [ ] Review or remediate the 11 moderate npm-audit advisories in the Expo 57 transitive `glob` / `minimatch` dependency paths; do not apply the forced Expo 51 downgrade.
-- [x] Automated production-readiness checks passed in [validation run 41205714067](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41205714067); production environment configuration is still unverified.
+- [x] Automated production-readiness checks passed in [validation run 41210918327](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918327); production environment configuration is still unverified.
 - [ ] Staging readiness and health checks passed:
 - [ ] Shared Redis is configured; challenge replay and multi-instance tests passed:
 - [ ] EAS build environment contains the valid numeric `EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` for Play Integrity:
