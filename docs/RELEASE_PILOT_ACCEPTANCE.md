@@ -4,15 +4,16 @@ Complete this record before promoting a build beyond internal testing. Do not en
 
 ## Latest fully validated CI baseline (not a production sign-off)
 
-Latest fully validated application source commit: `c95530f88254697704d45ba385cf0bb3d0ea5170` (2026-10-31).
+Latest fully validated PR #41 head: `caff9a7f31ff799e274b27b24647bfe57097c2ea` (documentation-only follow-up, 2026-10-31). Latest application-code commit in this tree: `c95530f88254697704d45ba385cf0bb3d0ea5170`.
 
-- [Validation run 41220026884](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41220026884): all three jobs passed. Frontend passed source-boundary validation, TypeScript, unit tests, Expo Doctor, Android export, Android Release build/emulator install-launch, and runtime dependency audit. Backend passed compilation, full Redis 7.4-backed tests, production-readiness checks, and backend dependency audit, including the Redis sliding-window boundary and 32-request concurrent-client regressions. iOS passed native generation, CocoaPods, Release simulator build, and simulator install/launch.
-- [CodeQL run 41220027004](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41220027004): completed successfully for the same source SHA. The connected API did not expose the repository alert inventory, so no zero-alert claim is made.
-- [Dependency Review run 41220026908](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41220026908): completed successfully with 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license metadata warning, and 2 low Scorecard warnings. The separate npm audit report still records 11 moderate transitive `glob` / `minimatch` advisories; no high/critical npm-audit findings were reported.
-- Commit `9da15a9` adds request-path redaction for personal-memory bearer capabilities, with regression tests covering successful and 500 responses. Earlier prompt/user-intent redaction remains covered by sentinel tests in the current source tree.
-- All three historical inline PR review threads are resolved. Current source inspection confirms the known Request/init, explicit-auth POST retry, valid base64 privacy fixture, error-boundary logging, and permission-recovery findings are addressed.
+- [Validation run 41226044551](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41226044551): all three jobs passed for the exact PR head. Backend, frontend, and iOS completed successfully; frontend included Android Release build/emulator install-launch, while iOS included native generation, CocoaPods, Release simulator build, and install/launch.
+- [CodeQL run 41226044719](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41226044719): completed successfully for the exact PR head. The connected API does not expose the repository alert inventory, so no zero-alert claim is made.
+- [Dependency Review run 41226044603](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41226044603): completed successfully with 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license metadata warning, and 2 low Scorecard warnings. The separate npm audit report still records 11 moderate transitive `glob` / `minimatch` advisories; no high/critical npm-audit findings were reported.
+- Exact check-run names observed on this head are `CodeQL`, `analyze`, `backend`, `frontend`, `ios`, and `dependency-review`. They are not currently enforced by a `main` ruleset.
+- All three historical inline PR #41 review threads are resolved. Current source inspection confirms App Attest pending-enrollment recovery, updated invalid-provider test expectations, effective Request/init header semantics, explicit-auth POST retry tests, valid base64 privacy fixture, sanitized error-boundary logging, and Settings recovery for permanently denied camera/gallery permissions.
+- [Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open: the rulesets endpoint is empty and branch-protection reads return HTTP 403 to the integration. The GitHub releases endpoint is empty. Code-scanning and Dependabot alert inventories are not exposed by the connected integration, so their status remains unverified.
 
-This evidence applies to application source SHA `c95530f88254697704d45ba385cf0bb3d0ea5170` only. The documentation follow-up itself must also complete its own required CI before PR #41 can be considered merge-ready. This is not a production sign-off: simulator/emulator results do not satisfy physical-device App Attest or Play Integrity. Production secrets/provider settings, staging deployment, backup/restore, monitoring/alert delivery, rollout, pilot thresholds, moderate npm-audit risk decision, and human approvals remain unverified.
+This evidence applies to the complete PR head `caff9a7f31ff799e274b27b24647bfe57097c2ea`; the application source code in that tree last changed at `c95530f88254697704d45ba385cf0bb3d0ea5170`. It is not a production sign-off: simulator/emulator results do not satisfy physical-device App Attest or Play Integrity. Production secrets/provider settings, staging deployment, backup/restore, monitoring/alert delivery, rollout, pilot thresholds, moderate npm-audit risk decision, and human approvals remain unverified.
 
 ## Release identity
 
@@ -28,11 +29,11 @@ This evidence applies to application source SHA `c95530f88254697704d45ba385cf0bb
 
 ## Evidence gates
 
-- [x] Full CI validation passed for application source SHA: `c95530f88254697704d45ba385cf0bb3d0ea5170` ([run 41220026884](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41220026884)).
-- [x] CodeQL passed for application source SHA: `c95530f88254697704d45ba385cf0bb3d0ea5170` ([run 41220027004](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41220027004)).
-- [x] Dependency Review passed for application source SHA: `c95530f88254697704d45ba385cf0bb3d0ea5170` ([run 41220026908](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41220026908)); 1 unknown-license metadata warning and 2 highlighted low Scorecard results remain visible.
+- [x] Full CI validation passed for PR head `caff9a7f31ff799e274b27b24647bfe57097c2ea` ([run 41226044551](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41226044551)).
+- [x] CodeQL passed for PR head `caff9a7f31ff799e274b27b24647bfe57097c2ea` ([run 41226044719](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41226044719)).
+- [x] Dependency Review passed for PR head `caff9a7f31ff799e274b27b24647bfe57097c2ea` ([run 41226044603](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41226044603)); 1 unknown-license metadata warning and 2 highlighted low Scorecard results remain visible.
 - [ ] Review or remediate the 11 moderate npm-audit advisories in the Expo 57 transitive `glob` / `minimatch` dependency paths; do not apply the forced Expo 51 downgrade.
-- [x] Automated production-readiness checks passed in [validation run 41220026884](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41220026884); production environment configuration is still unverified.
+- [x] Automated production-readiness checks passed in [validation run 41226044551](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41226044551); production environment configuration is still unverified.
 - [ ] Staging readiness and health checks passed:
 - [ ] Shared Redis is configured; challenge replay and multi-instance tests passed:
 - [ ] EAS build environment contains the valid numeric `EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` for Play Integrity:
@@ -40,7 +41,7 @@ This evidence applies to application source SHA `c95530f88254697704d45ba385cf0bb
 - [ ] Apple App Attest verified on a physical iPhone using the production entitlement:
 - [ ] Camera permission grant/denial/recovery flows tested on both platforms:
 - [ ] Network interruption and session recovery tested:
-- [ ] Privacy review confirms production log sinks and retention contain no images, data URIs, secrets, bearer tokens, or raw provider responses. Code-level prompt/user-intent redaction and personal-memory capability path redaction with sentinel tests remain in application source SHA `c95530f88254697704d45ba385cf0bb3d0ea5170` and passed in [validation run 41220026884](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41220026884):
+- [ ] Privacy review confirms production log sinks and retention contain no images, data URIs, secrets, bearer tokens, or raw provider responses. Code-level prompt/user-intent redaction and personal-memory capability path redaction remain in application source SHA `c95530f88254697704d45ba385cf0bb3d0ea5170` and passed in [validation run 41226044551](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41226044551) for PR head `caff9a7f31ff799e274b27b24647bfe57097c2ea`:
 - [ ] Backup and restore procedure verified:
 
 ## Pilot acceptance criteria
