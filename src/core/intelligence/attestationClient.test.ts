@@ -628,6 +628,30 @@ describe('attestationClient session cache', () => {
   });
 
 
+  it('aborts when an attestation response body stalls after headers arrive', async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const stalledBody = new ReadableStream<Uint8Array>({ start() {} });
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      signal = init?.signal as AbortSignal;
+      return Promise.resolve(new Response(stalledBody, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    const pending = getSessionToken('https://api-a.example');
+    const rejection = expect(pending).rejects.toThrow('USEIT attestation request timed out.');
+    await flushMicrotasks();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await rejection;
+    expect(signal?.aborted).toBe(true);
+  });
+
   it('aborts session bootstrap after the attestation request deadline', async () => {
     vi.useFakeTimers();
     let signal: AbortSignal | undefined;

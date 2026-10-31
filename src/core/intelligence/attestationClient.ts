@@ -44,10 +44,20 @@ async function fetchWithAttestationTimeout(
   });
 
   try {
-    return await Promise.race([
+    const response = await Promise.race([
       fetch(input, { ...init, signal: controller.signal }),
       deadline,
     ]);
+    // Fetch resolves when response headers arrive. Keep the deadline active
+    // while consuming the body so a stalled JSON response is bounded too.
+    const body = [204, 205, 304].includes(response.status)
+      ? null
+      : await Promise.race([response.arrayBuffer(), deadline]);
+    return new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
   } catch (error) {
     if (controller.signal.aborted) throw timeoutError;
     throw error;
