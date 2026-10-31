@@ -13,7 +13,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
 
-PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc", "/v1/session"})
+PUBLIC_PATHS = frozenset({"/health", "/ready", "/docs", "/openapi.json", "/redoc", "/v1/session", "/v1/session/challenge"})
 DEFAULT_SESSION_TTL_SECONDS = 900
 MAX_SESSION_TTL_SECONDS = 3600
 
@@ -42,7 +42,19 @@ def _b64url(value: bytes) -> str:
 
 
 def _unb64url(value: str) -> bytes:
-    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+    # Session tokens use canonical, unpadded base64url. Python's default decoder
+    # silently ignores non-alphabet characters, which can make a modified
+    # signature decode to the same bytes as the original signature.
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    if not value or any(character not in alphabet for character in value):
+        raise ValueError("Invalid base64url encoding")
+    padded = value + "=" * (-len(value) % 4)
+    decoded = base64.b64decode(padded, altchars=b"-_", validate=True)
+    # validate=True rejects non-alphabet characters but Python still accepts
+    # non-zero unused pad bits. Re-encoding closes that canonicality gap.
+    if _b64url(decoded) != value:
+        raise ValueError("Non-canonical base64url encoding")
+    return decoded
 
 
 def issue_session_token(now: int | None = None) -> tuple[str, int]:
@@ -75,7 +87,7 @@ def verify_session_token(token: str, now: int | None = None) -> bool:
         expires_at = int(decoded_payload["exp"])
         if int(decoded_payload["v"]) != 1:
             return False
-    except (ValueError, TypeError, KeyError, json.JSONDecodeError, UnicodeDecodeError):
+    except (ValueError, TypeError, KeyError, OverflowError, json.JSONDecodeError, UnicodeDecodeError):
         return False
 
     current = int(time.time() if now is None else now)

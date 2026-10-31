@@ -32,6 +32,8 @@ class AttestationEvidence:
     challenge: str
     assertion: str
     app_id: str
+    key_id: str | None = None
+    client_data: str | None = None
 
 
 @dataclass(frozen=True)
@@ -61,9 +63,13 @@ class ChallengeStore:
 
     def issue(self, provider: AttestationProvider, app_id: str, ttl_seconds: int = 300) -> str:
         now = int(time.time())
+        self._prune(now)
+        if len(self._issued) >= MAX_IN_MEMORY_CHALLENGES:
+            # Never evict unexpired challenges: doing so would break active
+            # sessions unpredictably. Fail closed rather than grow without bound.
+            raise RuntimeError("In-memory attestation challenge capacity is exhausted.")
         nonce = secrets.token_urlsafe(32)
         self._issued[hashlib.sha256(nonce.encode()).hexdigest()] = (now + ttl_seconds, provider, app_id)
-        self._prune(now)
         return nonce
 
     def consume(self, challenge: str, now: int | None = None) -> tuple[bool, AttestationProvider | None, str | None]:
@@ -83,6 +89,7 @@ class ChallengeStore:
 _CHALLENGE_STORE = ChallengeStore()
 DEFAULT_CHALLENGE_TTL_SECONDS = 300
 MAX_CHALLENGE_TTL_SECONDS = 600
+MAX_IN_MEMORY_CHALLENGES = 10_000
 
 
 def configured_attestation_mode() -> AttestationMode:
@@ -126,7 +133,12 @@ def configured_redis_url() -> str:
 async def _redis_challenge_store() -> AsyncIterator[ChallengeStoreBackend]:
     from backend.attestation_store import RedisChallengeStore
 
-    redis = Redis.from_url(configured_redis_url(), decode_responses=False)
+    redis = Redis.from_url(
+        configured_redis_url(),
+        decode_responses=False,
+        socket_connect_timeout=2.0,
+        socket_timeout=5.0,
+    )
     try:
         yield RedisChallengeStore(redis)
     finally:
@@ -201,6 +213,10 @@ async def validate_challenge_binding_async(evidence: AttestationEvidence) -> Att
 
 async def verify_attestation_provider(evidence: AttestationEvidence) -> AttestationResult:
     """Dispatch evidence to the configured real provider verifier."""
+    if evidence.provider is AttestationProvider.APP_ATTEST:
+        from backend.apple_app_attest import AppleAppAttestVerifier
+
+        return await AppleAppAttestVerifier().verify(evidence)
     if evidence.provider is AttestationProvider.PLAY_INTEGRITY:
         from backend.google_play_integrity import GooglePlayIntegrityVerifier
 

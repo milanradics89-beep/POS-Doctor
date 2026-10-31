@@ -49,6 +49,30 @@ def _safe_request_id(value: str | None) -> str:
     return secrets.token_hex(16)
 
 
+async def _read_limited_body(request: Request) -> bytes | None:
+    """Read request chunks incrementally and stop as soon as the size limit is crossed."""
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > MAX_REQUEST_BYTES:
+            return None
+    return bytes(body)
+
+
+async def _read_limited_body_with_timeout(
+    request: Request, timeout: float | None = None
+) -> tuple[bytes | None, bool]:
+    """Bound client upload time as well as body size to prevent slow-body exhaustion."""
+    try:
+        body = await asyncio.wait_for(
+            _read_limited_body(request),
+            timeout=configured_request_timeout() if timeout is None else timeout,
+        )
+        return body, False
+    except asyncio.TimeoutError:
+        return None, True
+
+
 def install_request_controls(app) -> None:
     @app.middleware("http")
     async def request_controls(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
@@ -65,9 +89,17 @@ def install_request_controls(app) -> None:
         request.state.request_id = request_id
 
         if request.method in {"POST", "PUT", "PATCH"}:
-            body = await request.body()
-            if len(body) > MAX_REQUEST_BYTES:
+            body, body_timed_out = await _read_limited_body_with_timeout(request)
+            if body_timed_out:
+                return JSONResponse(
+                    status_code=408,
+                    content={"detail": "Request body timed out.", "requestId": request_id},
+                    headers={"X-Request-ID": request_id},
+                )
+            if body is None:
                 return JSONResponse(status_code=413, content={"detail": "Request body is too large."})
+            # Starlette's Request.stream() replays this cached body for downstream handlers.
+            request._body = body
 
         try:
             response = await asyncio.wait_for(call_next(request), timeout=configured_request_timeout())
@@ -77,9 +109,13 @@ def install_request_controls(app) -> None:
                 content={"detail": "Request timed out.", "requestId": request_id},
                 headers={"X-Request-ID": request_id},
             )
-        except Exception:
-            # Keep unexpected failures generic while preserving the operational correlation ID.
-            logger.exception("Unhandled request failure")
+        except Exception as exc:
+            # Never log exception messages or tracebacks: provider errors may echo user data.
+            logger.error(
+                "Unhandled request failure (exception_type=%s, request_id=%s)",
+                type(exc).__name__,
+                request_id,
+            )
             return JSONResponse(
                 status_code=500,
                 content={"detail": "Internal server error.", "requestId": request_id},

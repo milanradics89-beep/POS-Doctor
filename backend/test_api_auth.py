@@ -1,10 +1,14 @@
+import base64
 import os
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from fastapi.testclient import TestClient
+from redis.exceptions import RedisError
 
 from backend.api_auth import issue_session_token, verify_session_token
-from backend.attestation import issue_challenge
+from backend.attestation import AttestationChallenge, AttestationProvider, issue_challenge
+import backend.main as main
 from backend.main import app
 
 client = TestClient(app)
@@ -34,7 +38,7 @@ def test_required_attestation_rejects_missing_evidence():
     assert response.json()["detail"] == "attestation_required"
 
 
-def test_optional_attestation_fails_closed_until_provider_verifier_exists():
+def test_optional_attestation_rejects_invalid_provider_evidence():
     with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32, "USEIT_ATTESTATION_MODE": "optional", "USEIT_ATTESTATION_PROVIDER": "apple_app_attest"}, clear=False):
         challenge = issue_challenge(ttl_seconds=60)
         response = client.post(
@@ -46,8 +50,8 @@ def test_optional_attestation_fails_closed_until_provider_verifier_exists():
                 "appId": challenge.app_id,
             },
         )
-    assert response.status_code == 503
-    assert response.json()["detail"] == "provider_unavailable"
+    assert response.status_code == 401
+    assert response.json()["detail"] == "attestation_invalid"
 
 
 def test_required_attestation_rejects_replayed_challenge():
@@ -61,7 +65,8 @@ def test_required_attestation_rejects_replayed_challenge():
         }
         first = client.post("/v1/session", json=payload)
         second = client.post("/v1/session", json=payload)
-    assert first.status_code == 503
+    assert first.status_code == 401
+    assert first.json()["detail"] == "attestation_invalid"
     assert second.status_code == 401
     assert second.json()["detail"] == "challenge_invalid_or_replayed"
 
@@ -89,6 +94,43 @@ def test_session_token_rejects_tampering():
         parts = token.split(".")
         parts[1] = parts[1][:-1] + ("A" if parts[1][-1] != "A" else "B")
         assert verify_session_token(".".join(parts), now=1_100) is False
+
+
+def test_session_token_rejects_non_base64url_signature_characters():
+    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32}, clear=False):
+        token, _ = issue_session_token(now=1_000)
+        assert verify_session_token(token, now=1_100) is True
+        # The default urlsafe_b64decode silently ignores these characters;
+        # with four appended characters it previously decoded to the original
+        # signature and accepted a non-canonical bearer token.
+        parts = token.split(".")
+        parts[2] += "!!!!"
+        assert verify_session_token(".".join(parts), now=1_100) is False
+
+
+def test_session_token_rejects_noncanonical_signature_pad_bits():
+    with patch.dict(os.environ, {"USEIT_SESSION_SECRET": "s" * 32}, clear=False):
+        token, _ = issue_session_token(now=1_000)
+        assert verify_session_token(token, now=1_100) is True
+
+        parts = token.split(".")
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        last_index = alphabet.index(parts[2][-1])
+        # A 32-byte SHA-256 signature uses 2 zero pad bits in its final
+        # base64url sextet. Setting either unused bit preserves the decoded
+        # signature, so verification must reject this alternate spelling.
+        assert last_index % 4 == 0
+        parts[2] = parts[2][:-1] + alphabet[last_index + 1]
+        assert verify_session_token(".".join(parts), now=1_100) is False
+
+
+def test_session_token_rejects_overflowing_numeric_timestamps():
+    encode = lambda value: base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+    header = encode(b'{"alg":"HS256","typ":"USEIT"}')
+    # Valid JSON exponent syntax that Python decodes as infinity. The token is
+    # intentionally unsigned; verification must reject it without raising.
+    payload = encode(b'{"v":1,"iat":1e10000,"exp":1e10001}')
+    assert verify_session_token(f"{header}.{payload}.invalid") is False
 
 
 def test_protected_endpoint_requires_api_key_or_session():
@@ -173,3 +215,137 @@ def test_cors_preflight_rejects_unknown_origin():
         )
     assert response.status_code == 400
     assert "access-control-allow-origin" not in response.headers
+
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        RuntimeError("capacity is exhausted"),
+        RedisError("redis is unavailable"),
+        TimeoutError("challenge storage timed out"),
+    ],
+    ids=["capacity", "redis", "timeout"],
+)
+def test_challenge_storage_failures_return_service_unavailable(monkeypatch, failure):
+    monkeypatch.setattr(
+        main,
+        "issue_challenge_async",
+        AsyncMock(side_effect=failure),
+    )
+    response = client.post("/v1/session/challenge")
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Attestation challenge service is temporarily unavailable."
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        RedisError("redis is unavailable"),
+        TimeoutError("challenge storage timed out"),
+    ],
+    ids=["redis", "timeout"],
+)
+def test_session_challenge_storage_failures_return_service_unavailable(monkeypatch, failure):
+    monkeypatch.setattr(
+        main,
+        "validate_challenge_binding_async",
+        AsyncMock(side_effect=failure),
+    )
+    with patch.dict(
+        os.environ,
+        {
+            "USEIT_ENV": "development",
+            "USEIT_REDIS_URL": "",
+            "USEIT_SESSION_SECRET": "s" * 32,
+            "USEIT_ATTESTATION_MODE": "required",
+            "USEIT_ATTESTATION_PROVIDER": "apple_app_attest",
+            "USEIT_ATTESTATION_APP_ID": "TEAM123456.com.useit.app",
+        },
+        clear=False,
+    ):
+        response = client.post(
+            "/v1/session",
+            json={
+                "provider": "apple_app_attest",
+                "challenge": "test-challenge-123",
+                "assertion": "test-assertion",
+                "appId": "TEAM123456.com.useit.app",
+            },
+        )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "Attestation challenge service is temporarily unavailable."
+    )
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        RedisError("redis is unavailable"),
+        TimeoutError("attestation storage timed out"),
+    ],
+    ids=["redis", "timeout"],
+)
+def test_attestation_verifier_storage_failures_return_service_unavailable(monkeypatch, failure):
+    monkeypatch.setattr(
+        main,
+        "verify_attestation_provider",
+        AsyncMock(side_effect=failure),
+    )
+    with patch.dict(
+        os.environ,
+        {
+            "USEIT_ENV": "development",
+            "USEIT_REDIS_URL": "",
+            "USEIT_SESSION_SECRET": "s" * 32,
+            "USEIT_ATTESTATION_MODE": "required",
+            "USEIT_ATTESTATION_PROVIDER": "apple_app_attest",
+            "USEIT_ATTESTATION_APP_ID": "TEAM123456.com.useit.app",
+        },
+        clear=False,
+    ):
+        challenge = issue_challenge(ttl_seconds=60)
+        response = client.post(
+            "/v1/session",
+            json={
+                "provider": challenge.provider.value,
+                "challenge": challenge.challenge,
+                "assertion": "test-assertion",
+                "appId": challenge.app_id,
+                "keyId": "test-key-id",
+            },
+        )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "Attestation verification service is temporarily unavailable."
+    )
+
+
+
+
+def test_attestation_challenge_bootstrap_is_public_when_api_key_is_configured(monkeypatch):
+    challenge = AttestationChallenge(
+        challenge="c" * 43,
+        provider=AttestationProvider.APP_ATTEST,
+        app_id="TEAM123456.com.useit.app",
+        expires_at=2_000_000_000,
+    )
+    monkeypatch.setenv("USEIT_API_KEY", "server-only-api-key")
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://unused")
+    monkeypatch.setattr(main, "issue_challenge_async", AsyncMock(return_value=challenge))
+
+    response = client.post("/v1/session/challenge")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "challenge": challenge.challenge,
+        "provider": AttestationProvider.APP_ATTEST.value,
+        "appId": challenge.app_id,
+        "expiresAt": challenge.expires_at,
+    }
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["pragma"] == "no-cache"

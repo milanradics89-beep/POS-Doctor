@@ -4,6 +4,7 @@ import pytest
 
 from backend.attestation import (
     AttestationEvidence,
+    ChallengeStore,
     AttestationMode,
     AttestationProvider,
     AttestationResult,
@@ -113,3 +114,61 @@ def test_challenge_binding_is_single_use():
     evidence = AttestationEvidence(challenge.provider, challenge.challenge, "assertion", challenge.app_id)
     assert validate_challenge_binding(evidence).verified
     assert validate_challenge_binding(evidence) == AttestationResult(False, "challenge_invalid_or_replayed")
+
+
+
+def test_in_memory_challenge_store_fails_closed_at_capacity(monkeypatch):
+    import backend.attestation as attestation
+
+    monkeypatch.setattr(attestation, "MAX_IN_MEMORY_CHALLENGES", 2)
+    store = ChallengeStore()
+    store.issue(AttestationProvider.APP_ATTEST, "com.useit.app", ttl_seconds=60)
+    store.issue(AttestationProvider.APP_ATTEST, "com.useit.app", ttl_seconds=60)
+    with pytest.raises(RuntimeError, match="capacity is exhausted"):
+        store.issue(AttestationProvider.APP_ATTEST, "com.useit.app", ttl_seconds=60)
+    assert len(store._issued) == 2
+
+
+def test_in_memory_challenge_store_prunes_expired_before_capacity_check(monkeypatch):
+    import backend.attestation as attestation
+
+    monkeypatch.setattr(attestation, "MAX_IN_MEMORY_CHALLENGES", 1)
+    now = 1_000
+    monkeypatch.setattr(attestation.time, "time", lambda: now)
+    store = ChallengeStore()
+    store.issue(AttestationProvider.APP_ATTEST, "com.useit.app", ttl_seconds=30)
+    monkeypatch.setattr(attestation.time, "time", lambda: now + 31)
+    replacement = store.issue(AttestationProvider.APP_ATTEST, "com.useit.app", ttl_seconds=30)
+    assert replacement
+    assert len(store._issued) == 1
+
+
+
+@pytest.mark.asyncio
+async def test_redis_challenge_store_uses_bounded_connection_timeouts(monkeypatch):
+    import backend.attestation as attestation
+
+    captured = {}
+
+    class FakeRedis:
+        async def aclose(self):
+            captured["closed"] = True
+
+    def fake_from_url(url, **kwargs):
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        return FakeRedis()
+
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setattr(attestation.Redis, "from_url", fake_from_url)
+
+    async with attestation._redis_challenge_store():
+        pass
+
+    assert captured["url"] == "redis://redis.internal:6379/0"
+    assert captured["kwargs"] == {
+        "decode_responses": False,
+        "socket_connect_timeout": 2.0,
+        "socket_timeout": 5.0,
+    }
+    assert captured["closed"] is True

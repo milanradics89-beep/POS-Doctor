@@ -14,6 +14,20 @@ from backend.attestation import AttestationEvidence, AttestationResult, Attestat
 GOOGLE_PLAY_INTEGRITY_SCOPE = "https://www.googleapis.com/auth/playintegrity"
 GOOGLE_PLAY_INTEGRITY_BASE_URL = "https://playintegrity.googleapis.com/v1"
 DEFAULT_MAX_TOKEN_AGE_SECONDS = 300
+_MISSING = object()
+
+
+def _aliased_value(mapping: dict[str, Any], primary: str, alternate: str) -> tuple[Any, bool]:
+    """Read supported camelCase/snake_case aliases without hiding conflicts."""
+    has_primary = primary in mapping
+    has_alternate = alternate in mapping
+    if has_primary and has_alternate and mapping[primary] != mapping[alternate]:
+        return _MISSING, True
+    if has_primary:
+        return mapping[primary], False
+    if has_alternate:
+        return mapping[alternate], False
+    return _MISSING, False
 
 
 class CredentialsLike(Protocol):
@@ -69,7 +83,10 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
         except Exception:
             return AttestationResult(False, "provider_unavailable")
 
-        if response.status_code >= 500:
+        # Authentication, throttling, timeout, and server failures from Google's
+        # decode API are provider-side failures, not evidence that the client token
+        # is invalid. Keep them retryable and surface them as HTTP 503 upstream.
+        if response.status_code in {401, 403, 408, 429} or response.status_code >= 500:
             return AttestationResult(False, "provider_unavailable")
         if response.status_code != 200:
             return AttestationResult(False, "attestation_invalid")
@@ -78,49 +95,87 @@ class GooglePlayIntegrityVerifier(AttestationVerifier):
             body = response.json()
         except ValueError:
             return AttestationResult(False, "attestation_invalid")
-        payload = body.get("tokenPayloadExternal") or body.get("token_payload_external") if isinstance(body, dict) else None
-        if not isinstance(payload, dict):
+        if not isinstance(body, dict):
+            return AttestationResult(False, "attestation_invalid")
+        payload, conflict = _aliased_value(body, "tokenPayloadExternal", "token_payload_external")
+        if conflict or not isinstance(payload, dict):
             return AttestationResult(False, "attestation_invalid")
 
         return self._validate_payload(payload, evidence)
 
     def _validate_payload(self, payload: dict[str, Any], evidence: AttestationEvidence) -> AttestationResult:
-        request_details = payload.get("requestDetails") or payload.get("request_details") or {}
-        request_hash = request_details.get("requestHash") or request_details.get("request_hash")
+        request_details, conflict = _aliased_value(payload, "requestDetails", "request_details")
+        if conflict or not isinstance(request_details, dict):
+            return AttestationResult(False, "attestation_invalid")
+        request_hash, conflict = _aliased_value(request_details, "requestHash", "request_hash")
         expected_hash = hashlib.sha256(evidence.challenge.encode("utf-8")).hexdigest()
+        if conflict:
+            return AttestationResult(False, "attestation_invalid")
         if request_hash != expected_hash:
             return AttestationResult(False, "request_hash_mismatch")
-        request_package = request_details.get("requestPackageName") or request_details.get("request_package_name")
+        request_package, conflict = _aliased_value(request_details, "requestPackageName", "request_package_name")
+        if conflict:
+            return AttestationResult(False, "wrong_app")
         if request_package != evidence.app_id:
             return AttestationResult(False, "wrong_app")
 
-        timestamp_raw = request_details.get("timestampMillis") or request_details.get("timestamp_millis")
+        timestamp_raw, conflict = _aliased_value(request_details, "timestampMillis", "timestamp_millis")
+        if conflict or isinstance(timestamp_raw, bool):
+            return AttestationResult(False, "timestamp_invalid")
         try:
             age_seconds = self._now() - (int(timestamp_raw) / 1000)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return AttestationResult(False, "timestamp_invalid")
         if age_seconds < -30 or age_seconds > max_token_age_seconds():
             return AttestationResult(False, "token_stale")
 
-        app_integrity = payload.get("appIntegrity") or payload.get("app_integrity") or {}
-        if app_integrity.get("packageName") != evidence.app_id and app_integrity.get("package_name") != evidence.app_id:
+        app_integrity, conflict = _aliased_value(payload, "appIntegrity", "app_integrity")
+        if conflict or not isinstance(app_integrity, dict):
+            return AttestationResult(False, "attestation_invalid")
+        actual_app_package, conflict = _aliased_value(app_integrity, "packageName", "package_name")
+        if conflict:
+            return AttestationResult(False, "wrong_app")
+        if actual_app_package != evidence.app_id:
             return AttestationResult(False, "wrong_app")
         if app_integrity.get("appRecognitionVerdict") != "PLAY_RECOGNIZED":
             return AttestationResult(False, "app_not_recognized")
 
+        actual_certificates_raw, conflict = _aliased_value(
+            app_integrity, "certificateSha256Digest", "certificate_sha256_digest"
+        )
+        if conflict:
+            return AttestationResult(False, "attestation_invalid")
+        if actual_certificates_raw is _MISSING:
+            actual_certificates_raw = []
+        if not isinstance(actual_certificates_raw, list) or not all(
+            isinstance(certificate, str) for certificate in actual_certificates_raw
+        ):
+            return AttestationResult(False, "attestation_invalid")
         required_certificates = configured_certificates()
-        if required_certificates:
-            actual_certificates = set(app_integrity.get("certificateSha256Digest") or app_integrity.get("certificate_sha256_digest") or [])
-            if not set(required_certificates).issubset(actual_certificates):
-                return AttestationResult(False, "certificate_mismatch")
+        if required_certificates and not set(required_certificates).issubset(set(actual_certificates_raw)):
+            return AttestationResult(False, "certificate_mismatch")
 
-        account_details = payload.get("accountDetails") or payload.get("account_details") or {}
+        account_details, conflict = _aliased_value(payload, "accountDetails", "account_details")
+        if conflict or not isinstance(account_details, dict):
+            return AttestationResult(False, "attestation_invalid")
         if account_details.get("appLicensingVerdict") != "LICENSED":
             return AttestationResult(False, "app_not_licensed")
 
-        device_integrity = payload.get("deviceIntegrity") or payload.get("device_integrity") or {}
-        actual_device_verdicts = set(device_integrity.get("deviceRecognitionVerdict") or device_integrity.get("device_recognition_verdict") or [])
-        if not actual_device_verdicts.intersection(configured_device_verdicts()):
+        device_integrity, conflict = _aliased_value(payload, "deviceIntegrity", "device_integrity")
+        if conflict or not isinstance(device_integrity, dict):
+            return AttestationResult(False, "attestation_invalid")
+        actual_device_verdicts_raw, conflict = _aliased_value(
+            device_integrity, "deviceRecognitionVerdict", "device_recognition_verdict"
+        )
+        if conflict:
+            return AttestationResult(False, "attestation_invalid")
+        if actual_device_verdicts_raw is _MISSING:
+            actual_device_verdicts_raw = []
+        if not isinstance(actual_device_verdicts_raw, list) or not all(
+            isinstance(verdict, str) for verdict in actual_device_verdicts_raw
+        ):
+            return AttestationResult(False, "attestation_invalid")
+        if not set(actual_device_verdicts_raw).intersection(configured_device_verdicts()):
             return AttestationResult(False, "device_integrity_insufficient")
 
         return AttestationResult(True, "provider_verified")

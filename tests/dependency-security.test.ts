@@ -1,0 +1,73 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+
+type LockPackage = { version?: string; resolved?: string; integrity?: string };
+type Lockfile = { packages: Record<string, LockPackage> };
+
+const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+  overrides?: Record<string, string>;
+  dependencies: Record<string, string>;
+};
+const lockfile = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8')) as Lockfile;
+const dependencyReviewWorkflow = readFileSync(
+  new URL('../.github/workflows/dependency-review.yml', import.meta.url),
+  'utf8',
+);
+
+function versionAtLeast(actual: string | undefined, minimum: string): boolean {
+  if (!actual) return false;
+  const a = actual.split('.').map(Number);
+  const b = minimum.split('.').map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const left = a[i] ?? 0;
+    const right = b[i] ?? 0;
+    if (left !== right) return left > right;
+  }
+  return true;
+}
+
+describe('runtime dependency security overrides', () => {
+  it('pins Zod to a patched release throughout the installed dependency tree', () => {
+    expect(packageJson.overrides?.zod).toBe('$zod');
+    const zodPackages = Object.entries(lockfile.packages)
+      .filter(([path]) => path === 'node_modules/zod' || path.endsWith('/node_modules/zod'));
+    expect(zodPackages.length).toBeGreaterThan(0);
+    for (const [path, pkg] of zodPackages) {
+      expect(versionAtLeast(pkg.version, '4.6.6'), path).toBe(true);
+    }
+  });
+
+  it('pins decode-uri-component to its patched release throughout the installed dependency tree', () => {
+    expect(packageJson.overrides?.['decode-uri-component']).toBe('0.5.1');
+    const packages = Object.entries(lockfile.packages)
+      .filter(([path]) => path === 'node_modules/decode-uri-component' || path.endsWith('/node_modules/decode-uri-component'));
+    expect(packages.length).toBeGreaterThan(0);
+    for (const [path, pkg] of packages) {
+      expect(pkg.version, path).toBe('0.5.1');
+      expect(pkg.resolved, path).toBe('https://registry.npmjs.org/decode-uri-component/-/decode-uri-component-0.5.1.tgz');
+      expect(pkg.integrity, path).toMatch(/^sha512-[A-Za-z0-9+/]+=*$/);
+    }
+  });
+
+  it('uses the locally patched deepmerge package', () => {
+    expect(packageJson.dependencies.deepmerge).toBe('file:vendor/deepmerge');
+    expect(lockfile.packages['vendor/deepmerge']?.version).toBe('4.3.2');
+  });
+
+  it('does not silently skip the required dependency review gate', () => {
+    expect(dependencyReviewWorkflow).not.toMatch(
+      /^\s*if:\s*\$\{\{\s*vars\.USEIT_DEPENDENCY_GRAPH_ENABLED/m,
+    );
+    expect(dependencyReviewWorkflow).toContain(
+      'actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294',
+    );
+    expect(dependencyReviewWorkflow).toContain('fail-on-severity: high');
+  });
+
+  it('grants PR-comment permission only to the dependency review job', () => {
+    expect(dependencyReviewWorkflow).toMatch(
+      /dependency-review:\s*\n\s+permissions:\s*\n\s+contents:\s*read\s*\n\s+pull-requests:\s*write/m,
+    );
+    expect(dependencyReviewWorkflow).toContain('comment-summary-in-pr: always');
+  });
+});

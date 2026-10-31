@@ -52,3 +52,29 @@ def test_request_observability_does_not_log_request_payload(caplog):
     assert response.status_code == 200
     assert "SECRET_IMAGE" not in caplog.text
     assert "SECRET_PROMPT" not in caplog.text
+
+
+def test_request_observability_redacts_memory_capability_on_success_and_error(caplog):
+    app = FastAPI()
+    install_request_controls(app)
+    install_observability(app, logging.getLogger("phase24-memory-path-test"))
+
+    @app.get("/v1/memory/{memory_id}")
+    async def read_memory(memory_id: str):
+        return {"status": "ok"}
+
+    @app.delete("/v1/memory/{memory_id}")
+    async def delete_memory(memory_id: str):
+        raise RuntimeError("simulated memory failure")
+
+    memory_id = "MEMORY_CAPABILITY_SENTINEL_0123456789"
+    client = TestClient(app, raise_server_exceptions=False)
+
+    with caplog.at_level(logging.INFO, logger="phase24-memory-path-test"):
+        success = client.get(f"/v1/memory/{memory_id}")
+        failure = client.delete(f"/v1/memory/{memory_id}")
+
+    assert success.status_code == 200
+    assert failure.status_code == 500
+    assert memory_id not in caplog.text
+    assert caplog.text.count("/v1/memory/[REDACTED]") == 2

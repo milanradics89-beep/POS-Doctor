@@ -79,7 +79,8 @@ jobs:
           Inspect the failed job logs and fix the underlying issue. This automation does not commit code or merge pull requests.
           EOF
           )
-          EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$TITLE\" in:title" --json number,title --jq '.[] | select(.title == "'"$TITLE"'") | .number' | head -n 1)
+          EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$TITLE\" in:title" --json number,title --limit 1000 |
+            jq -r --arg title "$TITLE" 'first(.[] | select(.title == $title) | .number) // empty')
           if [[ -n "$EXISTING" ]]; then
             gh issue comment "$EXISTING" --repo "$GITHUB_REPOSITORY" --body "$BODY"
           else

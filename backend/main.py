@@ -1,3 +1,5 @@
+import base64
+import binascii
 import json
 import logging
 import os
@@ -8,6 +10,11 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
+from redis import asyncio as redis_asyncio
+from redis.exceptions import RedisError
+
+from backend.security import validate_public_http_url
+from backend.privacy_logging import log_event
 
 from backend.action_layer import router as action_router
 from backend.api_auth import configured_api_key, configured_session_secret, issue_session_token, session_ttl_seconds
@@ -69,7 +76,7 @@ MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
 
 class AnalyzeRequest(BaseModel):
     imageUri: str = Field(min_length=20, max_length=8_000_000)
-    userIntent: Optional[str] = None
+    userIntent: Optional[str] = Field(default=None, max_length=2_000)
     prompt: Optional[str] = Field(default=None, max_length=20_000)
     locale: str = Field(default="hu-HU", max_length=20)
     responseFormat: str = Field(default="scene_analysis_v1", max_length=64)
@@ -77,15 +84,28 @@ class AnalyzeRequest(BaseModel):
     @field_validator("imageUri")
     @classmethod
     def validate_image_uri(cls, value: str) -> str:
-        if value.startswith("data:image/"):
+        if value.lower().startswith("data:image/"):
             header, separator, payload = value.partition(",")
-            if not separator or not payload: raise ValueError("Invalid image data URI")
-            mime = header[5:].split(";", 1)[0].lower()
-            if mime not in {"image/jpeg", "image/png", "image/webp", "image/gif"}: raise ValueError("Unsupported image MIME type")
+            if not separator or not payload:
+                raise ValueError("Invalid image data URI")
+            parts = header[5:].split(";")
+            mime = parts[0].lower()
+            if mime not in {"image/jpeg", "image/png", "image/webp", "image/gif"}:
+                raise ValueError("Unsupported image MIME type")
+            if not any(part.strip().lower() == "base64" for part in parts[1:]):
+                raise ValueError("Image data URI must use base64 encoding")
+            try:
+                decoded = base64.b64decode(payload, validate=True)
+            except (binascii.Error, ValueError) as exc:
+                raise ValueError("Image data URI contains invalid base64") from exc
+            if not decoded:
+                raise ValueError("Image data URI payload is empty")
             return value
-        parsed = urlparse(value)
-        if parsed.scheme in {"https", "http"} and parsed.netloc: return value
-        raise ValueError("imageUri must be an image data URI or HTTP(S) URL")
+
+        try:
+            return validate_public_http_url(value)
+        except HTTPException as exc:
+            raise ValueError(exc.detail) from exc
 
 class UseItAnalyzeRequest(AnalyzeRequest):
     budgetHuf: int | None = Field(default=None, ge=0, le=100_000_000)
@@ -99,6 +119,8 @@ class SessionRequest(BaseModel):
     challenge: str | None = Field(default=None, min_length=16, max_length=512)
     assertion: str | None = Field(default=None, min_length=1, max_length=64_000)
     appId: str | None = Field(default=None, max_length=512)
+    keyId: str | None = Field(default=None, max_length=512)
+    clientData: str | None = Field(default=None, max_length=64_000)
 
 def _get_client() -> AsyncOpenAI:
     api_key = os.environ.get("OPENAI_API_KEY")
@@ -122,13 +144,30 @@ async def _analyze(request: AnalyzeRequest):
             ],
             response_format={"type":"json_schema","json_schema":{"name":"useit_scene_analysis","strict":True,"schema":SCHEMA}},
         )
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            prompt_tokens = getattr(usage, "prompt_tokens", None)
+            completion_tokens = getattr(usage, "completion_tokens", None)
+            total_tokens = getattr(usage, "total_tokens", None)
+            token_counts = (prompt_tokens, completion_tokens, total_tokens)
+            if all(type(value) is int and value >= 0 for value in token_counts):
+                # Token counts provide a privacy-safe baseline for AI cost analysis.
+                # Never log prompts, images, model responses, or provider payloads.
+                log_event(
+                    logger,
+                    "vision_usage",
+                    model=MODEL,
+                    promptTokens=prompt_tokens,
+                    completionTokens=completion_tokens,
+                    totalTokens=total_tokens,
+                )
         content = response.choices[0].message.content
         if not content: raise HTTPException(502, "Vision analysis returned no structured content.")
         scene = quality_gate(json.loads(content))
         return normalize_scene_understanding(scene)
     except HTTPException: raise
     except Exception as exc:
-        logger.exception("Vision analysis failed")
+        logger.error("Vision analysis failed (exception_type=%s)", type(exc).__name__)
         raise HTTPException(502, "Vision analysis failed.") from exc
 
 def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
@@ -146,7 +185,29 @@ async def ready():
     if production_mode():
         dependencies_ready = dependencies_ready and bool(configured_api_key() or configured_session_secret())
         if configured_attestation_mode() is AttestationMode.REQUIRED:
-            dependencies_ready = dependencies_ready and bool(configured_attestation_app_id()) and bool(configured_redis_url())
+            dependencies_ready = (
+                dependencies_ready
+                and bool(configured_attestation_app_id())
+                and bool(configured_redis_url())
+            )
+            if dependencies_ready:
+                redis_client = None
+                try:
+                    redis_client = redis_asyncio.Redis.from_url(
+                        configured_redis_url(),
+                        socket_connect_timeout=2,
+                        socket_timeout=2,
+                    )
+                    await redis_client.ping()
+                except (RedisError, TimeoutError, OSError, ValueError):
+                    logger.warning("Readiness check failed: attestation Redis is unavailable")
+                    dependencies_ready = False
+                finally:
+                    if redis_client is not None:
+                        try:
+                            await redis_client.aclose()
+                        except (RedisError, TimeoutError, OSError):
+                            logger.warning("Readiness check could not close the Redis client cleanly")
     if not dependencies_ready:
         raise HTTPException(status_code=503, detail="Service is not ready.")
     return {"status": "ready"}
@@ -155,7 +216,11 @@ async def ready():
 async def create_attestation_challenge(response: Response):
     if production_mode() and configured_attestation_mode() is AttestationMode.REQUIRED and not configured_redis_url():
         raise HTTPException(status_code=503, detail="Attestation shared storage is not configured.")
-    challenge = await issue_challenge_async()
+    try:
+        challenge = await issue_challenge_async()
+    except (RuntimeError, RedisError, TimeoutError) as exc:
+        logger.warning("Attestation challenge storage is unavailable")
+        raise HTTPException(status_code=503, detail="Attestation challenge service is temporarily unavailable.") from exc
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
     return {"challenge": challenge.challenge, "provider": challenge.provider.value, "appId": challenge.app_id, "expiresAt": challenge.expires_at}
@@ -179,8 +244,17 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             challenge=request.challenge,
             assertion=request.assertion,
             app_id=request.appId,
+            key_id=request.keyId,
+            client_data=request.clientData,
         )
-        binding = await validate_challenge_binding_async(evidence)
+        try:
+            binding = await validate_challenge_binding_async(evidence)
+        except (RedisError, TimeoutError) as exc:
+            logger.warning("Attestation challenge storage is unavailable")
+            raise HTTPException(
+                status_code=503,
+                detail="Attestation challenge service is temporarily unavailable.",
+            ) from exc
         if not binding.verified:
             raise HTTPException(status_code=401, detail=binding.reason)
         expected_provider = configured_attestation_provider()
@@ -188,7 +262,14 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             raise HTTPException(status_code=401, detail="wrong_provider")
         if configured_attestation_app_id() and evidence.app_id != configured_attestation_app_id():
             raise HTTPException(status_code=401, detail="wrong_app")
-        provider_result = await verify_attestation_provider(evidence)
+        try:
+            provider_result = await verify_attestation_provider(evidence)
+        except (RedisError, TimeoutError) as exc:
+            logger.warning("App Attest verification storage is unavailable")
+            raise HTTPException(
+                status_code=503,
+                detail="Attestation verification service is temporarily unavailable.",
+            ) from exc
         result = evaluate_attestation(evidence, provider_result, mode)
         if not result.verified:
             status_code = 503 if result.reason == "provider_unavailable" else 401
@@ -217,8 +298,8 @@ async def useit_analyze(request: UseItAnalyzeRequest):
         if query:
             try:
                 shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
-            except Exception:
-                logger.exception("Unified product discovery degraded")
+            except Exception as exc:
+                logger.error("Unified product discovery degraded (exception_type=%s)", type(exc).__name__)
                 shopping = {"query": query, "candidates": [], "errors": [{"url": "", "message": "product discovery unavailable"}]}
     suggestions = [{"id":o["id"],"title":o["title"],"description":o["description"],"kind":o["kind"],"effort":o["effort"],"durationMinutes":o["durationMinutes"],"visualizable":o["visualizable"],"score":o["score"],"preferenceScore":o.get("preferenceScore",0.0),"rank":o["rank"],"reasons":build_suggestion_reasons(o,intent,scene,context)} for o in ranked]
     scene["sceneFacts"] = derive_scene_facts(scene)

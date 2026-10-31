@@ -53,7 +53,7 @@ def test_unified_endpoint_is_end_to_end_wired(monkeypatch):
             "/v1/useit/analyze",
             headers={"X-Request-ID": "phase25-e2e"},
             json={
-                "imageUri": "data:image/png;base64,TEST_IMAGE",
+                "imageUri": "data:image/png;base64,dGVzdC1pbWFnZQ==",
                 "userIntent": "vásárolni",
                 "preferredStyles": ["modern"],
                 "preferredColors": ["blue"],
@@ -86,7 +86,7 @@ def test_unified_endpoint_skips_shopping_for_non_shopping_intent(monkeypatch):
         response = client.post(
             "/v1/useit/analyze",
             json={
-                "imageUri": "data:image/png;base64,TEST_IMAGE",
+                "imageUri": "data:image/png;base64,dGVzdC1pbWFnZQ==",
                 "userIntent": "javítani szeretném",
                 "discoverProducts": True,
             },

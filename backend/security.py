@@ -17,23 +17,28 @@ def _public_addresses(hostname: str, port: int) -> set[str]:
         raise HTTPException(400, "Product host could not be resolved.")
     for address in resolved:
         ip = ipaddress.ip_address(address)
-        if any((ip.is_private, ip.is_loopback, ip.is_link_local, ip.is_multicast, ip.is_reserved, ip.is_unspecified)):
+        if not ip.is_global:
             raise HTTPException(400, "Product host is not publicly reachable.")
     return resolved
 
 
 def validate_public_http_url(url: str) -> str:
-    parsed = urlparse(url)
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+    try:
+        parsed = urlparse(url)
+        hostname_value = parsed.hostname
+        port = parsed.port
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(400, "Invalid product URL.") from exc
+    if parsed.scheme.lower() not in {"http", "https"} or not hostname_value:
         raise HTTPException(400, "Only HTTP(S) product URLs are supported.")
     if parsed.username is not None or parsed.password is not None:
         raise HTTPException(400, "Product URLs must not contain embedded credentials.")
-    hostname = parsed.hostname.rstrip(".").lower()
+    hostname = hostname_value.rstrip(".").lower()
     if hostname in {"localhost", "localhost.localdomain"}:
         raise HTTPException(400, "Local product hosts are not allowed.")
-    if parsed.port not in {None, 80, 443}:
+    if port is not None and port != (443 if parsed.scheme.lower() == "https" else 80):
         raise HTTPException(400, "Only standard HTTP(S) ports are allowed.")
-    _public_addresses(hostname, parsed.port or (443 if parsed.scheme == "https" else 80))
+    _public_addresses(hostname, port or (443 if parsed.scheme.lower() == "https" else 80))
     return url
 
 
@@ -51,5 +56,5 @@ def validate_connected_peer(response: object) -> None:
         ip = ipaddress.ip_address(address)
     except ValueError as exc:
         raise HTTPException(502, "Product host connection could not be verified.") from exc
-    if any((ip.is_private, ip.is_loopback, ip.is_link_local, ip.is_multicast, ip.is_reserved, ip.is_unspecified)):
+    if not ip.is_global:
         raise HTTPException(400, "Product host is not publicly reachable.")
