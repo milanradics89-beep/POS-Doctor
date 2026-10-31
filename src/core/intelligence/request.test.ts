@@ -5,19 +5,26 @@ describe('fetchWithPolicy', () => {
   it('keeps the request deadline active while reading the response body', async () => {
     vi.useFakeTimers();
     try {
+      let markBodyReadStarted!: () => void;
+      const bodyReadStarted = new Promise<void>((resolve) => {
+        markBodyReadStarted = resolve;
+      });
       const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
         const signal = init?.signal as AbortSignal;
-        const body = new ReadableStream<Uint8Array>({
-          start(controller) {
-            const abort = () => controller.error(new DOMException('The operation was aborted.', 'AbortError'));
-            if (signal.aborted) abort();
-            else signal.addEventListener('abort', abort, { once: true });
-          },
-        });
-        return new Response(body, {
+        return {
+          ok: true,
           status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+          headers: new Headers({ 'Content-Type': 'application/json' }),
+          body: { cancel: vi.fn(async () => undefined) },
+          json: vi.fn(() => {
+            markBodyReadStarted();
+            return new Promise<never>((_resolve, reject) => {
+              const abort = () => reject(new DOMException('The operation was aborted.', 'AbortError'));
+              if (signal.aborted) abort();
+              else signal.addEventListener('abort', abort, { once: true });
+            });
+          }),
+        } as unknown as Response;
       });
 
       const pending = fetchJsonWithPolicy(
@@ -25,15 +32,34 @@ describe('fetchWithPolicy', () => {
         {},
         { attempts: 1, timeoutMs: 1_000 },
       );
-      await Promise.resolve();
-      await Promise.resolve();
+      await bodyReadStarted;
       await vi.advanceTimersByTimeAsync(1_000);
 
-      await expect(pending).rejects.toThrow();
+      await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
       expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('returns the parsed JSON payload after a successful body read', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const result = await fetchJsonWithPolicy(
+      'https://example.test/analyze',
+      {},
+      { attempts: 1 },
+    );
+
+    expect(result.response.status).toBe(200);
+    expect(result.payload).toEqual({ ok: true });
+    expect(result.parseError).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   afterEach(() => {
