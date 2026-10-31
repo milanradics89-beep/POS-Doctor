@@ -715,6 +715,10 @@ describe('attestationClient session cache', () => {
 
     const submittedBodies: string[] = [];
     const submittedSignals: AbortSignal[] = [];
+    let resolveFirstSubmission!: () => void;
+    const firstSubmissionStarted = new Promise<void>((resolve) => {
+      resolveFirstSubmission = resolve;
+    });
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url.endsWith('/v1/session/challenge')) {
@@ -736,7 +740,10 @@ describe('attestationClient session cache', () => {
 
       submittedBodies.push(body);
       submittedSignals.push(init?.signal as AbortSignal);
-      if (submittedBodies.length === 1) return new Promise<Response>(() => undefined);
+      if (submittedBodies.length === 1) {
+        resolveFirstSubmission();
+        return new Promise<Response>(() => undefined);
+      }
 
       return Promise.resolve(new Response(JSON.stringify({
         accessToken: 'session-token-after-timeout-retry',
@@ -749,7 +756,7 @@ describe('attestationClient session cache', () => {
 
     const { getSessionToken } = await import('./attestationClient');
     const pending = getSessionToken('https://api-a.example');
-    await flushMicrotasks();
+    await firstSubmissionStarted;
 
     expect(submittedBodies).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(10_000);
