@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from backend.attestation import AttestationEvidence, AttestationProvider, AttestationResult
-from backend.google_play_integrity import GooglePlayIntegrityVerifier
+from backend.google_play_integrity import GooglePlayIntegrityVerifier, _refresh_credentials
 
 
 def make_payload(challenge: str, *, now_ms: int | None = None) -> dict:
@@ -250,3 +250,30 @@ async def test_google_verifier_rejects_conflicting_top_level_payload_aliases(mon
         )
     assert result == AttestationResult(False, "attestation_invalid")
 
+
+
+
+def test_google_credentials_refresh_uses_bounded_http_timeout(monkeypatch):
+    from google.auth.transport import requests as google_requests
+
+    observed: dict[str, object] = {}
+
+    class RecordingRequest:
+        def __call__(self, url: str, **kwargs: object) -> None:
+            observed["url"] = url
+            observed.update(kwargs)
+            return None
+
+    monkeypatch.setattr(google_requests, "Request", lambda: RecordingRequest())
+
+    class Credentials:
+        token = None
+
+        def refresh(self, request) -> None:
+            request("https://oauth2.googleapis.com/token", method="POST", body=b"")
+
+    _refresh_credentials(Credentials())
+
+    assert observed["url"] == "https://oauth2.googleapis.com/token"
+    assert observed["method"] == "POST"
+    assert observed["timeout"] == 10.0

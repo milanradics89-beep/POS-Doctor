@@ -14,6 +14,7 @@ from backend.attestation import AttestationEvidence, AttestationResult, Attestat
 GOOGLE_PLAY_INTEGRITY_SCOPE = "https://www.googleapis.com/auth/playintegrity"
 GOOGLE_PLAY_INTEGRITY_BASE_URL = "https://playintegrity.googleapis.com/v1"
 DEFAULT_MAX_TOKEN_AGE_SECONDS = 300
+GOOGLE_AUTH_REQUEST_TIMEOUT_SECONDS = 10.0
 _MISSING = object()
 
 
@@ -34,6 +35,18 @@ class CredentialsLike(Protocol):
     token: str | None
 
     def refresh(self, request: Any) -> None: ...
+
+
+class _BoundedGoogleAuthRequest:
+    """Apply a strict timeout to google-auth refresh HTTP requests."""
+
+    def __init__(self, request: Callable[..., Any], timeout_seconds: float) -> None:
+        self._request = request
+        self._timeout_seconds = timeout_seconds
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        kwargs["timeout"] = self._timeout_seconds
+        return self._request(*args, **kwargs)
 
 
 class GooglePlayIntegrityVerifier(AttestationVerifier):
@@ -214,4 +227,4 @@ def _default_credentials() -> CredentialsLike:
 def _refresh_credentials(credentials: CredentialsLike) -> None:
     from google.auth.transport.requests import Request
 
-    credentials.refresh(Request())
+    credentials.refresh(_BoundedGoogleAuthRequest(Request(), GOOGLE_AUTH_REQUEST_TIMEOUT_SECONDS))
