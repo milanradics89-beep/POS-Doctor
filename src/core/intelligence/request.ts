@@ -4,6 +4,55 @@ type SessionState = { token: string; expiresAt: number };
 const sessionStates = new Map<string, SessionState>();
 const sessionPromises = new Map<string, Promise<SessionState | null>>();
 
+const responseSignalCleanups = new WeakMap<Response, () => void>();
+
+function combineAbortSignals(
+  externalSignal: AbortSignal | null | undefined,
+  internalSignal: AbortSignal,
+): { signal: AbortSignal; cleanup: () => void } {
+  if (!externalSignal) return { signal: internalSignal, cleanup: () => undefined };
+
+  const combined = new AbortController();
+  const abort = () => {
+    if (!combined.signal.aborted) combined.abort();
+  };
+  if (externalSignal.aborted) abort();
+  else externalSignal.addEventListener('abort', abort, { once: true });
+  if (internalSignal.aborted) abort();
+  else internalSignal.addEventListener('abort', abort, { once: true });
+
+  return {
+    signal: combined.signal,
+    cleanup: () => {
+      externalSignal.removeEventListener('abort', abort);
+      internalSignal.removeEventListener('abort', abort);
+    },
+  };
+}
+
+function releaseResponseSignal(response: Response): void {
+  const cleanup = responseSignalCleanups.get(response);
+  if (!cleanup) return;
+  responseSignalCleanups.delete(response);
+  cleanup();
+}
+
+async function discardResponse(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // A timed-out or already-consumed response may reject cancellation.
+  } finally {
+    releaseResponseSignal(response);
+  }
+}
+
+function normalizedTimeoutMs(policy: RequestPolicy): number {
+  return Number.isFinite(policy.timeoutMs)
+    ? Math.min(120_000, Math.max(1_000, policy.timeoutMs!))
+    : 30_000;
+}
+
 function requestUrl(input: RequestInfo | URL): URL | null {
   try {
     return new URL(typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url);
@@ -79,7 +128,7 @@ function withSessionHeader(input: RequestInfo | URL, init: RequestInit, token: s
 }
 
 export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestInit = {}, policy: RequestPolicy = {}): Promise<Response> {
-  const timeoutMs = Number.isFinite(policy.timeoutMs) ? Math.min(120_000, Math.max(1_000, policy.timeoutMs!)) : 30_000;
+  const timeoutMs = normalizedTimeoutMs(policy);
   const attempts = Number.isInteger(policy.attempts) ? Math.min(4, Math.max(1, policy.attempts!)) : 2;
   const baseDelayMs = Number.isFinite(policy.baseDelayMs) ? Math.min(5_000, Math.max(0, policy.baseDelayMs!)) : 500;
   const requestMethod = typeof Request !== 'undefined' && input instanceof Request ? input.method : 'GET';
@@ -93,35 +142,86 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
   for (let attempt = 0; attempt < attempts; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const linkedSignal = combineAbortSignals(init.signal, controller.signal);
+    let preserveSignalCleanup = false;
     try {
       let requestInit = init;
       if (sessionUrl) {
         const session = await obtainSession(sessionUrl, false, timeoutMs);
         if (session) requestInit = withSessionHeader(input, init, session.token);
       }
-      const response = await fetch(input, { ...requestInit, signal: controller.signal });
+      const response = await fetch(input, { ...requestInit, signal: linkedSignal.signal });
 
       if (response.status === 401 && sessionUrl) {
         sessionStates.delete(sessionUrl.origin);
         const refreshed = await obtainSession(sessionUrl, true, timeoutMs);
         if (refreshed) {
+          await discardResponse(response);
           const retryController = new AbortController();
           const retryTimer = setTimeout(() => retryController.abort(), timeoutMs);
+          const retrySignal = combineAbortSignals(init.signal, retryController.signal);
+          let preserveRetryCleanup = false;
           try {
-            return await fetch(input, { ...withSessionHeader(input, init, refreshed.token), signal: retryController.signal });
+            const retryResponse = await fetch(input, { ...withSessionHeader(input, init, refreshed.token), signal: retrySignal.signal });
+            if (retryResponse.body) {
+              responseSignalCleanups.set(retryResponse, retrySignal.cleanup);
+              preserveRetryCleanup = true;
+            }
+            return retryResponse;
           } finally {
             clearTimeout(retryTimer);
+            if (!preserveRetryCleanup) retrySignal.cleanup();
           }
         }
       }
 
-      if (response.ok || response.status < 500 || !retryAllowed || attempt === attempts - 1) return response;
+      if (response.ok || response.status < 500 || !retryAllowed || attempt === attempts - 1) {
+        if (response.body) {
+          responseSignalCleanups.set(response, linkedSignal.cleanup);
+          preserveSignalCleanup = true;
+        }
+        return response;
+      }
       lastError = new Error(`Transient API error (${response.status}).`);
+      await discardResponse(response);
     } catch (error) {
       lastError = error;
       if (!retryAllowed || attempt === attempts - 1) break;
-    } finally { clearTimeout(timer); }
+    } finally {
+      clearTimeout(timer);
+      if (!preserveSignalCleanup) linkedSignal.cleanup();
+    }
     await new Promise(resolve => setTimeout(resolve, baseDelayMs * 2 ** attempt));
   }
   throw lastError instanceof Error ? lastError : new Error('Intelligence request failed.');
+}
+
+export async function fetchJsonWithPolicy(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  policy: RequestPolicy = {},
+  options: { requireJsonContentType?: boolean } = {},
+): Promise<{ response: Response; payload?: unknown; parseError?: unknown }> {
+  const timeoutMs = normalizedTimeoutMs(policy);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetchWithPolicy(input, { ...init, signal: controller.signal }, policy);
+    const hasJsonContentType = response.headers.get('content-type')?.includes('application/json') ?? false;
+    if (!response.ok || (options.requireJsonContentType && !hasJsonContentType)) {
+      await discardResponse(response);
+      return { response };
+    }
+
+    try {
+      return { response, payload: await response.json() };
+    } catch (error) {
+      if (error instanceof SyntaxError) return { response, parseError: error };
+      throw error;
+    } finally {
+      releaseResponseSignal(response);
+    }
+  } finally {
+    clearTimeout(timer);
+  }
 }

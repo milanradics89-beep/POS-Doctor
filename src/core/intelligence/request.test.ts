@@ -1,7 +1,41 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchWithPolicy } from './request';
+import { fetchJsonWithPolicy, fetchWithPolicy } from './request';
 
 describe('fetchWithPolicy', () => {
+  it('keeps the request deadline active while reading the response body', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+        const signal = init?.signal as AbortSignal;
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            const abort = () => controller.error(new DOMException('The operation was aborted.', 'AbortError'));
+            if (signal.aborted) abort();
+            else signal.addEventListener('abort', abort, { once: true });
+          },
+        });
+        return new Response(body, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      });
+
+      const pending = fetchJsonWithPolicy(
+        'https://example.test/analyze',
+        {},
+        { attempts: 1, timeoutMs: 1_000 },
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1_000);
+
+      await expect(pending).rejects.toThrow();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
