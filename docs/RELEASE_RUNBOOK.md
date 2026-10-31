@@ -19,20 +19,19 @@ For the exact commit intended for release, require all of the following to pass:
 
 Do not merge a commit whose CI is still running, cancelled, or failed. A cancelled run is not a pass.
 
-### Latest fully validated parent baseline (2026-10-31; PR #41)
+### Latest fully validated PR #41 source head (2026-10-31)
 
-Last fully validated PR #41 parent SHA: f8148b30d5646ea3d196c791b26b2989d6bf0f6a.
+Exact fully validated PR #41 source SHA: `c95530f88254697704d45ba385cf0bb3d0ea5170`.
 
-- [Validation run 41210918327](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918327): all three jobs completed successfully. Frontend passed source-boundary guard, TypeScript, unit tests, Expo Doctor, Android export, native Android Release build/emulator install-launch, and runtime dependency audit. Backend passed compilation, the full Redis 7.4-backed test suite, production-readiness checks, and backend dependency audit. iOS passed native project generation, CocoaPods, Release simulator build, and simulator install-launch.
-- [CodeQL run 41210918374](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918374): completed successfully. The connected API did not expose the repository code-scanning alert inventory; this record does not claim zero open alerts.
-- [Dependency Review run 41210918324](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41210918324): completed successfully with 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license metadata warning, and 2 low OpenSSF Scorecard warnings. Known items include the local vendor/deepmerge@4.3.2 license metadata link, @expo/devcert@1.2.2 (Scorecard 2.9), and is-mergeable-object@1.1.1 (Scorecard 1.5).
-- The separate frontend npm audit high-severity gate passed, but 11 moderate transitive glob@13.0.6 / minimatch@10.2.6 advisories remain. Do not apply the forced Expo 51 downgrade.
-- The three historical inline PR review threads are resolved. The latest Codex review receipt is older than the f814 documentation head; current source inspection confirms the actionable Request/init, privacy-fixture, error-boundary and permission-recovery findings are addressed.
+- [Validation run 41220026884](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41220026884): frontend, backend, and iOS jobs all completed successfully. Frontend passed source-boundary guard, TypeScript, unit tests, Expo Doctor, Android export, native Android Release build/emulator install-launch, and runtime dependency audit. Backend passed compilation, full Redis 7.4-backed tests, production-readiness checks, and backend dependency audit, including the new Redis sliding-window boundary and 32-request concurrent-client regressions. iOS passed native project generation, CocoaPods, Release simulator build, and simulator install-launch.
+- [CodeQL run 41220027004](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41220027004): completed successfully for the exact source SHA. The connected API cannot expose the repository code-scanning alert inventory; this record does not claim zero open alerts.
+- [Dependency Review run 41220026908](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41220026908): completed successfully. Its PR summary reports 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license metadata warning, and 2 low OpenSSF Scorecard warnings. The log identifies `@expo/devcert@1.2.2` (2.9) and `is-mergeable-object@1.1.1` (1.5); `vendor/deepmerge@4.3.2` remains the known lockfile license-metadata warning.
+- The separate frontend `npm audit --omit=dev --audit-level=high` gate passed, but 11 moderate transitive `glob@13.0.6` / `minimatch@10.2.6` advisories remain. Do not apply the forced Expo 51 downgrade or lower the audit threshold.
+- All three historical inline PR #41 review threads are resolved. Current source inspection confirms the Request/init effective-header and Request-method handling, explicit-auth POST retry tests, valid base64 vision-usage fixture, sanitized error-boundary logging, and Settings recovery for permanently denied camera/gallery permissions.
 - [Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open. The rulesets endpoint is empty and branch-protection read returns HTTP 403 to the integration, so no protection mutation was attempted.
+- The GitHub releases endpoint returned an empty list. The connected integration cannot read code-scanning/Dependabot alert inventories; no zero-alert claim is made.
 
-The current revision adds Redis server-time sliding-window rate limiting and boundary/concurrency tests. These changes are not covered by the f814 runs above; do not merge until validation, CodeQL and Dependency Review complete successfully for the new exact SHA.
-
-These results validate automated repository CI for SHA f814 only. They do not prove production secrets/provider configuration, physical-device attestation, production hosting, backups, alert delivery, store rollout, or pilot approval. PR #41 remains open and unmerged.
+These results validate automated repository CI for source SHA `c95530f88254697704d45ba385cf0bb3d0ea5170` only. They do not prove production secrets/provider configuration, physical-device attestation, production hosting, backups, alert delivery, store rollout, or pilot approval. PR #41 remains open and unmerged. Any documentation-only follow-up commit must also complete its own required CI before merge.
 
 ### Previous exact-head CI baseline (historical; superseded)
 
