@@ -23,12 +23,16 @@ _SENSITIVE_KEYS = frozenset({
     "user_intent",
 })
 _DATA_URI_RE = re.compile(r"data:image/[^;,]+(?:;[^,]*)?,.*", re.IGNORECASE)
+_MEMORY_PATH_RE = re.compile(r"(?i)(/v1/memory/)[^/?#]+")
 
 
 def redact_value(key: str, value: Any) -> Any:
     normalized = key.lower().replace("-", "_")
     if normalized in _SENSITIVE_KEYS or ("image" in normalized and "uri" in normalized):
         return "[REDACTED]"
+    if normalized == "path" and isinstance(value, str):
+        # Memory IDs are bearer capabilities. Never put them in request logs.
+        return _MEMORY_PATH_RE.sub(r"\1[REDACTED]", value)
     if isinstance(value, str) and _DATA_URI_RE.fullmatch(value):
         return "[REDACTED_IMAGE]"
     return value

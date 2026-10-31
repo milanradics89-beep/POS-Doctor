@@ -40,3 +40,18 @@ def test_log_event_uses_redacted_structured_fields(caplog):
     assert "private intent sentinel" not in caplog.text
     assert "private prompt sentinel" not in caplog.text
     assert "[REDACTED]" in caplog.text
+
+
+def test_log_event_redacts_memory_capability_from_path(caplog):
+    logger = logging.getLogger("privacy-memory-path-test")
+    memory_id = "MEMORY_CAPABILITY_SENTINEL_0123456789"
+    with caplog.at_level(logging.INFO):
+        log_event(
+            logger,
+            "request_completed",
+            path=f"/v1/memory/{memory_id}",
+            statusCode=200,
+        )
+
+    assert memory_id not in caplog.text
+    assert "/v1/memory/[REDACTED]" in caplog.text
