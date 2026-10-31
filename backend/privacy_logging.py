@@ -5,7 +5,23 @@ import logging
 import re
 from typing import Any
 
-_SENSITIVE_KEYS = frozenset({"imageuri", "image_uri", "authorization", "x_api_key", "apikey", "api_key", "token", "password", "secret", "content"})
+_SENSITIVE_KEYS = frozenset({
+    "imageuri",
+    "image_uri",
+    "authorization",
+    "x_api_key",
+    "apikey",
+    "api_key",
+    "token",
+    "password",
+    "secret",
+    "content",
+    "prompt",
+    "userprompt",
+    "user_prompt",
+    "userintent",
+    "user_intent",
+})
 _DATA_URI_RE = re.compile(r"data:image/[^;,]+(?:;[^,]*)?,.*", re.IGNORECASE)
 
 
