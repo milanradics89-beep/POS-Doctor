@@ -131,6 +131,7 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
   const timeoutMs = normalizedTimeoutMs(policy);
   const attempts = Number.isInteger(policy.attempts) ? Math.min(4, Math.max(1, policy.attempts!)) : 2;
   const baseDelayMs = Number.isFinite(policy.baseDelayMs) ? Math.min(5_000, Math.max(0, policy.baseDelayMs!)) : 500;
+  const requestSignal = init.signal ?? (typeof Request !== 'undefined' && input instanceof Request ? input.signal : undefined);
   const requestMethod = typeof Request !== 'undefined' && input instanceof Request ? input.method : 'GET';
   const method = (init.method ?? requestMethod).toUpperCase();
   // Retrying a POST after a timeout/5xx can duplicate AI work or other side effects.
@@ -142,7 +143,7 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
   for (let attempt = 0; attempt < attempts; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const linkedSignal = combineAbortSignals(init.signal, controller.signal);
+    const linkedSignal = combineAbortSignals(requestSignal, controller.signal);
     let preserveSignalCleanup = false;
     try {
       let requestInit = init;
@@ -159,7 +160,7 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
           await discardResponse(response);
           const retryController = new AbortController();
           const retryTimer = setTimeout(() => retryController.abort(), timeoutMs);
-          const retrySignal = combineAbortSignals(init.signal, retryController.signal);
+          const retrySignal = combineAbortSignals(requestSignal, retryController.signal);
           let preserveRetryCleanup = false;
           try {
             const retryResponse = await fetch(input, { ...withSessionHeader(input, init, refreshed.token), signal: retrySignal.signal });
@@ -186,7 +187,7 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
       await discardResponse(response);
     } catch (error) {
       lastError = error;
-      if (!retryAllowed || attempt === attempts - 1) break;
+      if (!retryAllowed || attempt === attempts - 1 || requestSignal?.aborted) break;
     } finally {
       clearTimeout(timer);
       if (!preserveSignalCleanup) linkedSignal.cleanup();
@@ -205,8 +206,10 @@ export async function fetchJsonWithPolicy(
   const timeoutMs = normalizedTimeoutMs(policy);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const requestSignal = init.signal ?? (typeof Request !== 'undefined' && input instanceof Request ? input.signal : undefined);
+  const linkedSignal = combineAbortSignals(requestSignal, controller.signal);
   try {
-    const response = await fetchWithPolicy(input, { ...init, signal: controller.signal }, policy);
+    const response = await fetchWithPolicy(input, { ...init, signal: linkedSignal.signal }, policy);
     const hasJsonContentType = response.headers.get('content-type')?.includes('application/json') ?? false;
     if (!response.ok || (options.requireJsonContentType && !hasJsonContentType)) {
       await discardResponse(response);
@@ -223,5 +226,6 @@ export async function fetchJsonWithPolicy(
     }
   } finally {
     clearTimeout(timer);
+    linkedSignal.cleanup();
   }
 }
