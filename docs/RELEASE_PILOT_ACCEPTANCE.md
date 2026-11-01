@@ -4,17 +4,17 @@ Complete this record before promoting a build beyond internal testing. Do not en
 
 ## Latest fully validated CI baseline (not a production sign-off)
 
-Current fully validated PR #41 head: `dd864aa8d829dbbb4bd60255ad7e0d3d269a94ff` (documentation-only evidence commit; parent `77fea7ab2df95d1baadfcf453afaa9e427e97096`). Application code last changed at `274fefb6390b2324dfb37b8201279675bf26b481`.
+Current fully validated PR #41 head: `67f2d545247ea276b515a44d06473a466deacc85` (documentation-only evidence commit; parent `67f2d545247ea276b515a44d06473a466deacc85`). Application code last changed at `274fefb6390b2324dfb37b8201279675bf26b481`.
 
-- [Validation run 41273763795](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763795): backend [124751652913](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763795/job/124751652913), frontend/Android [124751653083](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763795/job/124751653083), and iOS [124751653042](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763795/job/124751653042) all passed for the exact PR head. Android Release build and emulator install/launch passed; iOS native generation, CocoaPods, Release simulator build, and simulator install/launch passed. Backend compilation, tests, production-readiness checks, and dependency audit passed.
-- [CodeQL run 41273763796](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763796), analyze job [124751652869](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763796/job/124751652869), completed successfully.
-- [Dependency Review run 41273763848](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763848), job [124751652570](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763848/job/124751652570), completed successfully. The dependency graph is unchanged from the preceding code-equivalent head: recorded warnings are unknown license metadata for `vendor/deepmerge@4.3.2`, two low Scorecard findings (`@expo/devcert` 2.9 and `is-mergeable-object` 1.5), and 11 moderate transitive `glob`/`minimatch` npm-audit advisories. No forced Expo downgrade or audit-threshold reduction was applied.
-- Observed check names are `CodeQL`, `analyze`, `backend`, `frontend`, `ios`, and `dependency-review`; they are not enforced by a current `main` ruleset.
+- [Validation run 41277283112](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277283112): backend [124761921658](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277283112/job/124761921658), frontend/Android [124761921517](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277283112/job/124761921517), and iOS [124761921455](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277283112/job/124761921455) all passed for the exact PR head. Android Release build and emulator install/launch passed; iOS native generation, CocoaPods, Release simulator build, and simulator install/launch passed. Backend compilation, 350 tests, production-readiness checks, and dependency audit passed; one Starlette/httpx TestClient deprecation warning remains.
+- [CodeQL run 41277282923](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277282923), analyze job [124761921352](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277282923/job/124761921352), completed successfully. Its SARIF merge logged a column-kind mismatch warning.
+- [Dependency Review run 41277283456](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277283456), job [124761922861](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277283456/job/124761922861), completed successfully. No high-or-higher vulnerable packages or denied packages were reported; warnings remain for unknown license metadata on `vendor/deepmerge@4.3.2`, low Scorecard findings (`@expo/devcert` 2.9 and `is-mergeable-object` 1.5), and 11 moderate transitive `glob`/`minimatch` npm-audit advisories. No forced Expo downgrade or audit-threshold reduction was applied.
+- The exact observed check names are `CodeQL`, `analyze`, `backend`, `frontend`, `ios`, and `dependency-review`; they are not enforced by a current `main` ruleset.
 - All three inline PR #41 review threads are resolved. Source inspection confirms App Attest pending-enrollment recovery, verifier test updates, effective Request/init header semantics, explicit-auth POST retry tests, a valid base64 vision-usage privacy fixture, sanitized error-boundary logging, and Settings recovery for permanently denied camera/gallery permissions.
 - [Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open: `main` is not protected, the rulesets endpoint is empty, and branch-protection reads return HTTP 403 to the integration. A repository administrator must create and verify the required `main` ruleset.
 - The GitHub releases endpoint is empty. Complete code-scanning, Dependabot, and secret-scanning alert inventories are not exposed by the connected integration, so their full status remains unverified.
 
-This evidence applies to the complete PR head `dd864aa8d829dbbb4bd60255ad7e0d3d269a94ff`; the commit changed release documentation only. It is not production sign-off: simulator/emulator results do not satisfy physical-device App Attest or Play Integrity. Production secrets/provider settings, staging deployment, backup/restore, monitoring/alert delivery, rollout, pilot thresholds, moderate npm-audit risk decision, and human approvals remain unverified.
+This evidence applies to the complete PR head `67f2d545247ea276b515a44d06473a466deacc85`; the commit changed release documentation only. It is not production sign-off: simulator/emulator results do not satisfy physical-device App Attest or Play Integrity. Production secrets/provider settings, staging deployment, backup/restore, monitoring/alert delivery, rollout, pilot thresholds, moderate npm-audit risk decision, and human approvals remain unverified.
 
 ## Release identity
 
@@ -30,11 +30,11 @@ This evidence applies to the complete PR head `dd864aa8d829dbbb4bd60255ad7e0d3d2
 
 ## Evidence gates
 
-- [x] Full CI validation passed for PR head `dd864aa8d829dbbb4bd60255ad7e0d3d269a94ff` ([run 41273763795](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763795)).
-- [x] CodeQL passed for PR head `dd864aa8d829dbbb4bd60255ad7e0d3d269a94ff` ([run 41273763796](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763796)).
-- [x] Dependency Review passed for PR head `dd864aa8d829dbbb4bd60255ad7e0d3d269a94ff` ([run 41273763848](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763848)); known dependency warnings and moderate npm-audit advisories remain documented above.
+- [x] Full CI validation passed for PR head `67f2d545247ea276b515a44d06473a466deacc85` ([run 41277283112](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277283112)).
+- [x] CodeQL passed for PR head `67f2d545247ea276b515a44d06473a466deacc85` ([run 41277282923](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277282923)).
+- [x] Dependency Review passed for PR head `67f2d545247ea276b515a44d06473a466deacc85` ([run 41277283456](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277283456)); known dependency warnings and moderate npm-audit advisories remain documented above.
 - [ ] Review or remediate the 11 moderate npm-audit advisories in the Expo 57 transitive `glob` / `minimatch` dependency paths; do not apply the forced Expo 51 downgrade.
-- [x] Automated production-readiness checks passed in [validation run 41273763795](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763795); production environment configuration is still unverified.
+- [x] Automated production-readiness checks passed in [validation run 41277283112](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277283112); production environment configuration is still unverified.
 - [ ] Staging readiness and health checks passed:
 - [ ] Shared Redis is configured; challenge replay and multi-instance tests passed:
 - [ ] EAS build environment contains the valid numeric `EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` for Play Integrity:
@@ -42,7 +42,7 @@ This evidence applies to the complete PR head `dd864aa8d829dbbb4bd60255ad7e0d3d2
 - [ ] Apple App Attest verified on a physical iPhone using the production entitlement:
 - [ ] Camera permission grant/denial/recovery flows tested on both platforms:
 - [ ] Network interruption and session recovery tested:
-- [ ] Privacy review confirms production log sinks and retention contain no images, data URIs, secrets, bearer tokens, or raw provider responses. Code-level prompt/user-intent redaction and personal-memory capability path redaction remain in application source SHA `274fefb6390b2324dfb37b8201279675bf26b481` and passed in [validation run 41273763795](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41273763795) for PR head `dd864aa8d829dbbb4bd60255ad7e0d3d269a94ff`:
+- [ ] Privacy review confirms production log sinks and retention contain no images, data URIs, secrets, bearer tokens, or raw provider responses. Code-level prompt/user-intent redaction and personal-memory capability path redaction remain in application source SHA `274fefb6390b2324dfb37b8201279675bf26b481` and passed in [validation run 41277283112](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41277283112) for PR head `67f2d545247ea276b515a44d06473a466deacc85`:
 - [ ] Backup and restore procedure verified:
 
 ## Pilot acceptance criteria
