@@ -2,6 +2,85 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchJsonWithPolicy, fetchWithPolicy } from './request';
 
 describe('fetchWithPolicy', () => {
+  it('aborts a Request while waiting for shared session bootstrap without cancelling other callers', async () => {
+    let resolveBootstrap!: (response: Response) => void;
+    const bootstrap = new Promise<Response>((resolve) => {
+      resolveBootstrap = resolve;
+    });
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      if (String(input).endsWith('/v1/session')) return bootstrap;
+      return new Response('{}', { status: 200 });
+    });
+    const controller = new AbortController();
+    const request = new Request('https://abort-bootstrap.example.test/v1/action', {
+      signal: controller.signal,
+    });
+
+    const cancelled = fetchWithPolicy(request, {}, { attempts: 1 });
+    const active = fetchWithPolicy('https://abort-bootstrap.example.test/v1/action', {}, { attempts: 1 });
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    controller.abort();
+    await expect(cancelled).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    resolveBootstrap(new Response(JSON.stringify({
+      accessToken: 'shared-session',
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    const response = await active;
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(new Headers(fetchMock.mock.calls[1][1]?.headers).get('Authorization')).toBe('Bearer shared-session');
+  });
+
+  it('aborts promptly while waiting for a 401 session refresh', async () => {
+    let sessionCalls = 0;
+    let resolveRefresh!: (response: Response) => void;
+    const refresh = new Promise<Response>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      if (String(input).endsWith('/v1/session')) {
+        sessionCalls += 1;
+        if (sessionCalls === 1) {
+          return new Response(JSON.stringify({
+            accessToken: 'old-session',
+            expiresAt: Math.floor(Date.now() / 1000) + 3600,
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return refresh;
+      }
+      return new Response('{}', { status: 401 });
+    });
+    const controller = new AbortController();
+    const pending = fetchWithPolicy(
+      'https://refresh-abort.example.test/v1/action',
+      { signal: controller.signal },
+      { attempts: 1 },
+    );
+
+    await vi.waitFor(() => expect(sessionCalls).toBe(2));
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+
+    resolveRefresh(new Response(JSON.stringify({
+      accessToken: 'new-session',
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+  });
+
   it('keeps the request deadline active while reading the response body', async () => {
     vi.useFakeTimers();
     try {

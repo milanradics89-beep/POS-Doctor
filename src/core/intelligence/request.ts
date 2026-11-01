@@ -79,6 +79,39 @@ function sessionAuthEligible(input: RequestInfo | URL, init: RequestInit): URL |
   return url;
 }
 
+function abortError(): Error {
+  const error = new Error('The operation was aborted.');
+  error.name = 'AbortError';
+  return error;
+}
+
+// Wait for a shared session bootstrap without letting one caller's cancellation
+// abort the bootstrap needed by other requests using the same API origin.
+function runWithAbort<T>(operation: () => Promise<T>, signal?: AbortSignal | null): Promise<T> {
+  if (!signal) return operation();
+  if (signal.aborted) return Promise.reject(abortError());
+
+  const promise = operation();
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => signal.removeEventListener('abort', onAbort);
+    const settle = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      callback();
+    };
+    const onAbort = () => settle(() => reject(abortError()));
+
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      value => settle(() => resolve(value)),
+      error => settle(() => reject(error)),
+    );
+    if (signal.aborted) onAbort();
+  });
+}
+
 
 async function obtainSession(url: URL, forceRefresh = false, timeoutMs = 10_000): Promise<SessionState | null> {
   const now = Date.now();
@@ -148,14 +181,14 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
     try {
       let requestInit = init;
       if (sessionUrl) {
-        const session = await obtainSession(sessionUrl, false, timeoutMs);
+        const session = await runWithAbort(() => obtainSession(sessionUrl, false, timeoutMs), requestSignal);
         if (session) requestInit = withSessionHeader(input, init, session.token);
       }
       const response = await fetch(input, { ...requestInit, signal: linkedSignal.signal });
 
       if (response.status === 401 && sessionUrl) {
         sessionStates.delete(sessionUrl.origin);
-        const refreshed = await obtainSession(sessionUrl, true, timeoutMs);
+        const refreshed = await runWithAbort(() => obtainSession(sessionUrl, true, timeoutMs), requestSignal);
         if (refreshed) {
           await discardResponse(response);
           const retryController = new AbortController();
