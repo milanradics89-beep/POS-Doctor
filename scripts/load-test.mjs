@@ -1,13 +1,44 @@
 #!/usr/bin/env node
 
-// Bounded, opt-in HTTP load probe for a non-production USEIT deployment.
-// Never run against production without an explicit capacity-test approval.
+// Bounded, opt-in HTTP load probe for an explicitly approved USEIT deployment.
+// Production probes require a separate, explicit capacity-test approval.
+// Redirects are rejected so an approved staging origin cannot forward traffic elsewhere.
 
 const baseUrlValue = process.env.USEIT_LOAD_BASE_URL;
-if (!baseUrlValue) throw new Error('Set USEIT_LOAD_BASE_URL to the staging API origin.');
+if (!baseUrlValue) throw new Error('Set USEIT_LOAD_BASE_URL to the approved API origin.');
 
 const baseUrl = new URL(baseUrlValue);
 if (!['http:', 'https:'].includes(baseUrl.protocol)) throw new Error('USEIT_LOAD_BASE_URL must use HTTP or HTTPS.');
+if (baseUrl.username || baseUrl.password) throw new Error('USEIT_LOAD_BASE_URL must not contain credentials.');
+
+const targetEnvironment = process.env.USEIT_LOAD_TARGET_ENV;
+if (!['staging', 'production'].includes(targetEnvironment)) {
+  throw new Error('Set USEIT_LOAD_TARGET_ENV to staging or production before running a load test.');
+}
+
+const approvedOriginValue = process.env.USEIT_LOAD_APPROVED_ORIGIN;
+if (!approvedOriginValue) {
+  throw new Error('Set USEIT_LOAD_APPROVED_ORIGIN to the exact API origin approved for this run.');
+}
+
+const approvedOrigin = new URL(approvedOriginValue);
+if (
+  !['http:', 'https:'].includes(approvedOrigin.protocol)
+  || approvedOrigin.username
+  || approvedOrigin.password
+  || approvedOrigin.pathname !== '/'
+  || approvedOrigin.search
+  || approvedOrigin.hash
+) {
+  throw new Error('USEIT_LOAD_APPROVED_ORIGIN must be an HTTP(S) origin without credentials, path, query, or fragment.');
+}
+if (approvedOrigin.origin !== baseUrl.origin) {
+  throw new Error('USEIT_LOAD_APPROVED_ORIGIN must exactly match USEIT_LOAD_BASE_URL origin.');
+}
+
+if (targetEnvironment === 'production' && process.env.USEIT_LOAD_ALLOW_PRODUCTION !== 'YES') {
+  throw new Error('Production load tests require explicit capacity approval via USEIT_LOAD_ALLOW_PRODUCTION=YES.');
+}
 
 const path = process.env.USEIT_LOAD_PATH ?? '/health';
 const targetUrl = new URL(path, baseUrl);
@@ -53,6 +84,7 @@ async function worker() {
         method,
         headers: { ...headers, 'X-Request-ID': `useit-load-${index + 1}` },
         ...(body !== undefined ? { body } : {}),
+        redirect: 'error',
         signal: AbortSignal.timeout(timeoutMs),
       });
       latencies.push(performance.now() - started);
@@ -79,6 +111,7 @@ function percentile(values, percentileValue) {
 
 const result = {
   target: targetUrl.origin + targetUrl.pathname,
+  environment: targetEnvironment,
   method,
   requests,
   concurrency: Math.min(concurrency, requests),
