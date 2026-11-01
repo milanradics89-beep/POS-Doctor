@@ -27,7 +27,8 @@ def validate_production_security() -> None:
         return
 
     missing = []
-    if not os.getenv("OPENAI_API_KEY"):
+    openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not openai_api_key:
         missing.append("OPENAI_API_KEY")
     api_key = os.getenv("USEIT_API_KEY", "").strip()
     session_secret = os.getenv("USEIT_SESSION_SECRET", "").strip()

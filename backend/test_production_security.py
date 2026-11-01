@@ -23,6 +23,18 @@ def test_production_requires_secrets(monkeypatch):
         validate_production_security()
 
 
+@pytest.mark.parametrize("openai_api_key", ["", "   ", "\t\n"])
+def test_production_rejects_blank_openai_api_key(monkeypatch, openai_api_key):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", openai_api_key)
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
+    monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+
+    with pytest.raises(RuntimeError, match="Missing required production secrets: OPENAI_API_KEY"):
+        validate_production_security()
+
+
 def test_production_accepts_server_issued_session_secret(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
