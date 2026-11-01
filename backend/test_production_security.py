@@ -101,7 +101,7 @@ def test_production_rejects_wildcard_cors(monkeypatch):
 def test_production_rejects_enabled_interactive_docs(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
-    monkeypatch.setenv("USEIT_API_KEY", "secret")
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
     monkeypatch.setenv("USEIT_ALLOW_DOCS", "true")
     with pytest.raises(RuntimeError, match="documentation"):
@@ -120,7 +120,8 @@ def test_valid_production_configuration_passes(monkeypatch):
 def test_runtime_enforcement_returns_generic_503(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
-    monkeypatch.setenv("USEIT_API_KEY", "test-useit")
+    api_key = "u" * 32
+    monkeypatch.setenv("USEIT_API_KEY", api_key)
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "*")
 
     with pytest.raises(HTTPException) as exc_info:
@@ -128,7 +129,7 @@ def test_runtime_enforcement_returns_generic_503(monkeypatch):
 
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Production security configuration is incomplete"
-    assert "test-useit" not in str(exc_info.value.detail)
+    assert api_key not in str(exc_info.value.detail)
 
 
 def test_production_google_play_integrity_requires_signing_certificate_pin(monkeypatch):
