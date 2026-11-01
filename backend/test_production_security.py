@@ -78,10 +78,21 @@ def test_production_rejects_short_session_secret(monkeypatch):
         validate_production_security()
 
 
+def test_production_rejects_short_api_key(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
+    monkeypatch.setenv("USEIT_API_KEY", "too-short")
+    monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+
+    with pytest.raises(RuntimeError, match="USEIT_API_KEY must be at least 32 characters"):
+        validate_production_security()
+
+
 def test_production_rejects_wildcard_cors(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
-    monkeypatch.setenv("USEIT_API_KEY", "secret")
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "*")
     with pytest.raises(RuntimeError, match="Wildcard CORS"):
         validate_production_security()
@@ -100,7 +111,7 @@ def test_production_rejects_enabled_interactive_docs(monkeypatch):
 def test_valid_production_configuration_passes(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
-    monkeypatch.setenv("USEIT_API_KEY", "test-useit")
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
     monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
     validate_production_security()

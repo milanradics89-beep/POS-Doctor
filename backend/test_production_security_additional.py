@@ -6,7 +6,7 @@ from backend.production_security import validate_production_security
 def _production(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
-    monkeypatch.setenv("USEIT_API_KEY", "secret")
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
 
 
 def test_production_requires_explicit_cors(monkeypatch):

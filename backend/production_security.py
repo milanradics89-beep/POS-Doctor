@@ -15,6 +15,7 @@ from backend.attestation import (
 
 TRUE_VALUES = {"1", "true", "yes", "on"}
 MIN_SESSION_SECRET_LENGTH = 32
+MIN_API_KEY_LENGTH = 32
 
 
 def production_mode() -> bool:
@@ -34,6 +35,8 @@ def validate_production_security() -> None:
         missing.append("USEIT_API_KEY or USEIT_SESSION_SECRET")
     if missing:
         raise RuntimeError("Missing required production secrets: " + ", ".join(missing))
+    if api_key and len(api_key) < MIN_API_KEY_LENGTH:
+        raise RuntimeError("USEIT_API_KEY must be at least 32 characters when configured")
     if session_secret and len(session_secret) < MIN_SESSION_SECRET_LENGTH:
         raise RuntimeError("USEIT_SESSION_SECRET must be at least 32 characters")
 
