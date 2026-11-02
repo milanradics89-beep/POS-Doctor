@@ -1,27 +1,63 @@
 # USEIT 25-point release backlog
 
-Last reviewed: 2026-11-01 23:08 CET
-Working branch: `fix/release-blockers-2026-10`  
-PR: [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41)  
-Latest fully validated PR #41 head: `584a541ad5cc59c6c2947a2b49febf94115ad49e`
+Last reviewed: 2026-11-02 01:20 CET
+Working branch: fix/release-blockers-2026-10
+PR: [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41)
+Current PR head: [e73ffd63778c63bdf65a997e96e55721366c6351](https://github.com/milanradics89-beep/POS-Doctor/commit/e73ffd63778c63bdf65a997e96e55721366c6351), parent e3cb718f86ee67b11bdb68cb619cc82ef96ece54.
 
-Status meanings:
-- **Done**: repository/CI evidence exists for the stated acceptance criterion.
-- **In Progress**: implementation or automated evidence exists, but the full acceptance criterion is not yet met.
-- **Blocked**: the next required action depends on external access, physical hardware, a production environment, a curated dataset, or an owner decision.
+Status meanings: Done = automated acceptance evidence exists; In Progress = implementation/evidence exists but a gate remains; Blocked = external access, physical device, production environment, curated data, or owner decision is required.
 
-## Current evidence
+## Current exact-head evidence
 
-PR #41 head [`584a541ad5cc59c6c2947a2b49febf94115ad49e`](https://github.com/milanradics89-beep/POS-Doctor/commit/584a541ad5cc59c6c2947a2b49febf94115ad49e) is a documentation-only evidence commit; its parent is [`584a541ad5cc59c6c2947a2b49febf94115ad49e`](https://github.com/milanradics89-beep/POS-Doctor/commit/584a541ad5cc59c6c2947a2b49febf94115ad49e). The application-code baseline remains [`94772ced44c7f8147d1e24785cec33c2eacc4e94`](https://github.com/milanradics89-beep/POS-Doctor/commit/94772ced44c7f8147d1e24785cec33c2eacc4e94); no application source changed in this documentation commit. The latest application-code change rejects empty or whitespace-only production `OPENAI_API_KEY` values and has parameterized regression tests.
+- Commit [e73ffd6](https://github.com/milanradics89-beep/POS-Doctor/commit/e73ffd63778c63bdf65a997e96e55721366c6351) hardens scripts/load-test.mjs: explicit staging/production target, exact approved-origin match, separate production opt-in, credential URL rejection, and redirect blocking. Six targeted safety tests were added in scripts/load-test.test.mjs.
+- [Validation 41360269707](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269707) passed for this exact SHA: frontend [125008964179](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269707/job/125008964179), iOS [125008964324](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269707/job/125008964324), backend [125008964432](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269707/job/125008964432). Android Release/emulator and iOS Release simulator smoke tests passed. Backend: 354 passed, one Starlette/httpx TestClient deprecation warning; Redis 7.4.12 / redis-py 7.4.1; non-fatal runner vm.overcommit_memory warning.
+- [CodeQL 41360269648](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269648), job 125008963962, passed; SARIF merge emitted a column-kind mismatch warning.
+- [Dependency Review 41360269674](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269674), job 125008963835, passed with zero high-or-higher vulnerable packages, zero incompatible licenses, and zero invalid SPDX definitions. Warnings: unknown lockfile license metadata for vendor/deepmerge@4.3.2; low Scorecard for @expo/devcert (2.9) and is-mergeable-object (1.5). Separate npm audit still reports 11 moderate transitive glob/minimatch advisories. No forced Expo downgrade or threshold reduction.
+- Exact observed check names: CodeQL, analyze, backend, frontend, ios, dependency-review. Android is included in frontend.
+- All three inline PR #41 review threads are resolved. Current source/tests cover explicit-auth POST retries, effective Request/init headers and method, valid base64 vision_usage fixture, sanitized error-boundary logging, Settings recovery for permanently denied camera/gallery permissions, and App Attest enrollment recovery.
+- [Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open. main is unprotected, rulesets are empty, and branch-protection detail read returns 403. Repository admin must create and verify the main ruleset using exact observed checks, PR requirement, force-push/deletion restrictions, and no routine admin bypass.
+- Releases endpoint is empty. Complete code-scanning, Dependabot, and secret-scanning alert inventories are not exposed by the integration; status remains unverified. No zero-alert claim is made. PR #41 remains open and unmerged.
 
-- [Validation run 41353416246](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41353416246) completed successfully for the exact head. Backend [job 124988281329](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41353416246/job/124988281329) passed compilation, **354 backend tests with 1 Starlette/httpx TestClient deprecation warning**, production-readiness checks, and backend dependency audit. The job used Redis server 7.4.12 with redis-py 7.4.1; the runner emitted a non-fatal `vm.overcommit_memory` warning. Frontend [job 124988281453](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41353416246/job/124988281453) passed the source-boundary guard, TypeScript typecheck, unit tests, Expo Doctor, Android export/Release build, emulator install/launch, and the configured high-severity runtime dependency-audit threshold. Its npm audit report still contains **11 moderate transitive `glob`/`minimatch` advisories**; a passing high-severity threshold is not a clean dependency tree. iOS [job 124988281512](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41353416246/job/124988281512) passed native project generation, CocoaPods installation, Release simulator build, and simulator install/launch.
-- [CodeQL run 41353416345](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41353416345), analyze job [124988281037](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41353416345/job/124988281037), completed successfully and uploaded combined JavaScript/Python SARIF. SARIF merge emitted a **column-kind mismatch warning**; the workflow succeeded.
-- [Dependency Review run 41353416191](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41353416191), job [124988280216](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41353416191/job/124988280216), completed successfully. It found no high-or-higher vulnerable packages and no denied packages. Warnings remain for unknown license metadata on `vendor/deepmerge@4.3.2`, plus low OpenSSF Scorecard results for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5).
-- Exact observed check names on this head are `CodeQL`, `analyze`, `backend`, `frontend`, `ios`, and `dependency-review`. Android build/emulator validation is part of `frontend`; there is no separate Android check context. These names are evidence for the ruleset picker only; no active `main` ruleset is configured.
-- All three inline PR #41 review threads are resolved. Current source/tests verify explicit-auth POST retry fixtures; effective `Request`/`init` header and method handling; a valid base64 image data URI in the `vision_usage` privacy test; error-boundary logging limited to the error class name; Settings recovery for permanently denied camera/gallery permissions; and App Attest pending-enrollment/evidence recovery. The earlier App Attest enrollment-persistence and verifier-test findings are also resolved.
-- [Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open. The `main` rulesets endpoint is empty; the connected integration receives HTTP 403 when reading branch-protection details. A repository administrator must create and verify the `main` ruleset with PR-only changes, the exact observed required checks, force-push/deletion restrictions, and no routine administrator bypass.
-- The GitHub releases endpoint returned an empty list. Complete code-scanning, Dependabot, and secret-scanning alert inventories are not exposed by the connected integration; their full status remains unverified. No zero-alert claim is made.
-- PR #41 remains open and unmerged. Backlog status remains **2 Done / 15 In Progress / 8 Blocked**. Physical-device, production-environment, external-administration, and human-pilot gates remain open.
+## 25-point status register
+
+| # | Workstream | Status | Evidence / next gate |
+|---:|---|---|---|
+| 1 | iOS CI closure | **Done** | Exact-head iOS job passed native generation, CocoaPods, Release simulator build, install/launch. Physical attestation is #4. |
+| 2 | Main branch protection | **Blocked** | Issue #47; main unprotected, rulesets empty, branch-protection read 403. Repository admin action required. |
+| 3 | Dependency Review warnings | **In Progress** | Review passed but deepmerge license metadata and two low Scorecard warnings remain; npm audit has 11 moderate advisories. Remediate compatibly or record owner risk acceptance. |
+| 4 | Physical iPhone App Attest production entitlement | **Blocked** | Apple Developer production capability/App ID and supported physical iPhone required. |
+| 5 | Play-installed physical Android Play Integrity | **Blocked** | Play internal track, Play App Signing identity, Google Cloud project/service-account permission, and physical Android required. |
+| 6 | Redis multi-instance concurrency | **Done** | backend/test_attestation_store_integration.py verifies single-use challenge consumption across separate backend worker processes using shared Redis; exact-head backend CI passed. |
+| 7 | Attestation retry/network/expiry | **In Progress** | Timeout, expiry, pending-enrollment, and same-evidence tests exist; physical network-loss/provider-backed verification remains. |
+| 8 | Backend production security audit | **In Progress** | Production-readiness/security tests and dependency audit pass; deployed secrets, ingress, CORS, provider identity/config remain unverified. |
+| 9 | Privacy and logging audit | **In Progress** | Source redaction and token-only vision_usage tests exist; production log sink, access logs, retention, and operator access unverified. |
+| 10 | Release acceptance evidence | **In Progress** | Exact-head validation, CodeQL, Dependency Review recorded; production and physical-device gates remain. |
+| 11 | Mobile regression | **In Progress** | Android emulator and iOS simulator smoke tests pass; physical-device regression remains. |
+| 12 | Camera/image processing | **In Progress** | Image-contract and permission tests exist; physical capture and representative photo coverage remain. |
+| 13 | Offline/weak network | **In Progress** | Abort/deadline/retry tests exist; real interruption/reconnect recovery needs device/staging validation. |
+| 14 | API timeout/retry | **In Progress** | Request deadlines and safe-method retry tested; real network behavior and POST idempotency remain unproven. |
+| 15 | Backend load test | **In Progress** | e73ffd6 adds target/origin/production approval and redirect guards plus six safety tests; run only against owner-approved staging and record thresholds/results. |
+| 16 | Backup/restore | **Blocked** | Production datastore/Redis backup access and witnessed restore drill required. |
+| 17 | AI cost optimization | **In Progress** | Token/model usage telemetry exists; pricing, per-session budgets, and production cost alerts need owner configuration. |
+| 18 | Product-recognition accuracy | **Blocked** | Representative labeled dataset, agreed metrics, and human evaluation required; no benchmark claimed. |
+| 19 | AI fallback | **In Progress** | Conservative scene and no-candidate shopping fallback code/tests exist; provider-outage and fallback-quality staging evidence remains. |
+| 20 | UI loading/empty/error/permission regression | **In Progress** | Permission recovery and sanitized error boundary covered; full state matrix/device validation remains. |
+| 21 | Monitoring/alerting | **Blocked** | Production monitoring workspace, alert destination, on-call owner, and delivery tests required. |
+| 22 | Staged rollout | **Blocked** | Production approval, TestFlight/Play track access, rollout gates, and rollback owner required. |
+| 23 | Analytics | **In Progress** | vision_usage token/model telemetry exists; product funnel, retention, and dashboard validation remain. |
+| 24 | Release pipeline | **In Progress** | Android/iOS CI build and smoke tests pass; store signing, EAS artifacts, distribution, promotion permissions unverified. |
+| 25 | Pilot/business validation | **Blocked** | Real pilot cohort, success/stop thresholds, named business owner, and documented approval required. |
+
+**Current count: 2 Done / 15 In Progress / 8 Blocked.** Source presence alone does not satisfy an external acceptance gate.
+
+## Required external hand-offs
+
+- Repository administrator: configure and verify main protection/ruleset for #47 with exact checks, PR requirement, force-push/deletion restrictions, and no routine admin bypass.
+- Apple/Google owners: configure production attestation identities/permissions and provide store-distributed physical devices.
+- Infrastructure owner: provide approved staging/production config, backup/restore, monitoring destination, and written load-test target/threshold approval.
+- Product/business owner: provide labeled accuracy data, AI cost budgets, pilot cohort/thresholds, and release approval.
+
+
 
 ## Previous engineering update (2026-11-01; exact PR head 67f2d545; superseded by c87450df)
 
