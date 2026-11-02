@@ -17,7 +17,7 @@ function PreferenceRow({ title, description, value, onValueChange, disabled = fa
 }
 
 export default function ProfileScreen() {
-  const { preferences, updatePreference, hydrated, error } = useProfilePreferences();
+  const { preferences, updatePreference, hydrated, error, retryHydration } = useProfilePreferences();
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -40,14 +40,21 @@ export default function ProfileScreen() {
 
           <SectionHeader eyebrow="YOUR PREFERENCES" detail="CONTROL YOUR EXPERIENCE" />
           <View style={styles.card}>
-            <PreferenceRow title="Personalized ideas" description="Use your selected intent to make each recommendation more relevant." value={preferences.personalizedIdeas} onValueChange={(value) => updatePreference('personalizedIdeas', value)} disabled={!hydrated} />
+            <PreferenceRow title="Personalized ideas" description="Use your selected intent to make each recommendation more relevant." value={preferences.personalizedIdeas} onValueChange={(value) => updatePreference('personalizedIdeas', value)} disabled={!hydrated || Boolean(error)} />
             <View style={styles.separator} />
-            <PreferenceRow title="Product suggestions" description="Show matching products alongside practical ideas." value={preferences.productSuggestions} onValueChange={(value) => updatePreference('productSuggestions', value)} disabled={!hydrated} />
+            <PreferenceRow title="Product suggestions" description="Show matching products alongside practical ideas." value={preferences.productSuggestions} onValueChange={(value) => updatePreference('productSuggestions', value)} disabled={!hydrated || Boolean(error)} />
             <View style={styles.separator} />
             <PreferenceRow title="Activity history" description="Coming soon. Analyses are not saved in this release." value={false} onValueChange={() => undefined} disabled />
           </View>
           <Text style={styles.preferenceFootnote}>{error ? 'Device storage is unavailable. Preference changes may not persist.' : hydrated ? 'Preferences are saved locally on this device. Account sync is not enabled.' : 'Loading your preferences…'}</Text>
-          {error ? <Text accessibilityRole="alert" style={styles.saveError}>{error}</Text> : null}
+          {error ? (
+            <View style={styles.retryBlock}>
+              <Text accessibilityRole="alert" style={styles.saveError}>{error}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Retry loading preferences" onPress={() => { void retryHydration(); }} style={({ pressed }) => [styles.retryButton, pressed && styles.retryPressed]}>
+                <Text style={styles.retryButtonText}>RETRY STORAGE ACCESS ↗</Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           <SectionHeader eyebrow="ABOUT USEIT" />
           <View style={styles.card}>
@@ -91,7 +98,11 @@ const styles = StyleSheet.create({
   preferenceDescription: { color: theme.colors.muted, fontSize: 10, lineHeight: 15, marginTop: 4 },
   separator: { height: 1, backgroundColor: theme.colors.line },
   preferenceFootnote: { color: theme.colors.subtle, fontSize: 9, lineHeight: 14, marginTop: 9, marginHorizontal: 4 },
-  saveError: { color: theme.colors.danger, fontSize: 10, lineHeight: 15, marginTop: 8, marginHorizontal: 4 },
+  retryBlock: { marginTop: 8, marginHorizontal: 4 },
+  saveError: { color: theme.colors.danger, fontSize: 10, lineHeight: 15 },
+  retryButton: { alignSelf: 'flex-start', backgroundColor: theme.colors.ink, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, marginTop: 10 },
+  retryPressed: { opacity: 0.76, transform: [{ scale: 0.99 }] },
+  retryButtonText: { color: theme.colors.surface, fontSize: 9, fontWeight: '900', letterSpacing: 0.7 },
   infoRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   infoTitle: { color: theme.colors.ink, fontSize: 13, fontWeight: '800' },
   infoSub: { color: theme.colors.muted, fontSize: 10, marginTop: 4 },
