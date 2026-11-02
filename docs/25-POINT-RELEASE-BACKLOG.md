@@ -1,21 +1,21 @@
 # USEIT 25-point release backlog
 
-Last reviewed: 2026-11-02 01:20 CET
+Last reviewed: 2026-11-02 03:12 CET
 Working branch: fix/release-blockers-2026-10
 PR: [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41)
-Current PR head: [e73ffd63778c63bdf65a997e96e55721366c6351](https://github.com/milanradics89-beep/POS-Doctor/commit/e73ffd63778c63bdf65a997e96e55721366c6351), parent e3cb718f86ee67b11bdb68cb619cc82ef96ece54.
+Current PR head: [c41bb74d6ca8a8e1d40fd05534bf6f1ec03848dd](https://github.com/milanradics89-beep/POS-Doctor/commit/c41bb74d6ca8a8e1d40fd05534bf6f1ec03848dd), parent 51b233df46976e3d24eba30839bca409fc7128b7.
 
 Status meanings: Done = automated acceptance evidence exists; In Progress = implementation/evidence exists but a gate remains; Blocked = external access, physical device, production environment, curated data, or owner decision is required.
 
 ## Current exact-head evidence
 
-- Commit [e73ffd6](https://github.com/milanradics89-beep/POS-Doctor/commit/e73ffd63778c63bdf65a997e96e55721366c6351) hardens scripts/load-test.mjs: explicit staging/production target, exact approved-origin match, separate production opt-in, credential URL rejection, and redirect blocking. Six targeted safety tests were added in scripts/load-test.test.mjs.
-- [Validation 41360269707](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269707) passed for this exact SHA: frontend [125008964179](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269707/job/125008964179), iOS [125008964324](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269707/job/125008964324), backend [125008964432](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269707/job/125008964432). Android Release/emulator and iOS Release simulator smoke tests passed. Backend: 354 passed, one Starlette/httpx TestClient deprecation warning; Redis 7.4.12 / redis-py 7.4.1; non-fatal runner vm.overcommit_memory warning.
-- [CodeQL 41360269648](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269648), job 125008963962, passed; SARIF merge emitted a column-kind mismatch warning.
-- [Dependency Review 41360269674](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41360269674), job 125008963835, passed with zero high-or-higher vulnerable packages, zero incompatible licenses, and zero invalid SPDX definitions. Warnings: unknown lockfile license metadata for vendor/deepmerge@4.3.2; low Scorecard for @expo/devcert (2.9) and is-mergeable-object (1.5). Separate npm audit still reports 11 moderate transitive glob/minimatch advisories. No forced Expo downgrade or threshold reduction.
-- Exact observed check names: CodeQL, analyze, backend, frontend, ios, dependency-review. Android is included in frontend.
-- All three inline PR #41 review threads are resolved. Current source/tests cover explicit-auth POST retries, effective Request/init headers and method, valid base64 vision_usage fixture, sanitized error-boundary logging, Settings recovery for permanently denied camera/gallery permissions, and App Attest enrollment recovery.
-- [Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open. main is unprotected, rulesets are empty, and branch-protection detail read returns 403. Repository admin must create and verify the main ruleset using exact observed checks, PR requirement, force-push/deletion restrictions, and no routine admin bypass.
+- Commit [c41bb74](https://github.com/milanradics89-beep/POS-Doctor/commit/c41bb74d6ca8a8e1d40fd05534bf6f1ec03848dd) hardens `scripts/load-test.mjs`: production load probes now require HTTPS even when `USEIT_LOAD_ALLOW_PRODUCTION=YES` is explicitly set. A targeted regression test verifies that production HTTP is rejected; staging HTTP remains available for explicitly approved staging tests.
+- [Validation 41374273828](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41374273828) passed for this exact SHA: backend [125051035763](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41374273828/job/125051035763), frontend/Android [125051035816](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41374273828/job/125051035816), and iOS [125051035618](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41374273828/job/125051035618). Backend: 354 passed with one Starlette/httpx TestClient deprecation warning; production-readiness suites: 24 and 22 passed. Redis 7.4.12 / redis-py 7.4.1; non-fatal runner-host `vm.overcommit_memory` warning. Android Release/emulator and iOS Release simulator smoke tests passed.
+- [CodeQL 41374273769](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41374273769), job [125051035578](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41374273769/job/125051035578), passed; combined JavaScript/Python SARIF uploaded. SARIF merge emitted a column-kind mismatch warning.
+- [Dependency Review 41374273777](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41374273777), job [125051035523](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41374273777/job/125051035523), passed: no high-or-higher vulnerable packages and no denied packages. Warnings: unknown lockfile license metadata for `vendor/deepmerge@4.3.2`; low Scorecard for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5). Separate npm audit still reports 11 moderate transitive `glob`/`minimatch` advisories. No forced Expo downgrade or threshold reduction.
+- Exact observed check names: `CodeQL`, `analyze`, `backend`, `frontend`, `ios`, `dependency-review`. Android is included in frontend.
+- All three inline PR #41 review threads are resolved (two outdated). Current source/tests cover explicit-auth POST retries, effective Request/init headers and method, valid base64 `vision_usage` fixture, sanitized error-boundary logging, Settings recovery for permanently denied camera/gallery permissions, and App Attest enrollment recovery.
+- [Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open. `main` is unprotected, rulesets are empty, and branch-protection detail reads return 403. Repository admin action is required.
 - Releases endpoint is empty. Complete code-scanning, Dependabot, and secret-scanning alert inventories are not exposed by the integration; status remains unverified. No zero-alert claim is made. PR #41 remains open and unmerged.
 
 ## 25-point status register
@@ -36,7 +36,7 @@ Status meanings: Done = automated acceptance evidence exists; In Progress = impl
 | 12 | Camera/image processing | **In Progress** | Image-contract and permission tests exist; physical capture and representative photo coverage remain. |
 | 13 | Offline/weak network | **In Progress** | Abort/deadline/retry tests exist; real interruption/reconnect recovery needs device/staging validation. |
 | 14 | API timeout/retry | **In Progress** | Request deadlines and safe-method retry tested; real network behavior and POST idempotency remain unproven. |
-| 15 | Backend load test | **In Progress** | e73ffd6 adds target/origin/production approval and redirect guards plus six safety tests; run only against owner-approved staging and record thresholds/results. |
+| 15 | Backend load test | **In Progress** | c41bb74 adds the production HTTPS-only guard and its regression test on top of explicit target/origin/approval and redirect guards. Run only against owner-approved staging and record agreed thresholds/results. |
 | 16 | Backup/restore | **Blocked** | Production datastore/Redis backup access and witnessed restore drill required. |
 | 17 | AI cost optimization | **In Progress** | Token/model usage telemetry exists; pricing, per-session budgets, and production cost alerts need owner configuration. |
 | 18 | Product-recognition accuracy | **Blocked** | Representative labeled dataset, agreed metrics, and human evaluation required; no benchmark claimed. |
