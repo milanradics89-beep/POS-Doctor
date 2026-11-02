@@ -38,6 +38,34 @@ jobs:
         run: npx expo-doctor
       - name: Validate Android export
         run: npx expo export --platform android --output-dir .expo-export
+      - name: Install Android NDK with retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$SDK_ROOT"
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [[ -z "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -path '*/bin/sdkmanager' -perm -111 2>/dev/null | sort -V | tail -n 1 || true)"
+          fi
+          test -x "$SDKMANAGER"
+
+          NDK_VERSION="27.1.12297006"
+          NDK_PATH="$SDK_ROOT/ndk/$NDK_VERSION"
+          for attempt in 1 2 3; do
+            if [[ -f "$NDK_PATH/source.properties" ]] && grep -q "Pkg.Revision = $NDK_VERSION" "$NDK_PATH/source.properties"; then
+              echo "Android NDK $NDK_VERSION is already installed."
+              exit 0
+            fi
+            echo "Installing Android NDK $NDK_VERSION (attempt $attempt/3)..."
+            rm -rf "$NDK_PATH"
+            if "$SDKMANAGER" --install "ndk;$NDK_VERSION" && [[ -f "$NDK_PATH/source.properties" ]] && grep -q "Pkg.Revision = $NDK_VERSION" "$NDK_PATH/source.properties"; then
+              exit 0
+            fi
+            sleep $((attempt * 10))
+          done
+          echo "::error::Android NDK $NDK_VERSION could not be installed after three attempts."
+          exit 1
       - name: Validate native Android release build
         run: |
           npx expo prebuild --platform android --no-install
