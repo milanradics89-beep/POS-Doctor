@@ -25,7 +25,6 @@ describe('profile preferences store', () => {
     await expect(store.read()).resolves.toEqual(value);
   });
 
-
   it('publishes preference changes to every mounted screen and persists them', async () => {
     const storage = createMemoryStorage();
     const controller = createProfilePreferencesController(storage, 'prefs');
@@ -89,6 +88,37 @@ describe('profile preferences store', () => {
     controller.updatePreference('productSuggestions', false);
     await controller.flush();
     expect(writes).toBe(1);
+  });
+
+  it('coalesces concurrent hydration retries into a single storage read', async () => {
+    let reads = 0;
+    let resolveRetryRead: ((value: string | null) => void) | undefined;
+    const storage: PreferencesStorage = {
+      getItem() {
+        reads += 1;
+        if (reads === 1) return Promise.reject(new Error('storage unavailable'));
+        return new Promise((resolve) => { resolveRetryRead = resolve; });
+      },
+      async setItem() {},
+    };
+    const controller = createProfilePreferencesController(storage, 'prefs');
+
+    await controller.hydrate();
+    const firstRetry = controller.retryHydration();
+    const secondRetry = controller.retryHydration();
+
+    expect(secondRetry).toBe(firstRetry);
+    await Promise.resolve();
+    expect(reads).toBe(2);
+
+    resolveRetryRead?.(JSON.stringify({ ...DEFAULT_PROFILE_PREFERENCES, personalizedIdeas: false }));
+    await Promise.all([firstRetry, secondRetry]);
+    expect(controller.getSnapshot()).toEqual({
+      preferences: { ...DEFAULT_PROFILE_PREFERENCES, personalizedIdeas: false },
+      hydrated: true,
+      error: null,
+    });
+    expect(reads).toBe(2);
   });
 
   it('does not accept non-boolean values for preference flags', async () => {
