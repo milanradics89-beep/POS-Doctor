@@ -13,7 +13,7 @@ export const theme = {
     blue: '#DCE8F8',
     peach: '#F4E2D4',
     lavender: '#E9E3F4',
-    danger: '#B84F43',
+    danger: '#A94338',
     captureStart: '#202522',
     captureEnd: '#111512',
     status: '#8BAA62',
