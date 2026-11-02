@@ -58,6 +58,39 @@ describe('profile preferences store', () => {
     expect(saved.productSuggestions).toBe(false);
   });
 
+  it('fails closed when storage cannot be read and retries successfully', async () => {
+    let reads = 0;
+    let writes = 0;
+    const storage: PreferencesStorage = {
+      async getItem() {
+        reads += 1;
+        if (reads === 1) throw new Error('storage unavailable');
+        return JSON.stringify({ ...DEFAULT_PROFILE_PREFERENCES, personalizedIdeas: false });
+      },
+      async setItem() { writes += 1; },
+    };
+    const controller = createProfilePreferencesController(storage, 'prefs');
+
+    await controller.hydrate();
+    expect(controller.getSnapshot().hydrated).toBe(false);
+    expect(controller.getSnapshot().error).toContain('storage is unavailable');
+
+    controller.updatePreference('personalizedIdeas', true);
+    await controller.flush();
+    expect(writes).toBe(0);
+
+    await controller.retryHydration();
+    expect(controller.getSnapshot()).toEqual({
+      preferences: { ...DEFAULT_PROFILE_PREFERENCES, personalizedIdeas: false },
+      hydrated: true,
+      error: null,
+    });
+
+    controller.updatePreference('productSuggestions', false);
+    await controller.flush();
+    expect(writes).toBe(1);
+  });
+
   it('does not accept non-boolean values for preference flags', async () => {
     const storage = createMemoryStorage();
     await storage.setItem('prefs', JSON.stringify({ personalizedIdeas: 'false', productSuggestions: 0, saveHistory: true }));

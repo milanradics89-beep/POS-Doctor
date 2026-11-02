@@ -20,11 +20,13 @@ export function useProfilePreferences() {
     (key: keyof ProfilePreferences, value: boolean) => controller.updatePreference(key, value),
     [],
   );
+  const retryHydration = useCallback(() => controller.retryHydration(), []);
 
   return {
     preferences: snapshot.preferences,
     updatePreference,
     hydrated: snapshot.hydrated,
     error: snapshot.error,
+    retryHydration,
   };
 }

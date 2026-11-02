@@ -31,23 +31,32 @@ export function createProfilePreferencesController(storage: PreferencesStorage, 
 
   function hydrate(): Promise<void> {
     if (!hydration) {
-      hydration = store.read()
+      const pending = store.read()
         .then((preferences) => {
           publish({ preferences, hydrated: true, error: null });
         })
         .catch(() => {
+          hydration = null;
           publish({
             ...snapshot,
-            hydrated: true,
+            hydrated: false,
             error: 'Device storage is unavailable. Changes may not persist.',
           });
         });
+      hydration = pending;
     }
     return hydration;
   }
 
+  async function retryHydration(): Promise<void> {
+    await writeQueue.catch(() => undefined);
+    hydration = null;
+    publish({ ...snapshot, hydrated: false });
+    await hydrate();
+  }
+
   function updatePreference(key: keyof ProfilePreferences, value: boolean): void {
-    if (!snapshot.hydrated || snapshot.preferences[key] === value) return;
+    if (!snapshot.hydrated || snapshot.error || snapshot.preferences[key] === value) return;
     const preferences = { ...snapshot.preferences, [key]: value };
     publish({ ...snapshot, preferences });
     writeQueue = writeQueue
@@ -65,5 +74,5 @@ export function createProfilePreferencesController(storage: PreferencesStorage, 
     return writeQueue;
   }
 
-  return { getSnapshot, subscribe, hydrate, updatePreference, flush };
+  return { getSnapshot, subscribe, hydrate, retryHydration, updatePreference, flush };
 }

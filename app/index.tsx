@@ -35,7 +35,7 @@ const modes: { id: OpportunityKind; title: string; description: string; symbol: 
 ];
 
 export default function Home() {
-  const { preferences, hydrated: preferencesHydrated } = useProfilePreferences();
+  const { preferences, hydrated: preferencesHydrated, error: preferencesError, retryHydration } = useProfilePreferences();
   const [photo, setPhoto] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [rendering, setRendering] = useState(false);
@@ -55,8 +55,8 @@ export default function Home() {
   };
 
   async function analyze(intent?: OpportunityKind) {
-    if (!preferencesHydrated) return;
-    const effectiveIntent = preferences.personalizedIdeas ? intent : undefined;
+    if (!preferencesHydrated || preferencesError) return;
+    const effectiveIntent = intent === 'shop' ? 'shop' : preferences.personalizedIdeas ? intent : undefined;
     setLastIntent(effectiveIntent);
     if (!API_URL) {
       Alert.alert('USEIT is not connected', 'Set EXPO_PUBLIC_USEIT_API_URL before running the real vision flow.');
@@ -169,6 +169,7 @@ export default function Home() {
     setRenderError(null);
   }
 
+  const selectableModes = modes.filter((mode) => mode.id !== 'shop' || preferences.productSuggestions);
   const confidence = Math.round((result?.intelligence?.intentConfidence || 0) * 100);
 
   return (
@@ -322,7 +323,17 @@ export default function Home() {
                 ) : null}
                 <Pressable accessibilityRole="button" onPress={reset} style={s.secondaryButton}><Text style={s.secondaryButtonText}>TRY ANOTHER PHOTO</Text></Pressable>
               </View>
-            ) : !preferencesHydrated ? (
+            ) : preferencesError ? (
+                <View style={{ marginTop: 22 }}>
+                  <StatePanel
+                    kind="error"
+                    title="Your preferences could not be loaded"
+                    description="USEIT has paused analysis so it does not use default settings by mistake. Check device storage and try again."
+                    actionLabel="RETRY"
+                    onAction={() => { void retryHydration(); }}
+                  />
+                </View>
+              ) : !preferencesHydrated ? (
                 <View style={s.loadingCard} accessibilityRole="progressbar" accessibilityLabel="Loading saved preferences">
                   <ActivityIndicator size="large" color={theme.colors.ink} />
                   <Text style={s.loadingTitle}>Getting things ready…</Text>
@@ -333,19 +344,20 @@ export default function Home() {
                   <Text style={s.overline}>WHAT'S YOUR INTENTION?</Text>
                   <Text style={s.modeTitle}>What should we{ '\n' }do with this?</Text>
                   <Text style={s.modeSub}>Choose a direction. USEIT will take it from here.</Text>
-                  {preferences.personalizedIdeas ? modes.map((mode) => (
+                  {(preferences.personalizedIdeas ? selectableModes : selectableModes.filter((mode) => mode.id === 'shop')).map((mode) => (
                     <Pressable accessibilityRole="button" key={mode.id} onPress={() => analyze(mode.id)} style={({ pressed }) => [s.modeCard, pressed && s.pressed]}>
                       <View style={[s.modeSymbol, { backgroundColor: mode.tint }]}><Text style={s.modeSymbolText}>{mode.symbol}</Text></View>
                       <View style={s.modeCopy}><Text style={s.modeName}>{mode.title}</Text><Text style={s.modeDescription}>{mode.description}</Text></View>
                       <Text style={s.modeArrow}>↗</Text>
                     </Pressable>
-                  )) : (
+                  ))}
+                  {!preferences.personalizedIdeas ? (
                     <Pressable accessibilityRole="button" accessibilityLabel="Explore this photo without personalized ideas" onPress={() => analyze()} style={({ pressed }) => [s.modeCard, pressed && s.pressed]}>
                       <View style={[s.modeSymbol, { backgroundColor: theme.colors.accent }]}><Text style={s.modeSymbolText}>✳</Text></View>
                       <View style={s.modeCopy}><Text style={s.modeName}>EXPLORE</Text><Text style={s.modeDescription}>Let USEIT choose a useful direction without personalized intent.</Text></View>
                       <Text style={s.modeArrow}>↗</Text>
                     </Pressable>
-                  )}
+                  ) : null}
                   <Pressable accessibilityRole="button" accessibilityLabel="Use a different photo" onPress={reset} style={s.changePhoto}><Text style={s.changePhotoText}>USE A DIFFERENT PHOTO</Text></Pressable>
                 </View>
             )}
