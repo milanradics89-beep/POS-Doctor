@@ -93,10 +93,15 @@ describe('profile preferences store', () => {
   it('coalesces concurrent hydration retries into a single storage read', async () => {
     let reads = 0;
     let resolveRetryRead: ((value: string | null) => void) | undefined;
+    let signalRetryReadStarted: (() => void) | undefined;
+    const retryReadStarted = new Promise<void>((resolve) => {
+      signalRetryReadStarted = resolve;
+    });
     const storage: PreferencesStorage = {
       getItem() {
         reads += 1;
         if (reads === 1) return Promise.reject(new Error('storage unavailable'));
+        signalRetryReadStarted?.();
         return new Promise((resolve) => { resolveRetryRead = resolve; });
       },
       async setItem() {},
@@ -108,7 +113,7 @@ describe('profile preferences store', () => {
     const secondRetry = controller.retryHydration();
 
     expect(secondRetry).toBe(firstRetry);
-    await Promise.resolve();
+    await retryReadStarted;
     expect(reads).toBe(2);
 
     resolveRetryRead?.(JSON.stringify({ ...DEFAULT_PROFILE_PREFERENCES, personalizedIdeas: false }));
