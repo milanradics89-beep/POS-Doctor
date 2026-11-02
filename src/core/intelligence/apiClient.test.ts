@@ -76,6 +76,30 @@ describe('UseitApiProvider boundary handling', () => {
     expect(JSON.parse(String(request?.[1]?.body)).discoverProducts).toBe(false);
   });
 
+  it('does not turn an unknown product price into zero for display', async () => {
+    const payload = {
+      ...validUnified,
+      shopping: {
+        query: 'small room storage',
+        candidates: [{
+          id: 'candidate-1',
+          name: 'Storage basket',
+          url: 'https://shop.example.test/item',
+          category: 'storage',
+          brand: null,
+          imageUrl: null,
+          price: null,
+          currency: 'HUF',
+          retailer: 'Example Shop',
+          availability: 'unknown',
+        }],
+      },
+    };
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }));
+    const result = await analyzeForConsumer(provider(), image);
+    expect(result.intelligence.rankedCandidates[0]?.priceHuf).toBeUndefined();
+  });
+
   it('uses the unified consumer boundary without calling legacy vision or client shopping', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(validUnified), { status: 200, headers: { 'content-type': 'application/json' } }));
     const result = await analyzeForConsumer(provider(), image, 'improve');
