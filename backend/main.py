@@ -66,12 +66,15 @@ app = FastAPI(
     openapi_url=None if production_mode() else "/openapi.json",
 )
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "Authorization", "X-API-Key", "X-Request-ID"])
 install_request_controls(app)
-install_observability(app, logger)
-install_security_headers(app)
 install_runtime_auth_guard(app)
 install_rate_limit(app)
+# Keep CORS, security headers, and observability outside short-circuiting
+# auth/rate-limit middleware so 401/429/503 responses receive the same
+# browser policy, security headers, request ID, and request-completion log.
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "Authorization", "X-API-Key", "X-Request-ID"])
+install_security_headers(app)
+install_observability(app, logger)
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
 
 class AnalyzeRequest(BaseModel):

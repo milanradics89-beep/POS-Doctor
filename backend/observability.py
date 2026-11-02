@@ -6,11 +6,14 @@ from collections.abc import Awaitable, Callable
 from fastapi import Request, Response
 
 from backend.privacy_logging import log_event
+from backend.request_controls import _safe_request_id
 
 
 def install_observability(app, logger) -> None:
     @app.middleware("http")
     async def request_observability(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
+        request_id = _safe_request_id(request.headers.get("X-Request-ID"))
+        request.state.request_id = request_id
         started = time.monotonic()
         try:
             response = await call_next(request)
@@ -19,7 +22,7 @@ def install_observability(app, logger) -> None:
             log_event(
                 logger,
                 "request_completed",
-                requestId=getattr(request.state, "request_id", ""),
+                requestId=request_id,
                 method=request.method,
                 path=request.url.path,
                 statusCode=500,
@@ -31,10 +34,11 @@ def install_observability(app, logger) -> None:
         log_event(
             logger,
             "request_completed",
-            requestId=getattr(request.state, "request_id", ""),
+            requestId=request_id,
             method=request.method,
             path=request.url.path,
             statusCode=response.status_code,
             durationMs=duration_ms,
         )
+        response.headers.setdefault("X-Request-ID", request_id)
         return response

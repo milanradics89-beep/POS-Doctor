@@ -86,7 +86,7 @@ def install_request_controls(app) -> None:
             if declared_length < 0 or declared_length > MAX_REQUEST_BYTES:
                 return JSONResponse(status_code=413, content={"detail": "Request body is too large."})
 
-        request_id = _safe_request_id(request.headers.get("X-Request-ID"))
+        request_id = getattr(request.state, "request_id", None) or _safe_request_id(request.headers.get("X-Request-ID"))
         request.state.request_id = request_id
 
         if request.method in {"POST", "PUT", "PATCH"}:
