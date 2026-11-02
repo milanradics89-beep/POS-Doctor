@@ -68,6 +68,14 @@ describe('UseitApiProvider boundary handling', () => {
     await expect(provider().renderRedesign(image, 'test', [])).rejects.toThrow('USEIT redesign API returned an invalid result.');
   });
 
+  it('respects the product suggestions preference at the unified API boundary', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(validUnified), { status: 200, headers: { 'content-type': 'application/json' } }));
+    await analyzeForConsumer(provider(), image, 'improve', { discoverProducts: false });
+    const request = fetchMock.mock.calls.find(([url]) => String(url).includes('/v1/useit/analyze'));
+    expect(request).toBeDefined();
+    expect(JSON.parse(String(request?.[1]?.body)).discoverProducts).toBe(false);
+  });
+
   it('uses the unified consumer boundary without calling legacy vision or client shopping', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(validUnified), { status: 200, headers: { 'content-type': 'application/json' } }));
     const result = await analyzeForConsumer(provider(), image, 'improve');

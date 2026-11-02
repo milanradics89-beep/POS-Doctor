@@ -106,16 +106,16 @@ function toUnifiedConsumerIntelligence(result: UseitAnalyzeResponse): ConsumerIn
   const ranked = (result.shopping?.candidates ?? []).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.name, category: candidate.category ?? 'general', source: candidate.retailer ?? 'USEIT', priceHuf: candidate.price ?? 0, url: candidate.url }));
   return { action: { type: actionType, title: actionTitle }, need: { kind: intent }, rankedCandidates: ranked, intentConfidence: result.intent.confidence ?? 0.5, clarificationRequired: (result.intent.confidence ?? 0.5) < 0.6 };
 }
-export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean } = {}): Promise<ConsumerAnalysis> {
+export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean; discoverProducts?: boolean } = {}): Promise<ConsumerAnalysis> {
   validateImageUri(imageUri);
   if (provider.analyzeUseit) {
-    const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors });
+    const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, discoverProducts: options.discoverProducts });
     const analysis = normalizeAnalysis(unified.scene);
     return { ...toPresentationResult(analysis, intent), intelligence: toUnifiedConsumerIntelligence(unified), analysis, unified };
   }
   const analysis = await provider.analyzeImage(imageUri, intent);
   const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(analysis, imageUri.slice(0, 80));
-  const providers = options.phase3Providers ?? [googleProductProvider];
+  const providers = options.phase3Providers ?? (options.discoverProducts === false ? [] : [googleProductProvider]);
   const phase3 = await runIntelligence(scene, analyzeDomain(scene), providers, { budgetHuf: options.budgetHuf, preserveExisting: options.preserveExisting ?? true, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, userText: intentText(intent, analysis.sceneType) });
   return { ...toPresentationResult(analysis, intent), intelligence: toConsumerIntelligence(phase3), phase3, analysis };
 }

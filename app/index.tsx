@@ -66,7 +66,7 @@ export default function Home() {
     setAnalysisError(null);
     setRendered(null);
     try {
-      const response = await analyzeForConsumer(new UseitApiProvider(API_URL), photo, effectiveIntent);
+      const response = await analyzeForConsumer(new UseitApiProvider(API_URL), photo, effectiveIntent, { discoverProducts: preferences.productSuggestions });
       setResult(response);
     } catch (error) {
       setAnalysisError(error instanceof Error ? error.message : 'Please try again with a clearer photo.');
