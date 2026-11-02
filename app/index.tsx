@@ -28,6 +28,7 @@ const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 const modes: { id: OpportunityKind; title: string; description: string; symbol: string; tint: string }[] = [
   { id: 'create', title: 'CREATE', description: 'Turn what you have into something new.', symbol: '✳', tint: theme.colors.accent },
   { id: 'improve', title: 'IMPROVE', description: 'Make your space or things better.', symbol: '↗', tint: theme.colors.mint },
+  { id: 'shop', title: 'SHOP', description: 'Find products that fit what you need.', symbol: '⌕', tint: theme.colors.accent },
   { id: 'fix', title: 'FIX', description: 'Find a practical way forward.', symbol: '⌁', tint: theme.colors.blue },
   { id: 'cook', title: 'COOK', description: 'Make something with what you have.', symbol: '✳', tint: theme.colors.peach },
   { id: 'surprise', title: 'SURPRISE ME', description: 'Discover an idea you would not expect.', symbol: '✦', tint: theme.colors.lavender },
