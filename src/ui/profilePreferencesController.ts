@@ -16,6 +16,7 @@ export function createProfilePreferencesController(storage: PreferencesStorage, 
   };
   const listeners = new Set<() => void>();
   let hydration: Promise<void> | null = null;
+  let hydrationRetry: Promise<void> | null = null;
   let writeQueue: Promise<void> = Promise.resolve();
 
   const getSnapshot = () => snapshot;
@@ -48,11 +49,20 @@ export function createProfilePreferencesController(storage: PreferencesStorage, 
     return hydration;
   }
 
-  async function retryHydration(): Promise<void> {
-    await writeQueue.catch(() => undefined);
-    hydration = null;
-    publish({ ...snapshot, hydrated: false });
-    await hydrate();
+  function retryHydration(): Promise<void> {
+    if (hydrationRetry) return hydrationRetry;
+
+    const pending = (async () => {
+      await writeQueue.catch(() => undefined);
+      hydration = null;
+      publish({ ...snapshot, hydrated: false });
+      await hydrate();
+    })();
+
+    hydrationRetry = pending.finally(() => {
+      hydrationRetry = null;
+    });
+    return hydrationRetry;
   }
 
   function updatePreference(key: keyof ProfilePreferences, value: boolean): void {
