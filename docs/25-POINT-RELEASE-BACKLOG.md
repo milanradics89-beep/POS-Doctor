@@ -1,32 +1,29 @@
 # USEIT 25-point release backlog
 
-Last reviewed: 2026-11-02 14:40 CET
+Last reviewed: 2026-11-02 16:04 CET
 Working branch: fix/release-blockers-2026-10
 PR: [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41)
-Current exact PR HEAD: [`d7aeb212fbd3c47009edbb981540a09e3c431a3f`](https://github.com/milanradics89-beep/POS-Doctor/commit/d7aeb212fbd3c47009edbb981540a09e3c431a3f). Validation 41444092424, CodeQL 41444092433, and Dependency Review 41444092673 all completed successfully on this exact SHA.
+
+## Latest verified release evidence
+
+- PR #41 remains open and unmerged. Latest application-source commit: [d7aeb212](https://github.com/milanradics89-beep/POS-Doctor/commit/d7aeb212fbd3c47009edbb981540a09e3c431a3f), with exact-SHA Validation [41444092424](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092424), CodeQL [41444092433](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092433), and Dependency Review [41444092673](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092673) all successful. Validation jobs: backend [125272796054](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092424/job/125272796054), frontend/Android [125272796035](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092424/job/125272796035), and iOS [125272795628](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092424/job/125272795628). Backend: 356 passed, 1 warning; readiness suites: 24 passed, 1 warning and 22 passed.
+- Last fully validated documentation-only snapshot before this refresh: [eb7e406fc8187de14b0999f27da6b98870664bf4](https://github.com/milanradics89-beep/POS-Doctor/commit/eb7e406fc8187de14b0999f27da6b98870664bf4). Exact-SHA Validation [41456092936](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41456092936), CodeQL [41456092934](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41456092934), and Dependency Review [41456093014](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41456093014) all succeeded. Validation jobs: backend [125313023149](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41456092936/job/125313023149), frontend/Android [125313023036](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41456092936/job/125313023036), iOS [125313022837](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41456092936/job/125313022837); CodeQL analyze [125313021394](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41456092934/job/125313021394); Dependency Review [125313021340](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41456093014/job/125313021340).
+- The current refresh is documentation-only. Its own commit must pass the live PR checks before merge; do not present either baseline SHA above as the current PR HEAD.
+- Exact observed check contexts: `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`. Android Release/emulator validation is part of `frontend`.
+- Backend CI reported 356 passed, 1 Starlette/httpx TestClient deprecation warning; Redis 7.4 emitted a runner-host `vm.overcommit_memory` warning. CodeQL scanned 181 TypeScript, 2 JavaScript, 71 Python, and 4 GitHub Actions files; SARIF merge emitted a column-kind mismatch warning. Dependency Review found no high-or-higher vulnerable packages and no denied packages.
+- Dependency warnings remain: unknown license metadata for `vendor/deepmerge@4.3.2`, low OpenSSF Scorecard results for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5), plus 11 moderate transitive `glob`/`minimatch` npm-audit advisories. No forced Expo downgrade or audit-threshold reduction was applied.
+- Six inline PR #41 review threads exist: five resolved, one P2 documentation HEAD-evidence finding open pending review of this correction. The previously tracked POST retry/auth, Request headers/method, valid base64 privacy fixture, sanitized error logging, and Settings recovery findings remain covered by current source/tests.
+- [Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is **closed as completed**. Active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) targets `~DEFAULT_BRANCH` (main), enforces strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, `dependency-review`, requires PRs and one approval, dismisses stale approvals, requires last-push approval and review-thread resolution, blocks deletion/non-fast-forward updates, and has no bypass actors. Main reports `protected: true`.
+- GitHub Releases is empty. Complete code-scanning, Dependabot, and secret-scanning alert inventories remain unavailable through the connected integration; do not infer zero alerts.
 
 Status meanings: Done = automated acceptance evidence exists; In Progress = implementation/evidence exists but a gate remains; Blocked = external access, physical device, production environment, curated data, or owner decision is required.
-
-## Current exact-head evidence
-
-- PR #41 remains open and unmerged. The current exact HEAD and latest source-changing commit are [d7aeb212](https://github.com/milanradics89-beep/POS-Doctor/commit/d7aeb212fbd3c47009edbb981540a09e3c431a3f), `fix(observability): wrap rate-limit responses with request policies`.
-- [Validation run 41444092424](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092424) passed on that exact SHA: backend [job 125272796054](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092424/job/125272796054), frontend/Android [job 125272796035](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092424/job/125272796035), and iOS [job 125272795628](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092424/job/125272795628). Backend: **356 passed, 1 warning**; production-readiness suites: **24 passed, 1 warning** and **22 passed**. The warning is the Starlette/httpx TestClient deprecation; Redis 7.4 also emitted a runner-host `vm.overcommit_memory` warning. Android Release/emulator and iOS Release simulator build/install/launch passed.
-- [CodeQL run 41444092433](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092433), analyze job [125272795044](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092433/job/125272795044), passed and scanned 181 TypeScript, 2 JavaScript, 71 Python, and 4 GitHub Actions files. SARIF merge emitted a column-kind mismatch warning.
-- [Dependency Review run 41444092673](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092673), job [125272795920](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41444092673/job/125272795920), passed with no high-or-higher vulnerable packages. The PR summary reports one unknown-license metadata warning for `vendor/deepmerge@4.3.2` and two low Scorecard warnings: `@expo/devcert` (2.9) and `is-mergeable-object` (1.5).
-- The frontend `npm audit --omit=dev --audit-level=high` step passed its configured threshold but still reports **11 moderate transitive `glob`/`minimatch` advisories**. No forced Expo downgrade or audit-threshold reduction was applied.
-- Exact observed check/job names: `CodeQL`, `analyze`, `backend`, `frontend`, `ios`, and `dependency-review`. Android is included in `frontend`.
-- Commit d7aeb212 fixes middleware ordering and request-ID propagation so early 429 rate-limit and 503 Redis-failure responses receive CORS/security policies and request-completion logging. The targeted 429/503 regression tests passed in backend CI.
-- All five inline PR #41 review threads are resolved; four are outdated. The latest Codex review of d7aeb212 found no major issues. The previously tracked POST retry/auth, Request headers/method, valid base64 privacy fixture, sanitized error logging, and Settings recovery findings remain covered by current source/tests.
-- [Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open: `main` reports `protected=false`, the rulesets endpoint is empty, and branch-protection detail reads return HTTP 403 to the connected integration. Repository administrator action is required.
-- The GitHub releases endpoint is empty. Complete code-scanning, Dependabot, and secret-scanning alert inventories are not exposed by the connected integration; their status remains **unverified**.
-- Backlog remains **2 Done / 15 In Progress / 8 Blocked**. Physical-device, production-environment, external administration, and human approval gates remain open.
 
 ## 25-point status register
 
 | # | Workstream | Status | Evidence / next gate |
 |---:|---|---|---|
 | 1 | iOS CI closure | **Done** | Exact-head iOS job passed native generation, CocoaPods, Release simulator build, install/launch. Physical attestation is #4. |
-| 2 | Main branch protection | **Blocked** | Issue #47; main unprotected, rulesets empty, branch-protection read 403. Repository admin action required. |
+| 2 | Main branch protection | **Done** | Active ruleset 26370589 targets main; strict required checks CodeQL/backend/frontend/ios/analyze/dependency-review, PR plus one approval, stale-review dismissal, last-push approval, thread resolution, deletion/non-fast-forward blocked, no bypass actors. Issue #47 closed completed. |
 | 3 | Dependency Review warnings | **In Progress** | Review passed but deepmerge license metadata and two low Scorecard warnings remain; npm audit has 11 moderate advisories. Remediate compatibly or record owner risk acceptance. |
 | 4 | Physical iPhone App Attest production entitlement | **Blocked** | Apple Developer production capability/App ID and supported physical iPhone required. |
 | 5 | Play-installed physical Android Play Integrity | **Blocked** | Play internal track, Play App Signing identity, Google Cloud project/service-account permission, and physical Android required. |
@@ -34,7 +31,7 @@ Status meanings: Done = automated acceptance evidence exists; In Progress = impl
 | 7 | Attestation retry/network/expiry | **In Progress** | Timeout, expiry, pending-enrollment, and same-evidence tests exist; physical network-loss/provider-backed verification remains. |
 | 8 | Backend production security audit | **In Progress** | Production-readiness/security tests and dependency audit pass; deployed secrets, ingress, CORS, provider identity/config remain unverified. |
 | 9 | Privacy and logging audit | **In Progress** | Source redaction and token-only vision_usage tests exist; early 429/503 responses now have request IDs and completion logging with regression coverage. Production log sink, ingress/access logs, retention, and operator access remain unverified. |
-| 10 | Release acceptance evidence | **In Progress** | Exact-head d7aeb212 Validation, CodeQL, and Dependency Review all passed and are recorded above; production and physical-device gates remain. |
+| 10 | Release acceptance evidence | **In Progress** | Source SHA d7aeb212 and prior documentation snapshot eb7e406f each have exact-SHA Validation, CodeQL, and Dependency Review success recorded above. Current documentation refresh must independently pass live PR checks; production and physical-device gates remain. |
 | 11 | Mobile regression | **In Progress** | Android emulator and iOS simulator smoke tests pass; physical-device regression remains. |
 | 12 | Camera/image processing | **In Progress** | Image-contract and permission tests exist; physical capture and representative photo coverage remain. |
 | 13 | Offline/weak network | **In Progress** | Abort/deadline/retry tests exist; real interruption/reconnect recovery needs device/staging validation. |
@@ -51,11 +48,11 @@ Status meanings: Done = automated acceptance evidence exists; In Progress = impl
 | 24 | Release pipeline | **In Progress** | Android/iOS CI build and smoke tests pass; store signing, EAS artifacts, distribution, promotion permissions unverified. |
 | 25 | Pilot/business validation | **Blocked** | Real pilot cohort, success/stop thresholds, named business owner, and documented approval required. |
 
-**Current count: 2 Done / 15 In Progress / 8 Blocked.** Source presence alone does not satisfy an external acceptance gate.
+**Current count: 3 Done / 14 In Progress / 8 Blocked.** Source presence alone does not satisfy an external acceptance gate.
 
 ## Required external hand-offs
 
-- Repository administrator: configure and verify main protection/ruleset for #47 with exact checks, PR requirement, force-push/deletion restrictions, and no routine admin bypass.
+- Repository administrator: main ruleset 26370589 is active and verified; issue #47 is closed. Preserve the exact required checks and no-bypass policy.
 - Apple/Google owners: configure production attestation identities/permissions and provide store-distributed physical devices.
 - Infrastructure owner: provide approved staging/production config, backup/restore, monitoring destination, and written load-test target/threshold approval.
 - Product/business owner: provide labeled accuracy data, AI cost budgets, pilot cohort/thresholds, and release approval.
