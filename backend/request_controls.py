@@ -53,9 +53,10 @@ async def _read_limited_body(request: Request) -> bytes | None:
     """Read request chunks incrementally and stop as soon as the size limit is crossed."""
     body = bytearray()
     async for chunk in request.stream():
-        body.extend(chunk)
-        if len(body) > MAX_REQUEST_BYTES:
+        # Reject before copying an oversized ASGI chunk into our accumulation buffer.
+        if len(chunk) > MAX_REQUEST_BYTES - len(body):
             return None
+        body.extend(chunk)
     return bytes(body)
 
 
