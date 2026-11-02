@@ -171,6 +171,11 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
   // No current backend endpoint enforces idempotency keys, so only replay safe methods.
   const retryAllowed = ['GET', 'HEAD', 'OPTIONS'].includes(method);
   const sessionUrl = sessionAuthEligible(input, init);
+  // Request bodies are one-shot. Preserve an untouched copy before the first
+  // fetch so a 401 session refresh can replay the same body exactly once.
+  const requestForSessionRetry = sessionUrl && typeof Request !== 'undefined' && input instanceof Request
+    ? input.clone()
+    : null;
   let lastError: unknown;
 
   for (let attempt = 0; attempt < attempts; attempt++) {
@@ -196,7 +201,7 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
           const retrySignal = combineAbortSignals(requestSignal, retryController.signal);
           let preserveRetryCleanup = false;
           try {
-            const retryResponse = await fetch(input, { ...withSessionHeader(input, init, refreshed.token), signal: retrySignal.signal });
+            const retryResponse = await fetch(requestForSessionRetry ?? input, { ...withSessionHeader(input, init, refreshed.token), signal: retrySignal.signal });
             if (retryResponse.body) {
               responseSignalCleanups.set(retryResponse, retrySignal.cleanup);
               preserveRetryCleanup = true;
