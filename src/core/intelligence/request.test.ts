@@ -327,4 +327,49 @@ describe('fetchWithPolicy', () => {
     expect(outgoingHeaders.get('Content-Type')).toBe('application/json');
   });
 
+
+  it('replays a Request body from its untouched clone after a 401 session refresh', async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+    let sessionCalls = 0;
+    let actionCalls = 0;
+    const actionBodies: string[] = [];
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      if (String(input).endsWith('/v1/session')) {
+        sessionCalls += 1;
+        return new Response(JSON.stringify({
+          accessToken: sessionCalls === 1 ? 'old-session' : 'new-session',
+          expiresAt,
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (!(input instanceof Request)) {
+        throw new Error('Expected the original Request or its retry clone.');
+      }
+      actionCalls += 1;
+      actionBodies.push(await input.text());
+      return new Response('{}', { status: actionCalls === 1 ? 401 : 200 });
+    });
+
+    const expectedBody = JSON.stringify({ action: 'preserve-this-body' });
+    const request = new Request('https://request-body-refresh.example.test/v1/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: expectedBody,
+    });
+
+    const response = await fetchWithPolicy(request, {}, { attempts: 1, baseDelayMs: 0 });
+
+    expect(response.status).toBe(200);
+    expect(sessionCalls).toBe(2);
+    expect(actionCalls).toBe(2);
+    expect(actionBodies).toEqual([expectedBody, expectedBody]);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock.mock.calls[1][0]).toBe(request);
+    expect(fetchMock.mock.calls[3][0]).not.toBe(request);
+    expect(new Headers(fetchMock.mock.calls[3][1]?.headers).get('Authorization')).toBe('Bearer new-session');
+  });
+
 });
