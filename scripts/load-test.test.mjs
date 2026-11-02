@@ -77,6 +77,16 @@ describe('load-test safety guards', () => {
     expect(result.stderr).toContain('USEIT_LOAD_ALLOW_PRODUCTION=YES');
   });
 
+  it('requires HTTPS for production even with explicit capacity approval', async () => {
+    const result = await runLoadTest(approvedStagingEnv('http://127.0.0.1:1', {
+      USEIT_LOAD_TARGET_ENV: 'production',
+      USEIT_LOAD_ALLOW_PRODUCTION: 'YES',
+    }));
+
+    expect(result.code).not.toBe(0);
+    expect(result.stderr).toContain('require HTTPS');
+  });
+
   it('keeps POST load tests behind their separate opt-in', async () => {
     const result = await runLoadTest(approvedStagingEnv('http://127.0.0.1:1', {
       USEIT_LOAD_METHOD: 'POST',

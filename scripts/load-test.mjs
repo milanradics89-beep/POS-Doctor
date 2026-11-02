@@ -39,6 +39,9 @@ if (approvedOrigin.origin !== baseUrl.origin) {
 if (targetEnvironment === 'production' && process.env.USEIT_LOAD_ALLOW_PRODUCTION !== 'YES') {
   throw new Error('Production load tests require explicit capacity approval via USEIT_LOAD_ALLOW_PRODUCTION=YES.');
 }
+if (targetEnvironment === 'production' && baseUrl.protocol !== 'https:') {
+  throw new Error('Production load tests require HTTPS; HTTP is allowed only for staging.');
+}
 
 const path = process.env.USEIT_LOAD_PATH ?? '/health';
 const targetUrl = new URL(path, baseUrl);
