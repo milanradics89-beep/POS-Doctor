@@ -71,7 +71,9 @@ def validate_production_security() -> None:
     rate_mode = os.getenv("USEIT_RATE_LIMIT_MODE", "memory").strip().lower()
     if rate_mode not in {"memory", "redis"}:
         raise RuntimeError("USEIT_RATE_LIMIT_MODE must be memory or redis")
-    if rate_mode == "redis" and not os.getenv("USEIT_REDIS_URL", "").strip():
+    if rate_mode != "redis":
+        raise RuntimeError("USEIT_RATE_LIMIT_MODE must be redis in production to enforce shared rate limits across workers")
+    if not os.getenv("USEIT_REDIS_URL", "").strip():
         raise RuntimeError("USEIT_REDIS_URL is required when Redis rate limiting is enabled")
 
 
