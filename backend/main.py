@@ -39,7 +39,7 @@ from backend.personal_memory import router as personal_memory_router
 from backend.product_discovery import ProductDiscoveryRequest, discover_products, router as product_discovery_router
 from backend.product_extractor import router as product_extractor_router
 from backend.redesign import router as redesign_router
-from backend.rate_limit import install_rate_limit
+from backend.rate_limit import install_rate_limit, rate_limit_mode
 from backend.request_controls import install_request_controls
 from backend.observability import install_observability
 from backend.security_headers import install_security_headers
@@ -188,29 +188,33 @@ async def ready():
     if production_mode():
         dependencies_ready = dependencies_ready and bool(configured_api_key() or configured_session_secret())
         if configured_attestation_mode() is AttestationMode.REQUIRED:
-            dependencies_ready = (
-                dependencies_ready
-                and bool(configured_attestation_app_id())
-                and bool(configured_redis_url())
-            )
-            if dependencies_ready:
-                redis_client = None
-                try:
-                    redis_client = redis_asyncio.Redis.from_url(
-                        configured_redis_url(),
-                        socket_connect_timeout=2,
-                        socket_timeout=2,
-                    )
-                    await redis_client.ping()
-                except (RedisError, TimeoutError, OSError, ValueError):
-                    logger.warning("Readiness check failed: attestation Redis is unavailable")
-                    dependencies_ready = False
-                finally:
-                    if redis_client is not None:
-                        try:
-                            await redis_client.aclose()
-                        except (RedisError, TimeoutError, OSError):
-                            logger.warning("Readiness check could not close the Redis client cleanly")
+            dependencies_ready = dependencies_ready and bool(configured_attestation_app_id())
+
+        # Production rate limiting is shared across workers, so Redis is a
+        # mandatory readiness dependency even when App Attest is disabled.
+        dependencies_ready = (
+            dependencies_ready
+            and rate_limit_mode() == "redis"
+            and bool(configured_redis_url())
+        )
+        if dependencies_ready:
+            redis_client = None
+            try:
+                redis_client = redis_asyncio.Redis.from_url(
+                    configured_redis_url(),
+                    socket_connect_timeout=2,
+                    socket_timeout=2,
+                )
+                await redis_client.ping()
+            except (RedisError, TimeoutError, OSError, ValueError):
+                logger.warning("Readiness check failed: shared Redis is unavailable")
+                dependencies_ready = False
+            finally:
+                if redis_client is not None:
+                    try:
+                        await redis_client.aclose()
+                    except (RedisError, TimeoutError, OSError):
+                        logger.warning("Readiness check could not close the Redis client cleanly")
     if not dependencies_ready:
         raise HTTPException(status_code=503, detail="Service is not ready.")
     return {"status": "ready"}

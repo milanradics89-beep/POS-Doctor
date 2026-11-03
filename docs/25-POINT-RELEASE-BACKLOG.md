@@ -1,10 +1,10 @@
 # USEIT 25-point release backlog
 
-Last reviewed: 2026-11-03 14:20 CET
+Last reviewed: 2026-11-03 16:26 CET
 Working branch: fix/release-blockers-2026-10
 PR: [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41)
 
-## Last fully validated release evidence (2026-11-03; parent of this update: `45ac420857dfce396e0668732e91ed7301fd126e`; not production sign-off)
+## Last fully validated release evidence (2026-11-03; exact validated SHA: `45ac420857dfce396e0668732e91ed7301fd126e`; current PR HEAD `98e47ff` has failed/incomplete Validation; not production sign-off)
 
 PR #41 was open, unmerged, and non-draft on `fix/release-blockers-2026-10`. Exact parent HEAD [`45ac420`](https://github.com/milanradics89-beep/POS-Doctor/commit/45ac420857dfce396e0668732e91ed7301fd126e) passed all three required workflows. It is a documentation-only commit; the latest application-source/test change remains [`531463f`](https://github.com/milanradics89-beep/POS-Doctor/commit/531463f3d116aad3b62e184fcd83e2ff88d168f2).
 
@@ -16,7 +16,9 @@ Backend reported 358 tests passed with one Starlette deprecation warning, 24 pro
 
 Dependency Review reported 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 unknown-license package, and 2 Scorecard warnings. CodeQL succeeded with a non-fatal SARIF column-kind mismatch warning. No forced Expo downgrade or audit-threshold reduction was applied.
 
-The current source/test change in this update requires Redis-backed shared rate limiting for production and adds regression tests for the memory-mode and missing-Redis rejection paths. This commit's own exact-head CI is pending; the parent `45ac420` run IDs above are not evidence for the new commit.
+The source/test commit [`98e47ff`](https://github.com/milanradics89-beep/POS-Doctor/commit/98e47ffd876b890c36f383ae8f24a31a48b1d33d) enforces Redis-backed shared rate limiting in production. Its exact-head [Validation 41644216597](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41644216597) failed: backend job [125959862517](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41644216597/job/125959862517) failed on `test_production_allows_explicit_cors` because the shared `_production()` test helper did not set the newly required Redis rate-limit mode and URL; frontend job [125959865478](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41644216597/job/125959865478) passed; iOS job [125959863083](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41644216597/job/125959863083) failed because the simulator install/launch smoke-test step exceeded its 10-minute timeout after installation succeeded. Exact-head [CodeQL 41644216720](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41644216720), analyze job [125945163427](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41644216720/job/125945163427), and [Dependency Review 41644216711](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41644216711), job [125945162610](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41644216711/job/125945162610), passed. GitHub opened issue [#50](https://github.com/milanradics89-beep/POS-Doctor/issues/50) for the repeated Validation failure.
+
+The backend failure is a stale test fixture, not a production policy failure: `_production()` omitted `USEIT_RATE_LIMIT_MODE=redis` and `USEIT_REDIS_URL`. The iOS job failed at the simulator launch smoke test after the installation step; the 10-minute timeout is recorded separately and is not being masked by increasing the timeout without further evidence. This update fixes the fixture and closes a separate readiness gap: production `/ready` must require Redis rate-limit mode and ping the shared Redis dependency regardless of whether App Attest is enabled. The new child commit's own exact-HEAD CI must be evaluated independently; neither the `45ac420` parent baseline nor the failed `98e47ff` run validates the new child. This is automated CI evidence only, not production approval.
 
 Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) is verified; issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed. All 10 inline PR #41 review threads are resolved, but no `APPROVED` review submission is recorded. Issue #46 remains open; PRs #43/#44 are one-sided CodeQL updates and must not be merged independently; draft PR #49 contains the atomic update. PR #48 remains draft. GitHub Releases is empty. Complete code-scanning, Dependabot, and secret-scanning alert inventories remain unverified.
 

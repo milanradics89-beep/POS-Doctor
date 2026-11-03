@@ -39,23 +39,50 @@ async def test_production_readiness_requires_application_api_key(monkeypatch):
     assert exc_info.value.detail == "Service is not ready."
 
 
+@pytest.mark.parametrize(
+    ("rate_mode", "redis_url"),
+    [
+        ("memory", "redis://redis.internal:6379/0"),
+        ("redis", None),
+    ],
+)
 @pytest.mark.asyncio
-async def test_production_readiness_is_ready_with_required_secrets(monkeypatch):
+async def test_production_readiness_requires_shared_redis_configuration(monkeypatch, rate_mode, redis_url):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
     monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", rate_mode)
+    if redis_url is None:
+        monkeypatch.delenv("USEIT_REDIS_URL", raising=False)
+    else:
+        monkeypatch.setenv("USEIT_REDIS_URL", redis_url)
 
-    assert await main.ready() == {"status": "ready"}
+    def unexpected_redis_connection(*args, **kwargs):
+        pytest.fail("Readiness must reject incomplete Redis configuration before connecting.")
+
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", unexpected_redis_connection)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await main.ready()
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Service is not ready."
 
 
 
+@pytest.mark.parametrize("attestation_mode", ["disabled", "required"])
 @pytest.mark.asyncio
-async def test_production_readiness_checks_required_redis_connectivity(monkeypatch):
+async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch, attestation_mode):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
     monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
-    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
-    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", attestation_mode)
+    if attestation_mode == "required":
+        monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
+    else:
+        monkeypatch.delenv("USEIT_ATTESTATION_APP_ID", raising=False)
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
     monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
 
     created_clients = []
@@ -88,15 +115,20 @@ async def test_production_readiness_checks_required_redis_connectivity(monkeypat
     assert created_clients[0].closed
 
 
+@pytest.mark.parametrize("attestation_mode", ["disabled", "required"])
 @pytest.mark.asyncio
-async def test_production_readiness_fails_when_required_redis_is_unavailable(monkeypatch):
+async def test_production_readiness_fails_when_shared_redis_is_unavailable(monkeypatch, attestation_mode):
     from redis.exceptions import ConnectionError as RedisConnectionError
 
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
     monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
-    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
-    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", attestation_mode)
+    if attestation_mode == "required":
+        monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
+    else:
+        monkeypatch.delenv("USEIT_ATTESTATION_APP_ID", raising=False)
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
     monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
 
     created_clients = []
