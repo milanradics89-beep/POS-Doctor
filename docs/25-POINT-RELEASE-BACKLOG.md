@@ -1,17 +1,17 @@
 # USEIT 25-point release backlog
 
-Last reviewed: 2026-11-03 12:16 CET
+Last reviewed: 2026-11-03 13:35 CET
 Working branch: fix/release-blockers-2026-10
 PR: [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41)
 
-## Latest verified release evidence (2026-11-03; exact PR #41 HEAD: `c008450846662923113e413cb6c45dc50badd3f4`; not production sign-off)
+## Latest verified release evidence (2026-11-03; exact PR #41 HEAD: `daaede906f120241bf78b4d28d227f5b3e2857db`; not production sign-off)
 
-PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`. Exact HEAD [`c008450`](https://github.com/milanradics89-beep/POS-Doctor/commit/c008450846662923113e413cb6c45dc50badd3f4) is a documentation-only release-evidence refresh; its parent [`531463f`](https://github.com/milanradics89-beep/POS-Doctor/commit/531463f3d116aad3b62e184fcd83e2ff88d168f2) contains the privacy-logging source/test fix. PR base and `main` HEAD remain `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`.
+PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`. Exact HEAD [`daaede9`](https://github.com/milanradics89-beep/POS-Doctor/commit/daaede906f120241bf78b4d28d227f5b3e2857db) is a documentation-only release-evidence refresh; its parent [`c008450`](https://github.com/milanradics89-beep/POS-Doctor/commit/c008450846662923113e413cb6c45dc50badd3f4) is also documentation-only; the latest application-source/test change remains [`531463f`](https://github.com/milanradics89-beep/POS-Doctor/commit/531463f3d116aad3b62e184fcd83e2ff88d168f2) and contains the privacy-logging source/test fix. PR base and `main` HEAD remain `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`.
 
-Exact-current-head required workflows for `c008450`:
-- [Validation 41615468541](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468541): backend [125847723328](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468541/job/125847723328), frontend/Android [125847723746](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468541/job/125847723746), and iOS [125847723817](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468541/job/125847723817) all completed successfully.
-- [CodeQL 41615468552](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468552), analyze job [125847723298](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468552/job/125847723298), completed successfully.
-- [Dependency Review 41615468522](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468522), job [125847722755](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468522/job/125847722755), completed successfully.
+Exact-current-head required workflows for `daaede9`:
+- [Validation 41626552858](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552858): backend [125902069796](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552858/job/125902069796), frontend/Android [125902137988](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552858/job/125902137988), and iOS [125902068302](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552858/job/125902068302) all completed successfully.
+- [CodeQL 41626552851](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552851), analyze job [125885247940](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552851/job/125885247940), completed successfully.
+- [Dependency Review 41626552957](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552957), job [125885247279](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552957/job/125885247279), completed successfully.
 
 Backend validation reported 358 tests passed with one Starlette deprecation warning, 24 production-readiness checks passed with one warning, 24 security checks passed, and the backend dependency audit succeeded. Frontend typecheck, unit tests, Expo project health, Android export, native Android Release build, Android emulator smoke test, and runtime dependency audit all completed successfully. The iOS native Release simulator build and simulator smoke test also completed successfully. These simulator/emulator results are not physical-device acceptance.
 

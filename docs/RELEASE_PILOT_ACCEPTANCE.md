@@ -2,18 +2,18 @@
 
 Complete this record before promoting a build beyond internal testing. Do not enter secrets, raw attestation payloads, personal data, or bearer tokens.
 
-## Latest verified automated evidence (2026-11-03; exact PR #41 HEAD: `c008450846662923113e413cb6c45dc50badd3f4`; not production acceptance)
+## Latest verified automated evidence (2026-11-03; exact PR #41 HEAD: `daaede906f120241bf78b4d28d227f5b3e2857db`; not production acceptance)
 
-PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`. Exact HEAD [`c008450`](https://github.com/milanradics89-beep/POS-Doctor/commit/c008450846662923113e413cb6c45dc50badd3f4) is a documentation-only release-evidence refresh; its parent [`531463f`](https://github.com/milanradics89-beep/POS-Doctor/commit/531463f3d116aad3b62e184fcd83e2ff88d168f2) contains the privacy-logging source/test fix. PR base and `main` HEAD remain `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`.
+PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`. Exact HEAD [`daaede9`](https://github.com/milanradics89-beep/POS-Doctor/commit/daaede906f120241bf78b4d28d227f5b3e2857db) is a documentation-only release-evidence refresh; its parent [`c008450`](https://github.com/milanradics89-beep/POS-Doctor/commit/c008450846662923113e413cb6c45dc50badd3f4) is also documentation-only; the latest application-source/test change remains [`531463f`](https://github.com/milanradics89-beep/POS-Doctor/commit/531463f3d116aad3b62e184fcd83e2ff88d168f2) and contains the privacy-logging source/test fix. PR base and `main` HEAD remain `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`.
 
-Exact-current-head required workflows for `c008450`:
-- [Validation 41615468541](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468541): backend [125847723328](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468541/job/125847723328), frontend/Android [125847723746](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468541/job/125847723746), and iOS [125847723817](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468541/job/125847723817) all completed successfully.
-- [CodeQL 41615468552](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468552), analyze job [125847723298](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468552/job/125847723298), completed successfully.
-- [Dependency Review 41615468522](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468522), job [125847722755](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41615468522/job/125847722755), completed successfully.
+Exact-current-head required workflows for `daaede9`:
+- [Validation 41626552858](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552858): backend [125902069796](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552858/job/125902069796), frontend/Android [125902137988](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552858/job/125902137988), and iOS [125902068302](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552858/job/125902068302) all completed successfully.
+- [CodeQL 41626552851](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552851), analyze job [125885247940](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552851/job/125885247940), completed successfully.
+- [Dependency Review 41626552957](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552957), job [125885247279](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41626552957/job/125885247279), completed successfully.
 
 Backend: 358 tests passed with one Starlette deprecation warning; production-readiness checks 24 passed with one warning; security checks 24 passed; dependency audit passed. Android Release build and emulator smoke test passed. iOS Release simulator build and simulator smoke test passed. Frontend typecheck, unit tests, Expo health, export, and runtime dependency audit passed. No simulator/emulator result is being treated as physical-device acceptance.
 
-The parent source/test commit `531463f` includes credential-key normalization and direct logger-output redaction tests. The current `c008450` commit is documentation-only.
+The latest source/test change `531463f` includes credential-key normalization and direct logger-output redaction tests. Both `c008450` and `daaede9` are documentation-only evidence refreshes.
 
 The 25-point backlog remains **3 Done / 15 In Progress / 7 Blocked**. Dependency Review reports 0 vulnerable packages, 0 incompatible licenses, 0 invalid SPDX definitions, 1 package with unknown license metadata, and 2 OpenSSF Scorecard warnings. The frontend runtime audit still reports 11 moderate transitive `glob`/`minimatch` findings; `npm audit fix --force` would downgrade Expo to 51.0.39, so no forced downgrade or audit-threshold reduction was applied.
 
