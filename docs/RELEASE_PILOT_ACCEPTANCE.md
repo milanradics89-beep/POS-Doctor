@@ -2,7 +2,7 @@
 
 Complete this record before promoting a build beyond internal testing. Do not enter secrets, raw attestation payloads, personal data, or bearer tokens.
 
-## Latest verified automated evidence (2026-11-03; exact PR HEAD: `40b79d41d304fb949e3576447487377672845455`; not a production sign-off)
+## Previous verified automated evidence (superseded by 5ecdd04; exact PR HEAD: `40b79d4`; not a production sign-off)
 
 At evidence capture, PR #41 was open, unmerged, and non-draft on `fix/release-blockers-2026-10`. Exact HEAD [`40b79d4`](https://github.com/milanradics89-beep/POS-Doctor/commit/40b79d41d304fb949e3576447487377672845455) passed all three required automated workflows. It is a documentation-only commit whose parent is [`f79da96`](https://github.com/milanradics89-beep/POS-Doctor/commit/f79da966d0d6a257feebf37db05ad2cfe1ea6303); the latest application-source change remains [`d7aeb21`](https://github.com/milanradics89-beep/POS-Doctor/commit/d7aeb212fbd3c47009edbb981540a09e3c431a3f). PR base and `main` HEAD were both `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`.
 
@@ -18,7 +18,7 @@ There are nine inline PR #41 review threads at capture: eight resolved and one o
 
 This is automated CI evidence, not production acceptance. Physical-device App Attest/Play Integrity, production secrets/provider configuration, approved staging load probe, witnessed backup/restore, production monitoring/alert delivery, staged store rollout, pilot thresholds, moderate npm-audit risk decision, and human approvals remain open. The documentation-only commit created by this refresh is a new child of `40b79d4`; it must pass its own Validation, CodeQL, and Dependency Review. Do not reuse the parent run IDs above as checks for the new HEAD.
 
-## Previous exact-head evidence baseline (superseded by 40b79d4; not a production sign-off)
+## Earlier exact-head evidence baseline (superseded by 40b79d4; not a production sign-off)
 
 PR #41 remains open, unmerged, and non-draft. Exact PR HEAD [`f79da96`](https://github.com/milanradics89-beep/POS-Doctor/commit/f79da966d0d6a257feebf37db05ad2cfe1ea6303) passed Validation, CodeQL, and Dependency Review. The latest application-source change remains [`d7aeb21`](https://github.com/milanradics89-beep/POS-Doctor/commit/d7aeb212fbd3c47009edbb981540a09e3c431a3f); the current SHA is a documentation-only evidence update. The PR base and `main` HEAD are both `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`.
 
@@ -35,10 +35,26 @@ All eight inline PR #41 review threads are resolved. The latest Codex review for
 
 This evidence is not production sign-off. Simulator/emulator results do not satisfy physical-device App Attest or Play Integrity. Production secrets/provider settings, approved staging load probe, backup/restore, monitoring/alert delivery, store rollout, pilot thresholds, moderate npm-audit risk decision, and human approvals remain unverified.
 
+## Latest verified automated evidence (2026-11-03; exact PR HEAD: `5ecdd04aaa70b42875d44385a89d73a3e590009f`; not a production sign-off)
+
+At evidence capture, PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`. Exact HEAD [`5ecdd04`](https://github.com/milanradics89-beep/POS-Doctor/commit/5ecdd04aaa70b42875d44385a89d73a3e590009f) passed all three required automated workflows. It is a documentation-only commit whose parent is [`40b79d4`](https://github.com/milanradics89-beep/POS-Doctor/commit/40b79d41d304fb949e3576447487377672845455); the latest application-source change remains [`d7aeb21`](https://github.com/milanradics89-beep/POS-Doctor/commit/d7aeb212fbd3c47009edbb981540a09e3c431a3f). PR base and `main` HEAD are both `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`.
+
+- [Validation 41556866423](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866423): backend [125657773117](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866423/job/125657773117), frontend/Android [125657773577](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866423/job/125657773577), and iOS [125657773575](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866423/job/125657773575) all succeeded. Backend compilation/tests, production-readiness checks, and dependency audit passed. Frontend typecheck/unit tests, Expo Doctor, Android export/Release build/emulator smoke test, and runtime dependency audit passed. iOS native generation, CocoaPods, Release simulator build, and install/launch smoke test passed.
+- [CodeQL 41556866111](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866111), analyze job [125657772617](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866111/job/125657772617), succeeded.
+- [Dependency Review 41556866105](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866105), job [125657772767](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866105/job/125657772767), succeeded with zero vulnerable packages, zero incompatible licenses, and zero invalid SPDX definitions. Warnings remain for unknown license metadata on `vendor/deepmerge@4.3.2`, Scorecard below threshold for `@expo/devcert@1.2.2` (2.9) and `is-mergeable-object@1.1.1` (1.5), and 11 moderate frontend runtime npm-audit advisories. No forced Expo downgrade or audit-threshold reduction was applied.
+
+The known source findings remain covered: explicit-auth POST retry tests; effective `Request`/init header and method semantics; valid base64 privacy fixture; sanitized error-boundary logging; Settings recovery for permanently denied camera/gallery permissions; and App Attest enrollment marked only after server acceptance, with pending evidence stored before submission.
+
+[Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed. Active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) protects the default branch with strict required checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`; PR/one-approval requirements, stale-review dismissal, last-push approval, resolved-thread requirement, deletion/non-fast-forward protection, and no bypass actors. Main reports `protected: true`. No `APPROVED` review submission is currently recorded on PR #41.
+
+There are nine inline PR #41 review threads at capture: eight resolved and one open, outdated P2 thread about the previous `40b79d4` exact-head evidence wording. This record now supplies the successful `5ecdd04` exact-head workflow links; the old thread is ready for resolution after this correction is reviewed. [Issue #46](https://github.com/milanradics89-beep/POS-Doctor/issues/46) remains open for a historical CodeQL failure; the current exact-head CodeQL run succeeded. GitHub Releases is empty. Full code-scanning, Dependabot, and secret-scanning alert inventories are unavailable through the connected integration, so alert status remains **unverified**.
+
+This is automated CI evidence, not production acceptance. Physical-device App Attest/Play Integrity, production secrets/provider configuration, approved staging load probe, witnessed backup/restore, production monitoring/alert delivery, staged store rollout, pilot thresholds, moderate npm-audit risk decision, and human approvals remain open. The documentation-only commit created by this evidence refresh is a child of `5ecdd04`; evaluate its own required checks on its own SHA rather than reusing the parent runs.
+
 ## Evidence gates
 
-- [x] Exact-head Validation, CodeQL, and Dependency Review passed on PR HEAD `40b79d41d304fb949e3576447487377672845455`: Validation 41552250326 (backend 125642452241, frontend 125642452698, iOS 125642452623), CodeQL 41552250336 (analyze 125642453074), Dependency Review 41552250325 (125642452207).
-- [ ] Run and record the three required workflows for the documentation-only child commit created by this evidence refresh; do not reuse the parent-baseline run IDs.
+- [x] Exact-head Validation, CodeQL, and Dependency Review passed on PR HEAD `5ecdd04aaa70b42875d44385a89d73a3e590009f`: Validation 41556866423 (backend 125657773117, frontend 125657773577, iOS 125657773575), CodeQL 41556866111 (analyze 125657772617), Dependency Review 41556866105 (125657772767).
+- [ ] Evaluate the documentation-only child commit created by this evidence refresh against its own required checks; do not reuse the `5ecdd04` parent-baseline run IDs.
 - [ ] Review or remediate the 11 moderate npm-audit advisories in the Expo 57 transitive dependency graph; do not apply a forced Expo downgrade or lower the audit threshold.
 - [x] Main branch protection: active ruleset 26370589 verified; issue #47 closed. Exact required checks, PR/approval rules, deletion/non-fast-forward protection, and no-bypass policy are confirmed.
 - [ ] Verify production environment secrets, provider identity/configuration, and readiness in the deployed environment.

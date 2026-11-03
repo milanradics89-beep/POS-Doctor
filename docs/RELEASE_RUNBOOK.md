@@ -4,6 +4,25 @@ This runbook is the release gate for the USEIT mobile app and backend. A green u
 
 ## 1. Required CI evidence
 
+### Latest verified automated CI baseline (2026-11-03; exact PR HEAD: `5ecdd04aaa70b42875d44385a89d73a3e590009f`; not production sign-off)
+
+At evidence capture, PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`. Exact HEAD [`5ecdd04`](https://github.com/milanradics89-beep/POS-Doctor/commit/5ecdd04aaa70b42875d44385a89d73a3e590009f) passed Validation, CodeQL, and Dependency Review. This is a documentation-only commit whose parent is [`40b79d4`](https://github.com/milanradics89-beep/POS-Doctor/commit/40b79d41d304fb949e3576447487377672845455); the latest application-source change remains [`d7aeb21`](https://github.com/milanradics89-beep/POS-Doctor/commit/d7aeb212fbd3c47009edbb981540a09e3c431a3f). PR base and `main` HEAD are both `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`.
+
+Exact-head workflow evidence:
+- [Validation 41556866423](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866423): backend [125657773117](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866423/job/125657773117), frontend/Android [125657773577](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866423/job/125657773577), and iOS [125657773575](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866423/job/125657773575) all completed successfully. Backend compilation, full tests, production-readiness checks, and dependency audit passed. Frontend source-boundary guard, typecheck, unit tests, Expo Doctor, Android export/Release build, emulator install/launch, and runtime dependency audit passed. iOS native generation, CocoaPods, Release simulator build, and simulator install/launch passed.
+- [CodeQL 41556866111](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866111), analyze job [125657772617](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866111/job/125657772617), succeeded.
+- [Dependency Review 41556866105](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866105), job [125657772767](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41556866105/job/125657772767), succeeded. It reported zero vulnerable packages, zero incompatible licenses, and zero invalid SPDX definitions; warnings remain for unknown license metadata on `vendor/deepmerge@4.3.2` and low OpenSSF Scorecard results for `@expo/devcert@1.2.2` (2.9) and `is-mergeable-object@1.1.1` (1.5). The frontend runtime audit still reports 11 moderate transitive advisories; no forced Expo downgrade or audit-threshold reduction was applied.
+
+Source/review checks remain present: explicit-auth POST retry fixtures; effective Fetch `Request`/init header replacement and method handling; valid base64 image data in the vision-usage privacy test; sanitized error-boundary logging; Settings recovery for permanently denied camera/gallery permissions; and App Attest enrollment marking only after server acceptance, with pending evidence persisted before submission.
+
+Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed. Active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) targets the default branch and requires strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`; it requires pull requests and one approval, dismisses stale approvals, requires last-push approval and resolved threads, blocks deletion/non-fast-forward updates, and has no bypass actors. The main branch API reports `protected: true`.
+
+PR #41 has nine inline review threads: eight resolved and one open, outdated P2 thread about the previous `40b79d4` exact-head wording. This record now captures successful checks for `5ecdd04`; the old thread is ready to be resolved after this evidence correction is reviewed. No `APPROVED` review submission is recorded on PR #41, so the one-approval merge gate remains outstanding.
+
+Issue [#46](https://github.com/milanradics89-beep/POS-Doctor/issues/46) remains open for a historical CodeQL failure on `9616867170b299797a699929b2939b5571266307`; current exact-head CodeQL succeeded. The GitHub Releases endpoint is empty. Complete code-scanning, Dependabot, and secret-scanning alert inventories are not exposed by the connected integration; their status remains **unverified**, not zero.
+
+This is automated CI evidence, not production sign-off. Physical-device App Attest/Play Integrity, production provider secrets/configuration, approved staging load probe, backup/restore, production monitoring and alert delivery, staged store rollout, pilot thresholds, the moderate npm-audit risk decision, and human approvals remain unverified. The documentation-only commit created by this evidence refresh is a new child of `5ecdd04`; its own checks must be evaluated on that child SHA and must not reuse the parent run IDs above.
+
 For the exact commit intended for release, require all of the following to pass:
 
 - [ ] Source-boundary guard, TypeScript typecheck, and frontend unit tests.
@@ -19,7 +38,7 @@ For the exact commit intended for release, require all of the following to pass:
 
 Do not merge a commit whose CI is still running, cancelled, or failed. A cancelled run is not a pass.
 
-### Latest verified automated CI baseline (2026-11-03; exact PR HEAD: `40b79d41d304fb949e3576447487377672845455`; not production sign-off)
+### Previous verified automated CI baseline (superseded by 5ecdd04; exact PR HEAD: `40b79d4`; not production sign-off)
 
 At evidence capture, PR #41 was open, unmerged, and non-draft on `fix/release-blockers-2026-10`. The exact HEAD [`40b79d4`](https://github.com/milanradics89-beep/POS-Doctor/commit/40b79d41d304fb949e3576447487377672845455) passed Validation, CodeQL, and Dependency Review. This is a documentation-only commit whose parent is [`f79da96`](https://github.com/milanradics89-beep/POS-Doctor/commit/f79da966d0d6a257feebf37db05ad2cfe1ea6303); the latest application-source change remains [`d7aeb21`](https://github.com/milanradics89-beep/POS-Doctor/commit/d7aeb212fbd3c47009edbb981540a09e3c431a3f). PR base and `main` HEAD were both `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`.
 
@@ -38,7 +57,7 @@ Issue [#46](https://github.com/milanradics89-beep/POS-Doctor/issues/46) remains 
 
 This evidence is not production sign-off. Physical-device App Attest/Play Integrity, production provider secrets/configuration, approved staging load probe, backup/restore, production monitoring and alert delivery, staged store rollout, pilot thresholds, the moderate npm-audit risk decision, and human approvals remain unverified. **This documentation-only evidence refresh is a new child of `40b79d4`; the run IDs above do not validate that new child. Its own Validation, CodeQL, and Dependency Review must complete before merge.**
 
-### Previous fully validated automated CI baseline (superseded by 40b79d4; exact PR HEAD `f79da96`)
+### Earlier validated automated CI baseline (superseded by 40b79d4; exact PR HEAD `f79da96`)
 
 PR #41 remains open, unmerged, and non-draft. Exact PR HEAD [`f79da96`](https://github.com/milanradics89-beep/POS-Doctor/commit/f79da966d0d6a257feebf37db05ad2cfe1ea6303) passed all three required automated workflows. The latest application-source change remains [`d7aeb21`](https://github.com/milanradics89-beep/POS-Doctor/commit/d7aeb212fbd3c47009edbb981540a09e3c431a3f); `f79da96` is documentation-only. The PR base and `main` HEAD are both `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`.
 
