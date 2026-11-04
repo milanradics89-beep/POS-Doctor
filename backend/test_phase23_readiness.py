@@ -178,6 +178,9 @@ async def test_production_readiness_fails_when_redis_rate_limit_script_is_unavai
         async def ping(self):
             return True
 
+        async def pexpire(self, key, milliseconds):
+            return False
+
         async def eval(self, *args):
             raise ResponseError("NOPERM EVAL is not permitted")
 
@@ -282,6 +285,9 @@ async def test_production_readiness_fails_when_attestation_getdel_is_unavailable
 
         async def ping(self):
             return True
+
+        async def pexpire(self, key, milliseconds):
+            return False
 
         async def eval(self, *args):
             self.eval_calls += 1
