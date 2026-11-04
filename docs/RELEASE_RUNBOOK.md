@@ -2,13 +2,13 @@
 
 This runbook is the release gate for the USEIT mobile app and backend. A green unit-test run alone is not a production approval.
 
-### Latest fully validated exact-head CI baseline (2026-11-04; PR #41 HEAD: `bc2fef2f7ab9be39c0ae730c45d253b52b6aa47c`; automated CI only, not production sign-off)
+### Latest fully validated exact-head CI baseline (2026-11-04; PR #41 HEAD: `9b730a9086b0b35cb5dd774119ec3115cb8c12b5`; automated CI only, not production sign-off)
 
-At evidence capture, PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. The current documentation-only HEAD `bc2fef2` is a child of the production-credential hardening/source baseline `cb5e7a4`. All three required workflows completed successfully for the exact current HEAD:
+At evidence capture, PR #41 was open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. The latest fully validated commit is the documentation-only HEAD [`9b730a9`](https://github.com/milanradics89-beep/POS-Doctor/commit/9b730a9086b0b35cb5dd774119ec3115cb8c12b5), whose parent is [`bc2fef2`](https://github.com/milanradics89-beep/POS-Doctor/commit/bc2fef2f7ab9be39c0ae730c45d253b52b6aa47c). All three required workflows completed successfully for the exact SHA `9b730a9086b0b35cb5dd774119ec3115cb8c12b5`:
 
-- [Validation 41814162716](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41814162716): backend [126520576334](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41814162716/job/126520576334), frontend/Android [126520576098](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41814162716/job/126520576098), and iOS [126520575429](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41814162716/job/126520575429) all completed successfully.
-- [CodeQL 41814162916](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41814162916), analyze job [126520576730](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41814162916/job/126520576730), succeeded and uploaded combined JavaScript/Python SARIF. The log contains a non-fatal SARIF column-kind mismatch warning.
-- [Dependency Review 41814162661](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41814162661), dependency-review job [126520575605](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41814162661/job/126520575605), succeeded.
+- [Validation 41817720466](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720466): backend [126532703223](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720466/job/126532703223), frontend/Android [126532647348](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720466/job/126532647348), and iOS [126532648321](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720466/job/126532648321) all completed successfully.
+- [CodeQL 41817720556](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720556), analyze job [126532647549](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720556/job/126532647549), succeeded and uploaded combined JavaScript/Python SARIF. The log contains a non-fatal SARIF column-kind mismatch warning.
+- [Dependency Review 41817720467](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720467), dependency-review job [126532647866](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720467/job/126532647866), succeeded.
 
 Backend validation reported **374 tests passed**, **24 production-readiness checks passed**, and **32 production-security checks passed**. The backend test and readiness suites each emitted one non-blocking Starlette/httpx TestClient deprecation warning. Backend `pip-audit` reported no known vulnerabilities. Redis emitted a runner-host `vm.overcommit_memory` warning; the job still completed successfully.
 
@@ -26,7 +26,7 @@ Issue [#50](https://github.com/milanradics89-beep/POS-Doctor/issues/50) is close
 
 The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Physical-device iPhone App Attest with production entitlement, Play-installed Android Play Integrity, production provider secrets/configuration, an owner-approved staging load probe, witnessed backup/restore, production monitoring and alert delivery, staged rollout, pilot thresholds/business approval, the moderate npm-audit risk decision, and human PR approval remain outstanding. Do not infer completion from source presence, CI, simulators, or emulators.
 
-The workflow runs above validate only `bc2fef2f7ab9be39c0ae730c45d253b52b6aa47c`. This documentation refresh is a child of that validated commit; its own Validation, CodeQL, and Dependency Review must complete successfully for its exact SHA before merge. This is automated CI evidence only, not production, physical-device, pilot, or business sign-off.
+The workflow runs above validate only `9b730a9086b0b35cb5dd774119ec3115cb8c12b5`. The documentation-only commit created from this baseline is not covered by these runs; its own Validation, CodeQL, and Dependency Review must complete successfully for its exact SHA before merge. This is automated CI evidence only, not production, physical-device, pilot, or business sign-off.
 ## 1. Required CI evidence
 
 ### Previous validated exact-head automated CI baseline (superseded by latest evidence above; 2026-11-04)
