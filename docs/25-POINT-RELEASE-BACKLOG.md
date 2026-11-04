@@ -1,10 +1,37 @@
 # USEIT 25-point release backlog
 
-Last reviewed: 2026-11-04 04:50 CET
+Last reviewed: 2026-11-04 11:21 CET
 Working branch: fix/release-blockers-2026-10
 PR: [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41)
 
-### Last fully validated exact-head automated CI baseline (2026-11-04; validated PR HEAD: `f2596072f77af2c9f3b390ca56175e6ea6111152`; automated CI only, not production sign-off)
+### Latest verified exact-head CI baseline (2026-11-04; PR #41 HEAD: `cb5e7a4e487be8cc3bd069f94797326449811ec6`; automated CI only, not production sign-off)
+
+At evidence capture, PR #41 was open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. The validated HEAD is the production-credential hardening commit [`cb5e7a4`](https://github.com/milanradics89-beep/POS-Doctor/commit/cb5e7a4e487be8cc3bd069f94797326449811ec6), which removes the example session secret from `backend/.env.example`, rejects placeholder production API/session credentials, and adds six parametrized regression cases.
+
+- [Validation 41801248442](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41801248442): backend [126489520098](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41801248442/job/126489520098), frontend/Android [126489592191](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41801248442/job/126489592191), and iOS [126489518590](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41801248442/job/126489518590) all completed successfully.
+- [CodeQL 41801248444](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41801248444), analyze job [126477264840](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41801248444/job/126477264840), succeeded and uploaded SARIF. The log contains a non-fatal SARIF column-kind mismatch warning.
+- [Dependency Review 41801248470](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41801248470), dependency-review job [126477264407](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41801248470/job/126477264407), succeeded.
+
+Backend validation reported **374 tests passed**, **24 production-readiness checks passed**, and **32 production-security checks passed**. The test and readiness suites each emitted one non-blocking Starlette/httpx TestClient deprecation warning. Backend `pip-audit` reported **no known vulnerabilities**. Redis emitted a runner-host `vm.overcommit_memory` warning; the job still completed successfully.
+
+Frontend validation passed the USEIT source-boundary guard, TypeScript typecheck, **219 unit tests across 54 test files**, Expo Doctor (**21/21 checks**), Android export/Release build, Android emulator install/launch smoke test, and the configured runtime dependency audit threshold. The npm audit still reports **11 moderate** transitive `glob`/`minimatch` advisories: [GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4) and [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249). No forced Expo downgrade or audit-threshold reduction was applied.
+
+iOS native generation, CocoaPods installation, Release simulator build, and simulator install/launch smoke test passed. Simulator evidence is not physical-device App Attest acceptance. The successful simulator build still emits non-blocking React Native/Hermes script-phase and JavaScript global-reference warnings.
+
+Dependency Review found **no vulnerable packages at severity high or higher** and **no denied packages**. It still reports unknown lockfile license metadata for vendored `vendor/deepmerge@4.3.2` (the checked-in manifest and LICENSE declare MIT), plus below-threshold OpenSSF Scorecard results for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5). These supply-chain warnings remain open for owner risk acceptance or a verified compatible remediation; they are not represented as clean.
+
+All **11 inline PR #41 review threads are resolved**. The **15 recorded review submissions contain no `APPROVED` review**; the required human approval and last-push approval gates remain outstanding. The five tracked client/request/privacy findings are covered by source/tests: explicit-auth POST retry fixtures; effective Fetch `Request`/init headers and method handling; valid base64 image data in the `vision_usage` privacy test; error-boundary logging without raw `Error` objects; and Settings recovery for permanently denied camera/gallery permissions. App Attest enrollment is marked only after server acceptance, with pending same-evidence recovery. The newer Redis readiness P2 finding was fixed by preflighting `PEXPIRE` before the mutating Lua probe, with regression coverage for denial on either key; the fixture follow-up is included in this validated branch.
+
+Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed. Main is protected by active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589), which requires strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`; pull requests, one approval, last-push approval, and resolved threads; it blocks deletion and non-fast-forward updates and has no bypass actors. The main branch API reports `protected: true`.
+
+Issue [#50](https://github.com/milanradics89-beep/POS-Doctor/issues/50) is closed after the Redis readiness fixture repair. Issue [#46](https://github.com/milanradics89-beep/POS-Doctor/issues/46) remains open for a historical CodeQL action-version failure; the current exact-head CodeQL run succeeded. The GitHub Releases endpoint is empty. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories are not exposed by the connected integration; their status remains **unverified**, not zero.
+
+The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Physical-device iPhone App Attest with production entitlement, Play-installed Android Play Integrity, production provider secrets/configuration, an owner-approved staging load probe, witnessed backup/restore, production monitoring and alert delivery, staged rollout, pilot thresholds/business approval, the moderate npm-audit risk decision, and human PR approval remain outstanding. Do not infer completion from source presence, CI, simulators, or emulators.
+
+The three workflow runs above validate only `cb5e7a4e487be8cc3bd069f94797326449811ec6`. This documentation-only evidence refresh is a child of that validated commit; its own Validation, CodeQL, and Dependency Review must complete successfully for its exact SHA before merge. This is automated CI evidence only, not production, physical-device, pilot, or business sign-off.
+
+
+### Previous validated exact-head automated CI baseline (superseded by latest evidence above; 2026-11-04)
 
 At evidence capture, PR #41 was open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main`. Validation, CodeQL, and Dependency Review all completed successfully for this exact commit. This is a documentation-only commit; the latest application source/test change remains [`a68af8c`](https://github.com/milanradics89-beep/POS-Doctor/commit/a68af8c62947ba5fd550c8111c347d0206043581).
 
@@ -26,7 +53,7 @@ Issue [#46](https://github.com/milanradics89-beep/POS-Doctor/issues/46) remains 
 
 The connected GitHub integration does not expose complete Code Scanning, Dependabot, or Secret Scanning alert inventories. Their status remains **unverified**, not zero. The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Physical-device iPhone App Attest, Play-installed Android Play Integrity, production provider secrets/configuration, owner-approved staging load probe, witnessed backup/restore, production monitoring and alert delivery, staged rollout, pilot thresholds, moderate npm-audit risk acceptance, and human approval remain outstanding.
 
-The run links above validate only `f2596072f77af2c9f3b390ca56175e6ea6111152`; they do not establish the status of a later descendant. This documentation-only refresh is a new child of this validated baseline, so its own Validation, CodeQL, and Dependency Review must pass for its exact SHA before merge. This is automated CI evidence only, not production, physical-device, pilot, or business sign-off.
+The run links above validate only `f2596072f77af2c9f3b390ca56175e6ea6111152`; they do not establish the status of a later descendant. At that earlier evidence capture, the documentation-only refresh was a child of this baseline and required its own exact-SHA checks. That historical gate is superseded by the newer validated evidence above. This is automated CI evidence only, not production, physical-device, pilot, or business sign-off.
 
 ## Previous validated release evidence
 ## Previous validated release evidence (superseded by current exact-head evidence) (2026-11-03; exact validated SHA: `45ac420857dfce396e0668732e91ed7301fd126e`; at that earlier evidence capture, PR HEAD `98e47ff` had failed/incomplete Validation; superseded by validated SHA `34c5328`; not production sign-off)
