@@ -145,6 +145,23 @@ async def _redis_challenge_store() -> AsyncIterator[ChallengeStoreBackend]:
         await redis.aclose()
 
 
+
+async def check_redis_challenge_store_capability(redis: Redis) -> bool:
+    """Verify the Redis SET/GETDEL operations required for shared challenges."""
+    from backend.attestation_store import RedisChallengeStore
+
+    provider = configured_attestation_provider()
+    app_id = configured_attestation_app_id()
+    challenge = secrets.token_urlsafe(32)
+    store = RedisChallengeStore(redis)
+    try:
+        await store.put(challenge, provider, app_id, ttl_seconds=30)
+        record = await store.consume(challenge)
+    except (AttributeError, RuntimeError):
+        return False
+    return record is not None and record.provider is provider and record.app_id == app_id
+
+
 def issue_challenge(ttl_seconds: int | None = None) -> AttestationChallenge:
     ttl = ttl_seconds if ttl_seconds is not None else attestation_challenge_ttl_seconds()
     ttl = max(30, min(ttl, MAX_CHALLENGE_TTL_SECONDS))

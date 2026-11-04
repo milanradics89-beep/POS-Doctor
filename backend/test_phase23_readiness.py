@@ -71,14 +71,14 @@ async def test_production_readiness_requires_shared_redis_configuration(monkeypa
 
 
 
-@pytest.mark.parametrize("attestation_mode", ["disabled", "required"])
+@pytest.mark.parametrize("attestation_mode", ["disabled", "optional", "required"])
 @pytest.mark.asyncio
 async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch, attestation_mode):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
     monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", attestation_mode)
-    if attestation_mode == "required":
+    if attestation_mode != "disabled":
         monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
     else:
         monkeypatch.delenv("USEIT_ATTESTATION_APP_ID", raising=False)
@@ -91,8 +91,33 @@ async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch
     class FakeRedis:
         closed = False
 
+        def __init__(self):
+            self.eval_calls = 0
+            self.set_calls = 0
+            self.getdel_calls = 0
+            self.challenge_key = None
+            self.challenge_value = None
+
         async def ping(self):
             return True
+
+        async def eval(self, *args):
+            self.eval_calls += 1
+            return [1, 0] if self.eval_calls == 1 else [0, 60]
+
+        async def set(self, key, value, ex, nx):
+            self.set_calls += 1
+            self.challenge_key = key
+            self.challenge_value = value
+            return True
+
+        async def getdel(self, key):
+            self.getdel_calls += 1
+            if key != self.challenge_key or self.challenge_value is None:
+                return None
+            value = self.challenge_value.encode("utf-8")
+            self.challenge_value = None
+            return value
 
         async def aclose(self):
             self.closed = True
@@ -112,6 +137,109 @@ async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch
         "socket_timeout": 2,
     }
     assert len(created_clients) == 1
+    assert created_clients[0].eval_calls == 2
+    expected_attestation_probes = 0 if attestation_mode == "disabled" else 1
+    assert created_clients[0].set_calls == expected_attestation_probes
+    assert created_clients[0].getdel_calls == expected_attestation_probes
+    assert created_clients[0].closed
+
+
+@pytest.mark.asyncio
+async def test_production_readiness_fails_when_redis_rate_limit_script_is_unavailable(monkeypatch):
+    from redis.exceptions import ResponseError
+
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
+    monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+
+    created_clients = []
+
+    class EvalDeniedRedis:
+        closed = False
+
+        async def ping(self):
+            return True
+
+        async def eval(self, *args):
+            raise ResponseError("NOPERM EVAL is not permitted")
+
+        async def aclose(self):
+            self.closed = True
+
+    def fake_from_url(*args, **kwargs):
+        client = EvalDeniedRedis()
+        created_clients.append(client)
+        return client
+
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", fake_from_url)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await main.ready()
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Service is not ready."
+    assert len(created_clients) == 1
+    assert created_clients[0].closed
+
+
+@pytest.mark.asyncio
+async def test_production_readiness_fails_when_attestation_getdel_is_unavailable(monkeypatch):
+    from redis.exceptions import ResponseError
+
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
+    monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
+    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+
+    created_clients = []
+
+    class GetdelDeniedRedis:
+        closed = False
+
+        def __init__(self):
+            self.eval_calls = 0
+            self.challenge_key = None
+            self.challenge_value = None
+
+        async def ping(self):
+            return True
+
+        async def eval(self, *args):
+            self.eval_calls += 1
+            return [1, 0] if self.eval_calls == 1 else [0, 60]
+
+        async def set(self, key, value, ex, nx):
+            self.challenge_key = key
+            self.challenge_value = value
+            return True
+
+        async def getdel(self, key):
+            raise ResponseError("ERR unknown command 'GETDEL'")
+
+        async def aclose(self):
+            self.closed = True
+
+    def fake_from_url(*args, **kwargs):
+        client = GetdelDeniedRedis()
+        created_clients.append(client)
+        return client
+
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", fake_from_url)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await main.ready()
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Service is not ready."
+    assert len(created_clients) == 1
+    assert created_clients[0].eval_calls == 2
+    assert created_clients[0].challenge_key.startswith("useit:attestation:challenge:")
     assert created_clients[0].closed
 
 

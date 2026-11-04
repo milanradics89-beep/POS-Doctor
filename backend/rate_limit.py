@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import os
+import secrets
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable
@@ -104,6 +105,45 @@ async def _redis_allowed(request: Request, limit: int, namespace: str = "rate") 
         return allowed, 0 if allowed else max(1, retry_after)
     finally:
         await client.aclose()
+
+
+async def check_redis_rate_limit_capability(redis_client) -> bool:
+    """Exercise the same Redis Lua path used by live rate limiting.
+
+    The unique readiness keys expire automatically; no production rate-limit
+    bucket is read, changed, or reset by this probe.
+    """
+    probe_id = secrets.token_hex(16)
+    events_key = f"useit:rate:readiness:{probe_id}:events"
+    sequence_key = f"{events_key}:sequence"
+    first = await redis_client.eval(
+        _REDIS_RATE_LIMIT_SLIDING_WINDOW_SCRIPT,
+        2,
+        events_key,
+        sequence_key,
+        RATE_LIMIT_WINDOW_MS,
+        1,
+    )
+    second = await redis_client.eval(
+        _REDIS_RATE_LIMIT_SLIDING_WINDOW_SCRIPT,
+        2,
+        events_key,
+        sequence_key,
+        RATE_LIMIT_WINDOW_MS,
+        1,
+    )
+    try:
+        first_allowed, first_retry = first
+        second_allowed, second_retry = second
+        return (
+            int(first_allowed) == 1
+            and int(first_retry) == 0
+            and int(second_allowed) == 0
+            and int(second_retry) > 0
+        )
+    except (TypeError, ValueError):
+        return False
+
 
 def _prune_expired_buckets(
     buckets: dict[tuple[str, str], deque[float]], cutoff: float

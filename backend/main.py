@@ -27,6 +27,7 @@ from backend.attestation import (
     configured_attestation_mode,
     configured_attestation_provider,
     configured_redis_url,
+    check_redis_challenge_store_capability,
     evaluate_attestation,
     issue_challenge_async,
     validate_challenge_binding_async,
@@ -39,7 +40,7 @@ from backend.personal_memory import router as personal_memory_router
 from backend.product_discovery import ProductDiscoveryRequest, discover_products, router as product_discovery_router
 from backend.product_extractor import router as product_extractor_router
 from backend.redesign import router as redesign_router
-from backend.rate_limit import install_rate_limit, rate_limit_mode
+from backend.rate_limit import install_rate_limit, rate_limit_mode, check_redis_rate_limit_capability
 from backend.request_controls import install_request_controls
 from backend.observability import install_observability
 from backend.security_headers import install_security_headers
@@ -206,6 +207,13 @@ async def ready():
                     socket_timeout=2,
                 )
                 await redis_client.ping()
+                if not await check_redis_rate_limit_capability(redis_client):
+                    logger.warning("Readiness check failed: Redis rate-limit commands are unavailable")
+                    dependencies_ready = False
+                elif configured_attestation_mode() is not AttestationMode.DISABLED:
+                    if not await check_redis_challenge_store_capability(redis_client):
+                        logger.warning("Readiness check failed: Redis attestation challenge commands are unavailable")
+                        dependencies_ready = False
             except (RedisError, TimeoutError, OSError, ValueError):
                 logger.warning("Readiness check failed: shared Redis is unavailable")
                 dependencies_ready = False
