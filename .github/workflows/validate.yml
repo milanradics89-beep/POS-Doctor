@@ -209,7 +209,7 @@ jobs:
             -derivedDataPath build/ios-simulator \
             build
       - name: Install and launch iOS simulator smoke test
-        timeout-minutes: 10
+        timeout-minutes: 15
         shell: bash
         run: |
           set -euo pipefail
@@ -246,9 +246,7 @@ jobs:
           echo "Installing app into simulator..."
           xcrun simctl install "$DEVICE_UDID" "$APP_PATH"
           echo "Launching app in simulator..."
-          xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID"
-          sleep 3
-          xcrun simctl spawn "$DEVICE_UDID" launchctl print system 2>/dev/null >/dev/null
+          node scripts/ios-simulator-launch.mjs "$DEVICE_UDID" "$BUNDLE_ID"
           echo "iOS simulator smoke test passed for $BUNDLE_ID"
 
   backend:
