@@ -3,7 +3,7 @@ import { parseSimctlLaunchPid } from './ios-simulator-launch.mjs';
 
 describe('parseSimctlLaunchPid', () => {
   it('extracts the process ID from successful simctl launch output', () => {
-    expect(parseSimctlLaunchPid('com.useit.app: 59448\\n', 'com.useit.app')).toBe('59448');
+    expect(parseSimctlLaunchPid('com.useit.app: 59448\n', 'com.useit.app')).toBe('59448');
   });
 
   it('accepts surrounding whitespace without accepting extra output', () => {
@@ -22,6 +22,6 @@ describe('parseSimctlLaunchPid', () => {
   );
 
   it('rejects ambiguous multi-line output', () => {
-    expect(parseSimctlLaunchPid('warning\\ncom.useit.app: 42', 'com.useit.app')).toBeNull();
+    expect(parseSimctlLaunchPid('warning\ncom.useit.app: 42', 'com.useit.app')).toBeNull();
   });
 });

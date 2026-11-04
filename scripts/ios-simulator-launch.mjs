@@ -7,14 +7,14 @@ export function parseSimctlLaunchPid(output, bundleId) {
     return null;
   }
 
-  const lines = output.trim().split(/\\r?\\n/);
+  const lines = output.trim().split(/\r?\n/);
   if (lines.length !== 1) return null;
 
   const prefix = `${bundleId}:`;
   if (!lines[0].startsWith(prefix)) return null;
 
   const pid = lines[0].slice(prefix.length).trim();
-  return /^[1-9]\\d*$/.test(pid) ? pid : null;
+  return /^[1-9]\d*$/.test(pid) ? pid : null;
 }
 
 function launchSimulatorApp(deviceId, bundleId) {
