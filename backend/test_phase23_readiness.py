@@ -93,6 +93,8 @@ async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch
 
         def __init__(self):
             self.eval_calls = 0
+            self.pexpire_calls = []
+            self.operation_order = []
             self.set_calls = 0
             self.getdel_calls = 0
             self.challenge_key = None
@@ -101,7 +103,13 @@ async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch
         async def ping(self):
             return True
 
+        async def pexpire(self, key, milliseconds):
+            self.pexpire_calls.append((key, milliseconds))
+            self.operation_order.append("pexpire")
+            return False  # The unique readiness keys do not exist yet.
+
         async def eval(self, *args):
+            self.operation_order.append("eval")
             self.eval_calls += 1
             return [1, 0] if self.eval_calls == 1 else [0, 60]
 
@@ -138,6 +146,13 @@ async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch
     }
     assert len(created_clients) == 1
     assert created_clients[0].eval_calls == 2
+    assert created_clients[0].operation_order[:4] == [
+        "pexpire", "pexpire", "eval", "eval"
+    ]
+    assert [key.rsplit(":", 1)[-1] for key, _ in created_clients[0].pexpire_calls] == [
+        "events", "sequence"
+    ]
+    assert all(milliseconds > 0 for _, milliseconds in created_clients[0].pexpire_calls)
     expected_attestation_probes = 0 if attestation_mode == "disabled" else 1
     assert created_clients[0].set_calls == expected_attestation_probes
     assert created_clients[0].getdel_calls == expected_attestation_probes
@@ -182,6 +197,64 @@ async def test_production_readiness_fails_when_redis_rate_limit_script_is_unavai
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Service is not ready."
     assert len(created_clients) == 1
+    assert created_clients[0].closed
+
+
+@pytest.mark.parametrize("denied_key", ["events", "sequence"])
+@pytest.mark.asyncio
+async def test_production_readiness_preflights_redis_pexpire_before_rate_limit_script(
+    monkeypatch, denied_key
+):
+    from redis.exceptions import ResponseError
+
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
+    monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+
+    created_clients = []
+
+    class PexpireDeniedRedis:
+        closed = False
+
+        def __init__(self):
+            self.pexpire_calls = []
+            self.eval_calls = 0
+
+        async def ping(self):
+            return True
+
+        async def pexpire(self, key, milliseconds):
+            self.pexpire_calls.append((key, milliseconds))
+            if key.endswith(f":{denied_key}"):
+                raise ResponseError("NOPERM PEXPIRE is not permitted")
+            return False
+
+        async def eval(self, *args):
+            self.eval_calls += 1
+            pytest.fail("Readiness must reject denied PEXPIRE before running the mutating Lua script.")
+
+        async def aclose(self):
+            self.closed = True
+
+    def fake_from_url(*args, **kwargs):
+        client = PexpireDeniedRedis()
+        created_clients.append(client)
+        return client
+
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", fake_from_url)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await main.ready()
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Service is not ready."
+    assert len(created_clients) == 1
+    expected_suffixes = ["events"] if denied_key == "events" else ["events", "sequence"]
+    assert [key.rsplit(":", 1)[-1] for key, _ in created_clients[0].pexpire_calls] == expected_suffixes
+    assert created_clients[0].eval_calls == 0
     assert created_clients[0].closed
 
 

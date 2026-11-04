@@ -116,6 +116,11 @@ async def check_redis_rate_limit_capability(redis_client) -> bool:
     probe_id = secrets.token_hex(16)
     events_key = f"useit:rate:readiness:{probe_id}:events"
     sequence_key = f"{events_key}:sequence"
+    # Check both key-scoped PEXPIRE permissions while the unique probe keys are
+    # still absent. Redis does not roll back earlier Lua writes when a later
+    # command is denied, so the script must not run until both checks succeed.
+    await redis_client.pexpire(events_key, RATE_LIMIT_WINDOW_MS)
+    await redis_client.pexpire(sequence_key, RATE_LIMIT_WINDOW_MS)
     first = await redis_client.eval(
         _REDIS_RATE_LIMIT_SLIDING_WINDOW_SCRIPT,
         2,
