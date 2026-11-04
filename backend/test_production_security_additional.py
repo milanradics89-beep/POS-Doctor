@@ -30,3 +30,34 @@ def test_production_rejects_mixed_wildcard_origins(monkeypatch):
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://useit.example.com, *")
     with pytest.raises(RuntimeError, match="Wildcard CORS"):
         validate_production_security()
+
+
+
+@pytest.mark.parametrize(
+    "placeholder",
+    [
+        "replace-with-a-random-32-plus-character-secret",
+        "your-session-secret",
+        "change-me",
+    ],
+)
+def test_production_rejects_placeholder_session_secret(monkeypatch, placeholder):
+    _production(monkeypatch)
+    monkeypatch.setenv("USEIT_SESSION_SECRET", placeholder)
+    with pytest.raises(RuntimeError, match="USEIT_SESSION_SECRET must not be a placeholder"):
+        validate_production_security()
+
+
+@pytest.mark.parametrize(
+    "placeholder",
+    [
+        "replace-with-a-random-32-plus-character-api-key",
+        "your-api-key",
+        "change-me",
+    ],
+)
+def test_production_rejects_placeholder_api_key(monkeypatch, placeholder):
+    _production(monkeypatch)
+    monkeypatch.setenv("USEIT_API_KEY", placeholder)
+    with pytest.raises(RuntimeError, match="USEIT_API_KEY must not be a placeholder"):
+        validate_production_security()
