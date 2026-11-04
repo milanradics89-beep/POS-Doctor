@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
+import { buildVisualConceptPlan } from '../src/core/intelligence/visualConceptPlan';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { useProfilePreferences } from '../src/ui/useProfilePreferences';
 import { theme } from '../src/ui/theme';
@@ -44,6 +45,7 @@ export default function Home() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [lastIntent, setLastIntent] = useState<OpportunityKind | undefined>(undefined);
+  const visualConceptPlan = buildVisualConceptPlan(result);
 
   const reset = () => {
     setPhoto(null);
@@ -77,19 +79,12 @@ export default function Home() {
   }
 
   async function createVisualConcept() {
-    if (!photo || !result?.phase3?.redesign) return;
+    if (!photo || !visualConceptPlan) return;
     setRendering(true);
     setRenderError(null);
     try {
       const api = new UseitApiProvider(API_URL);
-      const products = result.phase3.redesign.products.map((product) => ({
-        title: product.title,
-        category: product.category,
-        priceHuf: product.priceHuf,
-        url: product.url,
-        id: product.productId,
-      }));
-      const renderedResult = await api.renderRedesign(photo, result.phase3.redesign.prompt, products);
+      const renderedResult = await api.renderRedesign(photo, visualConceptPlan.prompt, visualConceptPlan.products);
       setRendered(renderedResult.imageDataUrl);
     } catch (error) {
       setRenderError(error instanceof Error ? error.message : 'The redesign could not be rendered. The selected solution is still available.');
@@ -291,14 +286,14 @@ export default function Home() {
                   <View style={s.cautionCard}><Text style={s.cautionTitle}>A NOTE BEFORE YOU START</Text>{result.cautions.map((item, index) => <Text key={`${index}-${item}`} style={s.cautionText}>•  {item}</Text>)}</View>
                 ) : null}
 
-                {result.phase3?.redesign ? (
+                {visualConceptPlan ? (
                   <View>
                     <Text style={s.sectionLabel}>REDESIGN PLAN</Text>
                     <View style={s.planCard}>
                       <View style={s.planIcon}><Text style={s.planIconText}>✳</Text></View>
                       <View style={s.planCopy}>
-                        <Text style={s.planTitle}>{result.phase3.redesign.products.length} selected products</Text>
-                        <Text style={s.planDescription}>{result.phase3.redesign.actions.filter((item) => item.type === 'add').map((item) => item.target).join(' · ') || 'Your existing scene, reimagined with a considered plan.'}</Text>
+                        <Text style={s.planTitle}>{visualConceptPlan.products.length} selected products</Text>
+                        <Text style={s.planDescription}>{visualConceptPlan.actions.filter((item) => item.type === 'add').map((item) => item.target).join(' · ') || 'Your existing scene, reimagined with a considered plan.'}</Text>
                       </View>
                     </View>
                   </View>
@@ -316,7 +311,7 @@ export default function Home() {
                 )}
 
                 {renderError ? <View style={{ marginTop: 14 }}><StatePanel kind="error" title="The visual concept isn't ready" description={renderError} actionLabel="TRY AGAIN" onAction={createVisualConcept} /></View> : null}
-                {result.phase3?.redesign ? (
+                {visualConceptPlan ? (
                   <Pressable accessibilityRole="button" onPress={createVisualConcept} style={({ pressed }) => [s.primaryButton, pressed && s.pressed]}>
                     <Text style={s.primaryButtonText}>CREATE VISUAL CONCEPT</Text><Text style={s.primaryButtonArrow}>↗</Text>
                   </Pressable>
