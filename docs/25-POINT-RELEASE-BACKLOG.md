@@ -1,8 +1,18 @@
 # USEIT 25-point release backlog
 
-Last reviewed: 2026-11-04 13:14 CET
+Last reviewed: 2026-11-04 18:31 CET
 Working branch: fix/release-blockers-2026-10
 PR: [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41)
+
+### Current PR #41 checkpoint (2026-11-04 18:31 CET; automated CI only, not release approval)
+
+The current branch parent at evidence capture was `ce96ec16da5278819b359f2e2ccd9cbb6f7b709f`. Its exact-head [Validation run 41857614650](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41857614650) completed with an overall failure because the iOS job [126683122522](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41857614650/job/126683122522) was **cancelled**; backend [126683125963](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41857614650/job/126683125963) and frontend/Android [126683203456](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41857614650/job/126683203456) passed. Exact-head [CodeQL 41857614994](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41857614994), analyze job [126670354430](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41857614994/job/126670354430), and [Dependency Review 41857614967](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41857614967), job [126670353414](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41857614967/job/126670353414), passed. A cancelled iOS job is not an iOS pass; issue [#53](https://github.com/milanradics89-beep/POS-Doctor/issues/53) remains open until a later exact-head Validation completes all jobs successfully.
+
+The security fix and regression tests in this commit close a fail-open configuration edge case: a raw non-empty `USEIT_GOOGLE_PLAY_CERT_SHA256` such as `,,,` previously passed startup validation while parsing to an empty verifier pin list. Production startup now validates the parsed certificate list and rejects an empty result; tests cover comma/whitespace-only values, while the existing valid 43-character digest fixture continues to cover acceptance. The backend environment example now marks this setting as required for production Google Play Integrity. This commit's own Validation, CodeQL, and Dependency Review are pending at commit creation and must be judged against its exact SHA.
+
+All 11 inline PR #41 review threads are resolved; 15 review submissions contain no `APPROVED` review. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed, with active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589). The live backlog is **2 Done / 16 In Progress / 7 Blocked** because item #1 remains In Progress until the iOS simulator job passes on an exact current HEAD. The last fully validated baseline remains `9b730a9086b0b35cb5dd774119ec3115cb8c12b5`; its successful runs do not substitute for checks on a later commit.
+
+The current Dependency Review run reported no high-or-higher vulnerable packages and no denied packages; unknown lockfile license metadata for vendored `deepmerge@4.3.2` and the two low Scorecard results remain. Runtime `npm audit` still reports 11 moderate transitive `glob`/`minimatch` advisories. GitHub Releases remains empty. Complete Code Scanning, Dependabot, and Secret Scanning inventories are not exposed by the connected integration and remain **unverified**, not zero.
 
 ### Latest fully validated exact-head CI baseline (2026-11-04; PR #41 HEAD: `9b730a9086b0b35cb5dd774119ec3115cb8c12b5`; automated CI only, not production sign-off)
 
@@ -99,7 +109,7 @@ Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/
 
 | # | Workstream | Status | Evidence / next gate |
 |---:|---|---|---|
-| 1 | iOS CI closure | **Done** | Latest validated HEAD `9b730a9` passed iOS Release simulator build and install/launch smoke test in [Validation job 126532648321](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720466/job/126532648321). Physical-device App Attest remains #4. |
+| 1 | iOS CI closure | **In Progress** | Current exact HEAD `ce96ec16` Validation [41857614650](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41857614650) ended with the iOS job cancelled [126683122522](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41857614650/job/126683122522); backend and frontend/Android passed. Complete a later exact-head iOS Release simulator build and install/launch smoke test before marking Done. Physical-device App Attest remains #4. |
 | 2 | Main branch protection | **Done** | Active ruleset 26370589 targets main; strict required checks CodeQL/backend/frontend/ios/analyze/dependency-review, PR plus one approval, stale-review dismissal, last-push approval, thread resolution, deletion/non-fast-forward blocked, no bypass actors. Issue #47 closed completed. |
 | 3 | Dependency Review warnings | **In Progress** | Exact current HEAD Dependency Review [41817720467](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720467), job [126532647866](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720467/job/126532647866), passed with no high-or-higher vulnerable packages or denied packages. Unknown lockfile license metadata remains for vendored `deepmerge@4.3.2` despite its MIT manifest/LICENSE; Scorecard warnings remain for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5). Runtime npm audit still reports 11 moderate transitive `glob`/`minimatch` advisories; risk acceptance/remediation remains open. |
 | 4 | Physical iPhone App Attest production entitlement | **Blocked** | Apple Developer production capability/App ID and supported physical iPhone required. |
@@ -125,7 +135,7 @@ Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/
 | 24 | Release pipeline | **In Progress** | Exact current HEAD Android/iOS Release CI builds and emulator/simulator smoke tests passed in jobs [126532647348](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720466/job/126532647348) and [126532648321](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41817720466/job/126532648321); store signing, EAS artifacts, distribution, and promotion permissions remain unverified. |
 | 25 | Pilot/business validation | **Blocked** | Real pilot cohort, success/stop thresholds, named business owner, and documented approval required. |
 
-**Current count: 3 Done / 15 In Progress / 7 Blocked.** Source presence alone does not satisfy an external acceptance gate.
+**Current count: 2 Done / 16 In Progress / 7 Blocked.** Source presence alone does not satisfy an external acceptance gate.
 
 ## Required external hand-offs
 

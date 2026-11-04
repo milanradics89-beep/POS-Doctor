@@ -171,6 +171,26 @@ def test_production_google_play_integrity_requires_signing_certificate_pin(monke
 
 
 
+@pytest.mark.parametrize("certificate_pins", [",,,", " , , ", "\t,\n,"])
+def test_production_rejects_google_play_attestation_without_usable_certificate_pins(monkeypatch, certificate_pins):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.delenv("USEIT_API_KEY", raising=False)
+    monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
+    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "com.useit.app")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "google_play_integrity")
+    monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
+    monkeypatch.setenv("USEIT_GOOGLE_PLAY_CERT_SHA256", certificate_pins)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+
+    with pytest.raises(RuntimeError, match="must contain at least one non-empty signing certificate digest"):
+        validate_production_security()
+
+
 def test_production_rejects_process_local_memory_rate_limiting(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai")

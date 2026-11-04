@@ -69,8 +69,17 @@ def validate_production_security() -> None:
                 raise RuntimeError(
                     "USEIT_ATTESTATION_APP_ID must match USEIT_GOOGLE_PLAY_PACKAGE_NAME for Google Play Integrity"
                 )
-            if not os.getenv("USEIT_GOOGLE_PLAY_CERT_SHA256", "").strip():
+            raw_certificate_pins = os.getenv("USEIT_GOOGLE_PLAY_CERT_SHA256", "").strip()
+            if not raw_certificate_pins:
                 raise RuntimeError("USEIT_GOOGLE_PLAY_CERT_SHA256 is required for production Google Play Integrity verification")
+            # Validate the parsed list used by the verifier, not only the raw string:
+            # values such as ",,," are non-empty but produce no certificate pins.
+            from backend.google_play_integrity import configured_certificates
+
+            if not configured_certificates():
+                raise RuntimeError(
+                    "USEIT_GOOGLE_PLAY_CERT_SHA256 must contain at least one non-empty signing certificate digest"
+                )
 
     origins = [x.strip() for x in os.getenv("USEIT_CORS_ORIGINS", "").split(",") if x.strip()]
     if not origins or "*" in origins:
