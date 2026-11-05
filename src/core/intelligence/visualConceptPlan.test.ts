@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildVisualConceptPlan } from './visualConceptPlan';
+import { buildVisualConceptPlan, DEFAULT_VISUAL_CONCEPT_DISCLOSURE, resolveVisualConceptDisclosure } from './visualConceptPlan';
 import type { UseitAnalyzeResponse } from './useitAnalyzeContract';
 
 function unifiedResult(overrides: Partial<UseitAnalyzeResponse> = {}): UseitAnalyzeResponse {
@@ -74,5 +74,20 @@ describe('buildVisualConceptPlan', () => {
       unified: unifiedResult(),
     } as unknown as Parameters<typeof buildVisualConceptPlan>[0];
     expect(buildVisualConceptPlan(result)?.prompt).toBe('Legacy room redesign prompt with enough detail.');
+  });
+});
+
+
+describe('resolveVisualConceptDisclosure', () => {
+  it('prefers the disclosure returned by the render API', () => {
+    expect(resolveVisualConceptDisclosure('  Render-specific disclosure.  ', 'Legacy disclosure.')).toBe('Render-specific disclosure.');
+  });
+
+  it('falls back to the legacy disclosure when the render response has none', () => {
+    expect(resolveVisualConceptDisclosure(null, 'Legacy disclosure.')).toBe('Legacy disclosure.');
+  });
+
+  it('uses a safe default when both disclosures are empty', () => {
+    expect(resolveVisualConceptDisclosure('  ', null)).toBe(DEFAULT_VISUAL_CONCEPT_DISCLOSURE);
   });
 });

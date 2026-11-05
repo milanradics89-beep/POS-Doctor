@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
-import { buildVisualConceptPlan } from '../src/core/intelligence/visualConceptPlan';
+import { buildVisualConceptPlan, resolveVisualConceptDisclosure } from '../src/core/intelligence/visualConceptPlan';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { useProfilePreferences } from '../src/ui/useProfilePreferences';
 import { theme } from '../src/ui/theme';
@@ -41,6 +41,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [rendered, setRendered] = useState<string | null>(null);
+  const [renderDisclosure, setRenderDisclosure] = useState<string | null>(null);
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
@@ -51,6 +52,7 @@ export default function Home() {
     setPhoto(null);
     setResult(null);
     setRendered(null);
+    setRenderDisclosure(null);
     setAnalysisError(null);
     setRenderError(null);
     setLastIntent(undefined);
@@ -68,6 +70,7 @@ export default function Home() {
     setBusy(true);
     setAnalysisError(null);
     setRendered(null);
+    setRenderDisclosure(null);
     try {
       const response = await analyzeForConsumer(new UseitApiProvider(API_URL), photo, effectiveIntent, { discoverProducts: preferences.productSuggestions });
       setResult(response);
@@ -82,10 +85,13 @@ export default function Home() {
     if (!photo || !visualConceptPlan) return;
     setRendering(true);
     setRenderError(null);
+    setRendered(null);
+    setRenderDisclosure(null);
     try {
       const api = new UseitApiProvider(API_URL);
       const renderedResult = await api.renderRedesign(photo, visualConceptPlan.prompt, visualConceptPlan.products);
       setRendered(renderedResult.imageDataUrl);
+      setRenderDisclosure(renderedResult.disclosure);
     } catch (error) {
       setRenderError(error instanceof Error ? error.message : 'The redesign could not be rendered. The selected solution is still available.');
     } finally {
@@ -125,6 +131,7 @@ export default function Home() {
     setPhoto(`data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`);
     setResult(null);
     setRendered(null);
+    setRenderDisclosure(null);
     setAnalysisError(null);
     setRenderError(null);
   }
@@ -160,6 +167,7 @@ export default function Home() {
     setPhoto(`data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`);
     setResult(null);
     setRendered(null);
+    setRenderDisclosure(null);
     setAnalysisError(null);
     setRenderError(null);
   }
@@ -232,7 +240,7 @@ export default function Home() {
                   <View style={s.comparisonItem}><Image source={{ uri: photo }} style={s.comparisonImage} /><Text style={s.comparisonLabel}>ORIGINAL</Text></View>
                   <View style={s.comparisonItem}><Image source={{ uri: rendered }} style={s.comparisonImage} /><Text style={s.comparisonLabel}>USEIT CONCEPT</Text></View>
                 </View>
-                <Text style={s.disclosure}>{result?.phase3?.redesign?.disclosure}</Text>
+                <Text style={s.disclosure}>{resolveVisualConceptDisclosure(renderDisclosure, result?.phase3?.redesign?.disclosure)}</Text>
               </View>
             ) : null}
 

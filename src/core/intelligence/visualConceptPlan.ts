@@ -47,3 +47,11 @@ export function buildVisualConceptPlan(result: VisualConceptSource): VisualConce
     actions: [{ type: 'add', target: suggestion.title }],
   };
 }
+
+
+export const DEFAULT_VISUAL_CONCEPT_DISCLOSURE = 'AI-generated visual concept. Product availability and appearance may differ from the source.';
+
+export function resolveVisualConceptDisclosure(renderDisclosure?: string | null, legacyDisclosure?: string | null): string {
+  const disclosure = [renderDisclosure, legacyDisclosure].find(value => typeof value === 'string' && value.trim().length > 0);
+  return disclosure?.trim() ?? DEFAULT_VISUAL_CONCEPT_DISCLOSURE;
+}
