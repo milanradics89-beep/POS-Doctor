@@ -32,15 +32,22 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Align Expo SDK dependencies
         run: npx expo install --fix
+      - name: Add the SDK-matched Expo Modules Core dependency
+        run: npx expo install expo-modules-core
       - name: Reinstall from regenerated lockfile
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify Expo Modules Core package and declarations
+        run: |
+          node -e "const fs=require('node:fs'); const p=require('./node_modules/expo-modules-core/package.json'); const types=p.types || p.typings; console.log(JSON.stringify({version:p.version,types,typesPresent:!!types && fs.existsSync('node_modules/expo-modules-core/'+types)},null,2));"
+          npm ls expo-modules-core
       - name: Verify Expo dependency alignment
         run: npx expo-doctor
-      - name: Verify frontend tests and types
-        run: |
-          npm run typecheck
-          npm test -- --passWithNoTests
+      - name: Verify frontend types
+        run: npm run typecheck
+      - name: Verify frontend tests
+        run: npm test -- --passWithNoTests
       - name: Upload regenerated manifests
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: expo-sdk57-lock-refresh
