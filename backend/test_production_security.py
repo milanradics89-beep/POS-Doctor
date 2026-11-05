@@ -35,6 +35,30 @@ def test_production_rejects_blank_openai_api_key(monkeypatch, openai_api_key):
         validate_production_security()
 
 
+@pytest.mark.parametrize(
+    "openai_api_key",
+    [
+        "change-me",
+        "changeme",
+        "example",
+        "placeholder",
+        "test",
+        "replace-with-openai-api-key",
+        "your-openai-api-key",
+        " YOUR-OPENAI-API-KEY ",
+    ],
+)
+def test_production_rejects_placeholder_openai_api_key(monkeypatch, openai_api_key):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", openai_api_key)
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
+    monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+
+    with pytest.raises(RuntimeError, match="OPENAI_API_KEY must not be a placeholder value"):
+        validate_production_security()
+
+
 def test_production_accepts_server_issued_session_secret(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
