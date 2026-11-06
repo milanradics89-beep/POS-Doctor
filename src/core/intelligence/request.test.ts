@@ -402,3 +402,8 @@ describe('fetchWithPolicy', () => {
     expect(actionBodies).toEqual([expectedBody, expectedBody]);
     expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(fetchMock.mock.calls[1][0]).toBe(request);
+    expect(fetchMock.mock.calls[3][0]).not.toBe(request);
+    expect(new Headers(fetchMock.mock.calls[3][1]?.headers).get('Authorization')).toBe('Bearer new-session');
+  });
+
+});
