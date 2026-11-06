@@ -29,15 +29,34 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - name: Download generated SDK 57 manifests
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Install dependencies reproducibly
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Align Expo SDK 57 package versions and regenerate lockfile
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/expo-sdk57-lock-refresh"
-          gh run download 42121369533 --repo "$GITHUB_REPOSITORY" --name expo-sdk57-lock-refresh --dir "$RUNNER_TEMP/expo-sdk57-lock-refresh"
-          test -s "$RUNNER_TEMP/expo-sdk57-lock-refresh/package.json"
-          test -s "$RUNNER_TEMP/expo-sdk57-lock-refresh/package-lock.json"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.dependencies ||= {};
+
+          const expected = {
+            expo: "~57.0.32",
+            "expo-constants": "~57.0.23",
+            "expo-image-picker": "~57.0.21",
+            "expo-router": "~57.0.30",
+          };
+          for (const [name, version] of Object.entries(expected)) {
+            if (!Object.hasOwn(pkg.dependencies, name)) {
+              throw new Error(`Required Expo dependency ${name} is missing from package.json`);
+            }
+            pkg.dependencies[name] = version;
+          }
+
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\\n');
+          NODE
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
       - name: Verify generated SDK 57 manifest and lockfile
         run: |
           set -euo pipefail
@@ -45,47 +64,44 @@ jobs:
           const fs = require('node:fs');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
-          const root = lock.packages?.[''];
-          if (!root?.dependencies) throw new Error('package-lock.json has no root dependency record');
-
-          const sort = value => Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)));
-          if (JSON.stringify(sort(pkg.dependencies || {})) !== JSON.stringify(sort(root.dependencies))) {
-            throw new Error('package.json dependencies do not match package-lock.json root dependencies');
-          }
-
           const expected = {
-            'node_modules/expo': '57.0.32',
-            'node_modules/expo-constants': '57.0.23',
-            'node_modules/expo-image-picker': '57.0.21',
-            'node_modules/expo-router': '57.0.30',
+            expo: { range: "~57.0.32", version: "57.0.32" },
+            "expo-constants": { range: "~57.0.23", version: "57.0.23" },
+            "expo-image-picker": { range: "~57.0.21", version: "57.0.21" },
+            "expo-router": { range: "~57.0.30", version: "57.0.30" },
           };
-          for (const [path, version] of Object.entries(expected)) {
-            if (lock.packages?.[path]?.version !== version) {
-              throw new Error(`${path} expected ${version}, found ${lock.packages?.[path]?.version || 'missing'}`);
-            }
-          }
 
-          const expectedRoot = {
-            expo: '~57.0.32',
-            'expo-constants': '~57.0.23',
-            'expo-image-picker': '~57.0.21',
-            'expo-router': '~57.0.30',
-          };
-          for (const [name, version] of Object.entries(expectedRoot)) {
-            if (root.dependencies[name] !== version) {
-              throw new Error(`Root dependency ${name} expected ${version}, found ${root.dependencies[name] || 'missing'}`);
+          const root = lock.packages?.[""];
+          if (!root?.dependencies) throw new Error("package-lock.json has no root dependency record");
+          for (const [name, expectedPackage] of Object.entries(expected)) {
+            if (pkg.dependencies?.[name] !== expectedPackage.range) {
+              throw new Error(`package.json ${name} expected ${expectedPackage.range}, found ${pkg.dependencies?.[name] || "missing"}`);
+            }
+            if (root.dependencies[name] !== expectedPackage.range) {
+              throw new Error(`package-lock root ${name} expected ${expectedPackage.range}, found ${root.dependencies[name] || "missing"}`);
+            }
+            const actual = lock.packages?.[`node_modules/${name}`]?.version;
+            if (actual !== expectedPackage.version) {
+              throw new Error(`node_modules/${name} expected ${expectedPackage.version}, found ${actual || "missing"}`);
             }
           }
-          console.log('Expo SDK 57 package manifest and lockfile versions are aligned.');
+          if (Object.hasOwn(pkg.dependencies, "expo-modules-core")) {
+            throw new Error("expo-modules-core must remain a transitive Expo dependency, not a direct root dependency");
+          }
+          console.log("Expo SDK 57 package manifest and lockfile versions are aligned.");
           NODE
+
       - name: Verify reproducible installation
         run: npm ci --ignore-scripts --no-audit --no-fund
+
       - name: Verify Expo SDK compatibility
         run: npx expo-doctor
+
       - name: Verify frontend types and tests
         run: |
           npm run typecheck
           npm test -- --passWithNoTests
+
       - name: Wait for the triggering HEAD checks before pushing
         env:
           GH_TOKEN: ${{ github.token }}
