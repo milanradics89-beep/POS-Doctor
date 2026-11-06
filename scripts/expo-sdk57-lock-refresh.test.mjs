@@ -7,6 +7,13 @@ const workflow = readFileSync(
 );
 
 describe('Expo SDK 57 lock refresh workflow', () => {
+  it('writes a real JSON newline instead of a literal backslash-n suffix', () => {
+    const writeLine = workflow
+      .split('\\n')
+      .find(line => line.includes("fs.writeFileSync('package.json'"));
+    expect(writeLine).toBe("          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\\n');");
+  });
+
   it('regenerates manifests from the current checkout instead of a stale run artifact', () => {
     expect(workflow).toContain('npm install --package-lock-only --ignore-scripts --no-audit --no-fund');
     expect(workflow).not.toContain('gh run download 42121369533');
