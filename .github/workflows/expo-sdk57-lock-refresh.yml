@@ -38,29 +38,9 @@ jobs:
           gh run download 42121369533 --repo "$GITHUB_REPOSITORY" --name expo-sdk57-lock-refresh --dir "$RUNNER_TEMP/expo-sdk57-lock-refresh"
           test -s "$RUNNER_TEMP/expo-sdk57-lock-refresh/package.json"
           test -s "$RUNNER_TEMP/expo-sdk57-lock-refresh/package-lock.json"
-      - name: Pin the SDK 57 native peer graph and regenerate the lockfile
+      - name: Verify generated SDK 57 manifest and lockfile
         run: |
           set -euo pipefail
-          cp "$RUNNER_TEMP/expo-sdk57-lock-refresh/package.json" package.json
-          cp "$RUNNER_TEMP/expo-sdk57-lock-refresh/package-lock.json" package-lock.json
-          node <<'NODE'
-          const fs = require('node:fs');
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          pkg.dependencies ||= {};
-
-          // These are the SDK 57 bundledNativeModules.json versions. Pinning
-          // them prevents npm 11 from auto-installing newer optional peers
-          // that conflict with expo-modules-core@57.0.25's Worklets range.
-          Object.assign(pkg.dependencies, {
-            'expo-modules-core': '~57.0.25',
-            'react-native-reanimated': '4.5.1',
-            'react-native-worklets': '0.10.1',
-          });
-          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          NODE
-
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-
           node <<'NODE'
           const fs = require('node:fs');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -78,9 +58,6 @@ jobs:
             'node_modules/expo-constants': '57.0.23',
             'node_modules/expo-image-picker': '57.0.21',
             'node_modules/expo-router': '57.0.30',
-            'node_modules/expo-modules-core': '57.0.25',
-            'node_modules/react-native-reanimated': '4.5.1',
-            'node_modules/react-native-worklets': '0.10.1',
           };
           for (const [path, version] of Object.entries(expected)) {
             if (lock.packages?.[path]?.version !== version) {
@@ -89,16 +66,17 @@ jobs:
           }
 
           const expectedRoot = {
-            'expo-modules-core': '~57.0.25',
-            'react-native-reanimated': '4.5.1',
-            'react-native-worklets': '0.10.1',
+            expo: '~57.0.32',
+            'expo-constants': '~57.0.23',
+            'expo-image-picker': '~57.0.21',
+            'expo-router': '~57.0.30',
           };
           for (const [name, version] of Object.entries(expectedRoot)) {
             if (root.dependencies[name] !== version) {
               throw new Error(`Root dependency ${name} expected ${version}, found ${root.dependencies[name] || 'missing'}`);
             }
           }
-          console.log('SDK 57 Expo, Modules Core, Reanimated, and Worklets versions are aligned.');
+          console.log('Expo SDK 57 package manifest and lockfile versions are aligned.');
           NODE
       - name: Verify reproducible installation
         run: npm ci --ignore-scripts --no-audit --no-fund
