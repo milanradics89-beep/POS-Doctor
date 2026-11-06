@@ -1,4 +1,25 @@
-### Latest fully validated PR #41 checkpoint (captured 2026-11-06T22:38:06+01:00; exact PR head `6bd2af53a8beee276179c02f205512d0c1024e96`)
+### Latest fully validated PR #41 checkpoint (captured 2026-11-06T23:42:12+01:00; exact PR head `66f67390d31def365230cb24824b4c5b439a6cc1`)
+
+PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. Current head `66f6739` is a documentation-only child of `6bd2af5`; the one-commit comparison confirms that it changes only the three release evidence documents. All three required pull-request workflows completed successfully for this exact head. Do not reuse earlier run IDs as evidence for this head.
+
+Exact-head CI evidence:
+- [Validation 42298874785](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42298874785): backend [job 128171140503](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42298874785/job/128171140503) passed **385 backend tests**, **24 production-readiness checks**, and **43 production-security checks**; `pip-audit` reported no known vulnerabilities. The backend log has one non-failing Starlette/httpx deprecation warning and the Redis test-container host `vm.overcommit_memory` advisory. Frontend/Android [job 128171140233](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42298874785/job/128171140233) passed typecheck, **234 tests across 56 files**, Expo Doctor **21/21**, Android Release build, and emulator install/launch smoke. The runtime audit passed its configured high-severity threshold but reported **4 moderate advisory instances** involving `glob@13.0.7` and `minimatch@10.2.6` ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4), [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)). iOS [job 128171140644](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42298874785/job/128171140644) passed the Release simulator build and simulator install/launch smoke.
+- [CodeQL 42298874581](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42298874581), analyze [job 128171139941](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42298874581/job/128171139941), completed successfully. The log contains a non-fatal SARIF column-kind mismatch warning.
+- [Dependency Review 42298874922](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42298874922), dependency-review [job 128171141530](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42298874922/job/128171141530), completed successfully: **0 high-or-higher vulnerable packages**, **0 incompatible licenses**, **0 invalid SPDX definitions**, **1 unknown-license package**, and **2 below-threshold OpenSSF Scorecard warnings**. The low Scorecard results remain `@expo/devcert` (2.9) and `is-mergeable-object` (1.5); the vendored `deepmerge@4.3.2` license metadata remains tracked. No forced downgrade, dependency override, or audit-threshold reduction was applied.
+
+Release and review gates:
+- The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Done: #1 iOS simulator CI, #2 main ruleset, #6 Redis multi-instance test coverage. Simulator/emulator CI is not physical-device acceptance.
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed. Main reports `protected: true`; active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`, plus pull requests, one approval, last-push approval, and resolved review threads; deletion and non-fast-forward updates are blocked, with no bypass actors.
+- All **11/11 inline review threads are resolved**. There are **15 review submissions and 0 APPROVED**; a human approving review and last-push approval remain required.
+- The five previously identified client/request/privacy findings were rechecked in the current source: effective Request/init headers and method are used for session-auth eligibility; POST retry tests use explicit API-key authentication; the vision usage privacy fixture uses base64-encoded sentinel bytes; the error boundary logs only the error name; and permanently denied gallery permissions expose an Open Settings action. These source checks do not replace physical permission testing.
+- Physical-device App Attest and Play Integrity, production provider/configuration checks, approved staging load test, witnessed backup/restore, production monitoring/alert delivery, staged rollout, pilot/business approval, dependency-risk acceptance, and human PR approval remain open.
+- GitHub Releases currently contains no published releases. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero** because the connected GitHub integration does not expose those alert collections.
+
+This checkpoint establishes exact-head automated CI only. It is not production, physical-device, store, pilot, or business acceptance.
+
+---
+
+### Previous fully validated PR #41 checkpoint (superseded 2026-11-06T23:42:12+01:00; exact PR head `6bd2af53a8beee276179c02f205512d0c1024e96`)
 
 PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. Current head `6bd2af5` is a documentation-only child of `57ef40e`; it changes only the three release evidence documents. All three required pull-request workflows have completed successfully for this exact head. Do not reuse earlier run IDs as evidence for this head.
 
@@ -15,6 +36,7 @@ Release and review gates:
 - GitHub Releases currently contains no published releases. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero** because the connected GitHub integration does not expose those alert collections.
 
 This checkpoint establishes exact-head automated CI only. It is not production, physical-device, store, pilot, or business acceptance.
+
 
 ---
 
