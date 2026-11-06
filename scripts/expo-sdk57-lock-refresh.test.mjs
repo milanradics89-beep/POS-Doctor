@@ -7,6 +7,10 @@ const workflow = readFileSync(
 );
 
 describe('Expo SDK 57 lock refresh workflow', () => {
+  it('supports an explicit manual retry without changing source files', () => {
+    expect(workflow).toContain('workflow_dispatch:');
+  });
+
   it('writes a real JSON newline instead of a literal backslash-n suffix', () => {
     const writeLine = workflow
       .split(/\r?\n/)

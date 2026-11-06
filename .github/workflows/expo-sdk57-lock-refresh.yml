@@ -6,6 +6,7 @@ on:
       - fix/release-blockers-2026-10
     paths:
       - .github/workflows/expo-sdk57-lock-refresh.yml
+  workflow_dispatch:
 
 concurrency:
   group: expo-sdk57-lock-refresh
