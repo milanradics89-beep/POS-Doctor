@@ -85,6 +85,29 @@ function abortError(): Error {
   return error;
 }
 
+// Make retry backoff cancellable so an offline or unmounted client does not
+// retain a timer or issue another request after its caller has aborted.
+function waitForRetry(delayMs: number, signal?: AbortSignal | null): Promise<void> {
+  if (signal?.aborted) return Promise.reject(abortError());
+
+  return new Promise<void>((resolve, reject) => {
+    let timer: ReturnType<typeof setTimeout>;
+    const cleanup = () => signal?.removeEventListener('abort', onAbort);
+    const onAbort = () => {
+      clearTimeout(timer);
+      cleanup();
+      reject(abortError());
+    };
+
+    timer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, delayMs);
+    signal?.addEventListener('abort', onAbort, { once: true });
+    if (signal?.aborted) onAbort();
+  });
+}
+
 // Wait for a shared session bootstrap without letting one caller's cancellation
 // abort the bootstrap needed by other requests using the same API origin.
 function runWithAbort<T>(operation: () => Promise<T>, signal?: AbortSignal | null): Promise<T> {
@@ -230,7 +253,7 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
       clearTimeout(timer);
       if (!preserveSignalCleanup) linkedSignal.cleanup();
     }
-    await new Promise(resolve => setTimeout(resolve, baseDelayMs * 2 ** attempt));
+    await waitForRetry(baseDelayMs * 2 ** attempt, requestSignal);
   }
   throw lastError instanceof Error ? lastError : new Error('Intelligence request failed.');
 }

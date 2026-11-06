@@ -189,6 +189,36 @@ describe('fetchWithPolicy', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('aborts during retry backoff and does not issue another request', async () => {
+    vi.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      const fetchMock = vi.spyOn(globalThis, 'fetch')
+        .mockResolvedValue(new Response('{}', { status: 503 }));
+      const pending = fetchWithPolicy(
+        'https://example.test/retry-abort',
+        { signal: controller.signal },
+        { attempts: 3, baseDelayMs: 1_000 },
+      );
+      const rejection = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+
+      // Let the first response be discarded and the retry delay be scheduled.
+      for (let i = 0; i < 10 && vi.getTimerCount() < 2; i += 1) {
+        await Promise.resolve();
+      }
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(2);
+
+      controller.abort();
+      await rejection;
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('does not retry a POST after a server error without an idempotency key', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 503 }));
