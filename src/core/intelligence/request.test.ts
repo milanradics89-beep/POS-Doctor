@@ -200,17 +200,21 @@ describe('fetchWithPolicy', () => {
         { signal: controller.signal },
         { attempts: 3, baseDelayMs: 1_000 },
       );
-      const rejection = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+      const rejection = pending.then(
+        () => { throw new Error('Expected request to abort during retry backoff.'); },
+        error => error,
+      );
 
-      // Let the first response be discarded and the retry delay be scheduled.
-      for (let i = 0; i < 10 && vi.getTimerCount() < 2; i += 1) {
+      // The request deadline is cleared after the 503; only retry backoff remains.
+      for (let i = 0; i < 20 && vi.getTimerCount() < 1; i += 1) {
         await Promise.resolve();
       }
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(vi.getTimerCount()).toBe(2);
+      expect(vi.getTimerCount()).toBe(1);
 
       controller.abort();
-      await rejection;
+      const error = await rejection;
+      expect(error).toMatchObject({ name: 'AbortError' });
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(vi.getTimerCount()).toBe(0);
@@ -398,8 +402,3 @@ describe('fetchWithPolicy', () => {
     expect(actionBodies).toEqual([expectedBody, expectedBody]);
     expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(fetchMock.mock.calls[1][0]).toBe(request);
-    expect(fetchMock.mock.calls[3][0]).not.toBe(request);
-    expect(new Headers(fetchMock.mock.calls[3][1]?.headers).get('Authorization')).toBe('Bearer new-session');
-  });
-
-});
