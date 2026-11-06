@@ -9,9 +9,10 @@ const workflow = readFileSync(
 describe('Expo SDK 57 lock refresh workflow', () => {
   it('writes a real JSON newline instead of a literal backslash-n suffix', () => {
     const writeLine = workflow
-      .split('\\n')
+      .split(/\r?\n/)
       .find(line => line.includes("fs.writeFileSync('package.json'"));
-    expect(writeLine).toBe("          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\\n');");
+    expect(writeLine).toMatch(/JSON\.stringify\(pkg, null, 2\) \+ '\\n'\);/);
+    expect(writeLine).not.toMatch(/JSON\.stringify\(pkg, null, 2\) \+ '\\\\n'\););
   });
 
   it('regenerates manifests from the current checkout instead of a stale run artifact', () => {
