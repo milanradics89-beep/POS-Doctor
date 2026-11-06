@@ -38,7 +38,7 @@ jobs:
           gh run download 42121369533 --repo "$GITHUB_REPOSITORY" --name expo-sdk57-lock-refresh --dir "$RUNNER_TEMP/expo-sdk57-lock-refresh"
           test -s "$RUNNER_TEMP/expo-sdk57-lock-refresh/package.json"
           test -s "$RUNNER_TEMP/expo-sdk57-lock-refresh/package-lock.json"
-      - name: Apply generated manifests without the incompatible direct core pin
+      - name: Pin the SDK 57 native peer graph and regenerate the lockfile
         run: |
           set -euo pipefail
           cp "$RUNNER_TEMP/expo-sdk57-lock-refresh/package.json" package.json
@@ -46,31 +46,59 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          delete pkg.dependencies?.['expo-modules-core'];
-          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          pkg.dependencies ||= {};
 
+          // These are the SDK 57 bundledNativeModules.json versions. Pinning
+          // them prevents npm 11 from auto-installing newer optional peers
+          // that conflict with expo-modules-core@57.0.25's Worklets range.
+          Object.assign(pkg.dependencies, {
+            'expo-modules-core': '~57.0.25',
+            'react-native-reanimated': '4.5.1',
+            'react-native-worklets': '0.10.1',
+          });
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          NODE
+
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
           const root = lock.packages?.[''];
           if (!root?.dependencies) throw new Error('package-lock.json has no root dependency record');
+
           const sort = value => Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)));
           if (JSON.stringify(sort(pkg.dependencies || {})) !== JSON.stringify(sort(root.dependencies))) {
             throw new Error('package.json dependencies do not match package-lock.json root dependencies');
           }
+
           const expected = {
             'node_modules/expo': '57.0.32',
             'node_modules/expo-constants': '57.0.23',
             'node_modules/expo-image-picker': '57.0.21',
             'node_modules/expo-router': '57.0.30',
+            'node_modules/expo-modules-core': '57.0.25',
+            'node_modules/react-native-reanimated': '4.5.1',
+            'node_modules/react-native-worklets': '0.10.1',
           };
           for (const [path, version] of Object.entries(expected)) {
             if (lock.packages?.[path]?.version !== version) {
               throw new Error(`${path} expected ${version}, found ${lock.packages?.[path]?.version || 'missing'}`);
             }
           }
-          if (root.dependencies['expo-modules-core']) {
-            throw new Error('Do not add expo-modules-core as a direct root dependency');
+
+          const expectedRoot = {
+            'expo-modules-core': '~57.0.25',
+            'react-native-reanimated': '4.5.1',
+            'react-native-worklets': '0.10.1',
+          };
+          for (const [name, version] of Object.entries(expectedRoot)) {
+            if (root.dependencies[name] !== version) {
+              throw new Error(`Root dependency ${name} expected ${version}, found ${root.dependencies[name] || 'missing'}`);
+            }
           }
-          console.log('Generated SDK 57 lockfile versions and root manifest alignment verified.');
+          console.log('SDK 57 Expo, Modules Core, Reanimated, and Worklets versions are aligned.');
           NODE
       - name: Verify reproducible installation
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -121,7 +149,9 @@ jobs:
                   backend="$(printf '%s' "$jobs" | jq -r '.jobs[] | select(.name == "backend") | .conclusion')"
                   ios="$(printf '%s' "$jobs" | jq -r '.jobs[] | select(.name == "ios") | .conclusion')"
                   expo_step="$(printf '%s' "$jobs" | jq -r '.jobs[] | select(.name == "frontend") | .steps[] | select(.name == "Validate Expo project health") | .conclusion')"
-                  if [[ "$frontend" != "failure" || "$backend" != "success" || "$ios" != "success" || "$expo_step" != "failure" ]]; then
+                  typecheck_step="$(printf '%s' "$jobs" | jq -r '.jobs[] | select(.name == "frontend") | .steps[] | select(.name == "Typecheck") | .conclusion')"
+                  tests_step="$(printf '%s' "$jobs" | jq -r '.jobs[] | select(.name == "frontend") | .steps[] | select(.name == "Unit tests") | .conclusion')"
+                  if [[ "$frontend" != "failure" || "$backend" != "success" || "$ios" != "success" || "$expo_step" != "failure" || "$typecheck_step" != "success" || "$tests_step" != "success" ]]; then
                     echo "::error::Validation failed outside the known Expo Doctor dependency-alignment blocker; refusing to push."
                     exit 1
                   fi
@@ -157,6 +187,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json
-          git commit -m "fix(deps): align Expo SDK 57 lockfile"
+          git commit -m "fix(deps): align Expo SDK 57 lockfile and peer graph"
           git push origin "HEAD:refs/heads/$BRANCH"
-          echo "::notice::Pushed the regenerated Expo SDK 57 manifests after the triggering HEAD's required workflows completed."
+          echo "::notice::Pushed the regenerated SDK 57 manifests after the triggering HEAD's required workflows completed."
