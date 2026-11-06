@@ -1,4 +1,24 @@
-### Latest fully validated PR #41 checkpoint (captured 2026-11-06T19:04:07Z; PR head `776a636f4445e68e4be7a1e2110a78c700698f50`; tested PR merge ref `3b29438d209f2a5ca57271e0b9187348ed685c4a`)
+### Latest fully validated PR #41 checkpoint (captured 2026-11-06T21:40:38+01:00; exact PR head `57ef40e5e737d84c52b1cb69c911bbdd4500bece`)
+
+PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. Head `57ef40e` is a documentation-only child of `776a636`; its own exact-head GitHub Actions runs have now completed successfully. Do not reuse the parent run IDs as evidence for this head.
+
+Exact-head CI evidence:
+- [Validation 42277191032](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42277191032): backend [job 128096439498](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42277191032/job/128096439498), frontend/Android [job 128096439155](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42277191032/job/128096439155), and iOS [job 128096439497](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42277191032/job/128096439497) all completed successfully. Backend tests, production-readiness checks, dependency audit, frontend typecheck/unit tests, Expo Doctor, Android Release/emulator smoke, and iOS Release simulator build/install/launch steps all passed. The source/test tree is unchanged from the previously recorded `776a636` baseline: 385 backend tests, 24 readiness checks, 43 production-security checks, 234 frontend tests across 56 files, and Expo Doctor 21/21.
+- [CodeQL 42277190774](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42277190774), analyze [job 128096436229](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42277190774/job/128096436229), completed successfully. The previously observed non-fatal SARIF column-kind mismatch remains a reporting warning, not a failed analysis.
+- [Dependency Review 42277190799](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42277190799), dependency-review [job 128096435834](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42277190799/job/128096435834), completed successfully. The unchanged dependency graph still has four moderate npm audit instances involving `glob@13.0.7` and `minimatch@10.2.6`, below-threshold Scorecard results for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5), and the tracked vendored `deepmerge@4.3.2` license-metadata question. No forced override or audit-threshold reduction was applied.
+
+Release and review gates:
+- The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Done: #1 iOS simulator CI, #2 main ruleset, #6 Redis multi-instance test coverage. Simulator/emulator CI is not physical-device acceptance.
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed. Main reports `protected: true`; active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) enforces the required checks, PR/approval/last-push/thread-resolution rules, and deletion/non-fast-forward protection with no bypass actors.
+- All **11/11 inline review threads are resolved**. There are **15 review submissions and none is APPROVED**; human approving review and last-push approval remain required.
+- The Redis readiness review finding is addressed: `check_redis_rate_limit_capability` preflights `PEXPIRE` on both unique keys before the mutating Lua script; targeted ACL-denial tests in `backend/test_phase23_readiness.py` assert that a denied preflight returns 503 without executing Lua. The fixture follow-up is recorded in commit `9df8ead`; the thread is resolved.
+- Physical-device App Attest and Play Integrity, production provider/configuration checks, approved staging load test, witnessed backup/restore, production monitoring/alert delivery, staged rollout, pilot/business approval, dependency-risk acceptance, and human PR approval remain open. GitHub Releases is empty. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero** through the connected integration.
+
+This checkpoint establishes exact-head automated CI only. It is not production, physical-device, store, pilot, or business acceptance.
+
+---
+
+### Previous fully validated PR #41 checkpoint (superseded 2026-11-06 21:40 CET) (captured 2026-11-06T19:04:07Z; PR head `776a636f4445e68e4be7a1e2110a78c700698f50`; tested PR merge ref `3b29438d209f2a5ca57271e0b9187348ed685c4a`)
 
 PR #41 remains open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. The fully validated baseline `776a636` is documentation-only and changed only the three release records. GitHub's pull-request workflows tested synthetic merge ref `3b29438d209f2a5ca57271e0b9187348ed685c4a`, combining that head with the current `main` base. The evidence below is for this exact validated baseline, not physical-device or deployed-production acceptance.
 
