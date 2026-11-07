@@ -1,3 +1,27 @@
+### Latest exact PR #41 HEAD acceptance checkpoint (workflow-only commit; captured 2026-11-07T14:42:44+01:00; exact SHA `1e013f87e765d179d78fa74af17ed19a9a5b3cc6`)
+
+PR #41 is open and unmerged. The exact current HEAD [`1e013f8`](https://github.com/milanradics89-beep/POS-Doctor/commit/1e013f87e765d179d78fa74af17ed19a9a5b3cc6) changes only the Expo SDK 57 lock-refresh workflow guard; the last application source/test checkpoint remains `7e8097b`.
+
+Automated gates are complete for this exact PR HEAD:
+- [x] [Validation 42372913196](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913196): backend [job 128404532893](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913196/job/128404532893) passed 389 tests, 24 production-readiness checks, and 43 production-security checks; `pip-audit` found no known vulnerabilities. Frontend/Android [job 128404532794](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913196/job/128404532794) passed 241 tests across 56 files, Expo Doctor 21/21, Android Release build, and emulator install/launch smoke. iOS [job 128404532972](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913196/job/128404532972) passed the Release simulator build and install/launch smoke.
+- [x] [CodeQL 42372913195](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913195), analyze [job 128404532874](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913195/job/128404532874), succeeded. SARIF merging emitted the non-fatal column-kind mismatch warning.
+- [x] [Dependency Review 42372913247](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913247), job [128404532927](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913247/job/128404532927), succeeded: no high-or-higher vulnerable packages and no denied packages. Remaining findings: unknown license metadata for `vendor/deepmerge@4.3.2`, below-threshold OpenSSF Scorecard warnings for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5), plus four moderate runtime npm-audit advisory instances affecting `glob`/`minimatch` ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4), [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)). The suggested `npm audit fix --force` would downgrade Expo to 53.0.11, a breaking change; it was not applied and no audit threshold was lowered.
+
+The 25-point backlog remains **3 Done / 15 In Progress / 7 Blocked**. Issue #47 is closed; active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) is verified. All 11 inline review threads are resolved, but the 15 review submissions contain **0 APPROVED**; one human approval and last-push approval are still required.
+
+External acceptance remains open:
+- [ ] Physical iPhone App Attest with production entitlement and provider-backed verification.
+- [ ] Play-distributed physical Android Play Integrity verification.
+- [ ] Approved staging load test with owner-approved thresholds.
+- [ ] Witnessed production-like backup/restore and recovery evidence.
+- [ ] Production monitoring, alert delivery, staged rollout, and rollback evidence.
+- [ ] Product/business pilot, labeled accuracy acceptance, and release approval.
+- [ ] Explicit dependency-risk acceptance for the unknown `deepmerge` license metadata, low Scorecard results, and four moderate `glob`/`minimatch` npm-audit findings.
+
+GitHub Releases is empty. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain unverified, not zero. Current exact-head CI is not physical-device, production, store, pilot, or business sign-off.
+
+---
+
 ### Latest validated source/test acceptance checkpoint (captured 2026-11-07T10:54:51+01:00; exact source/test SHA `7e8097b0927ca1b9f86457b559807fbf3965fde1`)
 
 Automated gates are complete for this exact source/test SHA:
@@ -7,7 +31,7 @@ Automated gates are complete for this exact source/test SHA:
 
 The source/test change in [`7e8097b`](https://github.com/milanradics89-beep/POS-Doctor/commit/7e8097b0927ca1b9f86457b559807fbf3965fde1) rejects malformed or expired App Attest challenges and adds three regressions for expired, missing, and non-integer expiry values. Invalid challenges are rejected before native key creation or attestation.
 
-### Latest exact PR #41 HEAD acceptance checkpoint (documentation-only; captured 2026-11-07T11:51:33+01:00; exact SHA `2a277069aba66c907f29bccee7ea6df08d893059`)
+### Previous exact PR #41 HEAD acceptance checkpoint (superseded by 1e013f87e765d179d78fa74af17ed19a9a5b3cc6) (documentation-only; captured 2026-11-07T11:51:33+01:00; exact SHA `2a277069aba66c907f29bccee7ea6df08d893059`)
 
 All required automated workflows completed successfully for this exact PR HEAD:
 - [x] Validation [42362002764](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002764): backend [128372174241](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002764/job/128372174241), frontend [128372174477](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002764/job/128372174477), and iOS [128372174400](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002764/job/128372174400) all passed.
