@@ -116,6 +116,60 @@ describe('attestationClient session cache', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    { label: 'expired', expiresAt: () => Math.floor(Date.now() / 1000) - 1 },
+    { label: 'missing expiry', expiresAt: () => undefined },
+    { label: 'non-integer expiry', expiresAt: () => Math.floor(Date.now() / 1000) + 60.5 },
+  ])('rejects a $label attestation challenge before invoking native attestation', async ({ expiresAt }) => {
+    const nativeModule = {
+      isAvailable: vi.fn(() => true),
+      isKeyAttested: vi.fn(() => false),
+      isKeyAttestationPending: vi.fn(() => false),
+      getPendingAttestation: vi.fn(() => null),
+      storePendingAttestation: vi.fn(),
+      discardKey: vi.fn(),
+      markKeyAttestationPending: vi.fn(),
+      markKeyAttested: vi.fn(),
+      getOrCreateKeyId: vi.fn(async () => 'apple-key-id'),
+      createNewKeyId: vi.fn(async () => 'replacement-apple-key-id'),
+      attest: vi.fn(async () => 'attestation-object'),
+      generateAssertion: vi.fn(async () => 'assertion-object'),
+    };
+    vi.doMock('../../../modules/useit-app-attest', () => ({ default: nativeModule }));
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/v1/session')) {
+        return new Response(JSON.stringify({ detail: 'attestation_required' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      const challengePayload: Record<string, unknown> = {
+        challenge: 'challenge-expiry-test',
+        provider: 'apple_app_attest',
+        appId: 'TEAMID.com.useit.app',
+      };
+      const expiry = expiresAt();
+      if (expiry !== undefined) challengePayload.expiresAt = expiry;
+      return new Response(JSON.stringify(challengePayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    await expect(getSessionToken('https://api-a.example')).rejects.toThrow(
+      'USEIT attestation challenge was malformed or expired.',
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(nativeModule.getOrCreateKeyId).not.toHaveBeenCalled();
+    expect(nativeModule.attest).not.toHaveBeenCalled();
+  });
+
   it('retries the same Apple attestation after a transient fetch failure', async () => {
     const nativeModule = {
       isAvailable: vi.fn(() => true),

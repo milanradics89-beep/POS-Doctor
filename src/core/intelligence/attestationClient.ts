@@ -367,11 +367,16 @@ async function requestAttestationChallenge(
 
   const payload = (await response.json()) as Partial<ChallengeResponse>;
   if (
-    !payload.challenge ||
+    typeof payload.challenge !== 'string' ||
+    !payload.challenge.trim() ||
     (payload.provider !== 'apple_app_attest' && payload.provider !== 'google_play_integrity') ||
-    !payload.appId
+    typeof payload.appId !== 'string' ||
+    !payload.appId.trim() ||
+    typeof payload.expiresAt !== 'number' ||
+    !Number.isSafeInteger(payload.expiresAt) ||
+    payload.expiresAt <= Math.floor(Date.now() / 1000) + 5
   ) {
-    throw new Error('USEIT attestation challenge was malformed.');
+    throw new Error('USEIT attestation challenge was malformed or expired.');
   }
   return payload as ChallengeResponse;
 }
