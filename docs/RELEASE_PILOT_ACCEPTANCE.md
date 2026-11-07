@@ -1,13 +1,20 @@
-### Latest exact source/test acceptance checkpoint (captured 2026-11-07T10:54:51+01:00; exact SHA `7e8097b0927ca1b9f86457b559807fbf3965fde1`)
+### Latest validated source/test acceptance checkpoint (captured 2026-11-07T10:54:51+01:00; exact source/test SHA `7e8097b0927ca1b9f86457b559807fbf3965fde1`)
 
 Automated gates are complete for this exact source/test SHA:
 - [x] Validation [42359047629](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047629): backend [job 128363303478](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047629/job/128363303478) passed 389 tests and 24 production-readiness checks; `pip-audit` found no known vulnerabilities. Frontend/Android [job 128363303380](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047629/job/128363303380) passed 241 tests across 56 files, Expo Doctor 21/21, Android Release build, and emulator install/launch smoke. iOS [job 128363303491](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047629/job/128363303491) passed Release simulator build and install/launch smoke.
-- [x] CodeQL [42359047651](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047651), job [128363303604](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047651/job/128363303604) passed; non-fatal SARIF column-kind mismatch warning recorded.
-- [x] Dependency Review [42359047678](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047678), job [128363303401](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047678/job/128363303401) passed. One unknown-license vendored deepmerge entry and two below-threshold Scorecard warnings remain; no high-severity runtime audit threshold was lowered.
+- [x] CodeQL [42359047651](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047651), job [128363303604](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047651/job/128363303604), passed with a non-fatal SARIF column-kind mismatch warning.
+- [x] Dependency Review [42359047678](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047678), job [128363303401](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047678/job/128363303401), passed. One unknown-license vendored `deepmerge` entry and two below-threshold Scorecard warnings remain; runtime npm audit reported four moderate `glob`/`minimatch` advisory instances.
 
-The source/test change in [`7e8097b`](https://github.com/milanradics89-beep/POS-Doctor/commit/7e8097b0927ca1b9f86457b559807fbf3965fde1) rejects malformed or expired App Attest challenges and adds three regressions for expired, missing, and non-integer expiry values. Invalid challenges are rejected before native key creation or attestation. Frontend result: 241 passed across 56 files. Runtime npm audit still reports four moderate glob/minimatch advisory instances; the configured high-severity threshold passes.
+The source/test change in [`7e8097b`](https://github.com/milanradics89-beep/POS-Doctor/commit/7e8097b0927ca1b9f86457b559807fbf3965fde1) rejects malformed or expired App Attest challenges and adds three regressions for expired, missing, and non-integer expiry values. Invalid challenges are rejected before native key creation or attestation.
 
-PR #41 remains open and unmerged. All 11 inline review threads are resolved, but 15 review submissions contain **0 APPROVED**; one human approval and last-push approval remain required. Issue #47 is closed as completed and main ruleset 26370589 remains active.
+### Latest exact PR #41 HEAD acceptance checkpoint (documentation-only; captured 2026-11-07T11:51:33+01:00; exact SHA `2a277069aba66c907f29bccee7ea6df08d893059`)
+
+All required automated workflows completed successfully for this exact PR HEAD:
+- [x] Validation [42362002764](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002764): backend [128372174241](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002764/job/128372174241), frontend [128372174477](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002764/job/128372174477), and iOS [128372174400](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002764/job/128372174400) all passed.
+- [x] CodeQL [42362002765](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002765), analyze [128372174123](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002765/job/128372174123), passed.
+- [x] Dependency Review [42362002785](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002785), job [128372174063](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42362002785/job/128372174063), passed.
+
+PR #41 remains open and unmerged. All 11 inline review threads are resolved; the 15 recorded review submissions are all COMMENTED and none is APPROVED. One human approval and last-push approval remain required. Issue #47 is closed as completed; main is marked protected and ruleset 26370589 is active.
 
 Human and external acceptance remains open:
 - [ ] One human approving review and last-push approval on PR #41.
@@ -19,8 +26,7 @@ Human and external acceptance remains open:
 - [ ] Product/business pilot, labeled accuracy acceptance, and release approval.
 - [ ] Explicit dependency-risk acceptance for moderate npm advisories and supply-chain posture warnings.
 
-GitHub Releases is empty. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain unverified, not zero. The documentation-only commit created from this checkpoint is a new PR HEAD and must pass its own Validation, CodeQL, and Dependency Review before its exact-head gate is marked complete.
-
+GitHub Releases is empty. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain unverified, not zero. The documentation repair created from this checkpoint is a new PR HEAD and must pass its own Validation, CodeQL, and Dependency Review before that new SHA is considered validated.
 ---
 
 ### Previous fully validated PR #41 checkpoint (superseded by 2026-11-07T04:36:38+01:00 checkpoint; exact PR head `ce31cc34df9e8d0744378df1359f679496cef3ed`)
