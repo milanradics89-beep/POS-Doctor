@@ -1,15 +1,13 @@
-### Latest exact source/test acceptance checkpoint (captured 2026-11-07T09:18:31+01:00; exact SHA `b163ad873d99b96dcfc9dbcd16c99348d131e08a`)
+### Latest exact source/test acceptance checkpoint (captured 2026-11-07T10:54:51+01:00; exact SHA `7e8097b0927ca1b9f86457b559807fbf3965fde1`)
 
 Automated gates are complete for this exact source/test SHA:
-- [x] Validation [42349461953](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42349461953): backend 389 tests, 24 readiness checks, 43 security checks, pip-audit clean; frontend/Android 238 tests across 56 files, Expo Doctor 21/21, Android Release and emulator smoke; iOS Release simulator build and install/launch smoke.
-- [x] CodeQL [42349461861](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42349461861), job [128334287161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42349461861/job/128334287161) passed; non-fatal SARIF column-kind mismatch warning recorded.
-- [x] Dependency Review [42349461827](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42349461827), job [128334286989](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42349461827/job/128334286989) passed with no high-or-higher vulnerable packages; one unknown-license vendored deepmerge entry and two below-threshold Scorecard warnings remain.
+- [x] Validation [42359047629](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047629): backend [job 128363303478](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047629/job/128363303478) passed 389 tests and 24 production-readiness checks; `pip-audit` found no known vulnerabilities. Frontend/Android [job 128363303380](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047629/job/128363303380) passed 241 tests across 56 files, Expo Doctor 21/21, Android Release build, and emulator install/launch smoke. iOS [job 128363303491](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047629/job/128363303491) passed Release simulator build and install/launch smoke.
+- [x] CodeQL [42359047651](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047651), job [128363303604](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047651/job/128363303604) passed; non-fatal SARIF column-kind mismatch warning recorded.
+- [x] Dependency Review [42359047678](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047678), job [128363303401](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42359047678/job/128363303401) passed. One unknown-license vendored deepmerge entry and two below-threshold Scorecard warnings remain; no high-severity runtime audit threshold was lowered.
 
-The source/test change in [`b163ad8`](https://github.com/milanradics89-beep/POS-Doctor/commit/b163ad873d99b96dcfc9dbcd16c99348d131e08a) isolates shared session bootstrap from the first caller's shorter timeout. Each request keeps its own deadline; two fake-timer regressions cover bootstrap and 401-refresh waiters. Frontend test result: 238 passed across 56 files.
+The source/test change in [`7e8097b`](https://github.com/milanradics89-beep/POS-Doctor/commit/7e8097b0927ca1b9f86457b559807fbf3965fde1) rejects malformed or expired App Attest challenges and adds three regressions for expired, missing, and non-integer expiry values. Invalid challenges are rejected before native key creation or attestation. Frontend result: 241 passed across 56 files. Runtime npm audit still reports four moderate glob/minimatch advisory instances; the configured high-severity threshold passes.
 
 PR #41 remains open and unmerged. All 11 inline review threads are resolved, but 15 review submissions contain **0 APPROVED**; one human approval and last-push approval remain required. Issue #47 is closed as completed and main ruleset 26370589 remains active.
-
-Known dependency risk is not cleared: runtime npm audit reports four moderate glob/minimatch advisory instances; Dependency Review retains one unknown-license entry for `vendor/deepmerge@4.3.2` and Scorecard warnings for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5). GitHub Releases is empty. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain unverified, not zero.
 
 Human and external acceptance remains open:
 - [ ] One human approving review and last-push approval on PR #41.
@@ -21,7 +19,7 @@ Human and external acceptance remains open:
 - [ ] Product/business pilot, labeled accuracy acceptance, and release approval.
 - [ ] Explicit dependency-risk acceptance for moderate npm advisories and supply-chain posture warnings.
 
-The documentation-only commit created from this checkpoint is a new PR HEAD and must pass its own Validation, CodeQL, and Dependency Review before its exact-head gate is marked complete.
+GitHub Releases is empty. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain unverified, not zero. The documentation-only commit created from this checkpoint is a new PR HEAD and must pass its own Validation, CodeQL, and Dependency Review before its exact-head gate is marked complete.
 
 ---
 
