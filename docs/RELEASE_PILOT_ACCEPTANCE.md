@@ -1,9 +1,28 @@
-### Latest exact-head release acceptance checkpoint (2026-11-07T04:36:38+01:00; PR #41 HEAD `9bb3a8f8f8936a5b733209af2e6ce3ee3848f8ce`)
+### Latest source/test acceptance checkpoint (captured 2026-11-07T07:22:03+01:00; exact source/test SHA `5f48acb7b3725185b8f246455f66f013b5526ec4`)
 
-Automated exact-head gates are complete:
-- [x] Validation: [run 42326555790](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42326555790). Backend: **389 tests**, 24 readiness checks, 43 production-security checks, pip-audit with no known vulnerabilities. Frontend: **234 tests / 56 files**, Expo Doctor 21/21, Android Release build and emulator install/launch smoke. iOS: Release simulator build and install/launch smoke.
-- [x] CodeQL: [run 42326555850](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42326555850), analyze job 128263084754 passed; non-fatal SARIF column-kind mismatch warning recorded.
-- [x] Dependency Review: [run 42326555784](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42326555784), job 128263084248 passed; no high-or-higher vulnerable packages or denied packages. Two below-threshold Scorecard warnings remain (`@expo/devcert` 2.9; `is-mergeable-object` 1.5). The separate runtime npm audit reports four moderate `glob`/`minimatch` advisory instances while passing its configured high-severity threshold.
+Automated gates are complete for this exact source/test SHA:
+- [x] Validation [42341248136](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42341248136): backend 389 tests, 24 readiness checks, 43 security checks, pip-audit clean; frontend/Android 236 tests across 56 files, Expo Doctor 21/21, Android Release and emulator smoke; iOS Release simulator build and install/launch smoke.
+- [x] CodeQL [42341248172](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42341248172), job 128309180729 passed; non-fatal SARIF column-kind mismatch warning recorded.
+- [x] Dependency Review [42341248156](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42341248156), job 128309180932 passed with no high-or-higher vulnerable packages; two below-threshold Scorecard warnings remain (`@expo/devcert` 2.9 and `is-mergeable-object` 1.5), and the vendored deepmerge unknown-license metadata remains unaccepted. Runtime npm audit still reports four moderate glob/minimatch advisory instances while passing its configured high threshold.
+
+PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. The latest fully validated source/test HEAD at capture time is [`5f48acb`](https://github.com/milanradics89-beep/POS-Doctor/commit/5f48acb7b3725185b8f246455f66f013b5526ec4), commit `fix(api): enforce request deadlines during session waits`. This documentation refresh is a child of that source/test commit; it must complete its own exact-HEAD workflows before being described as validated.
+
+The source change passes the linked request deadline signal to both the initial shared session-bootstrap wait and the 401 session-refresh wait. Two fake-timer regression tests cover a short-deadline caller timing out while another caller's shared bootstrap or refresh remains usable. The change is limited to `src/core/intelligence/request.ts` and `src/core/intelligence/request.test.ts`.
+
+Exact source/test HEAD CI evidence:
+- [Validation 42341248136](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42341248136): backend [job 128309181075](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42341248136/job/128309181075) passed **389 tests**, **24 production-readiness checks**, and **43 production-security checks**; `pip-audit` reported no known vulnerabilities. The only backend test warning is a non-failing Starlette/httpx TestClient deprecation; the Redis test container also emitted the host `vm.overcommit_memory` advisory. Frontend/Android [job 128309181076](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42341248136/job/128309181076) passed **236 tests across 56 files**, Expo Doctor **21/21**, Android Release build, and emulator install/launch smoke. Its runtime `npm audit --omit=dev --audit-level=high` passed the configured high-severity threshold but reported **4 moderate advisory instances** involving `glob` and `minimatch` ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4), [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)); `npm audit fix --force` proposes a breaking Expo downgrade and was not used. iOS [job 128309180894](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42341248136/job/128309180894) passed the Release simulator build and simulator install/launch smoke.
+- [CodeQL 42341248172](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42341248172), analyze [job 128309180729](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42341248172/job/128309180729), succeeded. SARIF merging emitted a non-fatal column-kind mismatch warning.
+- [Dependency Review 42341248156](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42341248156), job [128309180932](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42341248156/job/128309180932), succeeded with no high-or-higher vulnerable packages. Two below-threshold OpenSSF Scorecard warnings remain: `@expo/devcert` (**2.9**) and `is-mergeable-object` (**1.5**) against threshold **3**. The previously tracked `vendor/deepmerge@4.3.2` unknown-license metadata remains unaccepted pending explicit owner confirmation. No forced downgrade, dependency override, or threshold reduction was applied.
+
+Release, review, and external gates:
+- The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Done: **#1 iOS simulator CI, #2 main ruleset, #6 Redis multi-instance test coverage**. Item **#14 API timeout/retry remains In Progress**: the session-wait deadline regression is fixed and validated, but broader offline/weak-network and POST idempotency behavior remain open.
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed. Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`; pull requests, one approving review, last-push approval, and resolved review threads are required. Deletion and non-fast-forward updates are blocked; there are no bypass actors.
+- All **11/11 inline review threads are resolved**. There are **15 review submissions and 0 APPROVED**; human approval and last-push approval remain required.
+- The five previously identified client/request/privacy findings remain covered by source/tests: explicit-auth POST retry fixtures; effective Fetch `Request`/init headers and method; valid base64 `vision_usage` privacy fixture; error-boundary logging limited to the error name; and Settings recovery for permanently denied camera/gallery permissions. These source checks do not replace physical-device permission testing.
+- Physical-device App Attest and Play Integrity, production provider/configuration checks, approved staging load test, witnessed backup/restore, production monitoring/alert delivery, staged rollout and rollback, pilot/business approval, dependency-risk acceptance, and human PR approval remain open.
+- GitHub Releases currently contains no published releases. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero** because the connected integration does not expose those alert collections.
+
+This checkpoint is automated source/test evidence only. It is not production, physical-device, store, pilot, or business acceptance.
 
 Human and external acceptance remains open:
 - [ ] One human approving review and last-push approval on PR #41.
@@ -13,9 +32,9 @@ Human and external acceptance remains open:
 - [ ] Witnessed production-like backup/restore and recovery evidence.
 - [ ] Production monitoring, alert delivery, staged rollout, and rollback evidence.
 - [ ] Product/business pilot, labeled accuracy acceptance, and release approval.
-- [ ] Explicit dependency-risk acceptance for the remaining moderate npm advisories and supply-chain posture warnings.
+- [ ] Explicit dependency-risk acceptance for moderate npm advisories and supply-chain posture warnings.
 
-The 25-point backlog remains **3 Done / 15 In Progress / 7 Blocked**. Issue #47 is closed; main ruleset 26370589 is active and requires the six strict checks, one approval, and last-push approval. All 11 inline review threads are resolved, but no review submission is APPROVED. No published GitHub Release exists. Security-alert inventories remain unverified, not zero.
+The documentation commit created from this checkpoint is a new PR HEAD and must pass its own Validation, CodeQL, and Dependency Review before its exact-head gate is marked complete.
 
 ---
 
