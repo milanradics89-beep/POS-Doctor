@@ -12,6 +12,12 @@ def test_hungarian_shopping_intent_is_classified() -> None:
     assert result["confidence"] >= 0.90
 
 
+def test_explicit_shop_mode_is_classified_for_product_discovery() -> None:
+    result = classify_intent("shop")
+    assert result["name"] == "shop"
+    assert result["confidence"] >= 0.90
+
+
 def test_intent_can_use_prompt_when_user_intent_missing() -> None:
     result = classify_intent(None, "Adj egy receptet ebből")
     assert result["name"] == "cook"

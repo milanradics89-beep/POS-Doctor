@@ -1,5 +1,5 @@
 export type VisionSceneType = 'room' | 'table' | 'fridge' | 'wardrobe' | 'garage' | 'garden' | 'objects' | 'food' | 'mixed' | 'unknown';
-export type VisionOpportunityKind = 'create' | 'improve' | 'fix' | 'cook' | 'reuse' | 'play' | 'organize' | 'surprise';
+export type VisionOpportunityKind = 'create' | 'improve' | 'fix' | 'cook' | 'reuse' | 'play' | 'organize' | 'surprise' | 'shop';
 
 export interface VisionDetectedItem {
   name: string;

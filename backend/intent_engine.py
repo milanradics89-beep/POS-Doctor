@@ -12,7 +12,7 @@ class IntentProfile:
 
 
 _INTENTS: tuple[IntentProfile, ...] = (
-    IntentProfile("shop", 0.90, ("venni", "vásárol", "shopping", "buy", "purchase", "termék", "csere")),
+    IntentProfile("shop", 0.90, ("shop", "venni", "vásárol", "shopping", "buy", "purchase", "termék", "csere")),
     IntentProfile("improve", 0.82, ("javítani", "fejleszteni", "szebb", "improve", "upgrade", "better", "átalakítani", "átalakítás")),
     IntentProfile("fix", 0.88, ("javítás", "javíts", "szerel", "repair", "fix", "hibás", "rossz")),
     IntentProfile("cook", 0.90, ("főzni", "recept", "recipe", "cook", "vacsora", "ebéd", "reggeli")),
@@ -22,7 +22,7 @@ _INTENTS: tuple[IntentProfile, ...] = (
     IntentProfile("play", 0.80, ("játék", "játszani", "play", "game", "gyerek")),
 )
 
-_ENGLISH_SINGLE_WORD_TERMS = {"fix", "buy", "purchase", "shopping", "improve", "upgrade", "better", "repair", "cook", "recipe", "organize", "storage", "declutter", "reuse", "upcycle", "create", "build", "make", "project", "play", "game"}
+_ENGLISH_SINGLE_WORD_TERMS = {"fix", "shop", "buy", "purchase", "shopping", "improve", "upgrade", "better", "repair", "cook", "recipe", "organize", "storage", "declutter", "reuse", "upcycle", "create", "build", "make", "project", "play", "game"}
 
 
 def _tokens(text: str) -> set[str]:
