@@ -21,6 +21,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
+      - name: Restrict execution and writes to the release branch
+        env:
+          TARGET_REF: refs/heads/fix/release-blockers-2026-10
+        run: |
+          set -euo pipefail
+          is_allowed_ref() {
+            [[ "$1" == "$TARGET_REF" ]]
+          }
+
+          # Regression checks: accept the release ref and reject main/other refs.
+          is_allowed_ref "$TARGET_REF"
+          if is_allowed_ref "refs/heads/main"; then
+            echo "::error::Main must never be a lockfile-refresh target."
+            exit 1
+          fi
+          if is_allowed_ref "refs/heads/feature/unrelated"; then
+            echo "::error::Unrelated branches must never be lockfile-refresh targets."
+            exit 1
+          fi
+          if ! is_allowed_ref "$GITHUB_REF"; then
+            echo "::error::This workflow may only write to fix/release-blockers-2026-10 (got $GITHUB_REF)."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -108,7 +132,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          BRANCH="${GITHUB_REF#refs/heads/}"
+          BRANCH="fix/release-blockers-2026-10"
           EXPECTED_SHA="$GITHUB_SHA"
           READY=false
 
