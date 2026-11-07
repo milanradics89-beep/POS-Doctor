@@ -130,19 +130,22 @@ def configured_redis_url() -> str:
 
 
 @asynccontextmanager
-async def _redis_challenge_store() -> AsyncIterator[ChallengeStoreBackend]:
+async def _redis_challenge_store(redis_client: Redis | None = None) -> AsyncIterator[ChallengeStoreBackend]:
     from backend.attestation_store import RedisChallengeStore
 
-    redis = Redis.from_url(
-        configured_redis_url(),
-        decode_responses=False,
-        socket_connect_timeout=2.0,
-        socket_timeout=5.0,
-    )
+    owns_client = redis_client is None
+    if redis_client is None:
+        redis_client = Redis.from_url(
+            configured_redis_url(),
+            decode_responses=False,
+            socket_connect_timeout=2.0,
+            socket_timeout=5.0,
+        )
     try:
-        yield RedisChallengeStore(redis)
+        yield RedisChallengeStore(redis_client)
     finally:
-        await redis.aclose()
+        if owns_client:
+            await redis_client.aclose()
 
 
 
@@ -190,7 +193,10 @@ def validate_challenge_binding(evidence: AttestationEvidence) -> AttestationResu
     return AttestationResult(True, "challenge_bound")
 
 
-async def issue_challenge_async(ttl_seconds: int | None = None) -> AttestationChallenge:
+async def issue_challenge_async(
+    ttl_seconds: int | None = None,
+    redis_client: Redis | None = None,
+) -> AttestationChallenge:
     ttl = ttl_seconds if ttl_seconds is not None else attestation_challenge_ttl_seconds()
     ttl = max(30, min(ttl, MAX_CHALLENGE_TTL_SECONDS))
     provider = configured_attestation_provider()
@@ -199,7 +205,7 @@ async def issue_challenge_async(ttl_seconds: int | None = None) -> AttestationCh
 
     if configured_redis_url():
         challenge = secrets.token_urlsafe(32)
-        async with _redis_challenge_store() as store:
+        async with _redis_challenge_store(redis_client) as store:
             await store.put(challenge, provider, app_id, ttl)
     else:
         challenge = _CHALLENGE_STORE.issue(provider, app_id, ttl)
@@ -207,9 +213,12 @@ async def issue_challenge_async(ttl_seconds: int | None = None) -> AttestationCh
     return AttestationChallenge(challenge=challenge, provider=provider, app_id=app_id, expires_at=now + ttl)
 
 
-async def validate_challenge_binding_async(evidence: AttestationEvidence) -> AttestationResult:
+async def validate_challenge_binding_async(
+    evidence: AttestationEvidence,
+    redis_client: Redis | None = None,
+) -> AttestationResult:
     if configured_redis_url():
-        async with _redis_challenge_store() as store:
+        async with _redis_challenge_store(redis_client) as store:
             record = await store.consume(evidence.challenge)
         if record is None:
             return AttestationResult(False, "challenge_invalid_or_replayed")

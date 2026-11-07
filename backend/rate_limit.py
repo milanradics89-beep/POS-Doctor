@@ -83,12 +83,16 @@ async def _redis_allowed(request: Request, limit: int, namespace: str = "rate") 
     if not url:
         raise RuntimeError("Redis rate limiting requires USEIT_REDIS_URL.")
 
-    client = Redis.from_url(
-        url,
-        decode_responses=True,
-        socket_connect_timeout=2.0,
-        socket_timeout=5.0,
-    )
+    app_state = getattr(request.scope.get("app"), "state", None)
+    client = getattr(app_state, "redis_client", None)
+    owns_client = client is None
+    if client is None:
+        client = Redis.from_url(
+            url,
+            decode_responses=True,
+            socket_connect_timeout=2.0,
+            socket_timeout=5.0,
+        )
     events_key = f"useit:{namespace}:{_client_key(request)}:events"
     sequence_key = f"{events_key}:sequence"
     try:
@@ -104,7 +108,8 @@ async def _redis_allowed(request: Request, limit: int, namespace: str = "rate") 
         retry_after = int(result[1])
         return allowed, 0 if allowed else max(1, retry_after)
     finally:
-        await client.aclose()
+        if owns_client:
+            await client.aclose()
 
 
 async def check_redis_rate_limit_capability(redis_client) -> bool:

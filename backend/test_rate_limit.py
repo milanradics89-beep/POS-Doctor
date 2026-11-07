@@ -205,6 +205,39 @@ async def test_redis_rate_limit_uses_atomic_sliding_window_and_bounded_timeouts(
     assert captured["closed"] is True
 
 
+
+@pytest.mark.asyncio
+async def test_redis_rate_limit_reuses_application_pool_without_closing_it(monkeypatch):
+    captured = {}
+
+    class FakeRedis:
+        async def eval(self, *args):
+            captured["eval"] = True
+            return [1, 0]
+
+        async def aclose(self):
+            captured["closed"] = True
+
+    app = FastAPI()
+    shared_client = FakeRedis()
+    app.state.redis_client = shared_client
+    request = _redis_test_request()
+    request.scope["app"] = app
+
+    def unexpected_from_url(cls, *args, **kwargs):
+        pytest.fail("Rate limiting must reuse the application-scoped Redis pool.")
+
+    monkeypatch.setattr(redis_asyncio.Redis, "from_url", classmethod(unexpected_from_url))
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.example.test:6379/0")
+
+    allowed, retry_after = await _redis_allowed(request, limit=5, namespace="shared-pool-test")
+
+    assert allowed is True
+    assert retry_after == 0
+    assert captured["eval"] is True
+    assert "closed" not in captured
+
+
 @pytest.mark.asyncio
 async def test_redis_rate_limit_enforces_sliding_window_across_minute_boundary(monkeypatch):
     url = _redis_integration_url()

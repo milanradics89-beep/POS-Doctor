@@ -3,6 +3,7 @@ import binascii
 import json
 import logging
 import os
+from contextlib import asynccontextmanager
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -59,12 +60,37 @@ logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
 if production_mode():
     validate_production_security()
 
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    redis_client = None
+    redis_url = configured_redis_url()
+    if redis_url:
+        redis_client = redis_asyncio.Redis.from_url(
+            redis_url,
+            decode_responses=False,
+            socket_connect_timeout=2.0,
+            socket_timeout=5.0,
+        )
+    application.state.redis_client = redis_client
+    try:
+        yield
+    finally:
+        application.state.redis_client = None
+        if redis_client is not None:
+            try:
+                await redis_client.aclose()
+            except (RedisError, TimeoutError, OSError):
+                logger.warning("Application shutdown could not close the shared Redis client cleanly")
+
+
 app = FastAPI(
     title="USEIT Intelligence API",
     version="0.8.0",
     docs_url=None if production_mode() else "/docs",
     redoc_url=None if production_mode() else "/redoc",
     openapi_url=None if production_mode() else "/openapi.json",
+    lifespan=lifespan,
 )
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
 install_request_controls(app)
@@ -199,13 +225,15 @@ async def ready():
             and bool(configured_redis_url())
         )
         if dependencies_ready:
-            redis_client = None
+            redis_client = getattr(app.state, "redis_client", None)
+            owns_redis_client = redis_client is None
             try:
-                redis_client = redis_asyncio.Redis.from_url(
-                    configured_redis_url(),
-                    socket_connect_timeout=2,
-                    socket_timeout=2,
-                )
+                if redis_client is None:
+                    redis_client = redis_asyncio.Redis.from_url(
+                        configured_redis_url(),
+                        socket_connect_timeout=2,
+                        socket_timeout=2,
+                    )
                 await redis_client.ping()
                 if not await check_redis_rate_limit_capability(redis_client):
                     logger.warning("Readiness check failed: Redis rate-limit commands are unavailable")
@@ -218,11 +246,11 @@ async def ready():
                 logger.warning("Readiness check failed: shared Redis is unavailable")
                 dependencies_ready = False
             finally:
-                if redis_client is not None:
+                if owns_redis_client and redis_client is not None:
                     try:
                         await redis_client.aclose()
                     except (RedisError, TimeoutError, OSError):
-                        logger.warning("Readiness check could not close the Redis client cleanly")
+                        logger.warning("Readiness check could not close the temporary Redis client cleanly")
     if not dependencies_ready:
         raise HTTPException(status_code=503, detail="Service is not ready.")
     return {"status": "ready"}
@@ -232,7 +260,7 @@ async def create_attestation_challenge(response: Response):
     if production_mode() and configured_attestation_mode() is AttestationMode.REQUIRED and not configured_redis_url():
         raise HTTPException(status_code=503, detail="Attestation shared storage is not configured.")
     try:
-        challenge = await issue_challenge_async()
+        challenge = await issue_challenge_async(redis_client=getattr(app.state, "redis_client", None))
     except (RuntimeError, RedisError, TimeoutError) as exc:
         logger.warning("Attestation challenge storage is unavailable")
         raise HTTPException(status_code=503, detail="Attestation challenge service is temporarily unavailable.") from exc
@@ -263,7 +291,7 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             client_data=request.clientData,
         )
         try:
-            binding = await validate_challenge_binding_async(evidence)
+            binding = await validate_challenge_binding_async(evidence, redis_client=getattr(app.state, "redis_client", None))
         except (RedisError, TimeoutError) as exc:
             logger.warning("Attestation challenge storage is unavailable")
             raise HTTPException(

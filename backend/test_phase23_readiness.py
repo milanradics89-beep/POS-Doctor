@@ -1,5 +1,6 @@
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
 import backend.main as main
 
@@ -363,3 +364,81 @@ async def test_production_readiness_fails_when_shared_redis_is_unavailable(monke
     assert exc_info.value.detail == "Service is not ready."
     assert len(created_clients) == 1
     assert created_clients[0].closed
+
+
+
+@pytest.mark.asyncio
+async def test_production_readiness_reuses_application_redis_pool_without_closing_it(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
+    monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+
+    class SharedRedis:
+        closed = False
+
+        def __init__(self):
+            self.eval_calls = 0
+
+        async def ping(self):
+            return True
+
+        async def pexpire(self, key, milliseconds):
+            return False
+
+        async def eval(self, *args):
+            self.eval_calls += 1
+            return [1, 0] if self.eval_calls == 1 else [0, 60]
+
+        async def aclose(self):
+            self.closed = True
+
+    shared_client = SharedRedis()
+    main.app.state.redis_client = shared_client
+
+    def unexpected_from_url(*args, **kwargs):
+        pytest.fail("Readiness must reuse the application-scoped Redis pool.")
+
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", unexpected_from_url)
+    try:
+        assert await main.ready() == {"status": "ready"}
+    finally:
+        main.app.state.redis_client = None
+
+    assert shared_client.eval_calls == 2
+    assert shared_client.closed is False
+
+
+def test_application_lifespan_creates_and_closes_one_shared_redis_pool(monkeypatch):
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    created = []
+    options = {}
+
+    class SharedRedis:
+        closed = False
+
+        async def aclose(self):
+            self.closed = True
+
+    def fake_from_url(cls, url, **kwargs):
+        options.update(url=url, **kwargs)
+        client = SharedRedis()
+        created.append(client)
+        return client
+
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", classmethod(fake_from_url))
+
+    with TestClient(main.app):
+        assert len(created) == 1
+        assert main.app.state.redis_client is created[0]
+
+    assert options == {
+        "url": "redis://redis.internal:6379/0",
+        "decode_responses": False,
+        "socket_connect_timeout": 2.0,
+        "socket_timeout": 5.0,
+    }
+    assert created[0].closed is True
+    assert main.app.state.redis_client is None

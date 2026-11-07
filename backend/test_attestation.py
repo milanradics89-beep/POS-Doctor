@@ -172,3 +172,47 @@ async def test_redis_challenge_store_uses_bounded_connection_timeouts(monkeypatc
         "socket_timeout": 5.0,
     }
     assert captured["closed"] is True
+
+
+
+@pytest.mark.asyncio
+async def test_async_challenge_lifecycle_reuses_shared_redis_client_without_closing(monkeypatch):
+    import backend.attestation as attestation
+
+    class FakeRedis:
+        def __init__(self):
+            self.values = {}
+            self.closed = False
+
+        async def set(self, key, value, *, ex, nx):
+            if nx and key in self.values:
+                return None
+            self.values[key] = value
+            return "OK"
+
+        async def getdel(self, key):
+            return self.values.pop(key, None)
+
+        async def aclose(self):
+            self.closed = True
+
+    shared_client = FakeRedis()
+
+    def unexpected_from_url(cls, *args, **kwargs):
+        pytest.fail("Attestation must reuse the application-scoped Redis pool.")
+
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "apple_app_attest")
+    monkeypatch.setattr(attestation.Redis, "from_url", classmethod(unexpected_from_url))
+
+    challenge = await attestation.issue_challenge_async(redis_client=shared_client)
+    evidence = AttestationEvidence(
+        provider=challenge.provider,
+        challenge=challenge.challenge,
+        assertion="test-assertion",
+        app_id=challenge.app_id,
+    )
+    result = await attestation.validate_challenge_binding_async(evidence, redis_client=shared_client)
+
+    assert result == AttestationResult(True, "challenge_bound")
+    assert shared_client.closed is False
