@@ -32,6 +32,8 @@ class AttestationEvidence:
     challenge: str
     assertion: str
     app_id: str
+    key_id: str | None = None
+    client_data: str | None = None
 
 
 @dataclass(frozen=True)
@@ -61,9 +63,13 @@ class ChallengeStore:
 
     def issue(self, provider: AttestationProvider, app_id: str, ttl_seconds: int = 300) -> str:
         now = int(time.time())
+        self._prune(now)
+        if len(self._issued) >= MAX_IN_MEMORY_CHALLENGES:
+            # Never evict unexpired challenges: doing so would break active
+            # sessions unpredictably. Fail closed rather than grow without bound.
+            raise RuntimeError("In-memory attestation challenge capacity is exhausted.")
         nonce = secrets.token_urlsafe(32)
         self._issued[hashlib.sha256(nonce.encode()).hexdigest()] = (now + ttl_seconds, provider, app_id)
-        self._prune(now)
         return nonce
 
     def consume(self, challenge: str, now: int | None = None) -> tuple[bool, AttestationProvider | None, str | None]:
@@ -83,6 +89,7 @@ class ChallengeStore:
 _CHALLENGE_STORE = ChallengeStore()
 DEFAULT_CHALLENGE_TTL_SECONDS = 300
 MAX_CHALLENGE_TTL_SECONDS = 600
+MAX_IN_MEMORY_CHALLENGES = 10_000
 
 
 def configured_attestation_mode() -> AttestationMode:
@@ -123,14 +130,39 @@ def configured_redis_url() -> str:
 
 
 @asynccontextmanager
-async def _redis_challenge_store() -> AsyncIterator[ChallengeStoreBackend]:
+async def _redis_challenge_store(redis_client: Redis | None = None) -> AsyncIterator[ChallengeStoreBackend]:
     from backend.attestation_store import RedisChallengeStore
 
-    redis = Redis.from_url(configured_redis_url(), decode_responses=False)
+    owns_client = redis_client is None
+    if redis_client is None:
+        redis_client = Redis.from_url(
+            configured_redis_url(),
+            decode_responses=False,
+            socket_connect_timeout=2.0,
+            socket_timeout=5.0,
+        )
     try:
-        yield RedisChallengeStore(redis)
+        yield RedisChallengeStore(redis_client)
     finally:
-        await redis.aclose()
+        if owns_client:
+            await redis_client.aclose()
+
+
+
+async def check_redis_challenge_store_capability(redis: Redis) -> bool:
+    """Verify the Redis SET/GETDEL operations required for shared challenges."""
+    from backend.attestation_store import RedisChallengeStore
+
+    provider = configured_attestation_provider()
+    app_id = configured_attestation_app_id()
+    challenge = secrets.token_urlsafe(32)
+    store = RedisChallengeStore(redis)
+    try:
+        await store.put(challenge, provider, app_id, ttl_seconds=30)
+        record = await store.consume(challenge)
+    except (AttributeError, RuntimeError):
+        return False
+    return record is not None and record.provider is provider and record.app_id == app_id
 
 
 def issue_challenge(ttl_seconds: int | None = None) -> AttestationChallenge:
@@ -161,7 +193,10 @@ def validate_challenge_binding(evidence: AttestationEvidence) -> AttestationResu
     return AttestationResult(True, "challenge_bound")
 
 
-async def issue_challenge_async(ttl_seconds: int | None = None) -> AttestationChallenge:
+async def issue_challenge_async(
+    ttl_seconds: int | None = None,
+    redis_client: Redis | None = None,
+) -> AttestationChallenge:
     ttl = ttl_seconds if ttl_seconds is not None else attestation_challenge_ttl_seconds()
     ttl = max(30, min(ttl, MAX_CHALLENGE_TTL_SECONDS))
     provider = configured_attestation_provider()
@@ -170,7 +205,7 @@ async def issue_challenge_async(ttl_seconds: int | None = None) -> AttestationCh
 
     if configured_redis_url():
         challenge = secrets.token_urlsafe(32)
-        async with _redis_challenge_store() as store:
+        async with _redis_challenge_store(redis_client) as store:
             await store.put(challenge, provider, app_id, ttl)
     else:
         challenge = _CHALLENGE_STORE.issue(provider, app_id, ttl)
@@ -178,9 +213,12 @@ async def issue_challenge_async(ttl_seconds: int | None = None) -> AttestationCh
     return AttestationChallenge(challenge=challenge, provider=provider, app_id=app_id, expires_at=now + ttl)
 
 
-async def validate_challenge_binding_async(evidence: AttestationEvidence) -> AttestationResult:
+async def validate_challenge_binding_async(
+    evidence: AttestationEvidence,
+    redis_client: Redis | None = None,
+) -> AttestationResult:
     if configured_redis_url():
-        async with _redis_challenge_store() as store:
+        async with _redis_challenge_store(redis_client) as store:
             record = await store.consume(evidence.challenge)
         if record is None:
             return AttestationResult(False, "challenge_invalid_or_replayed")
@@ -201,6 +239,10 @@ async def validate_challenge_binding_async(evidence: AttestationEvidence) -> Att
 
 async def verify_attestation_provider(evidence: AttestationEvidence) -> AttestationResult:
     """Dispatch evidence to the configured real provider verifier."""
+    if evidence.provider is AttestationProvider.APP_ATTEST:
+        from backend.apple_app_attest import AppleAppAttestVerifier
+
+        return await AppleAppAttestVerifier().verify(evidence)
     if evidence.provider is AttestationProvider.PLAY_INTEGRITY:
         from backend.google_play_integrity import GooglePlayIntegrityVerifier
 

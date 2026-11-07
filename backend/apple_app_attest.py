@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import io
 import os
 import time
 from dataclasses import dataclass
@@ -52,40 +53,105 @@ class AppleAttestKey:
 
 
 def _b64decode(value: str) -> bytes:
-    raw = value.strip()
-    try:
-        return base64.b64decode(raw, validate=True)
-    except Exception:
-        return base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4))
+    # Attestation payloads and key IDs may use standard or URL-safe Base64,
+    # but accepting ignored characters or mixed alphabets makes their textual
+    # representation malleable. Require one canonical encoding.
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise ValueError("Invalid Base64 encoding")
+    if any(character.isspace() for character in value):
+        raise ValueError("Invalid Base64 encoding")
+
+    has_standard_symbols = "+" in value or "/" in value
+    has_urlsafe_symbols = "-" in value or "_" in value
+    if has_standard_symbols and has_urlsafe_symbols:
+        raise ValueError("Mixed Base64 alphabets are not allowed")
+
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    alphabet += "-_" if has_urlsafe_symbols else "+/"
+    unpadded = value.rstrip("=")
+    padding = len(value) - len(unpadded)
+    if padding > 2 or "=" in unpadded or (padding and len(value) % 4 != 0):
+        raise ValueError("Invalid Base64 padding")
+    if len(unpadded) % 4 == 1:
+        raise ValueError("Invalid Base64 length")
+    if any(character not in alphabet for character in unpadded):
+        raise ValueError("Invalid Base64 character")
+
+    padded = unpadded + "=" * (-len(unpadded) % 4)
+    decoded = base64.b64decode(
+        padded,
+        altchars=b"-_" if has_urlsafe_symbols else None,
+        validate=True,
+    )
+    canonical = base64.b64encode(decoded).decode("ascii")
+    if has_urlsafe_symbols:
+        canonical = canonical.translate(str.maketrans("+/", "-_"))
+    expected = canonical if padding else canonical.rstrip("=")
+    if value != expected:
+        raise ValueError("Non-canonical Base64 encoding")
+    return decoded
 
 
 def _key_id_bytes(key_id: str) -> bytes:
-    raw = key_id.strip()
-    try:
-        if len(raw) % 2 == 0:
-            decoded = bytes.fromhex(raw)
-            if len(decoded) == 32:
-                return decoded
-    except ValueError:
-        pass
-    return _b64decode(raw)
+    # Key IDs are opaque identifiers. Do not trim or otherwise normalize
+    # caller input: a non-canonical spelling must not become a second key.
+    if not isinstance(key_id, str) or not key_id or key_id != key_id.strip():
+        raise ValueError("Invalid Apple App Attest key ID")
+
+    # Keep the legacy 64-character hex form, but validate it before calling
+    # bytes.fromhex(), which otherwise silently ignores embedded whitespace.
+    if len(key_id) == 64 and all(character in "0123456789abcdefABCDEF" for character in key_id):
+        return bytes.fromhex(key_id)
+    return _b64decode(key_id)
 
 
-def _parse_auth_data(auth_data: bytes) -> tuple[bytes, int, bytes]:
+def _parse_auth_data(auth_data: bytes) -> tuple[bytes, int, bytes, dict[Any, Any]]:
     if len(auth_data) < 55:
         raise ValueError("authenticatorData too short")
+    # App Attest attestation data must carry the WebAuthn AT (attested
+    # credential data) flag before the AAGUID and credential ID fields.
+    flags = auth_data[32]
+    if not (flags & 0x40):
+        raise ValueError("authenticatorData is missing the attested credential data flag")
     rp_id_hash = auth_data[:32]
     counter = int.from_bytes(auth_data[33:37], "big")
-    aaguid = auth_data[37:53]
     credential_len = int.from_bytes(auth_data[53:55], "big")
     end = 55 + credential_len
     if credential_len <= 0 or end > len(auth_data):
         raise ValueError("invalid credentialId length")
-    return rp_id_hash, counter, auth_data[55:end]
+    if end == len(auth_data):
+        raise ValueError("authenticatorData is missing the credential public key")
+
+    # The credential public key is a CBOR COSE_Key immediately following the
+    # credential ID. Apple App Attest also appends an extensions map on current
+    # devices even when its authenticatorData ED flag is not set, so parse one
+    # whenever bytes remain. If ED is set, the map is mandatory. In either case
+    # require exactly one map and reject malformed or unconsumed trailing data.
+    stream = io.BytesIO(auth_data[end:])
+    decoder = cbor2.CBORDecoder(stream)
+    try:
+        credential_public_key = decoder.decode()
+        extension_data = stream.read()
+        if flags & 0x80 and not extension_data:
+            raise ValueError("authenticatorData ED flag is set but extension data is missing")
+        if extension_data:
+            extension_stream = io.BytesIO(extension_data)
+            extensions = cbor2.CBORDecoder(extension_stream).decode()
+            if not isinstance(extensions, dict):
+                raise ValueError("invalid authenticator extensions")
+            if extension_stream.read(1):
+                raise ValueError("unexpected trailing authenticatorData bytes")
+    except cbor2.CBORDecodeError as exc:
+        raise ValueError("invalid credential public key or authenticator extensions") from exc
+    if not isinstance(credential_public_key, dict):
+        raise ValueError("invalid credential public key")
+    return rp_id_hash, counter, auth_data[55:end], credential_public_key
 
 
 def _extension_nonce(cert: x509.Certificate) -> bytes:
     extension = cert.extensions.get_extension_for_oid(OID_NONCE).value
+    if not isinstance(extension, x509.UnrecognizedExtension):
+        raise ValueError("App Attest nonce extension has an unexpected encoding")
     # Apple encodes the nonce as a DER structure containing a context-specific
     # [1] wrapper and an OCTET STRING. Walk the DER payload defensively.
     def walk(data: bytes) -> bytes | None:
@@ -109,12 +175,12 @@ def _extension_nonce(cert: x509.Certificate) -> bytes:
             i += length
             if tag == 0x04 and len(value) == 32:
                 return value
-            nested = walk(value) if value and (value[0] & 0x20 or value[0] in (0x30, 0x31, 0xA1)) else None
+            nested = walk(value) if tag & 0x20 else None
             if nested is not None:
                 return nested
         return None
 
-    nonce = walk(extension)
+    nonce = walk(extension.value)
     if nonce is None:
         raise ValueError("App Attest nonce extension is malformed")
     return nonce
@@ -158,6 +224,39 @@ def _raw_public_key(cert: x509.Certificate) -> bytes:
     return key.public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)
 
 
+def _validate_aaguid(aaguid: bytes) -> None:
+    if aaguid not in (PROD_AAGUID, DEV_AAGUID):
+        raise ValueError("unsupported App Attest AAGUID")
+    environment = os.environ.get("USEIT_ENV", "development").strip().lower()
+    if environment in {"production", "prod"} and aaguid != PROD_AAGUID:
+        raise ValueError("development App Attest keys are not allowed in production")
+
+
+def _validate_cose_public_key(cose_key: Any, certificate_public_key: bytes) -> None:
+    # WebAuthn App Attest credentials use an ES256 COSE EC2 key on P-256.
+    # The COSE coordinates must identify the same point as the attestation
+    # certificate's Subject Public Key, not merely be present in authData.
+    if not isinstance(cose_key, dict):
+        raise ValueError("credential public key is not a COSE map")
+    if (
+        type(cose_key.get(1)) is not int
+        or cose_key[1] != 2
+        or type(cose_key.get(3)) is not int
+        or cose_key[3] != -7
+        or type(cose_key.get(-1)) is not int
+        or cose_key[-1] != 1
+    ):
+        raise ValueError("credential public key must be an ES256 P-256 COSE EC2 key")
+    x = cose_key.get(-2)
+    y = cose_key.get(-3)
+    if not isinstance(x, bytes) or len(x) != 32 or not isinstance(y, bytes) or len(y) != 32:
+        raise ValueError("credential public key coordinates are invalid")
+    if len(certificate_public_key) != 65 or certificate_public_key[0] != 0x04:
+        raise ValueError("attestation certificate public key is not an uncompressed P-256 point")
+    if x != certificate_public_key[1:33] or y != certificate_public_key[33:65]:
+        raise ValueError("credential public key does not match the attestation certificate")
+
+
 def _verify_attestation(evidence: AttestationEvidence) -> AppleAttestKey:
     payload = _b64decode(evidence.assertion)
     obj = cbor2.loads(payload)
@@ -179,7 +278,7 @@ def _verify_attestation(evidence: AttestationEvidence) -> AppleAttestKey:
     if _extension_nonce(leaf) != nonce:
         raise ValueError("Apple App Attest nonce mismatch")
 
-    rp_id_hash, counter, credential_id = _parse_auth_data(auth_data)
+    rp_id_hash, counter, credential_id, credential_public_key = _parse_auth_data(auth_data)
     expected_rp = hashlib.sha256(evidence.app_id.encode()).digest()
     if rp_id_hash != expected_rp:
         raise ValueError("Apple App Attest RP ID mismatch")
@@ -193,8 +292,8 @@ def _verify_attestation(evidence: AttestationEvidence) -> AppleAttestKey:
     public_key = _raw_public_key(leaf)
     if hashlib.sha256(public_key).digest() != credential_id:
         raise ValueError("Apple App Attest public key hash mismatch")
-    if auth_data[37:53] not in (PROD_AAGUID, DEV_AAGUID):
-        raise ValueError("unsupported App Attest AAGUID")
+    _validate_cose_public_key(credential_public_key, public_key)
+    _validate_aaguid(auth_data[37:53])
     return AppleAttestKey(key_id=evidence.key_id, public_key_der=leaf.public_bytes(Encoding.DER), counter=counter)
 
 
@@ -204,6 +303,12 @@ class _AppleKeyStore:
 
     async def put(self, key_id: str, public_key_der: bytes, app_id: str) -> None:
         self._keys[key_id] = (public_key_der, 0, app_id)
+
+    async def create(self, key_id: str, public_key_der: bytes, app_id: str) -> bool:
+        if key_id in self._keys:
+            return False
+        self._keys[key_id] = (public_key_der, 0, app_id)
+        return True
 
     async def get(self, key_id: str) -> tuple[bytes, int, str] | None:
         return self._keys.get(key_id)
@@ -220,20 +325,31 @@ _MEMORY_KEYS = _AppleKeyStore()
 
 
 def _redis() -> Redis:
-    return Redis.from_url(os.environ["USEIT_REDIS_URL"], decode_responses=False)
+    return Redis.from_url(
+        os.environ["USEIT_REDIS_URL"],
+        decode_responses=False,
+        socket_connect_timeout=2.0,
+        socket_timeout=5.0,
+    )
 
 
 async def _store_key(key: AppleAttestKey, app_id: str) -> None:
     redis_url = os.environ.get("USEIT_REDIS_URL", "").strip()
     if not redis_url:
-        await _MEMORY_KEYS.put(key.key_id, key.public_key_der, app_id)
+        if not await _MEMORY_KEYS.create(key.key_id, key.public_key_der, app_id):
+            raise ValueError("Apple App Attest key is already registered")
         return
     client = _redis()
     try:
-        await client.hset(
-            f"useit:app-attest:key:{hashlib.sha256(key.key_id.encode()).hexdigest()}",
-            mapping={"public_key": key.public_key_der, "counter": "0", "app_id": app_id},
+        redis_key = f"useit:app-attest:key:{hashlib.sha256(key.key_id.encode()).hexdigest()}"
+        script = (
+            "if redis.call('EXISTS', KEYS[1]) == 1 then return 0 end "
+            "redis.call('HSET', KEYS[1], 'public_key', ARGV[1], 'counter', '0', 'app_id', ARGV[2]) "
+            "return 1"
         )
+        created = await client.eval(script, 1, redis_key, key.public_key_der, app_id)
+        if not created:
+            raise ValueError("Apple App Attest key is already registered")
     finally:
         await client.aclose()
 
@@ -277,8 +393,12 @@ def _verify_assertion(key: tuple[bytes, int, str], evidence: AttestationEvidence
         client_obj = json.loads(client_data_bytes)
     except Exception as exc:
         raise ValueError("Apple App Attest clientData is not valid JSON") from exc
-    if not isinstance(client_obj, dict) or client_obj.get("challenge") != evidence.challenge:
-        raise ValueError("Apple App Attest challenge is not bound to clientData")
+    if (
+        not isinstance(client_obj, dict)
+        or client_obj.get("challenge") != evidence.challenge
+        or client_obj.get("action") != "session"
+    ):
+        raise ValueError("Apple App Attest clientData is not bound to a session challenge")
     assertion = cbor2.loads(_b64decode(evidence.assertion))
     if not isinstance(assertion, dict):
         raise ValueError("Apple App Attest assertion is malformed")
@@ -298,8 +418,10 @@ def _verify_assertion(key: tuple[bytes, int, str], evidence: AttestationEvidence
     if not isinstance(public_key, ec.EllipticCurvePublicKey):
         raise ValueError("stored App Attest key is not EC")
     client_hash = hashlib.sha256(client_data_bytes).digest()
-    nonce = hashlib.sha256(auth_data + client_hash).digest()
-    public_key.verify(signature, nonce, ec.ECDSA(hashes.SHA256()))
+    # App Attest signs authenticatorData || clientDataHash using ECDSA-SHA256.
+    # Do not pre-hash this concatenation: ECDSA(SHA256) performs that hash itself.
+    signed_data = auth_data + client_hash
+    public_key.verify(signature, signed_data, ec.ECDSA(hashes.SHA256()))
     return counter
 
 
@@ -323,4 +445,5 @@ class AppleAppAttestVerifier(AttestationVerifier):
             return AttestationResult(False, "attestation_invalid")
 
 def root_certificate_fingerprint() -> str:
-    return APPLE_APP_ATTEST_ROOT_SHA256
+    root = x509.load_pem_x509_certificate(APPLE_APP_ATTEST_ROOT_PEM.encode())
+    return hashlib.sha256(root.public_bytes(Encoding.DER)).hexdigest()

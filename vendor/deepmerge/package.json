@@ -1,0 +1,11 @@
+{
+  "name": "deepmerge",
+  "version": "4.3.2",
+  "description": "USEIT-maintained patched deepmerge fork for prototype-poisoning mitigation",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "is-mergeable-object": "^1.1.0"
+  },
+  "types": "index.d.ts"
+}

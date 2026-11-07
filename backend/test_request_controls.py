@@ -1,3 +1,7 @@
+import asyncio
+
+import httpx
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -8,7 +12,20 @@ from backend.request_controls import (
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
     configured_request_timeout,
     install_request_controls,
+    _read_limited_body,
+    _read_limited_body_with_timeout,
 )
+
+class _ChunkedRequest:
+    def __init__(self, chunks: list[bytes]):
+        self.chunks = chunks
+        self.read_chunks = 0
+
+    async def stream(self):
+        for chunk in self.chunks:
+            self.read_chunks += 1
+            yield chunk
+
 
 
 def _client() -> TestClient:
@@ -41,6 +58,26 @@ def test_oversized_declared_body_is_rejected_before_handler() -> None:
     )
     assert response.status_code == 413
     assert response.json()["detail"] == "Request body is too large."
+
+
+@pytest.mark.asyncio
+async def test_streaming_body_reader_stops_at_limit_without_buffering_remaining_chunks() -> None:
+    request = _ChunkedRequest([b"a" * MAX_REQUEST_BYTES, b"b", b"must-not-be-read"])
+
+    body = await _read_limited_body(request)
+
+    assert body is None
+    assert request.read_chunks == 2
+
+
+@pytest.mark.asyncio
+async def test_streaming_body_reader_returns_small_body() -> None:
+    request = _ChunkedRequest([b"hello", b" ", b"world"])
+
+    body = await _read_limited_body(request)
+
+    assert body == b"hello world"
+    assert request.read_chunks == 3
 
 
 def test_invalid_content_length_is_rejected() -> None:
@@ -80,3 +117,69 @@ def test_unexpected_failure_returns_generic_error_with_correlation_id() -> None:
         "requestId": "phase27-error",
     }
     assert "secret internal implementation detail" not in response.text
+
+
+
+class _SlowRequest:
+    async def stream(self):
+        await asyncio.Event().wait()
+        yield b"never"
+
+
+@pytest.mark.asyncio
+async def test_streaming_body_reader_times_out_for_slow_upload() -> None:
+    body, timed_out = await _read_limited_body_with_timeout(_SlowRequest(), timeout=0.01)
+    assert body is None
+    assert timed_out is True
+
+
+@pytest.mark.asyncio
+async def test_streaming_body_reader_reports_no_timeout_for_small_body() -> None:
+    body, timed_out = await _read_limited_body_with_timeout(_ChunkedRequest([b"hello"]), timeout=1)
+    assert body == b"hello"
+    assert timed_out is False
+
+
+
+@pytest.mark.asyncio
+async def test_slow_upload_returns_request_timeout(monkeypatch) -> None:
+    app = FastAPI()
+    install_request_controls(app)
+    monkeypatch.setattr("backend.request_controls.configured_request_timeout", lambda: 0.01)
+
+    @app.post("/upload")
+    async def upload():
+        return {"ok": True}
+
+    class SlowStream(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            await asyncio.Event().wait()
+            yield b"never"
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/upload", content=SlowStream())
+
+    assert response.status_code == 408
+    assert response.json()["detail"] == "Request body timed out."
+    assert response.headers.get("X-Request-ID")
+
+
+
+def test_unexpected_failure_does_not_log_exception_message(caplog) -> None:
+    app = FastAPI()
+    install_request_controls(app)
+
+    @app.get("/private-boom")
+    async def private_boom():
+        raise RuntimeError("PRIVATE_PROVIDER_RESPONSE_AND_USER_DATA")
+
+    with TestClient(app) as client:
+        with caplog.at_level("ERROR", logger="useit.request_controls"):
+            response = client.get("/private-boom", headers={"X-Request-ID": "privacy-log-test"})
+
+    assert response.status_code == 500
+    assert response.headers["X-Request-ID"] == "privacy-log-test"
+    assert "RuntimeError" in caplog.text
+    assert "privacy-log-test" in caplog.text
+    assert "PRIVATE_PROVIDER_RESPONSE_AND_USER_DATA" not in caplog.text
