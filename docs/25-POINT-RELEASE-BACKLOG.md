@@ -1,6 +1,21 @@
-### Latest fully validated PR #41 checkpoint (captured 2026-11-07T01:26:20+01:00; exact PR head `ce31cc34df9e8d0744378df1359f679496cef3ed`)
+### Latest exact-head evidence refresh (2026-11-07T04:36:38+01:00; PR #41 HEAD `9bb3a8f8f8936a5b733209af2e6ce3ee3848f8ce`)
 
-PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. Current HEAD `ce31cc3` is a documentation-only child of `9383f32`; this commit changes only the three release evidence documents. All three required pull-request workflows completed successfully for this exact HEAD. Do not reuse earlier run IDs as evidence for this HEAD.
+The current PR head is [`9bb3a8f`](https://github.com/milanradics89-beep/POS-Doctor/commit/9bb3a8f8f8936a5b733209af2e6ce3ee3848f8ce), a source/test change that reuses one application-lifespan Redis async pool for readiness, rate limiting, and App Attest challenge storage. Regression tests cover shared-client reuse and shutdown cleanup.
+
+All required workflows passed on this exact SHA:
+- [Validation 42326555790](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42326555790): backend job 128263084552 (**389 tests**, 24 readiness checks, 43 production-security checks, pip-audit clean); frontend job 128263084418 (**234 tests / 56 files**, Expo Doctor 21/21, Android Release and emulator smoke); iOS job 128263084641 (Release simulator build and install/launch smoke).
+- [CodeQL 42326555850](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42326555850), job 128263084754: passed with a non-fatal SARIF column-kind mismatch warning.
+- [Dependency Review 42326555784](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42326555784), job 128263084248: passed with no high-or-higher vulnerable packages or denied packages; below-threshold Scorecard warnings remain for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5). Runtime npm audit reports four moderate `glob`/`minimatch` advisory instances; no forced downgrade or threshold reduction was used.
+
+**Current tally: 3 Done / 15 In Progress / 7 Blocked.** Done remains #1 iOS simulator CI, #2 main ruleset, and #6 Redis multi-instance test coverage. The active main ruleset is 26370589; issue #47 is closed. All 11 review threads are resolved, but 0 of 15 review submissions is APPROVED. Physical-device, production, staging, backup/restore, monitoring, rollout, pilot, dependency-risk acceptance, and human approval gates remain open. GitHub Releases is empty; complete Code Scanning, Dependabot, and Secret Scanning inventories are unverified, not zero.
+
+This is exact-head CI evidence only, not external release acceptance.
+
+---
+
+### Previous fully validated PR #41 checkpoint (superseded by 2026-11-07T04:36:38+01:00 checkpoint; exact PR head `ce31cc34df9e8d0744378df1359f679496cef3ed`)
+
+PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. Checkpoint HEAD `ce31cc3` was a documentation-only child of `9383f32`; this commit changes only the three release evidence documents. All three required pull-request workflows completed successfully for this exact HEAD. Do not reuse earlier run IDs as evidence for this HEAD.
 
 Exact-head CI evidence:
 - [Validation 42311879833](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42311879833): backend [job 128215040421](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42311879833/job/128215040421) passed **385 backend tests**, **24 production-readiness checks**, and **43 production-security checks**; `pip-audit` reported no known vulnerabilities. One non-failing Starlette/httpx deprecation warning and the Redis test-container host `vm.overcommit_memory` advisory were recorded. Frontend/Android [job 128215040187](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42311879833/job/128215040187) passed **234 tests across 56 files**, Expo Doctor **21/21**, Android Release build, and emulator install/launch smoke. The runtime npm audit passed its configured high-severity threshold but reported **4 moderate advisory instances** involving `glob@13.0.7` and `minimatch@10.2.6` ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4), [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)). iOS [job 128215039787](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42311879833/job/128215039787) passed the Release simulator build and simulator install/launch smoke.
