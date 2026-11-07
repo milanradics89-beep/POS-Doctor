@@ -48,7 +48,177 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          persist-credentials: true
+          persist-credentials: false
+
+      - name: Assert checkout credentials are not persisted
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git config --local --get-regexp '^http\\..*\\.extraheader      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies reproducibly
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Align Expo SDK 57 package versions and regenerate lockfile
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.dependencies ||= {};
+
+          const expected = {
+            expo: "~57.0.32",
+            "expo-constants": "~57.0.23",
+            "expo-image-picker": "~57.0.21",
+            "expo-router": "~57.0.30",
+          };
+          for (const [name, version] of Object.entries(expected)) {
+            if (!Object.hasOwn(pkg.dependencies, name)) {
+              throw new Error(`Required Expo dependency ${name} is missing from package.json`);
+            }
+            pkg.dependencies[name] = version;
+          }
+
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          NODE
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Verify generated SDK 57 manifest and lockfile
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const expected = {
+            expo: { range: "~57.0.32", version: "57.0.32" },
+            "expo-constants": { range: "~57.0.23", version: "57.0.23" },
+            "expo-image-picker": { range: "~57.0.21", version: "57.0.21" },
+            "expo-router": { range: "~57.0.30", version: "57.0.30" },
+          };
+
+          const root = lock.packages?.[""];
+          if (!root?.dependencies) throw new Error("package-lock.json has no root dependency record");
+          for (const [name, expectedPackage] of Object.entries(expected)) {
+            if (pkg.dependencies?.[name] !== expectedPackage.range) {
+              throw new Error(`package.json ${name} expected ${expectedPackage.range}, found ${pkg.dependencies?.[name] || "missing"}`);
+            }
+            if (root.dependencies[name] !== expectedPackage.range) {
+              throw new Error(`package-lock root ${name} expected ${expectedPackage.range}, found ${root.dependencies[name] || "missing"}`);
+            }
+            const actual = lock.packages?.[`node_modules/${name}`]?.version;
+            if (actual !== expectedPackage.version) {
+              throw new Error(`node_modules/${name} expected ${expectedPackage.version}, found ${actual || "missing"}`);
+            }
+          }
+          if (Object.hasOwn(pkg.dependencies, "expo-modules-core")) {
+            throw new Error("expo-modules-core must remain a transitive Expo dependency, not a direct root dependency");
+          }
+          console.log("Expo SDK 57 package manifest and lockfile versions are aligned.");
+          NODE
+
+      - name: Verify reproducible installation
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Verify Expo SDK compatibility
+        run: npx expo-doctor
+
+      - name: Verify frontend types and tests
+        run: |
+          npm run typecheck
+          npm test -- --passWithNoTests
+
+      - name: Wait for the triggering HEAD checks before pushing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          BRANCH="fix/release-blockers-2026-10"
+          EXPECTED_SHA="$GITHUB_SHA"
+          READY=false
+
+          latest_run_id() {
+            jq -r --arg name "$1" '[.workflow_runs[] | select(.name == $name and .event == "pull_request")] | sort_by(.created_at) | last | .id // empty'
+          }
+
+          for attempt in $(seq 1 60); do
+            runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$EXPECTED_SHA&per_page=100")"
+            validation_id="$(printf '%s' "$runs" | latest_run_id "USEIT validation")"
+            codeql_id="$(printf '%s' "$runs" | latest_run_id "USEIT CodeQL")"
+            dependency_id="$(printf '%s' "$runs" | latest_run_id "USEIT dependency review")"
+
+            if [[ -n "$validation_id" && -n "$codeql_id" && -n "$dependency_id" ]]; then
+              validation="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$validation_id")"
+              codeql="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$codeql_id")"
+              dependency="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$dependency_id")"
+              v_status="$(printf '%s' "$validation" | jq -r '.status')"
+              q_status="$(printf '%s' "$codeql" | jq -r '.status')"
+              d_status="$(printf '%s' "$dependency" | jq -r '.status')"
+
+              if [[ "$v_status" == "completed" && "$q_status" == "completed" && "$d_status" == "completed" ]]; then
+                q_conclusion="$(printf '%s' "$codeql" | jq -r '.conclusion')"
+                d_conclusion="$(printf '%s' "$dependency" | jq -r '.conclusion')"
+                v_conclusion="$(printf '%s' "$validation" | jq -r '.conclusion')"
+                if [[ "$q_conclusion" != "success" || "$d_conclusion" != "success" ]]; then
+                  echo "::error::CodeQL or Dependency Review did not pass for the triggering SHA; refusing to push."
+                  exit 1
+                fi
+                if [[ "$v_conclusion" == "failure" ]]; then
+                  jobs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$validation_id/jobs?per_page=100")"
+                  frontend="$(printf '%s' "$jobs" | jq -r '.jobs[] | select(.name == "frontend") | .conclusion')"
+                  backend="$(printf '%s' "$jobs" | jq -r '.jobs[] | select(.name == "backend") | .conclusion')"
+                  ios="$(printf '%s' "$jobs" | jq -r '.jobs[] | select(.name == "ios") | .conclusion')"
+                  expo_step="$(printf '%s' "$jobs" | jq -r '.jobs[] | select(.name == "frontend") | .steps[] | select(.name == "Validate Expo project health") | .conclusion')"
+                  typecheck_step="$(printf '%s' "$jobs" | jq -r '.jobs[] | select(.name == "frontend") | .steps[] | select(.name == "Typecheck") | .conclusion')"
+                  tests_step="$(printf '%s' "$jobs" | jq -r '.jobs[] | select(.name == "frontend") | .steps[] | select(.name == "Unit tests") | .conclusion')"
+                  if [[ "$frontend" != "failure" || "$backend" != "success" || "$ios" != "success" || "$expo_step" != "failure" || "$typecheck_step" != "success" || "$tests_step" != "success" ]]; then
+                    echo "::error::Validation failed outside the known Expo Doctor dependency-alignment blocker; refusing to push."
+                    exit 1
+                  fi
+                elif [[ "$v_conclusion" != "success" ]]; then
+                  echo "::error::Validation concluded with an unexpected result; refusing to push."
+                  exit 1
+                fi
+                READY=true
+                break
+              fi
+            fi
+            echo "Waiting for exact-trigger-head Validation, CodeQL, and Dependency Review (attempt $attempt/60)..."
+            sleep 30
+          done
+
+          if [[ "$READY" != "true" ]]; then
+            echo "::error::Required PR workflows did not all complete for $EXPECTED_SHA; refusing to push."
+            exit 1
+          fi
+
+          git fetch origin "$BRANCH"
+          ACTUAL_SHA="$(git rev-parse "origin/$BRANCH")"
+          if [[ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]]; then
+            echo "::error::Branch head changed during the run (expected $EXPECTED_SHA, found $ACTUAL_SHA); refusing to push."
+            exit 1
+          fi
+
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "Generated manifests already match the branch; no commit required."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "fix(deps): align Expo SDK 57 lockfile and peer graph"
+          AUTH_B64="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)"
+          git -c http.extraheader="AUTHORIZATION: basic $AUTH_B64" push origin "HEAD:refs/heads/$BRANCH"
+          echo "::notice::Pushed the regenerated SDK 57 manifests after the triggering HEAD's required workflows completed."
+ >/dev/null 2>&1; then
+            echo "::error::GitHub credentials must not persist while project code executes."
+            exit 1
+          fi
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
