@@ -4,6 +4,9 @@ type SessionState = { token: string; expiresAt: number };
 const sessionStates = new Map<string, SessionState>();
 const sessionPromises = new Map<string, Promise<SessionState | null>>();
 
+// Shared bootstrap has its own cap; the first caller's shorter deadline must not cancel other waiters.
+const SESSION_BOOTSTRAP_TIMEOUT_MS = 30_000;
+
 const responseSignalCleanups = new WeakMap<Response, () => void>();
 
 function combineAbortSignals(
@@ -136,7 +139,7 @@ function runWithAbort<T>(operation: () => Promise<T>, signal?: AbortSignal | nul
 }
 
 
-async function obtainSession(url: URL, forceRefresh = false, timeoutMs = 10_000): Promise<SessionState | null> {
+async function obtainSession(url: URL, forceRefresh = false): Promise<SessionState | null> {
   const now = Date.now();
   const cached = sessionStates.get(url.origin);
   if (!forceRefresh && cached && cached.expiresAt > now + 30_000) return cached;
@@ -146,7 +149,7 @@ async function obtainSession(url: URL, forceRefresh = false, timeoutMs = 10_000)
 
   const pending = Promise.resolve().then(async () => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), Math.min(30_000, Math.max(1_000, timeoutMs)));
+    const timer = setTimeout(() => controller.abort(), SESSION_BOOTSTRAP_TIMEOUT_MS);
     try {
       const response = await fetch(new URL('/v1/session', url.origin), {
         method: 'POST',
@@ -209,14 +212,14 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
     try {
       let requestInit = init;
       if (sessionUrl) {
-        const session = await runWithAbort(() => obtainSession(sessionUrl, false, timeoutMs), linkedSignal.signal);
+        const session = await runWithAbort(() => obtainSession(sessionUrl), linkedSignal.signal);
         if (session) requestInit = withSessionHeader(input, init, session.token);
       }
       const response = await fetch(input, { ...requestInit, signal: linkedSignal.signal });
 
       if (response.status === 401 && sessionUrl) {
         sessionStates.delete(sessionUrl.origin);
-        const refreshed = await runWithAbort(() => obtainSession(sessionUrl, true, timeoutMs), linkedSignal.signal);
+        const refreshed = await runWithAbort(() => obtainSession(sessionUrl, true), linkedSignal.signal);
         if (refreshed) {
           await discardResponse(response);
           const retryController = new AbortController();

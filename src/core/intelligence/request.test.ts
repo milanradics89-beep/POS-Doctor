@@ -150,6 +150,121 @@ describe('fetchWithPolicy', () => {
     }
   });
 
+  it('keeps a shared session bootstrap alive when the first caller has a shorter deadline', async () => {
+    vi.useFakeTimers();
+    try {
+      let resolveBootstrap!: (response: Response) => void;
+      const bootstrap = new Promise<Response>((resolve) => {
+        resolveBootstrap = resolve;
+      });
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        if (String(input).endsWith('/v1/session')) return bootstrap;
+        return new Response('{}', { status: 200 });
+      });
+
+      const shortRequest = fetchWithPolicy(
+        'https://short-first-bootstrap.example.test/v1/action',
+        {},
+        { attempts: 1, timeoutMs: 1_000 },
+      );
+      for (let i = 0; i < 20 && fetchMock.mock.calls.length === 0; i += 1) {
+        await Promise.resolve();
+      }
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      const longRequest = fetchWithPolicy(
+        'https://short-first-bootstrap.example.test/v1/action',
+        {},
+        { attempts: 1, timeoutMs: 10_000 },
+      );
+      const shortRejection = expect(shortRequest).rejects.toMatchObject({ name: 'AbortError' });
+      for (let i = 0; i < 20; i += 1) await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1_000);
+      await shortRejection;
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      resolveBootstrap(new Response(JSON.stringify({
+        accessToken: 'shared-session',
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }));
+
+      const response = await longRequest;
+      expect(response.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps a shared 401 refresh alive when the first caller has a shorter deadline', async () => {
+    vi.useFakeTimers();
+    try {
+      let sessionCalls = 0;
+      let actionCalls = 0;
+      let resolveRefresh!: (response: Response) => void;
+      const refresh = new Promise<Response>((resolve) => {
+        resolveRefresh = resolve;
+      });
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        if (String(input).endsWith('/v1/session')) {
+          sessionCalls += 1;
+          if (sessionCalls === 1) {
+            return new Response(JSON.stringify({
+              accessToken: 'old-session',
+              expiresAt: Math.floor(Date.now() / 1000) + 3600,
+            }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+          return refresh;
+        }
+        actionCalls += 1;
+        return new Response('{}', { status: actionCalls === 1 ? 401 : 200 });
+      });
+
+      const shortRequest = fetchWithPolicy(
+        'https://short-first-refresh.example.test/v1/action',
+        {},
+        { attempts: 1, timeoutMs: 1_000 },
+      );
+      for (let i = 0; i < 40 && sessionCalls < 2; i += 1) {
+        await Promise.resolve();
+      }
+      expect(sessionCalls).toBe(2);
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+
+      const longRequest = fetchWithPolicy(
+        'https://short-first-refresh.example.test/v1/action',
+        {},
+        { attempts: 1, timeoutMs: 10_000 },
+      );
+      const shortRejection = expect(shortRequest).rejects.toMatchObject({ name: 'AbortError' });
+      for (let i = 0; i < 20; i += 1) await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1_000);
+      await shortRejection;
+
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      resolveRefresh(new Response(JSON.stringify({
+        accessToken: 'refreshed-session',
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }));
+
+      const response = await longRequest;
+      expect(response.status).toBe(200);
+      expect(actionCalls).toBe(2);
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('aborts promptly while waiting for a 401 session refresh', async () => {
     let sessionCalls = 0;
     let resolveRefresh!: (response: Response) => void;
