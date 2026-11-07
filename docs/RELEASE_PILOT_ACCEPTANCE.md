@@ -1,6 +1,37 @@
-### Latest exact PR #41 HEAD acceptance checkpoint (workflow-only commit; captured 2026-11-07T14:42:44+01:00; exact SHA `1e013f87e765d179d78fa74af17ed19a9a5b3cc6`)
+### Latest validated PR #41 HEAD baseline before this documentation refresh (captured 2026-11-07T16:43:00+01:00; exact SHA `6e8f8c99ca1fcaa25d8b91f68f6e0896ca5001eb`)
 
-PR #41 is open and unmerged. The exact current HEAD [`1e013f8`](https://github.com/milanradics89-beep/POS-Doctor/commit/1e013f87e765d179d78fa74af17ed19a9a5b3cc6) changes only the Expo SDK 57 lock-refresh workflow guard; the last application source/test checkpoint remains `7e8097b`.
+PR #41 was open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main`. The validated baseline HEAD [`6e8f8c9`](https://github.com/milanradics89-beep/POS-Doctor/commit/6e8f8c99ca1fcaa25d8b91f68f6e0896ca5001eb) (parent [`1e013f8`](https://github.com/milanradics89-beep/POS-Doctor/commit/1e013f87e765d179d78fa74af17ed19a9a5b3cc6)) changes only the three release-evidence documents. The latest application source/test baseline remains [`7e8097b`](https://github.com/milanradics89-beep/POS-Doctor/commit/7e8097b0927ca1b9f86457b559807fbf3965fde1).
+
+Exact-baseline CI evidence:
+- [Validation 42379666315](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42379666315): backend [job 128424418866](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42379666315/job/128424418866) passed **389 tests**, **24 production-readiness checks**, and **43 production-security checks**; `pip-audit` found no known vulnerabilities. One non-failing Starlette/httpx TestClient deprecation warning and the Redis test-service host `vm.overcommit_memory` advisory were recorded. Frontend/Android [job 128424418827](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42379666315/job/128424418827) passed **241 tests across 56 files**, Expo Doctor **21/21**, Android Release build, and emulator install/launch smoke. iOS [job 128424418638](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42379666315/job/128424418638) passed the Release simulator build and simulator install/launch smoke.
+- [CodeQL 42379666270](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42379666270), analyze [job 128424418425](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42379666270/job/128424418425), succeeded. SARIF merging emitted the non-fatal column-kind mismatch warning.
+- [Dependency Review 42379666405](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42379666405), job [128424418508](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42379666405/job/128424418508), succeeded with no high-or-higher vulnerable packages and no denied packages. It could not detect a license for `package-lock.json » vendor/deepmerge@4.3.2`; `vendor/deepmerge/package.json` declares `MIT` and `vendor/deepmerge/LICENSE` is present, so this is a local-file-link metadata detection gap that still needs explicit dependency-risk acceptance or scanner-compatible packaging. Below-threshold OpenSSF Scorecard warnings remain for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5), against threshold 3. Runtime `npm audit --omit=dev --audit-level=high` reports **four moderate advisory instances** affecting `glob`/`minimatch` ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4), [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)). The suggested `npm audit fix --force` would downgrade Expo 57 to 53.0.11; it was not applied and no audit threshold was lowered.
+
+Release and review gates:
+- The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Done: #1 iOS simulator CI, #2 main ruleset, and #6 Redis multi-instance test coverage.
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed. Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`; one approval, last-push approval, and resolved review threads; deletion and non-fast-forward updates are blocked; no bypass actors are configured.
+- All **11/11 inline review threads are resolved**. There are **15 review submissions and 0 APPROVED**; human approval and approval of the last push remain required.
+- The five tracked client/request/privacy/permission findings remain covered by source/tests: explicit-auth POST retry fixtures; effective `Request`/`init` headers and method; valid base64 `vision_usage` privacy fixture; error-boundary logging limited to the error name; and Settings recovery for permanently denied camera/gallery permissions.
+- Issue #46 remains open for a historical CodeQL failure on an older Dependabot head; current exact-baseline CodeQL succeeded. PRs #43/#44 are separate CodeQL action Dependabot updates, #49 is a draft atomic CodeQL update, and #48/#52 remain draft design work. Do not merge these independently.
+- GitHub Releases is empty. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero** because the connected integration does not expose those alert-collection endpoints.
+- Physical-device App Attest/Play Integrity, production provider configuration, approved staging load test, witnessed backup/restore, production monitoring/alert delivery, staged rollout/rollback, pilot/business approval, dependency-risk acceptance, and human PR approval remain open.
+
+External acceptance remains open:
+- [ ] Physical iPhone App Attest with production entitlement and provider-backed verification.
+- [ ] Play-distributed physical Android Play Integrity verification.
+- [ ] Approved staging load test with owner-approved thresholds.
+- [ ] Witnessed production-like backup/restore and recovery evidence.
+- [ ] Production monitoring, alert delivery, staged rollout, and rollback evidence.
+- [ ] Product/business pilot, labeled accuracy acceptance, and release approval.
+- [ ] Explicit dependency-risk acceptance for the local-link MIT license detection gap, low Scorecard results, and four moderate `glob`/`minimatch` npm-audit advisory instances.
+
+GitHub Releases is empty. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain unverified, not zero. This automated CI evidence is not physical-device, production, store, pilot, or business sign-off; the new documentation HEAD must pass its own checks.
+
+---
+
+### Previous validated PR #41 HEAD acceptance checkpoint (superseded by 6e8f8c99ca1fcaa25d8b91f68f6e0896ca5001eb) (workflow-only commit; captured 2026-11-07T14:42:44+01:00; exact SHA `1e013f87e765d179d78fa74af17ed19a9a5b3cc6`)
+
+PR #41 is open and unmerged. The exact PR HEAD at that checkpoint [`1e013f8`](https://github.com/milanradics89-beep/POS-Doctor/commit/1e013f87e765d179d78fa74af17ed19a9a5b3cc6) changes only the Expo SDK 57 lock-refresh workflow guard; the last application source/test checkpoint remains `7e8097b`.
 
 Automated gates are complete for this exact PR HEAD:
 - [x] [Validation 42372913196](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913196): backend [job 128404532893](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913196/job/128404532893) passed 389 tests, 24 production-readiness checks, and 43 production-security checks; `pip-audit` found no known vulnerabilities. Frontend/Android [job 128404532794](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913196/job/128404532794) passed 241 tests across 56 files, Expo Doctor 21/21, Android Release build, and emulator install/launch smoke. iOS [job 128404532972](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42372913196/job/128404532972) passed the Release simulator build and install/launch smoke.
@@ -20,7 +51,9 @@ External acceptance remains open:
 
 GitHub Releases is empty. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain unverified, not zero. Current exact-head CI is not physical-device, production, store, pilot, or business sign-off.
 
+
 ---
+
 
 ### Latest validated source/test acceptance checkpoint (captured 2026-11-07T10:54:51+01:00; exact source/test SHA `7e8097b0927ca1b9f86457b559807fbf3965fde1`)
 
