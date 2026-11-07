@@ -209,14 +209,14 @@ export async function fetchWithPolicy(input: RequestInfo | URL, init: RequestIni
     try {
       let requestInit = init;
       if (sessionUrl) {
-        const session = await runWithAbort(() => obtainSession(sessionUrl, false, timeoutMs), requestSignal);
+        const session = await runWithAbort(() => obtainSession(sessionUrl, false, timeoutMs), linkedSignal.signal);
         if (session) requestInit = withSessionHeader(input, init, session.token);
       }
       const response = await fetch(input, { ...requestInit, signal: linkedSignal.signal });
 
       if (response.status === 401 && sessionUrl) {
         sessionStates.delete(sessionUrl.origin);
-        const refreshed = await runWithAbort(() => obtainSession(sessionUrl, true, timeoutMs), requestSignal);
+        const refreshed = await runWithAbort(() => obtainSession(sessionUrl, true, timeoutMs), linkedSignal.signal);
         if (refreshed) {
           await discardResponse(response);
           const retryController = new AbortController();
