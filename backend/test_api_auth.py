@@ -349,3 +349,24 @@ def test_attestation_challenge_bootstrap_is_public_when_api_key_is_configured(mo
     }
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["pragma"] == "no-cache"
+
+
+@pytest.mark.parametrize("attestation_mode", ["optional", "required"])
+def test_production_readiness_rejects_attestation_without_session_secret(monkeypatch, attestation_mode):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
+    monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", attestation_mode)
+    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://unused")
+
+    redis_factory = Mock(side_effect=AssertionError("Redis must not be contacted for invalid session configuration"))
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", redis_factory)
+
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Service is not ready."
+    redis_factory.assert_not_called()

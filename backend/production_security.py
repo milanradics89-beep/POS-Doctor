@@ -54,8 +54,13 @@ def validate_production_security() -> None:
     if session_secret and len(session_secret) < MIN_SESSION_SECRET_LENGTH:
         raise RuntimeError("USEIT_SESSION_SECRET must be at least 32 characters")
 
+    mode = configured_attestation_mode()
+    if mode is not AttestationMode.DISABLED and not session_secret:
+        raise RuntimeError(
+            "USEIT_SESSION_SECRET is required when USEIT_ATTESTATION_MODE is enabled in production"
+        )
+
     if session_secret:
-        mode = configured_attestation_mode()
         provider = configured_attestation_provider()
         if mode is not AttestationMode.REQUIRED:
             raise RuntimeError("USEIT_ATTESTATION_MODE must be required when USEIT_SESSION_SECRET is configured in production")

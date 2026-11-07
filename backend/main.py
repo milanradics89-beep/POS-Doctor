@@ -214,7 +214,10 @@ async def ready():
     dependencies_ready = bool(os.environ.get("OPENAI_API_KEY"))
     if production_mode():
         dependencies_ready = dependencies_ready and bool(configured_api_key() or configured_session_secret())
-        if configured_attestation_mode() is AttestationMode.REQUIRED:
+        attestation_mode = configured_attestation_mode()
+        if attestation_mode is not AttestationMode.DISABLED:
+            dependencies_ready = dependencies_ready and bool(configured_session_secret())
+        if attestation_mode is AttestationMode.REQUIRED:
             dependencies_ready = dependencies_ready and bool(configured_attestation_app_id())
 
         # Production rate limiting is shared across workers, so Redis is a

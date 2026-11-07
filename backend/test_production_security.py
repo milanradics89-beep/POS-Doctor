@@ -153,6 +153,7 @@ def test_valid_production_configuration_passes(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
     monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
     monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
@@ -238,4 +239,23 @@ def test_production_requires_shared_redis_url_for_rate_limiting(monkeypatch):
     monkeypatch.delenv("USEIT_REDIS_URL", raising=False)
 
     with pytest.raises(RuntimeError, match="USEIT_REDIS_URL is required when Redis rate limiting is enabled"):
+        validate_production_security()
+
+
+@pytest.mark.parametrize("attestation_mode", ["optional", "required"])
+def test_production_requires_session_secret_when_attestation_is_enabled(monkeypatch, attestation_mode):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
+    monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", attestation_mode)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+
+    with pytest.raises(
+        RuntimeError,
+        match="USEIT_SESSION_SECRET is required when USEIT_ATTESTATION_MODE is enabled in production",
+    ):
         validate_production_security()
