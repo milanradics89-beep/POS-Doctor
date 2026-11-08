@@ -271,6 +271,7 @@ def test_production_rejects_redis_without_tls_or_host(monkeypatch, redis_url):
     "redis_url",
     [
         "rediss://redis.internal:not-a-port/0",
+        "rediss://redis.internal:-1/0",
         "rediss://redis.internal:65536/0",
     ],
 )
@@ -289,7 +290,7 @@ def test_production_rejects_malformed_redis_port(monkeypatch, redis_url):
         validate_production_security()
 
 
-@pytest.mark.parametrize("port", ["0", "-1"])
+@pytest.mark.parametrize("port", ["0"])
 def test_production_rejects_redis_port_outside_valid_range(monkeypatch, port):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
