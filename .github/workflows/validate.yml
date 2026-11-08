@@ -41,6 +41,21 @@ jobs:
       - name: Validate native Android release build
         run: |
           npx expo prebuild --platform android --no-install
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          wrapper = Path("android/gradle/wrapper/gradle-wrapper.properties")
+          properties = wrapper.read_text(encoding="utf-8")
+          if re.search(r"(?m)^networkTimeout=", properties):
+              properties = re.sub(r"(?m)^networkTimeout=.*$", "networkTimeout=120000", properties)
+          else:
+              properties = properties.rstrip() + "\nnetworkTimeout=120000\n"
+          wrapper.write_text(properties, encoding="utf-8")
+          if not re.search(r"(?m)^networkTimeout=120000$", properties):
+              raise SystemExit("Gradle wrapper network timeout was not configured.")
+          print("Gradle wrapper download timeout configured to 120 seconds.")
+          PY
           cd android
           ./gradlew assembleRelease --no-daemon
       - name: Enable KVM for Android emulator
