@@ -8,7 +8,7 @@ def _production(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
     monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
 
 
 def test_production_requires_explicit_cors(monkeypatch):

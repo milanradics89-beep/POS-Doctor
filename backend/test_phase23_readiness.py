@@ -43,7 +43,7 @@ async def test_production_readiness_requires_application_api_key(monkeypatch):
 @pytest.mark.parametrize(
     ("rate_mode", "redis_url"),
     [
-        ("memory", "redis://redis.internal:6379/0"),
+        ("memory", "rediss://redis.internal:6379/0"),
         ("redis", None),
     ],
 )
@@ -72,6 +72,27 @@ async def test_production_readiness_requires_shared_redis_configuration(monkeypa
 
 
 
+@pytest.mark.asyncio
+async def test_production_readiness_rejects_plaintext_redis_before_connecting(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
+    monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+
+    def unexpected_redis_connection(*args, **kwargs):
+        pytest.fail("Readiness must reject plaintext production Redis before connecting.")
+
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", unexpected_redis_connection)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await main.ready()
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Service is not ready."
+
+
 @pytest.mark.parametrize("attestation_mode", ["disabled", "required"])
 @pytest.mark.asyncio
 async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch, attestation_mode):
@@ -86,7 +107,7 @@ async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch
         monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
         monkeypatch.delenv("USEIT_ATTESTATION_APP_ID", raising=False)
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")
 
     created_clients = []
     connection_options = {}
@@ -143,7 +164,7 @@ async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch
 
     assert await main.ready() == {"status": "ready"}
     assert connection_options == {
-        "url": "redis://redis.internal:6379/0",
+        "url": "rediss://redis.internal:6379/0",
         "socket_connect_timeout": 2,
         "socket_timeout": 2,
     }
@@ -171,7 +192,7 @@ async def test_production_readiness_fails_when_redis_rate_limit_script_is_unavai
     monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")
 
     created_clients = []
 
@@ -218,7 +239,7 @@ async def test_production_readiness_preflights_redis_pexpire_before_rate_limit_s
     monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")
 
     created_clients = []
 
@@ -290,7 +311,7 @@ async def test_production_readiness_rejects_inconsistent_session_attestation_con
     else:
         monkeypatch.delenv("USEIT_ATTESTATION_APP_ID", raising=False)
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")
 
     def unexpected_redis_connection(*args, **kwargs):
         pytest.fail("Readiness must reject inconsistent session/attestation configuration before Redis access.")
@@ -314,7 +335,7 @@ async def test_production_readiness_fails_when_attestation_getdel_is_unavailable
     monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
     monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")
 
     created_clients = []
 
@@ -381,7 +402,7 @@ async def test_production_readiness_fails_when_shared_redis_is_unavailable(monke
         monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
         monkeypatch.delenv("USEIT_ATTESTATION_APP_ID", raising=False)
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")
 
     created_clients = []
 
@@ -418,7 +439,7 @@ async def test_production_readiness_reuses_application_redis_pool_without_closin
     monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")
 
     class SharedRedis:
         closed = False
@@ -456,7 +477,7 @@ async def test_production_readiness_reuses_application_redis_pool_without_closin
 
 
 def test_application_lifespan_creates_and_closes_one_shared_redis_pool(monkeypatch):
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")
     created = []
     options = {}
 
@@ -479,7 +500,7 @@ def test_application_lifespan_creates_and_closes_one_shared_redis_pool(monkeypat
         assert main.app.state.redis_client is created[0]
 
     assert options == {
-        "url": "redis://redis.internal:6379/0",
+        "url": "rediss://redis.internal:6379/0",
         "decode_responses": False,
         "socket_connect_timeout": 2.0,
         "socket_timeout": 5.0,

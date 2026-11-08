@@ -66,7 +66,7 @@ def test_production_accepts_server_issued_session_secret(monkeypatch):
     monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
     monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "com.useit.app")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
     monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "google_play_integrity")
     monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
@@ -83,7 +83,7 @@ def test_production_rejects_google_play_attestation_app_id_mismatch(monkeypatch)
     monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
     monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "com.useit.wrong")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
     monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "google_play_integrity")
     monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
     monkeypatch.setenv("USEIT_GOOGLE_PLAY_CERT_SHA256", "A" * 43)
@@ -143,7 +143,7 @@ def test_production_rejects_wildcard_cors(monkeypatch):
     monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "*")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
     with pytest.raises(RuntimeError, match="Wildcard CORS"):
         validate_production_security()
 
@@ -155,7 +155,7 @@ def test_production_rejects_enabled_interactive_docs(monkeypatch):
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
     monkeypatch.setenv("USEIT_ALLOW_DOCS", "true")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
     with pytest.raises(RuntimeError, match="documentation"):
         validate_production_security()
 
@@ -168,7 +168,7 @@ def test_valid_production_configuration_passes(monkeypatch):
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
     monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
     validate_production_security()
 
 
@@ -179,7 +179,7 @@ def test_runtime_enforcement_returns_generic_503(monkeypatch):
     monkeypatch.setenv("USEIT_API_KEY", api_key)
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "*")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
 
     with pytest.raises(HTTPException) as exc_info:
         enforce_production_configuration()
@@ -196,7 +196,7 @@ def test_production_google_play_integrity_requires_signing_certificate_pin(monke
     monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
     monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "com.useit.app")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
     monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "google_play_integrity")
     monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
     monkeypatch.delenv("USEIT_GOOGLE_PLAY_CERT_SHA256", raising=False)
@@ -215,7 +215,7 @@ def test_production_rejects_google_play_attestation_without_usable_certificate_p
     monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
     monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "com.useit.app")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
     monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "google_play_integrity")
     monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
@@ -237,6 +237,25 @@ def test_production_rejects_process_local_memory_rate_limiting(monkeypatch):
     monkeypatch.delenv("USEIT_REDIS_URL", raising=False)
 
     with pytest.raises(RuntimeError, match="USEIT_RATE_LIMIT_MODE must be redis in production"):
+        validate_production_security()
+
+
+@pytest.mark.parametrize(
+    "redis_url",
+    ["redis://redis.internal:6379/0", "http://redis.internal:6379/0", "rediss:///0"],
+)
+def test_production_rejects_redis_without_tls_or_host(monkeypatch, redis_url):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
+    monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", redis_url)
+
+    with pytest.raises(RuntimeError, match="USEIT_REDIS_URL must use rediss:// with a valid host"):
         validate_production_security()
 
 
@@ -263,7 +282,7 @@ def test_production_requires_session_secret_when_attestation_is_enabled(monkeypa
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
     monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
 
     with pytest.raises(
         RuntimeError,

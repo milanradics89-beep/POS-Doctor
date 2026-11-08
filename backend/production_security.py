@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from urllib.parse import urlsplit
 
 from fastapi import HTTPException
 
@@ -27,6 +28,22 @@ def _is_placeholder_secret(value: str) -> bool:
 
 def production_mode() -> bool:
     return os.getenv("USEIT_ENV", "development").strip().lower() in {"production", "prod"}
+
+
+def validate_production_redis_transport() -> None:
+    """Require TLS for the shared Redis service used by production workers."""
+    redis_url = configured_redis_url()
+    if not redis_url:
+        raise RuntimeError("USEIT_REDIS_URL is required for production Redis")
+
+    try:
+        parsed = urlsplit(redis_url)
+        hostname = parsed.hostname
+    except ValueError as exc:
+        raise RuntimeError("USEIT_REDIS_URL must be a valid rediss:// URL in production") from exc
+
+    if parsed.scheme.lower() != "rediss" or not hostname:
+        raise RuntimeError("USEIT_REDIS_URL must use rediss:// with a valid host in production")
 
 
 def validate_production_session_auth_configuration() -> None:
@@ -118,6 +135,7 @@ def validate_production_security() -> None:
         raise RuntimeError("USEIT_RATE_LIMIT_MODE must be redis in production to enforce shared rate limits across workers")
     if not os.getenv("USEIT_REDIS_URL", "").strip():
         raise RuntimeError("USEIT_REDIS_URL is required when Redis rate limiting is enabled")
+    validate_production_redis_transport()
 
 
 def enforce_production_configuration() -> None:

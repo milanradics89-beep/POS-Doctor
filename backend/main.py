@@ -49,6 +49,7 @@ from backend.production_security import (
     production_mode,
     validate_production_security,
     validate_production_session_auth_configuration,
+    validate_production_redis_transport,
 )
 from backend.scene_quality import quality_gate
 from backend.scene_understanding import normalize_scene_understanding
@@ -252,6 +253,7 @@ async def ready():
         attestation_mode = configured_attestation_mode()
         try:
             validate_production_session_auth_configuration()
+            validate_production_redis_transport()
         except RuntimeError:
             # Readiness must not report healthy for a session/attestation
             # combination that startup validation would reject.
