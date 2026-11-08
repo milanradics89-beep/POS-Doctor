@@ -45,4 +45,34 @@ describe('Expo SDK 57 lock refresh workflow', () => {
     expect(workflow).toContain('git push origin "HEAD:refs/heads/$BRANCH"');
     expect(workflow).not.toContain('git push --force');
   });
+
+  it('keeps checkout credentials disabled until project validation has finished', () => {
+    const checkoutCredentials = workflow.indexOf('persist-credentials: false');
+    const install = workflow.indexOf('npm ci --ignore-scripts --no-audit --no-fund');
+    const expoDoctor = workflow.indexOf('npx expo-doctor');
+    const typecheck = workflow.indexOf('npm run typecheck');
+    const tests = workflow.indexOf('npm test -- --passWithNoTests');
+    const gitAuth = workflow.indexOf('gh auth setup-git');
+    const push = workflow.indexOf('git push origin "HEAD:refs/heads/$BRANCH"');
+
+    expect([checkoutCredentials, install, expoDoctor, typecheck, tests, gitAuth, push]
+      .every(index => index >= 0)).toBe(true);
+    expect(checkoutCredentials).toBeLessThan(install);
+    expect(install).toBeLessThan(expoDoctor);
+    expect(expoDoctor).toBeLessThan(typecheck);
+    expect(typecheck).toBeLessThan(tests);
+    expect(tests).toBeLessThan(gitAuth);
+    expect(gitAuth).toBeLessThan(push);
+  });
+
+  it('verifies the GitHub CLI credential helper before the final push', () => {
+    const gitAuth = workflow.indexOf('gh auth setup-git');
+    const helperCheck = workflow.indexOf("git config --get-regexp '^credential\\..*\\.helper$'");
+    const push = workflow.indexOf('git push origin "HEAD:refs/heads/$BRANCH"');
+
+    expect(gitAuth).toBeGreaterThanOrEqual(0);
+    expect(helperCheck).toBeGreaterThan(gitAuth);
+    expect(push).toBeGreaterThan(helperCheck);
+    expect(workflow).toContain('GitHub CLI credential helper was not configured for the final push.');
+  });
 });
