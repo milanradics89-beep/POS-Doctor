@@ -45,7 +45,11 @@ from backend.rate_limit import install_rate_limit, rate_limit_mode, check_redis_
 from backend.request_controls import install_request_controls
 from backend.observability import install_observability
 from backend.security_headers import install_security_headers
-from backend.production_security import production_mode, validate_production_security
+from backend.production_security import (
+    production_mode,
+    validate_production_security,
+    validate_production_session_auth_configuration,
+)
 from backend.scene_quality import quality_gate
 from backend.scene_understanding import normalize_scene_understanding
 from backend.scene_reasoning import derive_scene_facts, derive_scene_reasoning
@@ -215,10 +219,12 @@ async def ready():
     if production_mode():
         dependencies_ready = dependencies_ready and bool(configured_api_key() or configured_session_secret())
         attestation_mode = configured_attestation_mode()
-        if attestation_mode is not AttestationMode.DISABLED:
-            dependencies_ready = dependencies_ready and bool(configured_session_secret())
-        if attestation_mode is AttestationMode.REQUIRED:
-            dependencies_ready = dependencies_ready and bool(configured_attestation_app_id())
+        try:
+            validate_production_session_auth_configuration()
+        except RuntimeError:
+            # Readiness must not report healthy for a session/attestation
+            # combination that startup validation would reject.
+            dependencies_ready = False
 
         # Production rate limiting is shared across workers, so Redis is a
         # mandatory readiness dependency even when App Attest is disabled.

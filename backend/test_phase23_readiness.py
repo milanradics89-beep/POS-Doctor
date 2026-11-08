@@ -72,16 +72,18 @@ async def test_production_readiness_requires_shared_redis_configuration(monkeypa
 
 
 
-@pytest.mark.parametrize("attestation_mode", ["disabled", "optional", "required"])
+@pytest.mark.parametrize("attestation_mode", ["disabled", "required"])
 @pytest.mark.asyncio
 async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch, attestation_mode):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
     monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", attestation_mode)
-    if attestation_mode != "disabled":
+    if attestation_mode == "required":
+        monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
         monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
     else:
+        monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
         monkeypatch.delenv("USEIT_ATTESTATION_APP_ID", raising=False)
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
     monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
@@ -262,6 +264,45 @@ async def test_production_readiness_preflights_redis_pexpire_before_rate_limit_s
     assert created_clients[0].closed
 
 
+@pytest.mark.parametrize(
+    ("attestation_mode", "session_secret"),
+    [
+        ("optional", None),
+        ("optional", "s" * 32),
+        ("disabled", "s" * 32),
+        ("required", None),
+    ],
+)
+@pytest.mark.asyncio
+async def test_production_readiness_rejects_inconsistent_session_attestation_configuration(
+    monkeypatch, attestation_mode, session_secret
+):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
+    monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", attestation_mode)
+    if session_secret is None:
+        monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
+    else:
+        monkeypatch.setenv("USEIT_SESSION_SECRET", session_secret)
+    if attestation_mode != "disabled":
+        monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
+    else:
+        monkeypatch.delenv("USEIT_ATTESTATION_APP_ID", raising=False)
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+
+    def unexpected_redis_connection(*args, **kwargs):
+        pytest.fail("Readiness must reject inconsistent session/attestation configuration before Redis access.")
+
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", unexpected_redis_connection)
+    with pytest.raises(HTTPException) as exc_info:
+        await main.ready()
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Service is not ready."
+
+
 @pytest.mark.asyncio
 async def test_production_readiness_fails_when_attestation_getdel_is_unavailable(monkeypatch):
     from redis.exceptions import ResponseError
@@ -270,6 +311,7 @@ async def test_production_readiness_fails_when_attestation_getdel_is_unavailable
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
     monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
+    monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
     monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
     monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
@@ -333,8 +375,10 @@ async def test_production_readiness_fails_when_shared_redis_is_unavailable(monke
     monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", attestation_mode)
     if attestation_mode == "required":
+        monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
         monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM123456.com.useit.app")
     else:
+        monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
         monkeypatch.delenv("USEIT_ATTESTATION_APP_ID", raising=False)
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
     monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")

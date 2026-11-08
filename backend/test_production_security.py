@@ -105,6 +105,17 @@ def test_production_rejects_optional_attestation_with_session_secret(monkeypatch
         validate_production_security()
 
 
+def test_production_rejects_session_secret_when_attestation_is_disabled(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
+    monkeypatch.delenv("USEIT_API_KEY", raising=False)
+    monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
+
+    with pytest.raises(RuntimeError, match="USEIT_ATTESTATION_MODE must be required"):
+        validate_production_security()
+
+
 def test_production_rejects_short_session_secret(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
