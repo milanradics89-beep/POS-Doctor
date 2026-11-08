@@ -1,6 +1,26 @@
 # USEIT 25-point release backlog
 
-## Latest validated PR #41 checkpoint (captured 2026-11-08T14:31:00+01:00; exact SHA `00133e4db6ef137b162d5307672e1370a2ce727f`)
+## Last fully validated PR #41 baseline before this documentation refresh (captured 2026-11-08 16:50 CET)
+
+At capture, PR #41 was open and unmerged on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. Exact PR HEAD `3a98e1e2474cccd8b8714fdb3d8c4bac3d36ef7f` (parent `e436004f4d61721e5f8750f1c6607c2d5fe379a2`) passed all three required workflows. Commit `3a98e1e` changes only `.github/workflows/expo-sdk57-lock-refresh.yml`: it adds `gh auth setup-git` and a credential-helper assertion immediately before the final lockfile push, while retaining `persist-credentials: false` during project code and tests. The actual lockfile-changing push path has not yet been exercised because generated manifests already match the branch. The latest validated application source/test baseline remains `323869a`.
+
+Exact-head CI evidence for `3a98e1e`:
+- [Validation 42493540344](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42493540344): backend [job 128770814197](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42493540344/job/128770814197) passed 413 backend tests, 26 production-readiness checks, and 55 production-security/privacy checks; pip-audit passed. Frontend/Android [job 128770814410](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42493540344/job/128770814410) passed 241 tests across 56 files, Expo Doctor 21/21, Android Release build, and emulator install/launch smoke. iOS [job 128770814452](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42493540344/job/128770814452) passed the Release simulator build and install/launch smoke.
+- [CodeQL 42493540425](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42493540425), analyze [job 128770814624](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42493540425/job/128770814624), passed.
+- [Dependency Review 42493540328](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42493540328), [job 128770814039](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42493540328/job/128770814039), passed with no high-or-higher vulnerable packages and no denied packages.
+
+Dependency caveats remain: runtime npm audit reports four moderate transitive `glob`/`minimatch` advisory instances; Dependency Review has below-threshold Scorecard findings for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5), plus an unknown scanner-license result for vendored `deepmerge@4.3.2` whose checked-in manifest and LICENSE declare MIT. No forced major override or audit-threshold reduction was applied. Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero**, because the connected integration does not expose those alert collections.
+
+Governance at capture: all 11 inline review threads are resolved; 15 review submissions exist and all are COMMENTED, with zero APPROVED reviews. Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`, one approving review, last-push approval, and resolved threads; deletion and non-fast-forward updates are blocked and there are no bypass actors. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed. Issue [#57](https://github.com/milanradics89-beep/POS-Doctor/issues/57) is closed after the exact-head Gradle timeout fix in `4580240`. Issue [#46](https://github.com/milanradics89-beep/POS-Doctor/issues/46) remains open for the historical mixed-version CodeQL action failure; do not merge #43/#44 independently, and keep draft #49 as the atomic update candidate.
+
+The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Done: #1 iOS simulator CI, #2 main branch protection, #6 Redis multi-instance test coverage. Blocked: #4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark, #21 production monitoring/alert delivery, #22 staged rollout/rollback, and #25 real pilot/business approval. Simulator/emulator CI does not satisfy these external gates.
+
+This section records the last fully validated parent before the documentation-only commit created by this refresh. **The new documentation commit has its own exact-HEAD Validation, CodeQL, and Dependency Review gates pending; it must not inherit the parent runs as its own evidence.** PR #41 remains open and unmerged pending those checks, external release gates, and human approval.
+
+---
+
+
+## Historical checkpoint (superseded by validated baseline 3a98e1e) (captured 2026-11-08T14:31:00+01:00; exact SHA `00133e4db6ef137b162d5307672e1370a2ce727f`)
 
 At capture, PR #41 was open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` (base SHA `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`). The exact HEAD `00133e4` is documentation-only, parent `d6a75d9`; it changes the three release evidence documents and does not change application source, tests, dependencies, or workflow configuration. The PR metadata and release branch HEAD agree on this SHA.
 
