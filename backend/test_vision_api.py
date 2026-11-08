@@ -163,3 +163,54 @@ def test_image_request_accepts_public_http_url_after_public_host_validation(monk
 def test_image_request_rejects_embedded_url_credentials():
     with pytest.raises(ValueError):
         AnalyzeRequest(imageUri="https://user:password@images.example.com/photo.jpg")
+
+@pytest.mark.asyncio
+async def test_openai_client_is_shared_and_closed_with_application_lifespan(monkeypatch):
+    created = []
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+            self.close_calls = 0
+            created.append(self)
+
+        async def close(self):
+            self.close_calls += 1
+
+    monkeypatch.setattr(main, "AsyncOpenAI", FakeOpenAI)
+    monkeypatch.setattr(main, "configured_redis_url", lambda: None)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
+
+    async with main.lifespan(main.app):
+        first = main._get_client()
+        second = main._get_client()
+
+        assert first is second
+        assert len(created) == 1
+        assert created[0].kwargs == {
+            "api_key": "test-openai-key",
+            "timeout": main.OPENAI_TIMEOUT_SECONDS,
+            "max_retries": 0,
+        }
+        assert created[0].close_calls == 0
+
+    assert main.app.state.openai_client is None
+    assert created[0].close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_openai_client_is_not_created_without_api_key(monkeypatch):
+    def unexpected_client(**kwargs):
+        pytest.fail("OpenAI client must not be created without an API key.")
+
+    monkeypatch.setattr(main, "AsyncOpenAI", unexpected_client)
+    monkeypatch.setattr(main, "configured_redis_url", lambda: None)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    async with main.lifespan(main.app):
+        with pytest.raises(HTTPException) as exc:
+            main._get_client()
+
+        assert exc.value.status_code == 503
+        assert main.app.state.openai_client is None
+

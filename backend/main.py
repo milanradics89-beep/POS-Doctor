@@ -61,6 +61,8 @@ from backend.specialist_agents import build_specialist_context
 logger = logging.getLogger("useit")
 logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
 
+OPENAI_TIMEOUT_SECONDS = 35.0
+
 if production_mode():
     validate_production_security()
 
@@ -68,19 +70,42 @@ if production_mode():
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     redis_client = None
-    redis_url = configured_redis_url()
-    if redis_url:
-        redis_client = redis_asyncio.Redis.from_url(
-            redis_url,
-            decode_responses=False,
-            socket_connect_timeout=2.0,
-            socket_timeout=5.0,
-        )
-    application.state.redis_client = redis_client
+    openai_client = None
+    application.state.redis_client = None
+    application.state.openai_client = None
     try:
+        redis_url = configured_redis_url()
+        if redis_url:
+            redis_client = redis_asyncio.Redis.from_url(
+                redis_url,
+                decode_responses=False,
+                socket_connect_timeout=2.0,
+                socket_timeout=5.0,
+            )
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if api_key:
+            # Analysis requests are billable POSTs. Keep one bounded client per
+            # application lifespan and disable implicit retries until requests
+            # have an end-to-end idempotency contract.
+            openai_client = AsyncOpenAI(
+                api_key=api_key,
+                timeout=OPENAI_TIMEOUT_SECONDS,
+                max_retries=0,
+            )
+        application.state.redis_client = redis_client
+        application.state.openai_client = openai_client
         yield
     finally:
         application.state.redis_client = None
+        application.state.openai_client = None
+        if openai_client is not None:
+            try:
+                await openai_client.close()
+            except Exception as exc:
+                logger.warning(
+                    "Application shutdown could not close the shared OpenAI client cleanly (exception_type=%s)",
+                    type(exc).__name__,
+                )
         if redis_client is not None:
             try:
                 await redis_client.aclose()
@@ -157,9 +182,15 @@ class SessionRequest(BaseModel):
     clientData: str | None = Field(default=None, max_length=64_000)
 
 def _get_client() -> AsyncOpenAI:
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key: raise HTTPException(503, "Vision service is not configured.")
-    return AsyncOpenAI(api_key=api_key)
+    client = getattr(app.state, "openai_client", None)
+    if client is None:
+        detail = (
+            "Vision service is not configured."
+            if not os.environ.get("OPENAI_API_KEY")
+            else "Vision service is not initialized."
+        )
+        raise HTTPException(503, detail)
+    return client
 
 async def _analyze(request: AnalyzeRequest):
     if request.responseFormat != "scene_analysis_v1": raise HTTPException(400, "Unsupported response format.")
