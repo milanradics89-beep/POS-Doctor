@@ -160,7 +160,15 @@ def test_production_rejects_enabled_interactive_docs(monkeypatch):
         validate_production_security()
 
 
-def test_valid_production_configuration_passes(monkeypatch):
+@pytest.mark.parametrize(
+    "redis_url",
+    [
+        "rediss://redis.internal/0",
+        "rediss://redis.internal:1/0",
+        "rediss://redis.internal:65535/0",
+    ],
+)
+def test_valid_production_configuration_passes(monkeypatch, redis_url):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
     monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
@@ -168,7 +176,7 @@ def test_valid_production_configuration_passes(monkeypatch):
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
     monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
-    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
+    monkeypatch.setenv("USEIT_REDIS_URL", redis_url)
     validate_production_security()
 
 
@@ -256,6 +264,44 @@ def test_production_rejects_redis_without_tls_or_host(monkeypatch, redis_url):
     monkeypatch.setenv("USEIT_REDIS_URL", redis_url)
 
     with pytest.raises(RuntimeError, match="USEIT_REDIS_URL must use rediss:// with a valid host"):
+        validate_production_security()
+
+
+@pytest.mark.parametrize(
+    "redis_url",
+    [
+        "rediss://redis.internal:not-a-port/0",
+        "rediss://redis.internal:65536/0",
+    ],
+)
+def test_production_rejects_malformed_redis_port(monkeypatch, redis_url):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
+    monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", redis_url)
+
+    with pytest.raises(RuntimeError, match="must be a valid rediss:// URL"):
+        validate_production_security()
+
+
+@pytest.mark.parametrize("port", ["0", "-1"])
+def test_production_rejects_redis_port_outside_valid_range(monkeypatch, port):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
+    monkeypatch.delenv("USEIT_SESSION_SECRET", raising=False)
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", f"rediss://redis.internal:{port}/0")
+
+    with pytest.raises(RuntimeError, match="port must be between 1 and 65535"):
         validate_production_security()
 
 

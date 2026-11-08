@@ -39,11 +39,14 @@ def validate_production_redis_transport() -> None:
     try:
         parsed = urlsplit(redis_url)
         hostname = parsed.hostname
+        port = parsed.port
     except ValueError as exc:
         raise RuntimeError("USEIT_REDIS_URL must be a valid rediss:// URL in production") from exc
 
     if parsed.scheme.lower() != "rediss" or not hostname:
         raise RuntimeError("USEIT_REDIS_URL must use rediss:// with a valid host in production")
+    if port is not None and not 1 <= port <= 65535:
+        raise RuntimeError("USEIT_REDIS_URL port must be between 1 and 65535 in production")
 
 
 def validate_production_session_auth_configuration() -> None:

@@ -93,6 +93,36 @@ async def test_production_readiness_rejects_plaintext_redis_before_connecting(mo
     assert exc_info.value.detail == "Service is not ready."
 
 
+@pytest.mark.parametrize(
+    "redis_url",
+    [
+        "rediss://redis.internal:not-a-port/0",
+        "rediss://redis.internal:0/0",
+        "rediss://redis.internal:-1/0",
+        "rediss://redis.internal:65536/0",
+    ],
+)
+@pytest.mark.asyncio
+async def test_production_readiness_rejects_invalid_redis_port_before_connecting(monkeypatch, redis_url):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
+    monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", redis_url)
+
+    def unexpected_redis_connection(*args, **kwargs):
+        pytest.fail("Readiness must reject an invalid production Redis port before connecting.")
+
+    monkeypatch.setattr(main.redis_asyncio.Redis, "from_url", unexpected_redis_connection)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await main.ready()
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Service is not ready."
+
+
 @pytest.mark.parametrize("attestation_mode", ["disabled", "required"])
 @pytest.mark.asyncio
 async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch, attestation_mode):
