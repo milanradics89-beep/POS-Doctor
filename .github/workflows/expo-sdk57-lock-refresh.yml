@@ -217,5 +217,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json
           git commit -m "fix(deps): align Expo SDK 57 lockfile and peer graph"
+
+          # All project code, package scripts, and tests have finished. Scope the
+          # GitHub CLI credential helper to this final push phase only.
+          gh auth setup-git
+          if ! git config --get-regexp '^credential\..*\.helper$' | grep -F 'gh auth git-credential' >/dev/null; then
+            echo "::error::GitHub CLI credential helper was not configured for the final push."
+            exit 1
+          fi
+
           git push origin "HEAD:refs/heads/$BRANCH"
           echo "::notice::Pushed the regenerated SDK 57 manifests after the triggering HEAD's required workflows completed."
