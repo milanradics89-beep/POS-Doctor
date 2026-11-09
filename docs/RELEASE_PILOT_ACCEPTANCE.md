@@ -1,15 +1,28 @@
-## Current release acceptance status (2026-11-09 19:50 CET)
+## Current release acceptance status (2026-11-09 22:36 CET)
 
-**Automated CI acceptance for current PR HEAD `cc81d76`: NOT GRANTED. Pilot acceptance: NOT GRANTED.**
+**Automated CI acceptance for exact PR HEAD `6301889`: PASSED. Pilot acceptance: NOT GRANTED.**
 
-Current PR #41 HEAD [`cc81d763b85b92ea97808c085512fe2e45677b2c`](https://github.com/milanradics89-beep/POS-Doctor/commit/cc81d763b85b92ea97808c085512fe2e45677b2c) updates the load-test body-consumption measurement and adds a delayed-response regression test. Its exact-head Validation [42672737320](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737320), CodeQL [42672737200](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737200), and Dependency Review [42672737277](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737277) runs are all completed with failure conclusions. Each Actions jobs endpoint returned zero jobs; job logs are unavailable through the connected integration, and GitHub rejected rerun requests with HTTP 403 (“This workflow run cannot be retried”). The cause is unverified; this is not accepted CI evidence.
+PR #41 remains open and unmerged. Exact current HEAD [`6301889`](https://github.com/milanradics89-beep/POS-Doctor/commit/6301889b918794816844fba5ad649e52c9b07964) is documentation-only, parent [`5c958b1`](https://github.com/milanradics89-beep/POS-Doctor/commit/5c958b14c3a80675ae03fb30f8d62218ff2a65e1). Exact-head workflows:
+- Validation [42693253108](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693253108): backend [129418268426](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693253108/job/129418268426) passed 415 tests, 27 readiness checks, and 55 security/privacy checks; frontend/Android [129418268559](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693253108/job/129418268559) passed typecheck, unit tests, Expo Doctor, Android Release build, and emulator smoke; iOS [129418268036](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693253108/job/129418268036) passed Release simulator build and install/launch smoke.
+- CodeQL [42693252499](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693252499), analyze [129418259882](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693252499/job/129418259882): passed, with a non-fatal SARIF column-kind mismatch warning.
+- Dependency Review [42693252717](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693252717), job [129418260005](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693252717/job/129418260005): passed with no high-or-higher vulnerable packages or denied packages. The four moderate npm audit findings and below-threshold Scorecard/license metadata warnings remain open.
 
-The latest fully validated exact HEAD is [`a6adf45`](https://github.com/milanradics89-beep/POS-Doctor/commit/a6adf45bc0423d2307d4abfa1593ff3c2a9865d3):
-- Validation [42655859719](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859719) — success, including iOS simulator and Android Release/emulator smoke.
-- CodeQL [42655859876](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859876) — success.
-- Dependency Review [42655859836](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859836) — success.
+**Pilot acceptance remains NOT GRANTED.** Simulator/emulator CI is not physical-device acceptance, production validation, or business sign-off. The backlog remains **3 Done / 15 In Progress / 7 Blocked**. Blocked gates: physical iPhone App Attest; Play-installed physical Android Play Integrity; witnessed production backup/restore; representative product-recognition benchmark; production monitoring and alert delivery; staged rollout/rollback approval; real pilot and business approval.
 
-**Do not treat simulator/emulator CI as physical-device acceptance.** The pilot remains unapproved. The 25-point register remains 3 Done / 15 In Progress / 7 Blocked. The seven blocked items still require physical iPhone App Attest, Play-installed physical Android Play Integrity, witnessed production backup/restore, representative product-recognition benchmark, production monitoring/alert delivery, staged rollout/rollback approval, and real pilot/business approval. PR #41 also still requires one human approving review and last-push approval.
+## Release acceptance gates
+
+- [x] Exact-head Validation, CodeQL, and Dependency Review for `6301889`.
+- [x] Main ruleset #26370589 active; issue #47 closed.
+- [x] All 11 inline PR review threads resolved.
+- [ ] One human approving review and last-push approval for PR #41 (15 review submissions, 0 APPROVED).
+- [ ] Physical iPhone App Attest production entitlement and provider-backed test.
+- [ ] Play-installed physical Android Play Integrity test with production signing identity.
+- [ ] Owner-witnessed production backup/restore drill.
+- [ ] Representative labeled product-recognition benchmark and business acceptance.
+- [ ] Production monitoring workspace, alert destination, on-call owner, and delivery test.
+- [ ] Staged rollout thresholds, rollback rehearsal, and named rollback owner.
+- [ ] Real pilot cohort, success/stop thresholds, and written business approval.
+- [ ] Dependency-risk disposition for moderate npm advisories and remaining Scorecard/license warnings.
 
 ---
 
