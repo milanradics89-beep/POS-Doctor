@@ -1,4 +1,47 @@
-## Last fully validated exact-head automated release checkpoint (2026-11-09 13:35 CET)
+## Last fully validated exact-head automated release checkpoint (2026-11-09 15:58 CET)
+
+**Automated CI acceptance: PASSED for exact HEAD `d6a2a1e`. Pilot acceptance: NOT GRANTED.**
+
+PR #41 remains open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. The exact current HEAD is [`d6a2a1e`](https://github.com/milanradics89-beep/POS-Doctor/commit/d6a2a1e6e776dc5b20e27154258ce4a1df36ed44), a source-and-test commit that reuses the application-lifespan Redis client for Apple App Attest key registration, lookup, and assertion-counter updates. It adds two regression tests proving that the session endpoint passes the application-scoped Redis client to the verifier and that the verifier reuses that client without closing it. The shared Redis Lua counter update remains atomic.
+
+All required pull-request workflows completed successfully for exact HEAD `d6a2a1e`:
+
+- Validation [42630462263](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42630462263):
+  - Backend [job 129205138334](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42630462263/job/129205138334): **415 tests passed**, **27 production-readiness checks passed**, and **55 production-security/privacy checks passed**; `pip-audit` reported **No known vulnerabilities found**. Non-failing warnings: Starlette/httpx TestClient deprecation and the Redis test-container `vm.overcommit_memory` advisory.
+  - Frontend/Android [job 129205138054](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42630462263/job/129205138054): **243 tests across 56 files**, Expo Doctor **21/21**, Android Release build **BUILD SUCCESSFUL in 22m 10s**, and Android emulator install/launch smoke passed for `com.useit.app`. Runtime `npm audit --omit=dev --audit-level=high` passed its configured high-severity threshold but still reports **four moderate** transitive `glob`/`minimatch` advisory instances.
+  - iOS [job 129205137616](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42630462263/job/129205137616): Release simulator build and install/launch smoke passed for `com.useit.app`.
+- CodeQL [42630462259](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42630462259), analyze [job 129205137417](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42630462259/job/129205137417), passed. SARIF combination emitted a non-fatal column-kind mismatch warning.
+- Dependency Review [42630462218](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42630462218), job [129205136792](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42630462218/job/129205136792), passed with no high-or-higher vulnerable packages and no denied packages. Warnings remain for OpenSSF Scorecard `@expo/devcert` (2.9) and `is-mergeable-object` (1.5), plus unknown license scanner metadata for vendored `deepmerge@4.3.2` although its checked-in manifest and LICENSE declare MIT.
+
+The four moderate `glob`/`minimatch` findings remain tracked pending an SDK57-compatible upstream fix or explicit owner risk disposition. Do not force incompatible major overrides, downgrade Expo, or reduce audit thresholds.
+
+Governance: issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed. Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`; one approving review, last-push approval, and resolved review threads; deletion and non-fast-forward updates are blocked and no bypass actors are configured. All **11/11 inline review threads are resolved**. There are **15 review submissions and 0 APPROVED**; human approval and last-push approval remain outstanding. Issue #46 remains open for a historical CodeQL action failure; PRs #43/#44 must not be merged independently and draft PR #49 remains the atomic update candidate. Issues #56, #57, and #58 are closed.
+
+The repository has **31 branches, 19 open pull requests, and 4 open issues**. The GitHub Releases inventory is empty. The connected integration does not expose the complete Code Scanning, Dependabot, and Secret Scanning alert inventories; these remain **unverified, not zero**.
+
+The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Done: #1 iOS simulator CI, #2 main branch protection, and #6 Redis multi-instance test coverage. Blocked: #4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark, #21 production monitoring/alert delivery, #22 staged rollout/rollback, and #25 real pilot/business approval. Simulator/emulator CI is not physical-device or production acceptance.
+
+This checkpoint proves exact-head automated CI only, not production, physical-device, store, pilot, or business sign-off. PR #41 remains open and unmerged pending external release gates, dependency-risk disposition, and human approval.
+
+## Remaining release acceptance gates
+
+- [x] Exact-head Validation, CodeQL, and Dependency Review for `d6a2a1e`.
+- [x] Main ruleset #26370589 active; issue #47 closed.
+- [x] All 11 inline review threads resolved.
+- [ ] Obtain one human approving review and approval of the last push on PR #41.
+- [ ] Complete physical iPhone App Attest with Apple production entitlement and provider-backed verification.
+- [ ] Complete physical Android Play Integrity using a Play-installed build and production signing identity.
+- [ ] Run the owner-approved staging load test and record thresholds/results.
+- [ ] Complete a witnessed production backup/restore and recovery drill.
+- [ ] Verify production monitoring and alert delivery with a named on-call owner.
+- [ ] Approve staged rollout, rollback thresholds, and a named rollback owner.
+- [ ] Complete a representative labeled product-recognition benchmark and human acceptance.
+- [ ] Obtain dependency-risk disposition for the four moderate runtime advisories, Scorecard warnings, and vendored-license scanner caveat.
+- [ ] Run the real pilot against agreed success/stop thresholds and record business approval.
+
+---
+
+## Historical checkpoint (superseded by d6a2a1e; captured 2026-11-09 13:35 CET)
 
 **Automated CI acceptance: PASSED for exact HEAD `0cd260f`. Pilot acceptance: NOT GRANTED.**
 
