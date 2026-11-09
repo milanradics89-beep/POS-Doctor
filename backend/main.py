@@ -348,7 +348,10 @@ async def create_session(request: SessionRequest | None = None, response: Respon
         if configured_attestation_app_id() and evidence.app_id != configured_attestation_app_id():
             raise HTTPException(status_code=401, detail="wrong_app")
         try:
-            provider_result = await verify_attestation_provider(evidence)
+            provider_result = await verify_attestation_provider(
+                evidence,
+                redis_client=getattr(app.state, "redis_client", None),
+            )
         except (RedisError, TimeoutError) as exc:
             logger.warning("App Attest verification storage is unavailable")
             raise HTTPException(

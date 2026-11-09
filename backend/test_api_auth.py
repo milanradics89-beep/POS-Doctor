@@ -370,3 +370,38 @@ def test_production_readiness_rejects_attestation_without_session_secret(monkeyp
     assert response.status_code == 503
     assert response.json()["detail"] == "Service is not ready."
     redis_factory.assert_not_called()
+
+def test_session_verification_reuses_application_scoped_redis_client(monkeypatch):
+    from backend.attestation import AttestationResult
+
+    shared_client = object()
+    monkeypatch.setattr(app.state, "redis_client", shared_client, raising=False)
+    monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
+    monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "apple_app_attest")
+    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "com.useit.app")
+
+    monkeypatch.setattr(
+        main,
+        "validate_challenge_binding_async",
+        AsyncMock(return_value=AttestationResult(True, "challenge_bound")),
+    )
+    provider_verification = AsyncMock(
+        return_value=AttestationResult(True, "provider_verified")
+    )
+    monkeypatch.setattr(main, "verify_attestation_provider", provider_verification)
+
+    response = client.post(
+        "/v1/session",
+        json={
+            "provider": "apple_app_attest",
+            "challenge": "application-redis-pool-challenge",
+            "assertion": "test-attestation-evidence",
+            "appId": "com.useit.app",
+        },
+    )
+
+    assert response.status_code == 200
+    provider_verification.assert_awaited_once()
+    assert provider_verification.await_args.kwargs["redis_client"] is shared_client
+

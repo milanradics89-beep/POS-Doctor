@@ -468,3 +468,79 @@ def test_apple_key_store_redis_client_uses_bounded_timeouts(monkeypatch):
         "socket_connect_timeout": 2.0,
         "socket_timeout": 5.0,
     }
+
+@pytest.mark.asyncio
+async def test_app_attest_verifier_reuses_application_redis_pool(monkeypatch):
+    from backend import apple_app_attest as apple_attest_module
+
+    class FakeRedis:
+        def __init__(self):
+            self.records = {}
+            self.closed = False
+
+        async def eval(self, script, numkeys, key, *args):
+            record = self.records.get(key)
+            if "EXISTS" in script:
+                if record is not None:
+                    return 0
+                self.records[key] = {
+                    b"public_key": args[0],
+                    b"counter": b"0",
+                    b"app_id": args[1].encode(),
+                }
+                return 1
+            if record is None:
+                return 0
+            next_counter = int(args[0])
+            if next_counter <= int(record[b"counter"]):
+                return 0
+            record[b"counter"] = str(next_counter).encode()
+            return 1
+
+        async def hgetall(self, key):
+            return self.records.get(key, {})
+
+        async def aclose(self):
+            self.closed = True
+
+    shared_client = FakeRedis()
+
+    def unexpected_from_url(cls, *args, **kwargs):
+        pytest.fail("App Attest must reuse the application-scoped Redis pool.")
+
+    monkeypatch.setenv("USEIT_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setattr(
+        apple_attest_module.Redis,
+        "from_url",
+        classmethod(unexpected_from_url),
+    )
+
+    key = AppleAttestKey("shared-pool-key", b"public-key-der", 0)
+    monkeypatch.setattr(apple_attest_module, "_verify_attestation", lambda evidence: key)
+    monkeypatch.setattr(apple_attest_module, "_verify_assertion", lambda stored, evidence: 1)
+
+    verifier = AppleAppAttestVerifier(redis_client=shared_client)
+    registration = AttestationEvidence(
+        AttestationProvider.APP_ATTEST,
+        "shared-pool-challenge",
+        "registration-evidence",
+        "TEAM123456.com.useit.app",
+    )
+    registered = await verifier.verify(registration)
+    assert registered.verified is True
+
+    assertion = AttestationEvidence(
+        AttestationProvider.APP_ATTEST,
+        "shared-pool-challenge",
+        "assertion-evidence",
+        "TEAM123456.com.useit.app",
+        key_id=key.key_id,
+        client_data='{"challenge":"shared-pool-challenge","action":"session"}',
+    )
+    verified = await verifier.verify(assertion)
+    assert verified.verified is True
+
+    redis_key = f"useit:app-attest:key:{__import__('hashlib').sha256(key.key_id.encode()).hexdigest()}"
+    assert shared_client.records[redis_key][b"counter"] == b"1"
+    assert shared_client.closed is False
+

@@ -333,13 +333,14 @@ def _redis() -> Redis:
     )
 
 
-async def _store_key(key: AppleAttestKey, app_id: str) -> None:
+async def _store_key(key: AppleAttestKey, app_id: str, redis_client: Redis | None = None) -> None:
     redis_url = os.environ.get("USEIT_REDIS_URL", "").strip()
     if not redis_url:
         if not await _MEMORY_KEYS.create(key.key_id, key.public_key_der, app_id):
             raise ValueError("Apple App Attest key is already registered")
         return
-    client = _redis()
+    owns_client = redis_client is None
+    client = redis_client if redis_client is not None else _redis()
     try:
         redis_key = f"useit:app-attest:key:{hashlib.sha256(key.key_id.encode()).hexdigest()}"
         script = (
@@ -351,34 +352,39 @@ async def _store_key(key: AppleAttestKey, app_id: str) -> None:
         if not created:
             raise ValueError("Apple App Attest key is already registered")
     finally:
-        await client.aclose()
+        if owns_client:
+            await client.aclose()
 
 
-async def _load_key(key_id: str) -> tuple[bytes, int, str] | None:
+async def _load_key(key_id: str, redis_client: Redis | None = None) -> tuple[bytes, int, str] | None:
     redis_url = os.environ.get("USEIT_REDIS_URL", "").strip()
     if not redis_url:
         return await _MEMORY_KEYS.get(key_id)
-    client = _redis()
+    owns_client = redis_client is None
+    client = redis_client if redis_client is not None else _redis()
     try:
         data = await client.hgetall(f"useit:app-attest:key:{hashlib.sha256(key_id.encode()).hexdigest()}")
         if not data:
             return None
         return data[b"public_key"], int(data[b"counter"]), data[b"app_id"].decode()
     finally:
-        await client.aclose()
+        if owns_client:
+            await client.aclose()
 
 
-async def _advance_key(key_id: str, counter: int) -> bool:
+async def _advance_key(key_id: str, counter: int, redis_client: Redis | None = None) -> bool:
     redis_url = os.environ.get("USEIT_REDIS_URL", "").strip()
     if not redis_url:
         return await _MEMORY_KEYS.advance(key_id, counter)
-    client = _redis()
+    owns_client = redis_client is None
+    client = redis_client if redis_client is not None else _redis()
     try:
         script = "local current = redis.call('HGET', KEYS[1], 'counter') if not current then return 0 end if tonumber(ARGV[1]) <= tonumber(current) then return 0 end redis.call('HSET', KEYS[1], 'counter', ARGV[1]) return 1"
         key = f"useit:app-attest:key:{hashlib.sha256(key_id.encode()).hexdigest()}"
         return bool(await client.eval(script, 1, key, str(counter)))
     finally:
-        await client.aclose()
+        if owns_client:
+            await client.aclose()
 
 
 def _verify_assertion(key: tuple[bytes, int, str], evidence: AttestationEvidence) -> int:
@@ -426,19 +432,22 @@ def _verify_assertion(key: tuple[bytes, int, str], evidence: AttestationEvidence
 
 
 class AppleAppAttestVerifier(AttestationVerifier):
+    def __init__(self, redis_client: Redis | None = None) -> None:
+        self._redis_client = redis_client
+
     async def verify(self, evidence: AttestationEvidence) -> AttestationResult:
         try:
             if evidence.client_data is None:
                 key = _verify_attestation(evidence)
-                await _store_key(key, evidence.app_id)
+                await _store_key(key, evidence.app_id, self._redis_client)
                 return AttestationResult(True, "provider_verified")
             if not evidence.key_id:
                 return AttestationResult(False, "attestation_invalid")
-            stored = await _load_key(evidence.key_id)
+            stored = await _load_key(evidence.key_id, self._redis_client)
             if stored is None:
                 return AttestationResult(False, "attestation_invalid")
             counter = _verify_assertion(stored, evidence)
-            if not await _advance_key(evidence.key_id, counter):
+            if not await _advance_key(evidence.key_id, counter, self._redis_client):
                 return AttestationResult(False, "attestation_replayed")
             return AttestationResult(True, "provider_verified")
         except (ValueError, TypeError, cbor2.CBORDecodeError, x509.ExtensionNotFound, InvalidSignature):

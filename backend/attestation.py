@@ -237,12 +237,15 @@ async def validate_challenge_binding_async(
     return AttestationResult(True, "challenge_bound")
 
 
-async def verify_attestation_provider(evidence: AttestationEvidence) -> AttestationResult:
+async def verify_attestation_provider(
+    evidence: AttestationEvidence,
+    redis_client: Redis | None = None,
+) -> AttestationResult:
     """Dispatch evidence to the configured real provider verifier."""
     if evidence.provider is AttestationProvider.APP_ATTEST:
         from backend.apple_app_attest import AppleAppAttestVerifier
 
-        return await AppleAppAttestVerifier().verify(evidence)
+        return await AppleAppAttestVerifier(redis_client=redis_client).verify(evidence)
     if evidence.provider is AttestationProvider.PLAY_INTEGRITY:
         from backend.google_play_integrity import GooglePlayIntegrityVerifier
 
