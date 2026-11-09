@@ -76,6 +76,20 @@ const statusCounts = new Map();
 let failures = 0;
 let nextIndex = 0;
 
+async function consumeResponseBody(responseBody) {
+  if (!responseBody) return;
+
+  const reader = responseBody.getReader();
+  try {
+    while (true) {
+      const { done } = await reader.read();
+      if (done) return;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 async function worker() {
   while (true) {
     const index = nextIndex++;
@@ -90,9 +104,13 @@ async function worker() {
         redirect: 'error',
         signal: AbortSignal.timeout(timeoutMs),
       });
+
+      // Measure the complete HTTP exchange, not only the time to response headers.
+      // Discard chunks as they arrive so a large response cannot accumulate in memory.
+      await consumeResponseBody(response.body);
+
       latencies.push(performance.now() - started);
       statusCounts.set(response.status, (statusCounts.get(response.status) ?? 0) + 1);
-      await response.body?.cancel();
       if (!response.ok) failures++;
     } catch {
       latencies.push(performance.now() - started);

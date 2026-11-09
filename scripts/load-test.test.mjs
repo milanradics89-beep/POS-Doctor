@@ -121,6 +121,27 @@ describe('load-test safety guards', () => {
     }
   });
 
+  it('measures latency through the complete response body, not just the headers', async () => {
+    const bodyDelayMs = 200;
+    const { server, origin } = await startServer((_request, response) => {
+      response.writeHead(200, { 'Content-Type': 'application/json' });
+      response.flushHeaders();
+      const timer = setTimeout(() => response.end('{"ok":true}'), bodyDelayMs);
+      response.on('close', () => clearTimeout(timer));
+    });
+
+    try {
+      const result = await runLoadTest(approvedStagingEnv(origin));
+      expect(result.code).toBe(0);
+      const metrics = JSON.parse(result.stdout);
+      expect(metrics.statusCounts).toEqual({ 200: 1 });
+      expect(metrics.failures).toBe(0);
+      expect(metrics.latencyMs.p50).toBeGreaterThanOrEqual(bodyDelayMs - 50);
+    } finally {
+      await stopServer(server);
+    }
+  });
+
   it('does not follow redirects away from the approved origin', async () => {
     let redirectedRequests = 0;
     const destination = await startServer((_request, response) => {
