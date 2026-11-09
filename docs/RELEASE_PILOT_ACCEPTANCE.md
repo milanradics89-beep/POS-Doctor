@@ -1,4 +1,19 @@
-## Last fully validated exact-head automated release checkpoint (2026-11-09 15:58 CET)
+## Current release acceptance status (2026-11-09 19:50 CET)
+
+**Automated CI acceptance for current PR HEAD `cc81d76`: NOT GRANTED. Pilot acceptance: NOT GRANTED.**
+
+Current PR #41 HEAD [`cc81d763b85b92ea97808c085512fe2e45677b2c`](https://github.com/milanradics89-beep/POS-Doctor/commit/cc81d763b85b92ea97808c085512fe2e45677b2c) updates the load-test body-consumption measurement and adds a delayed-response regression test. Its exact-head Validation [42672737320](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737320), CodeQL [42672737200](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737200), and Dependency Review [42672737277](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737277) runs are all completed with failure conclusions. Each Actions jobs endpoint returned zero jobs; job logs are unavailable through the connected integration, and GitHub rejected rerun requests with HTTP 403 (“This workflow run cannot be retried”). The cause is unverified; this is not accepted CI evidence.
+
+The latest fully validated exact HEAD is [`a6adf45`](https://github.com/milanradics89-beep/POS-Doctor/commit/a6adf45bc0423d2307d4abfa1593ff3c2a9865d3):
+- Validation [42655859719](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859719) — success, including iOS simulator and Android Release/emulator smoke.
+- CodeQL [42655859876](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859876) — success.
+- Dependency Review [42655859836](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859836) — success.
+
+**Do not treat simulator/emulator CI as physical-device acceptance.** The pilot remains unapproved. The 25-point register remains 3 Done / 15 In Progress / 7 Blocked. The seven blocked items still require physical iPhone App Attest, Play-installed physical Android Play Integrity, witnessed production backup/restore, representative product-recognition benchmark, production monitoring/alert delivery, staged rollout/rollback approval, and real pilot/business approval. PR #41 also still requires one human approving review and last-push approval.
+
+---
+
+## Historical checkpoint (superseded by current PR HEAD cc81d76; captured 2026-11-09 15:58 CET)
 
 **Automated CI acceptance: PASSED for exact HEAD `d6a2a1e`. Pilot acceptance: NOT GRANTED.**
 

@@ -1,4 +1,23 @@
-## Current exact-head release checkpoint (2026-11-09 15:58 CET)
+## Current exact-head release checkpoint (2026-11-09 19:50 CET)
+
+PR #41 is open and unmerged on `fix/release-blockers-2026-10`. Current HEAD is [`cc81d76`](https://github.com/milanradics89-beep/POS-Doctor/commit/cc81d763b85b92ea97808c085512fe2e45677b2c), a load-test implementation/test commit. It streams and consumes the complete response body before recording latency and adds a delayed-body regression test.
+
+Exact-head CI for `cc81d76` is **not accepted**:
+- Validation [42672737320](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737320): completed / failure.
+- CodeQL [42672737200](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737200): completed / failure.
+- Dependency Review [42672737277](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737277): completed / failure.
+
+All three Actions jobs endpoints returned `total_count: 0`; no job-level logs or steps are available through the connected integration. GitHub rejected attempts to rerun failed jobs with HTTP 403 (“This workflow run cannot be retried”). The failure cause remains unverified. Do not mark #15 Done or reuse parent CI as current-head evidence.
+
+Latest fully validated exact HEAD: [`a6adf45`](https://github.com/milanradics89-beep/POS-Doctor/commit/a6adf45bc0423d2307d4abfa1593ff3c2a9865d3). Validation [42655859719](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859719), CodeQL [42655859876](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859876), and Dependency Review [42655859836](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859836) all succeeded.
+
+The 25-point status remains **3 Done / 15 In Progress / 7 Blocked**. Done: #1 iOS simulator CI, #2 main ruleset, #6 Redis multi-instance coverage. In Progress includes #15 backend load-test measurement and owner-approved staging execution. Blocked: #4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark, #21 production monitoring/alert delivery, #22 staged rollout/rollback, and #25 real pilot/business approval.
+
+Issue #47 is closed; active main ruleset #26370589 requires strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`, one approval, last-push approval, and resolved review threads. All 11 inline review threads are resolved; 15 review submissions and 0 APPROVED. Issue #46 remains open; PRs #43/#44 must not be merged independently and draft PR #49 is the atomic CodeQL update candidate. The repository has 31 branches, 19 open PRs, 4 open issues, and no published releases. Security alert inventories remain unverified, not zero.
+
+---
+
+## Historical checkpoint (superseded by current PR HEAD cc81d76; captured 2026-11-09 15:58 CET)
 
 PR #41 remains open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. The exact current HEAD is [`d6a2a1e`](https://github.com/milanradics89-beep/POS-Doctor/commit/d6a2a1e6e776dc5b20e27154258ce4a1df36ed44), a source-and-test commit that reuses the application-lifespan Redis client for Apple App Attest key registration, lookup, and assertion-counter updates. It adds two regression tests proving that the session endpoint passes the application-scoped Redis client to the verifier and that the verifier reuses that client without closing it. The shared Redis Lua counter update remains atomic.
 
