@@ -29,6 +29,44 @@ describe('UseitApiProvider boundary handling', () => {
     vi.restoreAllMocks();
   });
 
+  it.each([
+    { name: 'scene analysis', run: (api: UseitApiProvider) => api.analyzeImage(image) },
+    { name: 'unified analysis', run: (api: UseitApiProvider) => api.analyzeUseit(image) },
+    { name: 'redesign', run: (api: UseitApiProvider) => api.renderRedesign(image, 'test', []) },
+  ])('keeps the $name client deadline beyond the backend 45-second request limit', async ({ run }) => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((_input, init) => {
+        const signal = init?.signal as AbortSignal;
+        return new Promise<Response>((_resolve, reject) => {
+          const abort = () => reject(new DOMException('The operation was aborted.', 'AbortError'));
+          if (signal.aborted) abort();
+          else signal.addEventListener('abort', abort, { once: true });
+        });
+      });
+
+      const pending = run(provider());
+      const rejection = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+      for (let i = 0; i < 20 && fetchMock.mock.calls.length === 0; i += 1) {
+        await Promise.resolve();
+      }
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const signal = fetchMock.mock.calls[0][1]?.signal as AbortSignal;
+      await vi.advanceTimersByTimeAsync(45_000);
+      expect(signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(4_999);
+      expect(signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+
+      await rejection;
+      expect(signal.aborted).toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('rejects a missing API base URL before network access', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
     await expect(new UseitApiProvider('').analyzeImage(image)).rejects.toThrow('USEIT API base URL is required.');

@@ -16,6 +16,11 @@ import { getSessionToken } from './attestationClient';
 
 export type UseitApiClientOptions = { apiKey?: string };
 
+// The backend request middleware returns 504 at 45 seconds. Keep the client
+// deadline above that limit so it can receive the controlled server response.
+// These billable POSTs remain single-attempt until an end-to-end idempotency contract exists.
+const AI_REQUEST_TIMEOUT_MS = 50_000;
+
 export class UseitApiProvider implements IntelligenceProvider {
   private readonly apiKey?: string;
 
@@ -37,7 +42,7 @@ export class UseitApiProvider implements IntelligenceProvider {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
     const policy = createPromptPolicy(userIntent, 'hu-HU');
-    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale }) }, { attempts: 1 });
+    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale }) }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS });
     if (!response.ok) throw new Error(`USEIT API request failed (${response.status}).`);
     if (parseError) throw new Error('USEIT API returned malformed JSON.');
     const checked = validateAnalysis(payload);
@@ -48,7 +53,7 @@ export class UseitApiProvider implements IntelligenceProvider {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
     const policy = createPromptPolicy(intent, 'hu-HU');
-    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/useit/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale, budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles ?? [], preferredColors: options.preferredColors ?? [], discoverProducts: options.discoverProducts ?? true, productLimit: options.productLimit ?? 8 }) }, { attempts: 1 });
+    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/useit/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale, budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles ?? [], preferredColors: options.preferredColors ?? [], discoverProducts: options.discoverProducts ?? true, productLimit: options.productLimit ?? 8 }) }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS });
     if (!response.ok) throw new Error(`USEIT unified analysis failed (${response.status}).`);
     if (parseError) throw new Error('USEIT unified analysis returned malformed JSON.');
     const checked = validateUseitAnalyzeResponse(payload);
@@ -58,7 +63,7 @@ export class UseitApiProvider implements IntelligenceProvider {
   async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; url: string; id?: string; confidence?: number }>): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
-    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, prompt, products }) }, { attempts: 1 }, { requireJsonContentType: true });
+    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, prompt, products }) }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS }, { requireJsonContentType: true });
     if (!response.ok) throw new Error(`USEIT redesign request failed (${response.status}).`);
     if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('USEIT redesign API returned an unexpected response.');
     if (parseError) throw parseError;
