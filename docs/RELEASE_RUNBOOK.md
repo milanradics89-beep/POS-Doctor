@@ -1,23 +1,30 @@
-## Current PR #41 exact-head status (2026-11-09 19:50 CET)
+## Current PR #41 exact-head status (2026-11-09 21:24 CET)
 
-PR #41 is open and unmerged on `fix/release-blockers-2026-10`. Current HEAD is [`cc81d76`](https://github.com/milanradics89-beep/POS-Doctor/commit/cc81d763b85b92ea97808c085512fe2e45677b2c), which changes only the load-test implementation and its regression test. The probe now consumes the complete response body as a stream before recording latency; a delayed-body test covers the headers-versus-body timing regression.
+PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main`. Exact current HEAD at this checkpoint is documentation-only commit [`5c958b1`](https://github.com/milanradics89-beep/POS-Doctor/commit/5c958b14c3a80675ae03fb30f8d62218ff2a65e1), parent [`cc81d76`](https://github.com/milanradics89-beep/POS-Doctor/commit/cc81d763b85b92ea97808c085512fe2e45677b2c).
 
-Exact-head workflow state for `cc81d76`:
-- Validation [42672737320](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737320): completed / failure.
-- CodeQL [42672737200](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737200): completed / failure.
-- Dependency Review [42672737277](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737277): completed / failure.
+Commit `cc81d76` changed only `scripts/load-test.mjs` and `scripts/load-test.test.mjs`. The probe consumes the complete response body as a stream before recording latency; the delayed-body regression test proves the measurement includes the body rather than only response headers. Its direct exact-head workflow runs [Validation 42672737320](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737320), [CodeQL 42672737200](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737200), and [Dependency Review 42672737277](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42672737277) ended with failure conclusions and zero jobs each. GitHub rejected reruns with HTTP 403 (“This workflow run cannot be retried”); the cause remains unverified. Do not attribute those run-level failures to the code without job evidence.
 
-GitHub reports zero jobs for each run (`total_count: 0`), so no job steps or logs are available through the connected integration. Rerun requests were rejected with HTTP 403, “This workflow run cannot be retried.” The failure cause is unverified. Do not interpret these runs as successful or attribute the run-level failure to the load-test code without job evidence.
+The documentation-only child `5c958b1` passed all three exact-head workflows, validating the complete repository tree including `cc81d76`:
+- Validation [42678361042](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42678361042):
+  - Backend [job 129365790681](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42678361042/job/129365790681): **415 backend tests**, **27 production-readiness checks**, and **55 security/privacy checks** passed; `pip-audit` reported no known vulnerabilities. Non-blocking warnings: Starlette/httpx TestClient deprecation and the Redis test-container `vm.overcommit_memory` advisory.
+  - Frontend/Android [job 129365790945](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42678361042/job/129365790945): **247 tests across 56 files**, Expo Doctor **21/21**, Android Release build succeeded, and emulator install/launch smoke passed for `com.useit.app`. Runtime npm audit still reports **four moderate** transitive `glob`/`minimatch` advisory instances.
+  - iOS [job 129365791155](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42678361042/job/129365791155): Release simulator build and install/launch smoke passed for `com.useit.app`.
+- CodeQL [42678361030](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42678361030), analyze [job 129365790658](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42678361030/job/129365790658): passed. SARIF combination emitted a non-fatal column-kind mismatch warning.
+- Dependency Review [42678361074](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42678361074), job [129365789150](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42678361074/job/129365789150): passed with no high-or-higher vulnerable packages or denied packages. Warnings remain for OpenSSF Scorecard `@expo/devcert` (2.9) and `is-mergeable-object` (1.5), and scanner license metadata for vendored `deepmerge@4.3.2` remains unresolved although its manifest and LICENSE declare MIT.
 
-Latest fully validated exact HEAD is [`a6adf45`](https://github.com/milanradics89-beep/POS-Doctor/commit/a6adf45bc0423d2307d4abfa1593ff3c2a9865d3):
-- Validation [42655859719](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859719): success, including backend, frontend/Android Release, and iOS simulator Release/install/launch smoke.
-- CodeQL [42655859876](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859876): success.
-- Dependency Review [42655859836](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42655859836): success.
+The latest validated application/test change is `cc81d76`, validated as part of exact-head `5c958b1`. This confirms automated code and CI checks only; it does not constitute owner-approved staging capacity testing or production acceptance. Backlog item #15 remains In Progress.
 
-Do not push another application change until the current workflow failure can be diagnosed or a valid exact-head run can be obtained. The current `cc81d76` load-test change is not CI-accepted. The release backlog remains **3 Done / 15 In Progress / 7 Blocked**; item #15 remains In Progress and no owner-approved staging capacity test has been performed.
+The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Done: #1 iOS simulator CI, #2 main branch ruleset, #6 Redis multi-instance coverage. Blocked: #4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark, #21 production monitoring/alert delivery, #22 staged rollout/rollback approval, and #25 real pilot/business approval.
 
-Governance remains: issue #47 closed; active main ruleset #26370589; 11/11 inline review threads resolved; 15 review submissions and 0 APPROVED. Issue #46 remains open. PRs #43/#44 must not be merged independently; draft PR #49 remains the atomic CodeQL update candidate. The repository has 31 branches, 19 open PRs, 4 open issues, and no published releases. Full Code Scanning, Dependabot, and Secret Scanning alert inventories remain unverified, not zero.
+Governance: issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed; active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`, one approving review, last-push approval, and resolved review threads. All **11/11 inline review threads are resolved**; **15 review submissions and 0 APPROVED** remain recorded, so human approval is outstanding. Issue #46 remains open. PRs #43/#44 must not be merged independently; draft PR #49 remains the atomic CodeQL update candidate.
 
+The repository currently reports **31 branches, 19 open PRs, and 4 open issues**. The connected GitHub integration does not expose a release-list endpoint; the last recorded release inventory was empty and was not independently refreshed in this checkpoint. Full Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero**.
+
+Operational release guardrails:
+- Keep PR #41 unmerged until exact-head checks, one human approving review, and last-push approval are satisfied.
+- Run load tests only against owner-approved staging with recorded concurrency, duration, latency/error thresholds, and approval.
+- Require a witnessed backup/restore drill, tested monitoring/alert delivery, a named rollback owner, and documented staged-rollout thresholds before production promotion.
+- Keep the four moderate SDK57 transitive npm advisories visible; do not force incompatible dependency overrides, downgrade Expo, or reduce audit thresholds.
 ---
 
 ## Historical checkpoint (superseded by current PR HEAD cc81d76; captured 2026-11-09 15:58 CET)
