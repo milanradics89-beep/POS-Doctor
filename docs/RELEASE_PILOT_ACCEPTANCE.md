@@ -1,4 +1,41 @@
-## Current exact-head automated release checkpoint (2026-11-08 23:09 CET)
+## Current exact-head automated release checkpoint (2026-11-09 01:14 CET)
+
+**Automated CI acceptance: PASSED for exact HEAD `0719bab`. Pilot acceptance: NOT GRANTED.**
+
+PR #41 remains open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. Exact current HEAD [`0719bab`](https://github.com/milanradics89-beep/POS-Doctor/commit/0719babf54e3b9990095ce4aa44fc1cc9ee277e5) is a documentation-only child of [`37aad53`](https://github.com/milanradics89-beep/POS-Doctor/commit/37aad530dafeca4007c273989775671a6d2d3ff5) and updates only the release backlog. Application source, tests, dependencies, and workflow configuration are unchanged. The latest validated application runtime source baseline remains [`323869a`](https://github.com/milanradics89-beep/POS-Doctor/commit/323869a4c19d1aa1c101a4da97bc17564c44588f), and the latest validated CI regression-test baseline remains [`603789c`](https://github.com/milanradics89-beep/POS-Doctor/commit/603789c479c3411edbb013e960608ebaa7788f2f).
+
+All three required exact-head workflows passed:
+- Validation [42536557473](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42536557473): backend [job 128902028123](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42536557473/job/128902028123), frontend/Android [job 128902028049](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42536557473/job/128902028049), and iOS [job 128902027884](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42536557473/job/128902027884) all completed successfully.
+- CodeQL [42536557481](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42536557481), analyze [job 128902027649](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42536557481/job/128902027649), passed.
+- Dependency Review [42536557519](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42536557519), job [128902027250](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42536557519/job/128902027250), passed.
+
+The unchanged validated source/test baseline records 413 backend tests, 26 production-readiness checks, 55 production-security/privacy checks, 243 frontend tests across 56 files, Expo Doctor 21/21, Android Release/emulator smoke, and iOS Release simulator/install smoke. The exact-head jobs above independently passed on 0719bab.
+
+Governance: issue #47 is closed as completed; active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) enforces six strict checks, one approving review, last-push approval, and resolved review threads, with deletion/non-fast-forward protection and no bypass actors. All 11 inline review threads are resolved. There are 15 review submissions and 0 APPROVED; human approval and last-push approval remain outstanding. Issue #46 remains open for the historical CodeQL action failure. PRs #43/#44 must not be merged independently; draft #49 remains the atomic update candidate.
+
+The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Done: #1, #2, #6. Blocked: #4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark, #21 production monitoring/alert delivery, #22 staged rollout/rollback, and #25 real pilot/business approval. Four moderate runtime `glob`/`minimatch` advisories, two below-threshold Scorecard warnings, and the vendored deepmerge license-scanner caveat remain tracked. Full Code Scanning, Dependabot, and Secret Scanning inventories remain unverified, not zero. GitHub Releases is empty.
+
+Automated simulator/emulator CI is not physical-device, production, store, pilot, or business sign-off.
+
+## Remaining release acceptance gates
+
+- [x] Exact-head Validation, CodeQL, and Dependency Review for `0719bab`.
+- [x] Main ruleset #26370589 active; issue #47 closed.
+- [x] All 11 inline review threads resolved.
+- [ ] Obtain one human approving review and approval of the last push on PR #41.
+- [ ] Complete physical iPhone App Attest with Apple production entitlement and provider-backed verification.
+- [ ] Complete physical Android Play Integrity using a Play-installed build and production signing identity.
+- [ ] Run the owner-approved staging load test and record thresholds/results.
+- [ ] Complete a witnessed production backup/restore and recovery drill.
+- [ ] Verify production monitoring and alert delivery with a named on-call owner.
+- [ ] Approve staged rollout, rollback thresholds, and a named rollback owner.
+- [ ] Complete a representative labeled product-recognition benchmark and human acceptance.
+- [ ] Obtain dependency-risk disposition for the four moderate runtime advisories, Scorecard warnings, and vendored-license scanner caveat.
+- [ ] Run the real pilot against agreed success/stop thresholds and record business approval.
+
+---
+
+## Historical checkpoint (superseded by exact-head 0719bab; captured 2026-11-08 23:09 CET)
 
 **Automated CI acceptance: PASSED for exact HEAD `497c865`. Pilot acceptance: NOT GRANTED.**
 
