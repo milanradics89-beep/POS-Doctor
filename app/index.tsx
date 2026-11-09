@@ -34,6 +34,7 @@ export default function Home() {
   const [rendering, setRendering] = useState(false);
   const [rendered, setRendered] = useState<string | null>(null);
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
+  const redesign = result?.redesign ?? result?.phase3?.redesign;
 
   const reset = () => {
     setPhoto(null);
@@ -75,14 +76,14 @@ export default function Home() {
   }
 
   async function createVisualConcept() {
-    if (!photo || !result?.phase3?.redesign) return;
+    if (!photo || !redesign) return;
 
     setRendering(true);
 
     try {
       const api = new UseitApiProvider(API_URL);
 
-      const products = result.phase3.redesign.products.map((product) => ({
+      const products = redesign.products.map((product) => ({
         title: product.title,
         category: product.category,
         priceHuf: product.priceHuf,
@@ -92,7 +93,7 @@ export default function Home() {
 
       const renderedResult = await api.renderRedesign(
         photo,
-        result.phase3.redesign.prompt,
+        redesign.prompt,
         products
       );
 
@@ -258,7 +259,7 @@ export default function Home() {
                 <Text style={s.kicker}>VISUAL CONCEPT</Text>
                 <Image source={{ uri: rendered }} style={s.rendered} />
                 <Text style={s.disclosure}>
-                  {result?.phase3?.redesign?.disclosure}
+                  {redesign?.disclosure}
                 </Text>
               </>
             ) : (
@@ -317,7 +318,7 @@ export default function Home() {
                   </Text>
                 </View>
 
-                {result.phase3?.redesign ? (
+                {redesign ? (
                   <>
                     <Text style={s.section}>REDESIGN SOLUTION</Text>
 
@@ -364,7 +365,7 @@ export default function Home() {
                   </>
                 ) : null}
 
-                {result.phase3?.redesign ? (
+                {redesign ? (
                   <Pressable
                     style={s.primary}
                     onPress={createVisualConcept}

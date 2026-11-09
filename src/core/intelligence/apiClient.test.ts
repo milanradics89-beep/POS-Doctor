@@ -115,4 +115,54 @@ describe('UseitApiProvider boundary handling', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0][0])).toContain('/v1/useit/analyze');
   });
+  it('builds a visual redesign plan from unified visualizable suggestions and shopping candidates', async () => {
+    const payload = {
+      ...validUnified,
+      scene: {
+        ...validAnalysis,
+        summary: 'A living room with a grey sofa.',
+        items: [{ name: 'Grey sofa', category: 'furniture', confidence: 0.96, attributes: [] }],
+      },
+      suggestions: [{
+        id: 'suggestion-lighting',
+        title: 'Add warm layered lighting',
+        description: 'Use a floor lamp and warm ambient light beside the sofa.',
+        kind: 'lighting',
+        effort: 'low',
+        visualizable: true,
+        score: 0.91,
+        rank: 1,
+        reasons: ['Improves the room atmosphere.'],
+      }],
+      shopping: {
+        query: 'warm floor lamp',
+        candidates: [{
+          id: 'lamp-1',
+          name: 'Warm floor lamp',
+          url: 'https://shop.example.test/lamp',
+          category: 'lighting',
+          price: 59000,
+          currency: 'HUF',
+          retailer: 'Example Shop',
+        }],
+      },
+    };
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }));
+
+    const result = await analyzeForConsumer(provider(), image, 'improve');
+
+    expect(result.redesign).toBeDefined();
+    expect(result.redesign?.prompt).toContain('Add warm layered lighting');
+    expect(result.redesign?.prompt).toContain('Warm floor lamp');
+    expect(result.redesign?.products).toEqual([{
+      category: 'lighting',
+      productId: 'lamp-1',
+      title: 'Warm floor lamp',
+      priceHuf: 59000,
+      url: 'https://shop.example.test/lamp',
+    }]);
+    expect(result.redesign?.actions).toContainEqual(expect.objectContaining({ type: 'keep', target: 'Grey sofa' }));
+    expect(result.redesign?.actions).toContainEqual(expect.objectContaining({ type: 'add', target: 'Add warm layered lighting' }));
+  });
+
 });

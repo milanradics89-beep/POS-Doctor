@@ -13,6 +13,8 @@ import { validateImageUri } from './imageInput';
 import { normalizeApiBaseUrl } from './apiConfig';
 import { validateUseitAnalyzeResponse, type UseitAnalyzeResponse } from './useitAnalyzeContract';
 import { getSessionToken } from './attestationClient';
+import type { RedesignPlan } from './redesignPlan';
+import type { SceneModel } from './sceneModel';
 
 export type UseitApiClientOptions = { apiKey?: string };
 
@@ -81,7 +83,7 @@ export type ConsumerIntelligence = {
   intentConfidence: number;
   clarificationRequired: boolean;
 };
-export type ConsumerAnalysis = PresentationResult & { intelligence: ConsumerIntelligence; phase3?: IntelligenceRun; analysis: SceneAnalysis; unified?: UseitAnalyzeResponse };
+export type ConsumerAnalysis = PresentationResult & { intelligence: ConsumerIntelligence; phase3?: IntelligenceRun; analysis: SceneAnalysis; unified?: UseitAnalyzeResponse; redesign?: RedesignPlan };
 
 function domainForScene(sceneType: SceneAnalysis['sceneType']): IntentDomain {
   if (sceneType === 'wardrobe') return 'wardrobe';
@@ -109,12 +111,73 @@ function toUnifiedConsumerIntelligence(result: UseitAnalyzeResponse): ConsumerIn
   const ranked = (result.shopping?.candidates ?? []).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.name, category: candidate.category ?? 'general', source: candidate.retailer ?? 'USEIT', priceHuf: candidate.price ?? 0, url: candidate.url }));
   return { action: { type: actionType, title: actionTitle }, need: { kind: intent }, rankedCandidates: ranked, intentConfidence: result.intent.confidence ?? 0.5, clarificationRequired: (result.intent.confidence ?? 0.5) < 0.6 };
 }
+function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel): RedesignPlan | undefined {
+  if (scene.domain !== 'room') return undefined;
+
+  const recommendations = result.suggestions.filter(suggestion => suggestion.visualizable).slice(0, 5);
+  if (recommendations.length === 0) return undefined;
+
+  const products: RedesignPlan['products'] = (result.shopping?.candidates ?? [])
+    .filter(candidate => /^https?:\\/\\//i.test(candidate.url))
+    .slice(0, 8)
+    .map(candidate => ({
+      category: candidate.category?.trim() || 'general',
+      productId: candidate.id,
+      title: candidate.name,
+      priceHuf: candidate.price ?? undefined,
+      url: candidate.url,
+    }));
+
+  const actions: RedesignPlan['actions'] = scene.objects
+    .filter(object => object.confidence >= 0.7 && object.category !== 'person')
+    .map(object => ({
+      type: 'keep',
+      target: object.label,
+      rationale: 'Preserve this existing item unless a selected recommendation explicitly changes it.',
+    }));
+
+  for (const recommendation of recommendations) {
+    const kind = recommendation.kind.toLowerCase();
+    const type = /reposition|layout|move/.test(kind) ? 'reposition' : /replace/.test(kind) ? 'replace' : 'add';
+    actions.push({ type, target: recommendation.title, rationale: recommendation.description });
+  }
+
+  const sceneSummary = typeof scene.globalAttributes.sceneSummary === 'string' ? scene.globalAttributes.sceneSummary : '';
+  const constraints = typeof scene.globalAttributes.constraints === 'string' ? scene.globalAttributes.constraints : '';
+  const recommendationText = recommendations
+    .map(recommendation => '- ' + recommendation.title + ': ' + recommendation.description)
+    .join('\\n');
+  const selectedProducts = products.length
+    ? products.map(product => product.title + ' (' + product.category + ')').join('; ')
+    : 'No retailer products selected; use generic styling only.';
+
+  const prompt = [
+    'Create a photorealistic redesign of the supplied room photograph.',
+    'Preserve the original camera viewpoint, architecture, room geometry, and existing items unless an action explicitly changes them.',
+    sceneSummary ? 'Observed scene: ' + sceneSummary : '',
+    constraints ? 'Scene constraints: ' + constraints : '',
+    'Apply these visualizable recommendations:\\n' + recommendationText,
+    'Selected retailer products: ' + selectedProducts,
+    'Use only the selected retailer products where relevant. Do not invent product names, brands, prices, logos, or URLs. If no selected product fits, use neutral generic styling.',
+  ].filter(Boolean).join('\\n\\n');
+
+  return {
+    domain: 'room',
+    sourceImageRequired: true,
+    actions,
+    products,
+    prompt,
+    disclosure: 'AI-generated visualization. Product appearance, scale, color and placement may differ from the real item. Verify product details on the linked retailer page.',
+  };
+}
 export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean } = {}): Promise<ConsumerAnalysis> {
   validateImageUri(imageUri);
   if (provider.analyzeUseit) {
     const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors });
     const analysis = normalizeAnalysis(unified.scene);
-    return { ...toPresentationResult(analysis, intent), intelligence: toUnifiedConsumerIntelligence(unified), analysis, unified };
+    const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(unified.scene, imageUri.slice(0, 80));
+    const redesign = toUnifiedRedesignPlan(unified, scene);
+    return { ...toPresentationResult(analysis, intent), intelligence: toUnifiedConsumerIntelligence(unified), analysis, unified, ...(redesign ? { redesign } : {}) };
   }
   const analysis = await provider.analyzeImage(imageUri, intent);
   const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(analysis, imageUri.slice(0, 80));
