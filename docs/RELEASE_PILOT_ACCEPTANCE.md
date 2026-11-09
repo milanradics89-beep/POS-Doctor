@@ -1,17 +1,17 @@
-## Current release acceptance status (2026-11-09 22:36 CET)
+## Current release acceptance status (2026-11-09 23:23 CET)
 
-**Automated CI acceptance for exact PR HEAD `6301889`: PASSED. Pilot acceptance: NOT GRANTED.**
+**Automated CI acceptance for exact PR HEAD `f8c89c0`: PASSED. Pilot acceptance: NOT GRANTED.**
 
-PR #41 remains open and unmerged. Exact current HEAD [`6301889`](https://github.com/milanradics89-beep/POS-Doctor/commit/6301889b918794816844fba5ad649e52c9b07964) is documentation-only, parent [`5c958b1`](https://github.com/milanradics89-beep/POS-Doctor/commit/5c958b14c3a80675ae03fb30f8d62218ff2a65e1). Exact-head workflows:
-- Validation [42693253108](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693253108): backend [129418268426](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693253108/job/129418268426) passed 415 tests, 27 readiness checks, and 55 security/privacy checks; frontend/Android [129418268559](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693253108/job/129418268559) passed typecheck, unit tests, Expo Doctor, Android Release build, and emulator smoke; iOS [129418268036](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693253108/job/129418268036) passed Release simulator build and install/launch smoke.
-- CodeQL [42693252499](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693252499), analyze [129418259882](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693252499/job/129418259882): passed, with a non-fatal SARIF column-kind mismatch warning.
-- Dependency Review [42693252717](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693252717), job [129418260005](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42693252717/job/129418260005): passed with no high-or-higher vulnerable packages or denied packages. The four moderate npm audit findings and below-threshold Scorecard/license metadata warnings remain open.
+PR #41 remains open and unmerged. Exact current HEAD [`f8c89c0`](https://github.com/milanradics89-beep/POS-Doctor/commit/f8c89c0437d067640fc033a20df7b2cf56dfe85a) is documentation-only, parent [`6301889`](https://github.com/milanradics89-beep/POS-Doctor/commit/6301889b918794816844fba5ad649e52c9b07964). Exact-head workflows:
+- Validation [42704554736](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42704554736): backend [129457815113](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42704554736/job/129457815113) passed 415 tests, 27 readiness checks, and 55 security/privacy checks; frontend/Android [129457815264](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42704554736/job/129457815264) passed typecheck, unit tests, Expo Doctor, Android Release build, and emulator smoke; iOS [129457814622](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42704554736/job/129457814622) passed Release simulator build and install/launch smoke.
+- CodeQL [42704554143](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42704554143), analyze [129457808110](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42704554143/job/129457808110): passed with a non-fatal SARIF column-kind mismatch warning.
+- Dependency Review [42704554157](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42704554157), job [129457807122](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42704554157/job/129457807122): passed with no high-or-higher vulnerable packages or denied packages. Four moderate npm audit findings and below-threshold Scorecard/license metadata warnings remain open.
 
 **Pilot acceptance remains NOT GRANTED.** Simulator/emulator CI is not physical-device acceptance, production validation, or business sign-off. The backlog remains **3 Done / 15 In Progress / 7 Blocked**. Blocked gates: physical iPhone App Attest; Play-installed physical Android Play Integrity; witnessed production backup/restore; representative product-recognition benchmark; production monitoring and alert delivery; staged rollout/rollback approval; real pilot and business approval.
 
 ## Release acceptance gates
 
-- [x] Exact-head Validation, CodeQL, and Dependency Review for `6301889`.
+- [x] Exact-head Validation, CodeQL, and Dependency Review for `f8c89c0`.
 - [x] Main ruleset #26370589 active; issue #47 closed.
 - [x] All 11 inline PR review threads resolved.
 - [ ] One human approving review and last-push approval for PR #41 (15 review submissions, 0 APPROVED).
@@ -23,10 +23,9 @@ PR #41 remains open and unmerged. Exact current HEAD [`6301889`](https://github.
 - [ ] Staged rollout thresholds, rollback rehearsal, and named rollback owner.
 - [ ] Real pilot cohort, success/stop thresholds, and written business approval.
 - [ ] Dependency-risk disposition for moderate npm advisories and remaining Scorecard/license warnings.
-
 ---
 
-## Historical checkpoint (superseded by current PR HEAD cc81d76; captured 2026-11-09 15:58 CET)
+## Historical checkpoint (superseded by exact PR HEAD 6301889; captured 2026-11-09 15:58 CET)
 
 **Automated CI acceptance: PASSED for exact HEAD `d6a2a1e`. Pilot acceptance: NOT GRANTED.**
 
