@@ -1,27 +1,25 @@
-## Current exact-head automated release checkpoint (2026-11-09 03:12 CET)
+## Current exact-head automated release checkpoint (2026-11-09 03:53 CET)
 
-**Automated CI acceptance: PASSED for exact HEAD `9d3ed0b`. Pilot acceptance: NOT GRANTED.**
+**Automated CI acceptance: PASSED for exact HEAD `c747a46`. Pilot acceptance: NOT GRANTED.**
 
+PR #41 remains open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. Exact current PR HEAD [`c747a46`](https://github.com/milanradics89-beep/POS-Doctor/commit/c747a46d56a9a3a2e377753946c0d868e7024cfc) is a documentation-only child of [`9d3ed0b`](https://github.com/milanradics89-beep/POS-Doctor/commit/9d3ed0bb2830cb7ae79531e12a92272cb7d93762); it updates the three release-evidence documents only. Application source, tests, dependencies, and workflow configuration are unchanged. The latest validated application runtime source baseline remains [`323869a`](https://github.com/milanradics89-beep/POS-Doctor/commit/323869a4c19d1aa1c101a4da97bc17564c44588f), and the latest validated CI regression-test baseline remains [`603789c`](https://github.com/milanradics89-beep/POS-Doctor/commit/603789c479c3411edbb013e960608ebaa7788f2f).
 
+All three required workflows completed successfully for exact HEAD `c747a46`:
 
-PR #41 remains open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. Exact current PR HEAD [`9d3ed0b`](https://github.com/milanradics89-beep/POS-Doctor/commit/9d3ed0bb2830cb7ae79531e12a92272cb7d93762) is a documentation-only child of [`46c4507`](https://github.com/milanradics89-beep/POS-Doctor/commit/46c4507b55087d12c7cf564b337489ac002f42c6); it updates the three release-evidence documents only. Application source, tests, dependencies, and workflow configuration are unchanged. The latest validated application runtime source baseline remains [`323869a`](https://github.com/milanradics89-beep/POS-Doctor/commit/323869a4c19d1aa1c101a4da97bc17564c44588f), and the latest validated CI regression-test baseline remains [`603789c`](https://github.com/milanradics89-beep/POS-Doctor/commit/603789c479c3411edbb013e960608ebaa7788f2f).
-
-All three required workflows completed successfully for exact HEAD `9d3ed0b`:
-
-- Validation [42545409943](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42545409943):
-  - Backend [job 128929210172](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42545409943/job/128929210172): **413 tests passed**, **26 production-readiness checks passed**, and **55 production-security/privacy checks passed**; `pip-audit` reported **No known vulnerabilities found**. The job emitted a non-failing Starlette/httpx TestClient deprecation warning and the Redis test container emitted a non-blocking `vm.overcommit_memory` advisory.
-  - Frontend/Android [job 128929210238](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42545409943/job/128929210238): **243 tests across 56 files**, Expo Doctor **21/21**, Android Release build **BUILD SUCCESSFUL in 21m 27s**, and Android emulator install/launch smoke passed for `com.useit.app`. Runtime `npm audit --omit=dev --audit-level=high` passed its configured high-severity threshold but reported **four moderate** transitive `glob`/`minimatch` advisory instances: [GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4) and [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249). No forced Expo downgrade, incompatible override, or audit-threshold reduction was applied.
-  - iOS [job 128929210055](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42545409943/job/128929210055): Release simulator build and install/launch smoke passed for `com.useit.app`.
-- CodeQL [42545409916](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42545409916), analyze [job 128929209828](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42545409916/job/128929209828), passed. SARIF combination emitted a non-fatal column-kind mismatch warning.
-- Dependency Review [42545409937](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42545409937), job [128929209760](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42545409937/job/128929209760), passed. Below-threshold OpenSSF Scorecard warnings remain for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5); vendored `deepmerge@4.3.2` declares MIT in its manifest and LICENSE although the scanner reports unknown license metadata.
+- Validation [42549866562](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42549866562):
+  - Backend [job 128942805329](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42549866562/job/128942805329): **413 tests passed**, **26 production-readiness checks passed**, and **55 production-security/privacy checks passed**; `pip-audit` reported **No known vulnerabilities found**. Non-failing warnings: Starlette/httpx TestClient deprecation and Redis test-container `vm.overcommit_memory` advisory.
+  - Frontend/Android [job 128942805656](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42549866562/job/128942805656): **243 tests across 56 files**, Expo Doctor **21/21**, Android Release build **BUILD SUCCESSFUL in 19m 59s**, and Android emulator install/launch smoke passed for `com.useit.app`. Runtime `npm audit --omit=dev --audit-level=high` passed its configured high-severity threshold but reported **four moderate** transitive `glob`/`minimatch` advisory instances: [GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4) and [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249). No forced Expo downgrade, incompatible override, or audit-threshold reduction was applied.
+  - iOS [job 128942805371](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42549866562/job/128942805371): Release simulator build succeeded and install/launch smoke passed for `com.useit.app`.
+- CodeQL [42549866641](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42549866641), analyze [job 128942805313](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42549866641/job/128942805313), passed. SARIF combination emitted a non-fatal column-kind mismatch warning.
+- Dependency Review [42549866625](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42549866625), job [128942804619](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42549866625/job/128942804619), passed. Below-threshold OpenSSF Scorecard warnings remain for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5); vendored `deepmerge@4.3.2` declares MIT in its manifest and LICENSE although the scanner reports unknown license metadata.
 
 ### Dependency advisory disposition
 
-The lockfile resolves `@expo/fingerprint` with nested `glob@13.0.7` and `minimatch@10.2.6`. GitHub's advisories list `glob` as affected through 14.0.1 (fixed in 14.0.2) and `minimatch` as affected below 11.0.1. The `@expo/fingerprint` dependency ranges do not accept those fixed major versions. Expo's maintainer stated on Nov 6 that these are build-tooling/resource-exhaustion findings, not vulnerabilities in shipped apps; SDK 57 and below will receive a separate compatible fix, and `@expo/fingerprint` retains `minimatch@^10` because of breaking changes. See [Expo issue #52735](https://github.com/expo/expo/issues/52735). Do not force a major override: the upstream issue also records compatibility breakage from forcing minimatch 11. Keep the four moderate audit instances visible until the SDK 57-compatible upstream patch is available or the owner records an explicit risk disposition.
+The lockfile resolves `@expo/fingerprint` with nested `glob@13.0.7` and `minimatch@10.2.6`. GitHub's advisories list `glob` as affected through 14.0.1 (fixed in 14.0.2) and `minimatch` as affected below 11.0.1. The `@expo/fingerprint` dependency ranges do not accept those fixed major versions. Expo's maintainer stated on Nov 6 that these are build-tooling/resource-exhaustion findings, not vulnerabilities in shipped apps; SDK 57 and below will receive a separate compatible fix, and `@expo/fingerprint` retains `minimatch@^10` because of breaking changes. See [Expo issue #52735](https://github.com/expo/expo/issues/52735). Do not force a major override. Keep the four moderate audit instances visible until the SDK 57-compatible upstream patch is available or the owner records an explicit risk disposition.
 
 Governance: issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed. Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`; one approving review, last-push approval, and resolved review threads; deletion and non-fast-forward updates are blocked and no bypass actors are configured. All **11/11 inline review threads are resolved**. There are **15 review submissions and 0 APPROVED**; human approval and last-push approval remain outstanding. Issue #46 remains open for the historical CodeQL action failure; PRs #43/#44 must not be merged independently and draft PR #49 remains the atomic update candidate. Issues #56 and #57 are closed.
 
-The repository currently has **31 branches, 19 open pull requests, and 4 open issues**. The GitHub Releases inventory is empty. The connected integration rejects the Code Scanning, Dependabot, and Secret Scanning alert-collection endpoints; their complete inventories remain **unverified, not zero**.
+The repository currently has **31 branches, 19 open pull requests, and 4 open issues**. The GitHub Releases inventory is empty. The connected integration does not expose the complete Code Scanning, Dependabot, and Secret Scanning alert inventories; these remain **unverified, not zero**.
 
 The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Done: #1 iOS simulator CI, #2 main branch protection, and #6 Redis multi-instance test coverage. Blocked: #4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark, #21 production monitoring/alert delivery, #22 staged rollout/rollback, and #25 real pilot/business approval. Simulator/emulator CI is not physical-device or production acceptance.
 
@@ -29,7 +27,7 @@ This checkpoint proves exact-head automated CI only, not production, physical-de
 
 ## Remaining release acceptance gates
 
-- [x] Exact-head Validation, CodeQL, and Dependency Review for `9d3ed0b`.
+- [x] Exact-head Validation, CodeQL, and Dependency Review for `c747a46`.
 - [x] Main ruleset #26370589 active; issue #47 closed.
 - [x] All 11 inline review threads resolved.
 - [ ] Obtain one human approving review and approval of the last push on PR #41.
@@ -42,10 +40,9 @@ This checkpoint proves exact-head automated CI only, not production, physical-de
 - [ ] Complete a representative labeled product-recognition benchmark and human acceptance.
 - [ ] Obtain dependency-risk disposition for the four moderate runtime advisories, Scorecard warnings, and vendored-license scanner caveat.
 - [ ] Run the real pilot against agreed success/stop thresholds and record business approval.
-
 ---
 
-## Historical checkpoint (superseded by exact-head 46c4507; captured 2026-11-09 01:14 CET)
+## Historical checkpoint (superseded by exact-head c747a46; captured 2026-11-09 01:14 CET)
 
 **Automated CI acceptance: PASSED for exact HEAD `0719bab`. Pilot acceptance: NOT GRANTED.**
 
