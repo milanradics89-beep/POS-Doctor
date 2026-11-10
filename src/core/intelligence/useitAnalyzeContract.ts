@@ -1,5 +1,6 @@
 import type { SceneAnalysis } from './types';
 import { validateAnalysis } from './validateAnalysis';
+import { isSafeExternalHttpUrl } from './externalLink';
 
 export const USEIT_ANALYZE_CONTRACT_VERSION = 'useit_analyze_v1';
 
@@ -145,7 +146,7 @@ export function validateUseitAnalyzeResponse(payload: unknown):
       const candidates: UseitShoppingCandidate[] = [];
       for (const [index, candidate] of rawShopping.candidates.entries()) {
         if (!isValidShoppingCandidate(candidate)) issues.push(`shopping.candidates.${index}: invalid product candidate`);
-        else candidates.push(candidate);
+        else if (isSafeExternalHttpUrl(candidate.url)) candidates.push(candidate);
       }
       shopping = {
         query: typeof rawShopping.query === 'string' ? rawShopping.query : '',

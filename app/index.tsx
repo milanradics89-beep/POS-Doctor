@@ -17,6 +17,7 @@ import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/a
 import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
+import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -41,6 +42,19 @@ export default function Home() {
     setResult(null);
     setRendered(null);
   };
+
+  async function openProductLink(url: string) {
+    if (!isSafeExternalHttpUrl(url)) {
+      Alert.alert('Product link unavailable', 'This product link cannot be opened safely.');
+      return;
+    }
+
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Could not open product link', 'Please try again later.');
+    }
+  }
 
   async function analyze(intent?: OpportunityKind) {
     if (!API_URL) {
@@ -348,7 +362,7 @@ export default function Home() {
                         <Pressable
                           style={s.product}
                           key={x.id}
-                          onPress={() => x.url && Linking.openURL(x.url)}
+                          onPress={() => { void openProductLink(x.url); }}
                         >
                           <View style={s.productMain}>
                             <Text style={s.productTitle}>{x.title}</Text>

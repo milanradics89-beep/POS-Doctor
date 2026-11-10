@@ -1,4 +1,5 @@
 import type { ProductCandidate, ShoppingDecision } from './shoppingDecisionEngine';
+import { isSafeExternalHttpUrl } from './externalLink';
 
 export type { ProductCandidate } from './shoppingDecisionEngine';
 
@@ -15,9 +16,8 @@ export type CandidateCollection = {
 
 function normalizeCandidateUrl(url: string): string {
   try {
-    const parsed = new URL(url.trim());
-    if (!['https:', 'http:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) return '';
-    if (parsed.port && parsed.port !== (parsed.protocol === 'https:' ? '443' : '80')) return '';
+    if (!isSafeExternalHttpUrl(url)) return '';
+    const parsed = new URL(url);
     for (const key of [...parsed.searchParams.keys()]) {
       if (/^(utm_|fbclid|gclid|msclkid|mc_cid|mc_eid)$/i.test(key) || key.toLowerCase().startsWith('utm_')) parsed.searchParams.delete(key);
     }

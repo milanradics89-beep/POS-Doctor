@@ -12,6 +12,7 @@ import { googleProductProvider } from './googleProductProvider';
 import { validateImageUri } from './imageInput';
 import { normalizeApiBaseUrl } from './apiConfig';
 import { validateUseitAnalyzeResponse, type UseitAnalyzeResponse } from './useitAnalyzeContract';
+import { isSafeExternalHttpUrl } from './externalLink';
 import { getSessionToken } from './attestationClient';
 import type { RedesignPlan } from './redesignPlan';
 import type { SceneModel } from './sceneModel';
@@ -101,14 +102,14 @@ function toConsumerIntelligence(run: IntelligenceRun): ConsumerIntelligence {
   const goal = run.task.goal;
   const actionType = goal === 'food_recipe' ? 'recipe' : goal === 'wardrobe_styling' ? 'style' : goal === 'object_repair' ? 'repair_guide' : goal === 'room_redesign' || goal === 'room_shopping' ? 'visualize' : run.task.shoppingRequired ? 'shop' : 'recommend';
   const actionTitle = actionType === 'visualize' ? 'Create the redesigned view' : actionType === 'recipe' ? 'Build a recipe from the visible ingredients' : actionType === 'style' ? 'Complete the outfit' : actionType === 'repair_guide' ? 'Show the repair path' : actionType === 'shop' ? 'Show the best matching options' : 'Show recommendations';
-  const ranked = (run.ranked ?? []).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.title, category: candidate.category, source: candidate.source, priceHuf: candidate.priceHuf ?? 0, url: candidate.url }));
+  const ranked = (run.ranked ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.title, category: candidate.category, source: candidate.source, priceHuf: candidate.priceHuf ?? 0, url: candidate.url }));
   return { action: { type: actionType, title: actionTitle }, need: { kind: goal }, rankedCandidates: ranked, intentConfidence: run.clarification.needsClarification ? 0.5 : 1, clarificationRequired: run.clarification.needsClarification };
 }
 function toUnifiedConsumerIntelligence(result: UseitAnalyzeResponse): ConsumerIntelligence {
   const intent = result.intent.name;
   const actionType = intent === 'cook' ? 'recipe' : intent === 'fix' ? 'repair_guide' : intent === 'improve' || intent === 'create' ? 'visualize' : intent === 'shop' ? 'shop' : 'recommend';
   const actionTitle = actionType === 'visualize' ? 'Create the redesigned view' : actionType === 'recipe' ? 'Build a recipe from the visible ingredients' : actionType === 'repair_guide' ? 'Show the repair path' : actionType === 'shop' ? 'Show the best matching options' : 'Show recommendations';
-  const ranked = (result.shopping?.candidates ?? []).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.name, category: candidate.category ?? 'general', source: candidate.retailer ?? 'USEIT', priceHuf: candidate.price ?? 0, url: candidate.url }));
+  const ranked = (result.shopping?.candidates ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.name, category: candidate.category ?? 'general', source: candidate.retailer ?? 'USEIT', priceHuf: candidate.price ?? 0, url: candidate.url }));
   return { action: { type: actionType, title: actionTitle }, need: { kind: intent }, rankedCandidates: ranked, intentConfidence: result.intent.confidence ?? 0.5, clarificationRequired: (result.intent.confidence ?? 0.5) < 0.6 };
 }
 function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel): RedesignPlan | undefined {
@@ -118,14 +119,7 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
   if (recommendations.length === 0) return undefined;
 
   const products: RedesignPlan['products'] = (result.shopping?.candidates ?? [])
-    .filter(candidate => {
-      try {
-        const parsedUrl = new URL(candidate.url);
-        return (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') && Boolean(parsedUrl.hostname);
-      } catch {
-        return false;
-      }
-    })
+    .filter(candidate => isSafeExternalHttpUrl(candidate.url))
     .slice(0, 8)
     .map(candidate => ({
       category: candidate.category?.trim() || 'general',

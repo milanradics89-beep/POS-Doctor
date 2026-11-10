@@ -183,4 +183,66 @@ describe('UseitApiProvider boundary handling', () => {
   });
 
 
+  it('filters unsafe external links from unified consumer and redesign results', async () => {
+    const payload = {
+      ...validUnified,
+      suggestions: [{
+        id: 'lighting',
+        title: 'Add a floor lamp',
+        description: 'Add warm lighting beside the sofa.',
+        kind: 'lighting',
+        effort: 'low',
+        visualizable: true,
+        score: 0.9,
+        rank: 1,
+        reasons: ['Improves the room.'],
+      }],
+      shopping: {
+        query: 'floor lamp',
+        candidates: [
+          { id: 'safe', name: 'Safe lamp', url: 'https://shop.example.test/lamp', category: 'lighting', retailer: 'Example Shop', price: 59000 },
+          { id: 'credentials', name: 'Credentials', url: 'https://user:secret@shop.example.test/item', category: 'lighting' },
+          { id: 'port', name: 'Non-default port', url: 'https://shop.example.test:8443/item', category: 'lighting' },
+          { id: 'private-ip', name: 'Private IP', url: 'http://192.168.1.10/item', category: 'lighting' },
+          { id: 'ipv6', name: 'IPv6 literal', url: 'http://[::1]/item', category: 'lighting' },
+          { id: 'local-host', name: 'Local host', url: 'http://printer.local/item', category: 'lighting' },
+          { id: 'scheme', name: 'Unsafe scheme', url: 'javascript:alert(1)', category: 'lighting' },
+        ],
+      },
+    };
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }));
+
+    const result = await analyzeForConsumer(provider(), image, 'improve');
+
+    expect(result.unified?.shopping?.candidates.map(candidate => candidate.id)).toEqual(['safe']);
+    expect(result.intelligence.rankedCandidates.map(candidate => candidate.id)).toEqual(['safe']);
+    expect(result.redesign?.products.map(product => product.productId)).toEqual(['safe']);
+  });
+
+  it('filters local and unsafe product hosts from legacy consumer results', async () => {
+    const legacyProvider = {
+      analyzeImage: vi.fn().mockResolvedValue({
+        ...validAnalysis,
+        items: [{ name: 'Sofa', category: 'furniture', confidence: 0.96, attributes: [] }],
+      }),
+    };
+    const productProvider = {
+      id: 'test-products',
+      search: vi.fn().mockResolvedValue([
+        { id: 'safe', title: 'Safe lamp', url: 'https://shop.example.test/lamp', category: 'lighting', attributes: {}, source: 'test-products', priceHuf: 59000 },
+        { id: 'private-ip', title: 'Private IP', url: 'http://192.168.1.10/item', category: 'lighting', attributes: {}, source: 'test-products' },
+        { id: 'local-host', title: 'Local host', url: 'http://printer.local/item', category: 'lighting', attributes: {}, source: 'test-products' },
+      ]),
+    };
+
+    const result = await analyzeForConsumer(legacyProvider, image, 'improve', {
+      phase3Providers: [productProvider],
+      budgetHuf: 100000,
+      preferredStyles: ['modern'],
+    });
+
+    expect(result.phase3?.candidates?.candidates.map(candidate => candidate.id)).toEqual(['safe']);
+    expect(result.intelligence.rankedCandidates.map(candidate => candidate.id)).toEqual(['safe']);
+  });
+
 });

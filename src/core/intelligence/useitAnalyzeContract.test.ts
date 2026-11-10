@@ -72,4 +72,25 @@ describe('validateUseitAnalyzeResponse', () => {
     const result = validateUseitAnalyzeResponse({ ...validResponse, shopping: null });
     expect(result.ok).toBe(true);
   });
+  it('drops unsafe product links without invalidating the unified analysis response', () => {
+    const candidates = [
+      validResponse.shopping.candidates[0],
+      { id: 'credentials', name: 'Credentials', url: 'https://user:secret@shop.example.test/item' },
+      { id: 'port', name: 'Non-default port', url: 'https://shop.example.test:8443/item' },
+      { id: 'private-ip', name: 'Private IP', url: 'http://192.168.1.10/item' },
+      { id: 'ipv6', name: 'IPv6 literal', url: 'http://[::1]/item' },
+      { id: 'local-host', name: 'Local host', url: 'http://printer.local/item' },
+      { id: 'scheme', name: 'Unsafe scheme', url: 'javascript:alert(1)' },
+    ];
+    const result = validateUseitAnalyzeResponse({
+      ...validResponse,
+      shopping: { query: 'room furniture', candidates },
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.shopping?.candidates.map(candidate => candidate.id)).toEqual(['p1']);
+    }
+  });
+
 });
