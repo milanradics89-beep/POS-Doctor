@@ -116,6 +116,7 @@ def test_log_event_recursively_redacts_nested_structured_fields(caplog):
                 "profile": {
                     "session_token": "nested-session-sentinel",
                     "imageUri": "data:image/png;base64,NESTED_IMAGE_SENTINEL",
+                    "imagePayload": "data:image/png;base64,NESTED_IMAGE_PAYLOAD_SENTINEL",
                 },
                 "events": [
                     {
@@ -132,6 +133,7 @@ def test_log_event_recursively_redacts_nested_structured_fields(caplog):
         "nested-auth-sentinel",
         "nested-session-sentinel",
         "NESTED_IMAGE_SENTINEL",
+        "NESTED_IMAGE_PAYLOAD_SENTINEL",
         "nested prompt sentinel",
         "nested-memory-capability",
         "nested-api-key-sentinel",
@@ -139,6 +141,6 @@ def test_log_event_recursively_redacts_nested_structured_fields(caplog):
         assert sentinel not in caplog.text
 
     assert "[REDACTED]" in caplog.text
-    assert "[REDACTED_IMAGE]" in caplog.text
+    assert caplog.text.count("[REDACTED_IMAGE]") == 1
     assert '"promptTokens": 12' in caplog.text
     assert '"/v1/memory/[REDACTED]"' in caplog.text
