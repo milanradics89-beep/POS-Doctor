@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import ipaddress
 import os
+import re
 from urllib.parse import urlsplit
 
 from fastapi import HTTPException
@@ -19,6 +21,26 @@ MIN_SESSION_SECRET_LENGTH = 32
 MIN_API_KEY_LENGTH = 32
 PLACEHOLDER_SECRET_VALUES = frozenset({"change-me", "changeme", "example", "placeholder", "test"})
 PLACEHOLDER_SECRET_PREFIXES = ("replace-with-", "your-")
+_DNS_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$", re.IGNORECASE)
+
+
+def _valid_origin_hostname(hostname: str) -> bool:
+    """Accept syntactically valid IP literals or DNS names, not URL-parser oddities."""
+    if not hostname or "%" in hostname:
+        return False
+    try:
+        ipaddress.ip_address(hostname)
+        return True
+    except ValueError:
+        pass
+    try:
+        ascii_hostname = hostname.encode("idna").decode("ascii").rstrip(".")
+    except UnicodeError:
+        return False
+    if not ascii_hostname or len(ascii_hostname) > 253:
+        return False
+    labels = ascii_hostname.split(".")
+    return all(_DNS_LABEL_RE.fullmatch(label) for label in labels)
 
 
 def _is_placeholder_secret(value: str) -> bool:
@@ -139,12 +161,14 @@ def validate_production_security() -> None:
         if (
             parsed_origin.scheme.lower() != "https"
             or not hostname
-            or any(character.isspace() for character in hostname)
+            or not _valid_origin_hostname(hostname)
+            or any(ord(character) <= 0x20 or ord(character) == 0x7F for character in origin)
+            or "\\" in origin
+            or "?" in origin
+            or "#" in origin
             or parsed_origin.username is not None
             or parsed_origin.password is not None
             or parsed_origin.path not in {"", "/"}
-            or parsed_origin.query
-            or parsed_origin.fragment
             or (port is not None and not 1 <= port <= 65535)
         ):
             raise RuntimeError(

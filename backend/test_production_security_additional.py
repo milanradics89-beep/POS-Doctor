@@ -74,6 +74,15 @@ def test_production_rejects_placeholder_api_key(monkeypatch, placeholder):
         "https://useit.example.com:99999",
         "https:///missing-host",
         "https://useit*.example.com",
+        "https://useit.example.com?",
+        "https://useit.example.com#",
+        "https://useit.example.com/path?",
+        "https://bad_host.example.com",
+        "https://bad%.example.com",
+        "https://bad host.example.com",
+        "https://bad\\\\host.example.com",
+        "https://bad\thost.example.com",
+        "https://[not-an-ipv6-address]",
     ],
 )
 def test_production_rejects_non_origin_or_insecure_cors_values(monkeypatch, origin):
@@ -88,5 +97,21 @@ def test_production_rejects_non_origin_or_insecure_cors_values(monkeypatch, orig
 def test_production_accepts_https_origin_with_explicit_port(monkeypatch):
     _production(monkeypatch)
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://useit.example.com:8443")
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+    validate_production_security()
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://192.0.2.10",
+        "https://[2001:db8::10]",
+        "https://useit.example.com/",
+        "https://münchen.example",
+    ],
+)
+def test_production_accepts_valid_https_origin_hosts(monkeypatch, origin):
+    _production(monkeypatch)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", origin)
     monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
     validate_production_security()
