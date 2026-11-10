@@ -1,4 +1,41 @@
-## Latest validated release acceptance baseline (captured 2026-11-10 09:34 CET)
+## Current automated acceptance checkpoint (2026-11-10 12:05 CET)
+
+PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. Exact current HEAD: [`8a66385820a89de1c25997e6ce75a3ed028f656a`](https://github.com/milanradics89-beep/POS-Doctor/commit/8a66385820a89de1c25997e6ce75a3ed028f656a), parent [`d6f2b02`](https://github.com/milanradics89-beep/POS-Doctor/commit/d6f2b02f58ab38f3d748be4bec3f4c31d36ad400). Commit: `test(privacy): align nested image redaction expectations`.
+
+### Exact-head CI
+
+All required workflows passed for this exact SHA:
+- Validation [42795051588](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42795051588): backend job [129757975460](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42795051588/job/129757975460) passed **420 tests, 27 readiness checks, 56 security/privacy checks**; `pip-audit` found no known vulnerabilities. Frontend/Android job [129757975088](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42795051588/job/129757975088) passed **275 tests across 57 files**, Expo Doctor **21/21**, Android Release build and emulator install/launch smoke. iOS job [129757975569](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42795051588/job/129757975569) passed Release simulator build and smoke.
+- CodeQL [42795051606](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42795051606): passed; scanned 71/71 Python and 4/4 GitHub Actions files. Non-fatal SARIF column-kind mismatch warning.
+- Dependency Review [42795051644](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42795051644): passed with no high-or-higher vulnerable packages or denied packages. Four moderate transitive npm `glob`/`minimatch` findings, Scorecard warnings for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5), and vendored `deepmerge@4.3.2` license metadata remain open.
+
+### Failure and review disposition
+
+Validation [42790283351](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42790283351) failed only because the nested privacy test expected `[REDACTED_IMAGE]` for a sensitive `imageUri` key, which is intentionally redacted as `[REDACTED]`. Commit `8a66385` adds a separate image-payload field to test image-data redaction. Issue [#60](https://github.com/milanradics89-beep/POS-Doctor/issues/60) is closed after all three exact-head workflows passed.
+
+The `vision_usage` privacy test uses a valid base64 image data URI. POST retry tests supply explicit `X-API-Key`; `sessionAuthEligible()` respects effective `Request.headers` and `Request.method`; the error boundary logs only the error name; permanently denied camera/gallery permissions offer `Linking.openSettings()`, covered by permission-decision tests.
+
+All **11/11 review threads are resolved**; **15 reviews, 0 APPROVED**. The latest Codex receipt before this checkpoint reviewed `33d6a4a`, not this SHA; a fresh exact-head review is still required. Human approval and last-push approval remain required.
+
+### Governance and release decision
+
+Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed. Main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) is active with six strict required checks, one approval, last-push approval, resolved threads, no bypass actors, and deletion/non-fast-forward protection. Issue #46 remains open for the historical mixed-version CodeQL failure; keep PRs #43/#44 separate and PR #49 as the atomic update candidate.
+
+Repository inventory: **31 branches, 19 open PRs, 4 open issues** after closing #60. GitHub Releases is empty. Complete Code Scanning, Dependabot, and Secret Scanning inventories remain **unverified, not zero** because the integration does not expose those alert-list endpoints.
+
+Backlog: **3 Done / 15 In Progress / 7 Blocked**. Done: #1 iOS simulator CI, #2 main ruleset, #6 Redis multi-instance coverage. Blocked: #4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark, #21 production monitoring/alert delivery, #22 staged rollout/rollback approval, #25 real pilot/business approval.
+
+Automated simulator/emulator CI is not physical-device, production, backup/restore, monitoring, rollout, pilot, or business acceptance. Do not merge automatically or bypass required checks.
+
+---
+
+**Automated CI acceptance for exact PR HEAD `8a66385820a89de1c25997e6ce75a3ed028f656a`: PASSED. Pilot acceptance: NOT GRANTED.**
+
+No production release or pilot is authorized by this automated evidence. Physical-device App Attest/Play Integrity, witnessed production backup/restore, monitoring/alert delivery, staged rollout/rollback, representative product-recognition benchmark, real pilot, and business sign-off remain outstanding.
+
+---
+
+## Superseded acceptance checkpoint (captured 2026-11-10 09:34 CET; source/test HEAD 1caff15)
 
 **Automated CI acceptance for exact source/test HEAD `1caff15c75f5ec45b101547809e38f8134ad7d0d`: PASSED. Pilot acceptance: NOT GRANTED.**
 
