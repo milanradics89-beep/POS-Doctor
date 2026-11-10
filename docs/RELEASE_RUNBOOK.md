@@ -1,3 +1,17 @@
+## Latest fully validated PR #41 checkpoint (captured 2026-11-10 18:34 CET)
+
+PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. The last fully validated PR HEAD before this documentation refresh was [`f990566`](https://github.com/milanradics89-beep/POS-Doctor/commit/f990566089883001c8e499af367b88afeaf29e5a) (`f990566089883001c8e499af367b88afeaf29e5a`), a documentation-only child of source/test baseline [`7048957`](https://github.com/milanradics89-beep/POS-Doctor/commit/704895725c64b7839a3135526a4e2319cb49f0c5). All three required workflows passed for the exact `f990566` SHA:
+
+- Validation [#42856992647](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42856992647): backend [job 129972611255](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42856992647/job/129972611255) passed **450 backend tests**, **27 production-readiness checks**, and **78 security/privacy checks**; `pip-audit` reported no known vulnerabilities. Frontend/Android [job 129972611143](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42856992647/job/129972611143) passed **277 tests across 57 files**, Expo project health, Android Release build, and emulator install/launch smoke. iOS [job 129972610903](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42856992647/job/129972610903) passed the Release simulator build and install/launch smoke.
+- CodeQL [#42856992752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42856992752), analyze [job 129972611858](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42856992752/job/129972611858): passed; the invocation scanned **181/181 TypeScript**, **71/71 Python**, **4/4 GitHub Actions**, and **2/2 JavaScript** files. SARIF merge emitted a non-fatal column-kind mismatch warning.
+- Dependency Review [#42856992470](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42856992470), job [129972610175](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42856992470/job/129972610175): passed. The frontend runtime audit still reports **four moderate** transitive `glob`/`minimatch` advisories; Scorecard warnings remain for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5). Vendored `deepmerge@4.3.2` has MIT manifest/LICENSE files, while scanner license metadata remains uncertain.
+
+The source/test baseline `7048957` is the validated application/test evidence; `f990566` is the separately validated documentation-only PR HEAD. Current review state at capture: **12 inline threads, 11 resolved and 1 unresolved P2** on historical checkpoint wording; **16 review submissions, 0 APPROVED**. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed and active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) enforces the six required checks, one human approval, last-push approval, and resolved review threads.
+
+This documentation-only refresh is a new child of `f990566`; the runs above do not validate the new commit. Its own Validation, CodeQL, and Dependency Review must pass before the P2 thread can be resolved or PR #41 considered for human approval. Simulator/emulator CI is not physical-device, production, backup/restore, monitoring, rollout, pilot, or business acceptance.
+
+---
+
 PR #41 remains open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main`. At checkpoint capture, the validated source/test HEAD was [7048957](https://github.com/milanradics89-beep/POS-Doctor/commit/704895725c64b7839a3135526a4e2319cb49f0c5) (`704895725c64b7839a3135526a4e2319cb49f0c5`), commit message `test(search): correct missing-title provider fixture`. The earlier `f0422bf` Validation failure was a test-fixture defect: the case named “Missing title” still supplied a title. The fixture was corrected in `7048957`; issue [#61](https://github.com/milanradics89-beep/POS-Doctor/issues/61) is now closed after the exact-head workflows passed.
 
 ### Exact source/test HEAD evidence
@@ -26,13 +40,13 @@ All three pull-request workflows completed successfully for `704895725c64b7839a3
 - Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero** because the connected integration does not expose those alert-list endpoints.
 - Backlog remains **3 Done / 15 In Progress / 7 Blocked**. Simulator/emulator CI is not physical-device, production, backup/restore, monitoring, rollout, pilot, or business acceptance.
 
-This checkpoint records the validated source/test baseline `704895725c64b7839a3135526a4e2319cb49f0c5`. The documentation-only commit created by this update becomes a new PR #41 HEAD; the run IDs above do **not** validate that new documentation SHA. Its own Validation, CodeQL, and Dependency Review workflows must complete successfully before merge. PR #41 remains open and unmerged.
+At capture, the last fully validated documentation PR HEAD was `f990566089883001c8e499af367b88afeaf29e5a`; its own Validation, CodeQL, and Dependency Review runs all passed as recorded above. This runbook refresh creates a new documentation-only PR HEAD and requires its own exact-head workflows. PR #41 remains open and unmerged.
 
 ---
 
 ## Superseded checkpoint (captured 2026-11-10 12:05 CET; validated source/test HEAD 8a66385)
 
-PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. Exact current HEAD: [`8a66385820a89de1c25997e6ce75a3ed028f656a`](https://github.com/milanradics89-beep/POS-Doctor/commit/8a66385820a89de1c25997e6ce75a3ed028f656a), parent [`d6f2b02`](https://github.com/milanradics89-beep/POS-Doctor/commit/d6f2b02f58ab38f3d748be4bec3f4c31d36ad400). Commit: `test(privacy): align nested image redaction expectations`.
+PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. Validated source/test baseline at this historical checkpoint: [`8a66385`](https://github.com/milanradics89-beep/POS-Doctor/commit/8a66385820a89de1c25997e6ce75a3ed028f656a). The subsequent documentation-only PR HEAD was [`d515140`](https://github.com/milanradics89-beep/POS-Doctor/commit/d515140ec3e3c00f39b21d4111200251371110be), whose parent is `8a66385`; neither SHA is the current PR HEAD. Source/test commit: `test(privacy): align nested image redaction expectations`.
 
 ### Exact-head CI
 

@@ -1,6 +1,6 @@
-## Current 25-point status register (2026-11-10 17:37 CET)
+## Current 25-point status register (2026-11-10 18:34 CET)
 
-The register below is the current authoritative status at the validated source/test baseline `704895725c64b7839a3135526a4e2319cb49f0c5`. The documentation-only commit created by this update becomes a new PR HEAD and requires its own exact-head CI. Statuses are deliberately conservative: source/test coverage does not satisfy physical-device, production, or business acceptance.
+The register below is the current authoritative 25-row status at validated source/test baseline `704895725c64b7839a3135526a4e2319cb49f0c5`; the last fully validated documentation PR HEAD is `f990566089883001c8e499af367b88afeaf29e5a`, with exact-head Validation `42856992647`, CodeQL `42856992752`, and Dependency Review `42856992470` all successful. This refresh creates a new documentation-only PR HEAD and requires its own exact-head CI. Statuses remain conservative: source/test coverage does not satisfy physical-device, production, or business acceptance.
 
 | # | Workstream | Status | Evidence / next gate |
 |---:|---|---|---|
@@ -36,7 +36,7 @@ The register below is the current authoritative status at the validated source/t
 
 ## Superseded exact-head checkpoint (captured 2026-11-10 12:05 CET; validated source/test HEAD 8a66385)
 
-PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. Exact current HEAD: [`8a66385820a89de1c25997e6ce75a3ed028f656a`](https://github.com/milanradics89-beep/POS-Doctor/commit/8a66385820a89de1c25997e6ce75a3ed028f656a), parent [`d6f2b02`](https://github.com/milanradics89-beep/POS-Doctor/commit/d6f2b02f58ab38f3d748be4bec3f4c31d36ad400). Commit: `test(privacy): align nested image redaction expectations`.
+PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. Validated source/test baseline at this historical checkpoint: [`8a66385`](https://github.com/milanradics89-beep/POS-Doctor/commit/8a66385820a89de1c25997e6ce75a3ed028f656a). The subsequent documentation-only PR HEAD was [`d515140`](https://github.com/milanradics89-beep/POS-Doctor/commit/d515140ec3e3c00f39b21d4111200251371110be), whose parent is `8a66385`; neither SHA is the current PR HEAD. Source/test commit: `test(privacy): align nested image redaction expectations`.
 
 ### Exact-head CI
 
