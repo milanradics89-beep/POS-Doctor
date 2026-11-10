@@ -119,7 +119,7 @@ async def test_search_skips_non_object_results_and_unsafe_urls(monkeypatch):
             {"title": "Unexpected port", "url": "https://example.com:8443/private"},
             {"title": "Invalid port", "url": "https://example.com:not-a-port/private"},
             {"title": "Backslash", "url": "https://example.com\\\\@attacker.example/private"},
-            {"title": "Missing title", "url": "https://example.com/private"},
+            {"url": "https://example.com/private"},
             {"title": "Valid", "url": "https://www.example.com/guide#section", "snippet": ["not", "text"]},
         ]
     })
