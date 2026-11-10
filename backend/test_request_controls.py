@@ -166,6 +166,38 @@ async def test_slow_upload_returns_request_timeout(monkeypatch) -> None:
 
 
 
+@pytest.mark.asyncio
+async def test_body_upload_and_handler_share_one_end_to_end_deadline(monkeypatch) -> None:
+    monkeypatch.setattr("backend.request_controls.REQUEST_TIMEOUT_SECONDS", 0.1)
+    app = FastAPI()
+    install_request_controls(app)
+
+    @app.post("/combined")
+    async def combined():
+        await asyncio.sleep(0.07)
+        return {"ok": True}
+
+    class SlowBody(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            await asyncio.sleep(0.07)
+            yield b"payload"
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/combined",
+            content=SlowBody(),
+            headers={"X-Request-ID": "phase22-combined"},
+        )
+
+    assert response.status_code == 504
+    assert response.headers["X-Request-ID"] == "phase22-combined"
+    assert response.json() == {
+        "detail": "Request timed out.",
+        "requestId": "phase22-combined",
+    }
+
+
 def test_unexpected_failure_does_not_log_exception_message(caplog) -> None:
     app = FastAPI()
     install_request_controls(app)

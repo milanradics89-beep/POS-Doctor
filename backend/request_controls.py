@@ -77,6 +77,10 @@ async def _read_limited_body_with_timeout(
 def install_request_controls(app) -> None:
     @app.middleware("http")
     async def request_controls(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
+        # One monotonic budget covers upload buffering and downstream request handling.
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + configured_request_timeout()
+
         content_length = request.headers.get("content-length")
         if content_length:
             try:
@@ -90,7 +94,10 @@ def install_request_controls(app) -> None:
         request.state.request_id = request_id
 
         if request.method in {"POST", "PUT", "PATCH"}:
-            body, body_timed_out = await _read_limited_body_with_timeout(request)
+            remaining_upload_time = max(0.0, deadline - loop.time())
+            body, body_timed_out = await _read_limited_body_with_timeout(
+                request, timeout=remaining_upload_time
+            )
             if body_timed_out:
                 return JSONResponse(
                     status_code=408,
@@ -103,7 +110,10 @@ def install_request_controls(app) -> None:
             request._body = body
 
         try:
-            response = await asyncio.wait_for(call_next(request), timeout=configured_request_timeout())
+            remaining_handler_time = deadline - loop.time()
+            if remaining_handler_time <= 0:
+                raise asyncio.TimeoutError
+            response = await asyncio.wait_for(call_next(request), timeout=remaining_handler_time)
         except asyncio.TimeoutError:
             return JSONResponse(
                 status_code=504,
