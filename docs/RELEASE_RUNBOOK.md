@@ -1,3 +1,23 @@
+## Exact-head CI checkpoint and next mobile security finding (2026-11-10 06:29 CET)
+
+At the start of this checkpoint, PR #41 HEAD was documentation-only commit [`131f3d4`](https://github.com/milanradics89-beep/POS-Doctor/commit/131f3d46911f659da076fd8c4617402c0e336a2b), parent [`b74ce21`](https://github.com/milanradics89-beep/POS-Doctor/commit/b74ce21920040bbde383f9cd13d207889fb0ad5c). The exact-head workflows for `131f3d4` have now all completed successfully:
+
+- Validation [42754035838](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42754035838): backend [job 129624114823](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42754035838/job/129624114823), frontend/Android [job 129624114416](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42754035838/job/129624114416), and iOS [job 129624114615](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42754035838/job/129624114615) all passed.
+- CodeQL [42754035587](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42754035587), analyze [job 129624114988](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42754035587/job/129624114988): passed.
+- Dependency Review [42754035816](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42754035816), job [129624117199](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42754035816/job/129624117199): passed.
+
+The last fully validated application source/test baseline remains `b74ce21920040bbde383f9cd13d207889fb0ad5c`; `131f3d4` is documentation-only. These runs prove the exact `131f3d4` HEAD, not any subsequent commit. This runbook refresh itself is documentation-only and requires its own exact-head checks.
+
+Governance remains: issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed; main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) is active with six required checks. All 11 inline review threads are resolved; 15 review submissions and zero approvals remain, so one human approval and last-push approval are outstanding. The backlog remains **3 Done / 15 In Progress / 7 Blocked**. Pilot acceptance is not granted.
+
+### New client-side external product-link hardening finding
+
+A read-only audit found that `validateUseitAnalyzeResponse()` accepts any non-empty candidate URL, `toUnifiedConsumerIntelligence()` copies candidate URLs into `rankedCandidates`, and `app/index.tsx` calls `Linking.openURL(x.url)` directly. The unified redesign-plan path filters to HTTP(S), but does not reject embedded credentials, non-default ports, or local/IP-literal hosts. This is a client-side trust-boundary hardening gap, not a confirmed exploit.
+
+Next source/test change: use one shared validator for absolute HTTP(S) URLs with a DNS hostname, no credentials, no non-default port, and no local/IP-literal host; filter unsafe candidates from both unified and legacy mappings; guard `Linking.openURL` and handle rejected opens without logging the URL; add contract and consumer-mapping regression tests. No source change for this finding has been pushed yet.
+
+---
+
 ## Latest fully validated source/test baseline (captured 2026-11-10 05:07 CET)
 
 PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main`. At evidence capture, the exact branch HEAD was [`b74ce21`](https://github.com/milanradics89-beep/POS-Doctor/commit/b74ce21920040bbde383f9cd13d207889fb0ad5c), parent [`4ab13ea`](https://github.com/milanradics89-beep/POS-Doctor/commit/4ab13ea284715fb00b66176236e44939509570dd). This is the latest fully validated application source/test baseline.
