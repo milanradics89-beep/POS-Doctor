@@ -144,6 +144,11 @@ describe('UseitApiProvider boundary handling', () => {
           price: 59000,
           currency: 'HUF',
           retailer: 'Example Shop',
+        }, {
+          id: 'unsafe-product',
+          name: 'Untrusted product',
+          url: 'javascript:alert(1)',
+          category: 'lighting',
         }],
       },
     };
@@ -161,8 +166,19 @@ describe('UseitApiProvider boundary handling', () => {
       priceHuf: 59000,
       url: 'https://shop.example.test/lamp',
     }]);
+    expect(result.redesign?.products).toHaveLength(1);
+    expect(result.redesign?.prompt).toContain('Apply these visualizable recommendations:\\n- Add warm layered lighting');
     expect(result.redesign?.actions).toContainEqual(expect.objectContaining({ type: 'keep', target: 'Grey sofa' }));
     expect(result.redesign?.actions).toContainEqual(expect.objectContaining({ type: 'add', target: 'Add warm layered lighting' }));
   });
+  it('does not create an empty redesign plan when the unified response has no visualizable suggestions', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(validUnified), { status: 200, headers: { 'content-type': 'application/json' } }));
+
+    const result = await analyzeForConsumer(provider(), image, 'improve');
+
+    expect(result.unified?.contractVersion).toBe('useit_analyze_v1');
+    expect(result.redesign).toBeUndefined();
+  });
+
 
 });

@@ -118,7 +118,14 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
   if (recommendations.length === 0) return undefined;
 
   const products: RedesignPlan['products'] = (result.shopping?.candidates ?? [])
-    .filter(candidate => /^https?:\\/\\//i.test(candidate.url))
+    .filter(candidate => {
+      try {
+        const parsedUrl = new URL(candidate.url);
+        return (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') && Boolean(parsedUrl.hostname);
+      } catch {
+        return false;
+      }
+    })
     .slice(0, 8)
     .map(candidate => ({
       category: candidate.category?.trim() || 'general',
@@ -138,7 +145,7 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
 
   for (const recommendation of recommendations) {
     const kind = recommendation.kind.toLowerCase();
-    const type = /reposition|layout|move/.test(kind) ? 'reposition' : /replace/.test(kind) ? 'replace' : 'add';
+    const type: RedesignPlan['actions'][number]['type'] = /reposition|layout|move/.test(kind) ? 'reposition' : /replace/.test(kind) ? 'replace' : 'add';
     actions.push({ type, target: recommendation.title, rationale: recommendation.description });
   }
 

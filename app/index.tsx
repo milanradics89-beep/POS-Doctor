@@ -324,11 +324,11 @@ export default function Home() {
 
                     <View style={s.solution}>
                       <Text style={s.solutionTitle}>
-                        {result.phase3.redesign.products.length} selected products
+                        {redesign.products.length} selected products
                       </Text>
 
                       <Text style={s.solutionText}>
-                        {result.phase3.redesign.actions
+                        {redesign.actions
                           .filter((x) => x.type === 'add')
                           .map((x) => x.target)
                           .join(' · ') ||
