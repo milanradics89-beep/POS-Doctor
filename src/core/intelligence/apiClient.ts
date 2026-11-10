@@ -153,7 +153,7 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
   const constraints = typeof scene.globalAttributes.constraints === 'string' ? scene.globalAttributes.constraints : '';
   const recommendationText = recommendations
     .map(recommendation => '- ' + recommendation.title + ': ' + recommendation.description)
-    .join('\\n');
+    .join('\n');
   const selectedProducts = products.length
     ? products.map(product => product.title + ' (' + product.category + ')').join('; ')
     : 'No retailer products selected; use generic styling only.';
@@ -163,10 +163,10 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
     'Preserve the original camera viewpoint, architecture, room geometry, and existing items unless an action explicitly changes them.',
     sceneSummary ? 'Observed scene: ' + sceneSummary : '',
     constraints ? 'Scene constraints: ' + constraints : '',
-    'Apply these visualizable recommendations:\\n' + recommendationText,
+    'Apply these visualizable recommendations:\n' + recommendationText,
     'Selected retailer products: ' + selectedProducts,
     'Use only the selected retailer products where relevant. Do not invent product names, brands, prices, logos, or URLs. If no selected product fits, use neutral generic styling.',
-  ].filter(Boolean).join('\\n\\n');
+  ].filter(Boolean).join('\n\n');
 
   return {
     domain: 'room',

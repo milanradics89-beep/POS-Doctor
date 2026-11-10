@@ -1,6 +1,5 @@
 import base64
 from types import SimpleNamespace
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi import HTTPException
@@ -41,7 +40,21 @@ def test_redesign_requires_a_meaningful_prompt():
 
 def test_redesign_rejects_non_data_image_url():
     response = client.post("/v1/redesign", json={"imageUri": "https://example.com/image.png", "prompt": "Redesign this room in a modern style."})
-    assert response.status_code == 400
+    assert response.status_code == 422
+
+
+def test_redesign_rejects_non_base64_image_data_uri():
+    response = client.post("/v1/redesign", json={"imageUri": "data:image/png,ZmFrZS1wbmc=", "prompt": "Redesign this room in a modern style."})
+    assert response.status_code == 422
+
+
+def test_image_file_rejects_non_base64_data_uri():
+    try:
+        _image_file("data:image/png,ZmFrZS1wbmc=")
+    except HTTPException as exc:
+        assert exc.status_code == 400
+    else:
+        raise AssertionError("Non-base64 image data URI was accepted")
 
 
 def test_redesign_rejects_empty_image_data():

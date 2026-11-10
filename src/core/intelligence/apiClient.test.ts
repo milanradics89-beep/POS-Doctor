@@ -167,7 +167,9 @@ describe('UseitApiProvider boundary handling', () => {
       url: 'https://shop.example.test/lamp',
     }]);
     expect(result.redesign?.products).toHaveLength(1);
-    expect(result.redesign?.prompt).toContain('Apply these visualizable recommendations:\\n- Add warm layered lighting');
+    expect(result.redesign?.prompt).toContain('Apply these visualizable recommendations:\n- Add warm layered lighting');
+    expect(result.redesign?.prompt).toContain('\n\nSelected retailer products:');
+    expect(result.redesign?.prompt).not.toContain('\\n- Add warm layered lighting');
     expect(result.redesign?.actions).toContainEqual(expect.objectContaining({ type: 'keep', target: 'Grey sofa' }));
     expect(result.redesign?.actions).toContainEqual(expect.objectContaining({ type: 'add', target: 'Add warm layered lighting' }));
   });
