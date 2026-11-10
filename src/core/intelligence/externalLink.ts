@@ -1,6 +1,7 @@
 const LOCAL_HOST_SUFFIXES = [
   '.localhost',
   '.local',
+  '.localdomain',
   '.internal',
   '.lan',
   '.home',

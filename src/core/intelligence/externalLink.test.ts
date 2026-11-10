@@ -20,6 +20,8 @@ describe('isSafeExternalHttpUrl', () => {
     'https://user:secret@shop.example.test/item',
     'https://shop.example.test:8443/item',
     'http://localhost/item',
+    'http://localhost.localdomain/item',
+    'http://printer.localdomain/item',
     'http://printer.local/item',
     'http://service.internal/item',
     'http://192.168.1.10/item',
@@ -27,8 +29,8 @@ describe('isSafeExternalHttpUrl', () => {
     'http://[::1]/item',
     'http://intranet/item',
     ' https://shop.example.test/item',
-    'https://shop.example.test\\@evil.example/item',
-    'https://shop.example.test/item\n',
+    'https://shop.example.test\\\\@evil.example/item',
+    'https://shop.example.test/item\\n',
   ])('rejects an unsafe external URL: %s', url => {
     expect(isSafeExternalHttpUrl(url)).toBe(false);
   });
