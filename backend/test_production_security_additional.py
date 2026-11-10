@@ -61,3 +61,32 @@ def test_production_rejects_placeholder_api_key(monkeypatch, placeholder):
     monkeypatch.setenv("USEIT_API_KEY", placeholder)
     with pytest.raises(RuntimeError, match="USEIT_API_KEY must not be a placeholder"):
         validate_production_security()
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://useit.example.com",
+        "https://useit.example.com/api",
+        "https://useit.example.com?debug=true",
+        "https://useit.example.com#fragment",
+        "https://user:password@useit.example.com",
+        "https://useit.example.com:99999",
+        "https:///missing-host",
+        "https://useit*.example.com",
+    ],
+)
+def test_production_rejects_non_origin_or_insecure_cors_values(monkeypatch, origin):
+    _production(monkeypatch)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", origin)
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+
+    with pytest.raises(RuntimeError, match="CORS"):
+        validate_production_security()
+
+
+def test_production_accepts_https_origin_with_explicit_port(monkeypatch):
+    _production(monkeypatch)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://useit.example.com:8443")
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+    validate_production_security()

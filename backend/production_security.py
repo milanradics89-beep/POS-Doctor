@@ -125,8 +125,31 @@ def validate_production_security() -> None:
                 )
 
     origins = [x.strip() for x in os.getenv("USEIT_CORS_ORIGINS", "").split(",") if x.strip()]
-    if not origins or "*" in origins:
+    if not origins or any("*" in origin for origin in origins):
         raise RuntimeError("Wildcard CORS is forbidden in production")
+    for origin in origins:
+        try:
+            parsed_origin = urlsplit(origin)
+            hostname = parsed_origin.hostname
+            port = parsed_origin.port
+        except ValueError as exc:
+            raise RuntimeError(
+                "USEIT_CORS_ORIGINS must contain only valid HTTPS origins in production"
+            ) from exc
+        if (
+            parsed_origin.scheme.lower() != "https"
+            or not hostname
+            or any(character.isspace() for character in hostname)
+            or parsed_origin.username is not None
+            or parsed_origin.password is not None
+            or parsed_origin.path not in {"", "/"}
+            or parsed_origin.query
+            or parsed_origin.fragment
+            or (port is not None and not 1 <= port <= 65535)
+        ):
+            raise RuntimeError(
+                "USEIT_CORS_ORIGINS must contain only explicit HTTPS origins without credentials, paths, query, or fragment in production"
+            )
 
     if os.getenv("USEIT_ALLOW_DOCS", "false").strip().lower() in TRUE_VALUES:
         raise RuntimeError("Interactive API documentation must be explicitly disabled in production")

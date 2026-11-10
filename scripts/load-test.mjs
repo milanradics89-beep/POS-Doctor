@@ -39,8 +39,17 @@ if (approvedOrigin.origin !== baseUrl.origin) {
 if (targetEnvironment === 'production' && process.env.USEIT_LOAD_ALLOW_PRODUCTION !== 'YES') {
   throw new Error('Production load tests require explicit capacity approval via USEIT_LOAD_ALLOW_PRODUCTION=YES.');
 }
-if (targetEnvironment === 'production' && baseUrl.protocol !== 'https:') {
-  throw new Error('Production load tests require HTTPS; HTTP is allowed only for staging.');
+const loopbackHosts = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+const isLoopbackHost = loopbackHosts.has(baseUrl.hostname.toLowerCase())
+  || baseUrl.hostname.toLowerCase().endsWith('.localhost');
+
+if (baseUrl.protocol === 'http:') {
+  if (targetEnvironment === 'production') {
+    throw new Error('Production load tests require HTTPS.');
+  }
+  if (!isLoopbackHost) {
+    throw new Error('Remote staging load tests require HTTPS; HTTP is allowed only for loopback staging targets.');
+  }
 }
 
 const path = process.env.USEIT_LOAD_PATH ?? '/health';

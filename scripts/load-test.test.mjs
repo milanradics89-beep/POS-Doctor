@@ -87,6 +87,29 @@ describe('load-test safety guards', () => {
     expect(result.stderr).toContain('require HTTPS');
   });
 
+  it('rejects remote staging HTTP even when the origin is explicitly approved', async () => {
+    const result = await runLoadTest(approvedStagingEnv('http://staging.example.test'));
+    expect(result.code).not.toBe(0);
+    expect(result.stderr).toContain('Remote staging load tests require HTTPS');
+  });
+
+  it('continues to allow explicitly approved loopback HTTP staging', async () => {
+    let requests = 0;
+    const { server, origin } = await startServer((_request, response) => {
+      requests += 1;
+      response.writeHead(204);
+      response.end();
+    });
+
+    try {
+      const result = await runLoadTest(approvedStagingEnv(origin));
+      expect(result.code).toBe(0);
+      expect(requests).toBe(1);
+    } finally {
+      await stopServer(server);
+    }
+  });
+
   it('keeps POST load tests behind their separate opt-in', async () => {
     const result = await runLoadTest(approvedStagingEnv('http://127.0.0.1:1', {
       USEIT_LOAD_METHOD: 'POST',
