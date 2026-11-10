@@ -1,4 +1,36 @@
-## Current exact-head checkpoint (2026-11-10 12:05 CET)
+PR #41 remains open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main`. At checkpoint capture, the validated source/test HEAD was [7048957](https://github.com/milanradics89-beep/POS-Doctor/commit/704895725c64b7839a3135526a4e2319cb49f0c5) (`704895725c64b7839a3135526a4e2319cb49f0c5`), commit message `test(search): correct missing-title provider fixture`. The earlier `f0422bf` Validation failure was a test-fixture defect: the case named “Missing title” still supplied a title. The fixture was corrected in `7048957`; issue [#61](https://github.com/milanradics89-beep/POS-Doctor/issues/61) is now closed after the exact-head workflows passed.
+
+### Exact source/test HEAD evidence
+
+All three pull-request workflows completed successfully for `704895725c64b7839a3135526a4e2319cb49f0c5`:
+- [Validation #42846996794](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794): backend job [129937045431](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794/job/129937045431) passed **450 backend tests**, **27 production-readiness checks**, and **78 security/privacy checks**. `pip-audit` reported **No known vulnerabilities found**. Non-blocking warnings: Starlette/httpx TestClient deprecation and the Redis test-container `vm.overcommit_memory` advisory.
+- [Validation #42846996794](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794): frontend/Android job [129937046167](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794/job/129937046167) passed **277 tests across 57 files**, Expo project health, Android export, Android Release build (**BUILD SUCCESSFUL in 22m 46s**), and Android emulator install/launch smoke for `com.useit.app`. The runtime `npm audit --omit=dev --audit-level=high` step passed its configured threshold but still reported **four moderate** transitive `glob`/`minimatch` advisory instances.
+- [Validation #42846996794](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794): iOS job [129937046057](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794/job/129937046057) passed native project generation, CocoaPods, Release simulator build, and simulator install/launch smoke for `com.useit.app`.
+- [CodeQL #42846997034](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846997034), analyze job [129937046026](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846997034/job/129937046026): passed; scanned **71/71 Python** and **4/4 GitHub Actions** files. SARIF merge emitted a non-fatal column-kind mismatch warning.
+- [Dependency Review #42846996967](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996967), job [129937046021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996967/job/129937046021): passed. Remaining non-blocking warnings include OpenSSF Scorecard below-threshold results for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5), four moderate transitive npm audit advisories, and previously recorded license metadata uncertainty for vendored `deepmerge@4.3.2` (its checked-in manifest and LICENSE declare MIT).
+
+### Source security and review disposition
+
+- Production Google Play Integrity certificate pins fail closed: the parsed configured digest list must contain at least one usable pin. The regression is in validated ancestry commit [b4fd973](https://github.com/milanradics89-beep/POS-Doctor/commit/b4fd973c26504eacc34a7802600b3ba7057ec213).
+- CORS origin validation rejects malformed host syntax, invalid IP literals, credentials, non-origin paths, query/fragment markers, whitespace/control characters, and backslashes; regression coverage is in [bd6afa5](https://github.com/milanradics89-beep/POS-Doctor/commit/bd6afa51920605d2591a88da5d4563cc8039791a).
+- A single monotonic request deadline covers body upload and handler execution in [ff16a0f](https://github.com/milanradics89-beep/POS-Doctor/commit/ff16a0fd879f2503dafcd762536b978ead3fdc21).
+- Play Integrity provider transport tests cover `ConnectError` and `ReadTimeout` in [054111d](https://github.com/milanradics89-beep/POS-Doctor/commit/054111d3e2ce51f256ad8eaa4ac21c3e1a3fe8bd).
+- The knowledge-search provider fixture regression is corrected by `7048957`; malformed provider response handling and URL validation are in its parent source commit [f0422bf](https://github.com/milanradics89-beep/POS-Doctor/commit/f0422bf456bf046036878564471b61ce5c9e433a).
+- PR #41 has **12 inline review threads: 11 resolved, 1 unresolved P2** on the release-backlog checkpoint wording. It has **16 review submissions and 0 APPROVED**. Human approval and last-push approval remain required. The five previously tracked source findings (explicit auth in POST retry tests, effective Request headers/method, valid base64 privacy fixture, sanitized Error Boundary logging, and Settings recovery for permanently denied camera/gallery permissions) are present in the current source/test baseline.
+
+### Governance and repository inventory
+
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed. Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) enforces strict required checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`, one approval, last-push approval, resolved threads, no bypass actors, and deletion/non-fast-forward protection.
+- Issue [#61](https://github.com/milanradics89-beep/POS-Doctor/issues/61), created for the earlier `f0422bf` fixture failure, is closed after the correction and exact-head CI success. Issue [#46](https://github.com/milanradics89-beep/POS-Doctor/issues/46) remains open for a historical CodeQL failure; the current exact-head CodeQL workflow succeeded.
+- Repository inventory at capture: **31 branches, 19 open PRs, 4 open issues**, and **no published GitHub Releases**.
+- Complete Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero** because the connected integration does not expose those alert-list endpoints.
+- Backlog remains **3 Done / 15 In Progress / 7 Blocked**. Simulator/emulator CI is not physical-device, production, backup/restore, monitoring, rollout, pilot, or business acceptance.
+
+This checkpoint records the validated source/test baseline `704895725c64b7839a3135526a4e2319cb49f0c5`. The documentation-only commit created by this update becomes a new PR #41 HEAD; the run IDs above do **not** validate that new documentation SHA. Its own Validation, CodeQL, and Dependency Review workflows must complete successfully before merge. PR #41 remains open and unmerged.
+
+---
+
+## Superseded checkpoint (captured 2026-11-10 12:05 CET; validated source/test HEAD 8a66385)
 
 PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. Exact current HEAD: [`8a66385820a89de1c25997e6ce75a3ed028f656a`](https://github.com/milanradics89-beep/POS-Doctor/commit/8a66385820a89de1c25997e6ce75a3ed028f656a), parent [`d6f2b02`](https://github.com/milanradics89-beep/POS-Doctor/commit/d6f2b02f58ab38f3d748be4bec3f4c31d36ad400). Commit: `test(privacy): align nested image redaction expectations`.
 

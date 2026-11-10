@@ -1,4 +1,29 @@
-## Current automated acceptance checkpoint (2026-11-10 12:05 CET)
+## Current automated acceptance checkpoint (2026-11-10 17:37 CET)
+
+**Automated CI acceptance for exact source/test HEAD `704895725c64b7839a3135526a4e2319cb49f0c5`: PASSED. Pilot acceptance: NOT GRANTED.**
+
+PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. The validated source/test baseline is [7048957](https://github.com/milanradics89-beep/POS-Doctor/commit/704895725c64b7839a3135526a4e2319cb49f0c5) (`704895725c64b7839a3135526a4e2319cb49f0c5`), commit `test(search): correct missing-title provider fixture`.
+
+### Exact-head automated evidence
+
+- [Validation #42846996794](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794): backend [job 129937045431](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794/job/129937045431) passed **450 tests**, **27 readiness checks**, and **78 security/privacy checks**; `pip-audit` found no known vulnerabilities.
+- [Validation #42846996794](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794): frontend/Android [job 129937046167](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794/job/129937046167) passed **277 tests across 57 files**, Expo project health, Android Release build, and emulator install/launch smoke. Runtime npm audit reported four moderate transitive `glob`/`minimatch` advisories below the configured high-severity failure threshold.
+- [Validation #42846996794](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794): iOS [job 129937046057](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996794/job/129937046057) passed Release simulator build and install/launch smoke.
+- [CodeQL #42846997034](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846997034) and [Dependency Review #42846996967](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42846996967) both passed for the exact same SHA. CodeQL scanned 71/71 Python and 4/4 GitHub Actions files; a non-fatal SARIF column-kind mismatch warning remains. Dependency Review emitted Scorecard warnings for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5).
+
+### Acceptance boundary
+
+- Issue #47 is closed and main ruleset #26370589 is active.
+- PR #41 has 12 inline review threads, 11 resolved and one unresolved P2 documentation checkpoint finding; 16 review submissions and 0 APPROVED.
+- Physical iPhone App Attest, Play-installed physical Android Play Integrity, witnessed production backup/restore, representative product-recognition benchmark, production monitoring and alert delivery, staged rollout/rollback approval, and real pilot/business sign-off remain outstanding.
+- Production secrets/provider configuration, production log sink/retention, approved staging load test, store signing/distribution, and operational rollback ownership are not established by simulator/emulator CI.
+- GitHub Releases is empty. Full Code Scanning, Dependabot, and Secret Scanning alert inventories remain unverified, not zero.
+
+No production release or pilot is authorized by this automated evidence. PR #41 must remain unmerged until its new documentation-only HEAD receives its own exact-head required checks, the P2 thread is resolved with accurate evidence, and a human approving review plus last-push approval are recorded.
+
+---
+
+## Superseded automated acceptance checkpoint (captured 2026-11-10 12:05 CET; validated source/test HEAD 8a66385)
 
 PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. Exact current HEAD: [`8a66385820a89de1c25997e6ce75a3ed028f656a`](https://github.com/milanradics89-beep/POS-Doctor/commit/8a66385820a89de1c25997e6ce75a3ed028f656a), parent [`d6f2b02`](https://github.com/milanradics89-beep/POS-Doctor/commit/d6f2b02f58ab38f3d748be4bec3f4c31d36ad400). Commit: `test(privacy): align nested image redaction expectations`.
 
