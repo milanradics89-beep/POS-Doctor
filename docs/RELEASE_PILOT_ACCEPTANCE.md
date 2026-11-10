@@ -1,4 +1,20 @@
-## Latest fully validated PR #41 automated checkpoint (captured 2026-11-10 22:33 CET)
+## Latest fully validated PR #41 automated checkpoint (captured 2026-11-11 00:39 CET)
+
+**Automated CI acceptance for exact PR HEAD `f56bdc9b4ddf61c321897e69cb2b5b69a46089c5`: PASSED. Pilot acceptance: NOT GRANTED.**
+
+PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. The validated application/source-test baseline is [`7048957`](https://github.com/milanradics89-beep/POS-Doctor/commit/704895725c64b7839a3135526a4e2319cb49f0c5); exact documentation PR HEAD [`f56bdc9`](https://github.com/milanradics89-beep/POS-Doctor/commit/f56bdc9b4ddf61c321897e69cb2b5b69a46089c5) is a child of [`a33a465`](https://github.com/milanradics89-beep/POS-Doctor/commit/a33a465ffb8bfa6a65902806b9ff61fc845ed836) and has its own successful Validation, CodeQL, and Dependency Review:
+
+- Validation [#42912006709](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006709): backend [job 130164777835](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006709/job/130164777835) passed **450 tests**, **27 production-readiness checks**, and **78 security/privacy checks**. Frontend/Android [job 130164777270](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006709/job/130164777270) passed **277 tests across 57 files**, Android Release build (**BUILD SUCCESSFUL in 23m 18s**) and emulator install/launch smoke. iOS [job 130164778375](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006709/job/130164778375) passed Release simulator build and install/launch smoke.
+- CodeQL [#42912006185](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006185), analyze [job 130164775016](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006185/job/130164775016): passed; scanned 71 Python and 4 GitHub Actions files. SARIF merge emitted a non-fatal column-kind mismatch warning.
+- Dependency Review [#42912006535](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006535), job [130164776083](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006535/job/130164776083): passed with no high-or-higher vulnerable packages and no denied packages. The frontend runtime npm audit still reports four moderate `glob`/`minimatch` instances.
+
+At capture, all **12/12 inline review threads are resolved**; there are **18 review submissions and 0 APPROVED**. Human approval and last-push approval remain required. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed and main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) remains active.
+
+The exact-head automated evidence does not establish physical iPhone App Attest, Play-installed Android Play Integrity, production provider configuration, production backup/restore, production monitoring/alert delivery, staged rollout/rollback, representative product-recognition benchmark, or pilot/business approval. Those gates remain open. PR #41 remains open and unmerged.
+
+---
+
+## Superseded automated acceptance checkpoint (captured 2026-11-10 22:33 CET; exact HEAD 627ccb2)
 
 **Automated CI acceptance for exact PR HEAD `627ccb2123ea11d297218ddaefa4f3cc764d0957`: PASSED. Pilot acceptance: NOT GRANTED.**
 
