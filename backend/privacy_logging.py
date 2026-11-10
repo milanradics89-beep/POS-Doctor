@@ -37,6 +37,18 @@ def redact_value(key: str, value: Any) -> Any:
         return _MEMORY_PATH_RE.sub(r"\1[REDACTED]", value)
     if isinstance(value, str) and _DATA_URI_RE.fullmatch(value):
         return "[REDACTED_IMAGE]"
+    # Structured events may contain nested metadata or arrays of records.
+    # Redact their contents recursively so a sensitive key cannot bypass the
+    # top-level sanitizer simply by being placed inside a context object.
+    if isinstance(value, dict):
+        return {
+            str(nested_key): redact_value(str(nested_key), nested_value)
+            for nested_key, nested_value in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_value(key, item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_value(key, item) for item in value)
     return value
 
 

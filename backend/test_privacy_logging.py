@@ -104,3 +104,41 @@ def test_log_event_redacts_camel_case_credentials(caplog):
     ):
         assert sentinel not in caplog.text
     assert caplog.text.count("[REDACTED]") == 4
+
+def test_log_event_recursively_redacts_nested_structured_fields(caplog):
+    logger = logging.getLogger("privacy-nested-structured-test")
+    with caplog.at_level(logging.INFO):
+        log_event(
+            logger,
+            "request_context",
+            context={
+                "Authorization": "Bearer nested-auth-sentinel",
+                "profile": {
+                    "session_token": "nested-session-sentinel",
+                    "imageUri": "data:image/png;base64,NESTED_IMAGE_SENTINEL",
+                },
+                "events": [
+                    {
+                        "userPrompt": "nested prompt sentinel",
+                        "path": "/v1/memory/nested-memory-capability",
+                    }
+                ],
+                "usage": {"promptTokens": 12, "completionTokens": 8},
+            },
+            headers=[{"X-API-Key": "nested-api-key-sentinel"}],
+        )
+
+    for sentinel in (
+        "nested-auth-sentinel",
+        "nested-session-sentinel",
+        "NESTED_IMAGE_SENTINEL",
+        "nested prompt sentinel",
+        "nested-memory-capability",
+        "nested-api-key-sentinel",
+    ):
+        assert sentinel not in caplog.text
+
+    assert "[REDACTED]" in caplog.text
+    assert "[REDACTED_IMAGE]" in caplog.text
+    assert '"promptTokens": 12' in caplog.text
+    assert '"/v1/memory/[REDACTED]"' in caplog.text
