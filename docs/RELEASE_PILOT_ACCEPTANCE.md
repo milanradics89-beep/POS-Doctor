@@ -1,4 +1,29 @@
-## Latest validated release acceptance baseline (captured 2026-11-10 05:07 CET)
+## Latest validated release acceptance baseline (captured 2026-11-10 09:34 CET)
+
+**Automated CI acceptance for exact source/test HEAD `1caff15c75f5ec45b101547809e38f8134ad7d0d`: PASSED. Pilot acceptance: NOT GRANTED.**
+
+PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. The exact validated source/test commit is [`1caff15`](https://github.com/milanradics89-beep/POS-Doctor/commit/1caff15c75f5ec45b101547809e38f8134ad7d0d), parent [`0a5701a`](https://github.com/milanradics89-beep/POS-Doctor/commit/0a5701af45285613668ca75b03c8a112fab75d0b).
+
+### Exact-head automated evidence
+
+- Validation [42774383235](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42774383235):
+  - Backend [job 129689358026](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42774383235/job/129689358026): **419 tests**, **27 production-readiness checks**, and **55 security/privacy checks** passed; `pip-audit` found no known vulnerabilities.
+  - Frontend/Android [job 129689357594](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42774383235/job/129689357594): TypeScript passed, **57 test files passed**, Expo Doctor passed, Android Release build and emulator install/launch smoke passed. Runtime npm audit still reports **four moderate** transitive `glob`/`minimatch` findings.
+  - iOS [job 129689357911](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42774383235/job/129689357911): Release simulator build and install/launch smoke passed for `com.useit.app`.
+- CodeQL [42774383619](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42774383619), analyze job [129689361301](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42774383619/job/129689361301): passed; SARIF merge emitted a non-fatal column-kind mismatch warning.
+- Dependency Review [42774383276](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42774383276), job [129689357308](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42774383276/job/129689357308): passed with no high-or-higher vulnerable packages and no denied packages. Unknown license metadata for vendored `deepmerge@4.3.2` and low Scorecard results for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5) remain open.
+
+### Acceptance decision
+
+Automated simulator/emulator CI is accepted for this exact source/test SHA only. It does **not** establish physical-device App Attest or Play Integrity, production backup/restore, production monitoring/alert delivery, staged rollout/rollback readiness, product-recognition accuracy, a real pilot, or business sign-off.
+
+The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Issue #47 is closed and main ruleset #26370589 is active. All 11 inline review threads are resolved, but the 15 recorded review submissions contain **0 APPROVED**; one human approving review and last-push approval are still required. Dependency-risk disposition and complete Code Scanning/Dependabot/Secret Scanning inventories remain open or unverified.
+
+The documentation-only commit created by this refresh becomes a new PR HEAD. Its own exact-head Validation, CodeQL, and Dependency Review must complete successfully before this acceptance evidence is considered current.
+
+---
+
+## Superseded acceptance checkpoint (captured 2026-11-10 05:07 CET; source/test HEAD b74ce21)
 
 **Automated CI acceptance for exact source/test HEAD `b74ce21920040bbde383f9cd13d207889fb0ad5c`: PASSED. Pilot acceptance: NOT GRANTED.**
 
