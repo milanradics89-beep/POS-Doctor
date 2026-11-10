@@ -277,3 +277,30 @@ def test_google_credentials_refresh_uses_bounded_http_timeout(monkeypatch):
     assert observed["url"] == "https://oauth2.googleapis.com/token"
     assert observed["method"] == "POST"
     assert observed["timeout"] == 10.0
+
+@pytest.mark.parametrize("exception_type", [httpx.ConnectError, httpx.ReadTimeout])
+@pytest.mark.asyncio
+async def test_google_verifier_maps_network_transport_exceptions_to_unavailable(
+    monkeypatch, exception_type
+):
+    monkeypatch.setenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "com.useit.app")
+
+    def fail_request(request):
+        raise exception_type("simulated Google Play Integrity transport failure", request=request)
+
+    transport = httpx.MockTransport(fail_request)
+    async with httpx.AsyncClient(transport=transport) as client:
+        verifier = GooglePlayIntegrityVerifier(
+            client=client,
+            credentials_factory=lambda: "test-access-token",
+        )
+        result = await verifier.verify(
+            AttestationEvidence(
+                AttestationProvider.PLAY_INTEGRITY,
+                "challenge",
+                "integrity-token",
+                "com.useit.app",
+            )
+        )
+
+    assert result == AttestationResult(False, "provider_unavailable")
