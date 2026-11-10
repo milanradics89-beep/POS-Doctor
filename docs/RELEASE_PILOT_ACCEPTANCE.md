@@ -1,4 +1,38 @@
-## Current release acceptance status (2026-11-09 23:23 CET)
+## Latest validated release acceptance baseline (captured 2026-11-10 05:07 CET)
+
+**Automated CI acceptance for exact source/test HEAD `b74ce21920040bbde383f9cd13d207889fb0ad5c`: PASSED. Pilot acceptance: NOT GRANTED.**
+
+PR #41 remains open and unmerged. The exact validated source/test commit is [`b74ce21`](https://github.com/milanradics89-beep/POS-Doctor/commit/b74ce21920040bbde383f9cd13d207889fb0ad5c), parent [`4ab13ea`](https://github.com/milanradics89-beep/POS-Doctor/commit/4ab13ea284715fb00b66176236e44939509570dd).
+
+Exact-head workflows:
+- Validation [42742728729](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728729): backend [129587487624](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728729/job/129587487624) passed 419 tests, 27 readiness checks, and 55 security/privacy checks; frontend/Android [129587486517](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728729/job/129587486517) passed TypeScript, 249 tests across 56 files, Expo Doctor, Android Release build and emulator smoke; iOS [129587487171](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728729/job/129587487171) passed Release simulator build and install/launch smoke.
+- CodeQL [42742728752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728752), analyze [129587487170](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728752/job/129587487170): passed with a non-fatal SARIF column-kind mismatch warning.
+- Dependency Review [42742728525](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728525), job [129587483853](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728525/job/129587483853): passed with no high-or-higher vulnerable packages and no denied packages. Four moderate npm audit findings and Scorecard/license metadata warnings remain.
+
+**This documentation update creates a new documentation-only PR HEAD. Its own exact-head Validation, CodeQL, and Dependency Review must run separately; the `b74ce21` runs above are the last fully validated source/test baseline, not evidence for the new docs commit.**
+
+**Pilot acceptance remains NOT GRANTED.** Simulator/emulator CI is not physical-device acceptance, production validation, or business sign-off. The backlog remains **3 Done / 15 In Progress / 7 Blocked**.
+
+## Release acceptance gates
+
+- [x] Exact-source-head Validation for `b74ce21`: backend, frontend/Android, and iOS jobs passed.
+- [x] Exact-source-head CodeQL for `b74ce21`.
+- [x] Exact-source-head Dependency Review for `b74ce21`.
+- [x] Main ruleset #26370589 active; issue #47 closed.
+- [x] All 11 inline PR review threads resolved.
+- [ ] One human approving review and last-push approval for PR #41 (15 review submissions, 0 APPROVED).
+- [ ] Physical iPhone App Attest production entitlement and provider-backed test.
+- [ ] Play-installed physical Android Play Integrity test with production signing identity.
+- [ ] Owner-witnessed production backup/restore drill.
+- [ ] Representative labeled product-recognition benchmark and business acceptance.
+- [ ] Production monitoring workspace, alert destination, on-call owner, and delivery test.
+- [ ] Staged rollout thresholds, rollback rehearsal, and named rollback owner.
+- [ ] Real pilot cohort, success/stop thresholds, and written business approval.
+- [ ] Dependency-risk disposition for four moderate npm advisories and remaining Scorecard/license warnings.
+
+---
+
+## Superseded acceptance checkpoint (2026-11-09 23:23 CET; PR HEAD f8c89c0)
 
 **Automated CI acceptance for exact PR HEAD `f8c89c0`: PASSED. Pilot acceptance: NOT GRANTED.**
 

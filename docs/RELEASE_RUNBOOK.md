@@ -1,4 +1,26 @@
-## Current PR #41 exact-head status (2026-11-09 23:23 CET)
+## Latest fully validated source/test baseline (captured 2026-11-10 05:07 CET)
+
+PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main`. At evidence capture, the exact branch HEAD was [`b74ce21`](https://github.com/milanradics89-beep/POS-Doctor/commit/b74ce21920040bbde383f9cd13d207889fb0ad5c), parent [`4ab13ea`](https://github.com/milanradics89-beep/POS-Doctor/commit/4ab13ea284715fb00b66176236e44939509570dd). This is the latest fully validated application source/test baseline.
+
+All three required workflows completed successfully for exact HEAD `b74ce21920040bbde383f9cd13d207889fb0ad5c`:
+- Validation [42742728729](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728729):
+  - Backend [job 129587487624](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728729/job/129587487624): **419 tests passed**, **27 production-readiness checks passed**, **55 security/privacy checks passed**; `pip-audit` reported no known vulnerabilities. Non-blocking warnings: Starlette/httpx TestClient deprecation and Redis test-container `vm.overcommit_memory` advisory.
+  - Frontend/Android [job 129587486517](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728729/job/129587486517): TypeScript passed; **249 unit tests across 56 test files** passed; Expo Doctor passed; Android Release build and emulator install/launch smoke passed for `com.useit.app`. Runtime `npm audit --omit=dev --audit-level=high` exited successfully but still reports **four moderate** transitive `glob`/`minimatch` advisories.
+  - iOS [job 129587487171](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728729/job/129587487171): native project generation and CocoaPods passed; Release simulator build succeeded and `com.useit.app` launched in the simulator. This is simulator evidence, not physical-iPhone App Attest acceptance.
+- CodeQL [42742728752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728752), analyze [job 129587487170](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728752/job/129587487170): passed and uploaded results. SARIF combination emitted a non-fatal column-kind mismatch warning.
+- Dependency Review [42742728525](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728525), job [129587483853](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42742728525/job/129587483853): passed with no high-or-higher vulnerable packages and no denied packages. Below-threshold Scorecard warnings remain for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5); vendored `deepmerge@4.3.2` license scanner metadata remains unresolved although its manifest and LICENSE declare MIT.
+
+**Documentation commit caveat:** this evidence update is being committed on top of `b74ce21`. The resulting documentation-only commit becomes a new PR HEAD and must run its own Validation, CodeQL, and Dependency Review. Do not treat the parent `b74ce21` runs above as checks for that new documentation commit.
+
+Governance: issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed. Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires strict checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`; one approving review; last-push approval; resolved review threads; deletion/non-fast-forward protection; and no bypass actors. All **11/11 inline review threads are resolved**; **15 review submissions are COMMENTED and 0 are APPROVED**, so human approval remains outstanding.
+
+The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Done: #1 iOS simulator CI, #2 main ruleset, #6 Redis multi-instance coverage. Blocked: #4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark, #21 production monitoring/alert delivery, #22 staged rollout/rollback approval, and #25 real pilot/business approval.
+
+The GitHub Releases endpoint is empty. The connected integration rejected the Code Scanning, Dependabot, and Secret Scanning alert-list endpoints; those inventories remain **unverified, not zero**. PR #41 remains open and unmerged pending a human approving review, dependency-risk disposition, and external production/physical-device/pilot gates.
+
+---
+
+## Superseded checkpoint (2026-11-09 23:23 CET; PR HEAD f8c89c0)
 
 PR #41 is open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main`. Exact current HEAD is documentation-only commit [`f8c89c0`](https://github.com/milanradics89-beep/POS-Doctor/commit/f8c89c0437d067640fc033a20df7b2cf56dfe85a), parent [`6301889`](https://github.com/milanradics89-beep/POS-Doctor/commit/6301889b918794816844fba5ad649e52c9b07964).
 
