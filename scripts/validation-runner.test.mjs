@@ -29,7 +29,7 @@ describe('USEIT validation runner contract', () => {
     expect(frontendJob).toContain('name: Runtime dependency audit');
   });
 
-  it('installs the pinned Expo Doctor CLI beside the lockfile-resolved @expo/env package', () => {
+  it('installs the published SDK 57 Expo Doctor CLI beside the lockfile-resolved @expo/env package', () => {
     const packageLock = JSON.parse(
       readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'),
     );
@@ -38,7 +38,7 @@ describe('USEIT validation runner contract', () => {
     expect(expoEnv?.version).toBe('2.5.4');
     expect(expoEnv?.dev).not.toBe(true);
     expect(frontendJob).toContain(
-      'npm pack --silent --pack-destination "$RUNNER_TEMP/expo-doctor" expo-doctor@1.21.7',
+      'npm pack --silent --pack-destination "$RUNNER_TEMP/expo-doctor" expo-doctor@1.20.5',
     );
     expect(frontendJob).toContain(
       'tar -xzf "$RUNNER_TEMP/expo-doctor/$TARBALL" -C node_modules/expo-doctor --strip-components=1',
