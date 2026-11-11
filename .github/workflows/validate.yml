@@ -34,10 +34,16 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npm test -- --passWithNoTests
+      - name: Install pinned Expo Doctor CLI
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/expo-doctor"
+          TARBALL="$(npm pack --silent --pack-destination "$RUNNER_TEMP/expo-doctor" expo-doctor@1.21.7)"
+          mkdir -p node_modules/expo-doctor
+          tar -xzf "$RUNNER_TEMP/expo-doctor/$TARBALL" -C node_modules/expo-doctor --strip-components=1
+          node -e "const pkg = require('./node_modules/expo-doctor/package.json'); if (pkg.version !== '1.21.7') throw new Error('Unexpected Expo Doctor version'); require.resolve('@expo/env')"
       - name: Validate Expo project health
-        env:
-          NODE_PATH: ${{ github.workspace }}/node_modules
-        run: npm exec --yes --package=expo-doctor@1.21.7 --package=@expo/env@2.5.4 -- expo-doctor
+        run: node node_modules/expo-doctor/bin/expo-doctor.js
       - name: Validate Android export
         run: npx expo export --platform android --output-dir .expo-export
       - name: Validate native Android release build

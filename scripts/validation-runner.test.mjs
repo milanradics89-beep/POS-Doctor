@@ -29,16 +29,26 @@ describe('USEIT validation runner contract', () => {
     expect(frontendJob).toContain('name: Runtime dependency audit');
   });
 
-  it('runs Expo Doctor with a pinned CLI and the lockfile-resolved @expo/env dependency', () => {
+  it('installs the pinned Expo Doctor CLI beside the lockfile-resolved @expo/env package', () => {
     const packageLock = JSON.parse(
       readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'),
     );
-    const expoEnvVersion = packageLock.packages['node_modules/@expo/env']?.version;
+    const expoEnv = packageLock.packages['node_modules/@expo/env'];
 
-    expect(expoEnvVersion).toBe('2.5.4');
+    expect(expoEnv?.version).toBe('2.5.4');
+    expect(expoEnv?.dev).not.toBe(true);
     expect(frontendJob).toContain(
-      `run: npm exec --yes --package=expo-doctor@1.21.7 --package=@expo/env@${expoEnvVersion} -- expo-doctor`,
+      'npm pack --silent --pack-destination "$RUNNER_TEMP/expo-doctor" expo-doctor@1.21.7',
     );
+    expect(frontendJob).toContain(
+      'tar -xzf "$RUNNER_TEMP/expo-doctor/$TARBALL" -C node_modules/expo-doctor --strip-components=1',
+    );
+    expect(frontendJob).toContain("require.resolve('@expo/env')");
+    expect(frontendJob).toContain(
+      'run: node node_modules/expo-doctor/bin/expo-doctor.js',
+    );
+    expect(frontendJob).not.toContain('npm exec --yes --package=expo-doctor');
+    expect(frontendJob).not.toContain('NODE_PATH:');
     expect(frontendJob).not.toMatch(/^\s+run:\s+npx expo-doctor\s*$/m);
   });
 });
