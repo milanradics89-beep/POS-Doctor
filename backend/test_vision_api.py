@@ -9,6 +9,13 @@ from backend import main
 from backend.main import AnalyzeRequest, _analyze
 
 
+VALID_TEST_PNG_DATA_URI = (
+    "data:image/png;base64,"
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII="
+)
+
+
+
 class FakeCompletions:
     def __init__(self, content):
         self.content = content
@@ -141,7 +148,7 @@ async def test_analyze_logs_token_usage_without_logging_user_content(monkeypatch
     with caplog.at_level(logging.INFO, logger="useit"):
         await _analyze(
             AnalyzeRequest(
-                imageUri="data:image/jpeg;base64," + base64.b64encode(b"PRIVATE_IMAGE_SENTINEL" * 4).decode("ascii"),
+                imageUri=VALID_TEST_PNG_DATA_URI,
                 userIntent="PRIVATE_INTENT_SENTINEL",
                 locale="hu-HU",
             )
@@ -151,7 +158,9 @@ async def test_analyze_logs_token_usage_without_logging_user_content(monkeypatch
     assert '"promptTokens": 120' in caplog.text
     assert '"completionTokens": 80' in caplog.text
     assert '"totalTokens": 200' in caplog.text
-    assert "PRIVATE_IMAGE_SENTINEL" not in caplog.text
+    image_bytes = base64.b64decode(VALID_TEST_PNG_DATA_URI.partition(",")[2])
+    assert image_bytes.startswith(b"\x89PNG\r\n\x1a\n")
+    assert VALID_TEST_PNG_DATA_URI not in caplog.text
     assert "PRIVATE_INTENT_SENTINEL" not in caplog.text
 
 def test_image_request_accepts_public_http_url_after_public_host_validation(monkeypatch):
