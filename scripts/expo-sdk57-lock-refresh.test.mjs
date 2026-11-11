@@ -66,9 +66,11 @@ describe('Expo SDK 57 lock refresh workflow', () => {
   });
 
   it('publishes only checksum-verified manifest files and fails if any artifact file is missing', () => {
-    expect(workflow).toContain('cp package.json package-lock.json .expo-sdk57-lock-refresh/');
+    expect(workflow).toContain('mkdir -p expo-sdk57-lock-refresh');
+    expect(workflow).toContain('cp package.json package-lock.json expo-sdk57-lock-refresh/');
     expect(workflow).toContain('sha256sum package.json package-lock.json > SHA256SUMS');
-    expect(workflow).toContain('path: .expo-sdk57-lock-refresh/');
+    expect(workflow).toContain('path: expo-sdk57-lock-refresh/');
+    expect(workflow).not.toContain('.expo-sdk57-lock-refresh');
     expect(workflow).toContain('if-no-files-found: error');
     expect(workflow).toContain('retention-days: 7');
     expect(workflow).toContain('ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}');
