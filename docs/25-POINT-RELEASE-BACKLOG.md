@@ -1,3 +1,39 @@
+## Latest 25-point status checkpoint — 2026-11-11 18:11 CET
+
+Exact PR #41 HEAD: [`2faa49c150010e8d7f89b1bbfe122b2b42c04e8d`](https://github.com/milanradics89-beep/POS-Doctor/commit/2faa49c150010e8d7f89b1bbfe122b2b42c04e8d); branch `fix/release-blockers-2026-10`, target `main`; **509 ahead / 0 behind**. Exact-head Validation [43056660265](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43056660265), CodeQL [43056660273](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43056660273), and Dependency Review [43056660254](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43056660254) all passed.
+
+| # | Workstream | Status | Current evidence / remaining acceptance |
+|---:|---|---|---|
+| 1 | iOS CI closure | **Done** | Exact-head iOS job [130647798726](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43056660265/job/130647798726) passed Release simulator build and install/launch smoke. Physical iPhone acceptance remains separate item #4. |
+| 2 | Main branch protection | **Done** | Issue #47 is closed; active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) enforces six strict checks, one approval, last-push approval, resolved threads, no bypass, and deletion/non-fast-forward protection. |
+| 3 | Dependency Review warnings | **In Progress** | Exact-head Dependency Review passed with no high-or-higher vulnerable packages in the reviewed diff and no denied packages. Unknown license metadata remains for `vendor/deepmerge@4.3.2`; Scorecard remains below threshold for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5). Exact-head runtime npm audit reports four moderate transitive `glob`/`minimatch` advisory instances and no high-or-higher finding at the configured threshold. Alert inventories remain unverified, not zero. |
+| 4 | Physical iPhone App Attest production entitlement | **Blocked** | Requires Apple production App ID/capability and provisioning entitlement, a signed production build, and provider-backed enrollment/assertion verification on a supported physical iPhone. |
+| 5 | Play-installed physical Android Play Integrity | **Blocked** | Requires Play internal-track distribution, Play App Signing certificate identity, Google Cloud service-account/API permissions, and verification on a physical Android installed from Play. |
+| 6 | Redis multi-instance concurrency | **Done** | Exact-head backend job passed 450 tests with the Redis service; shared-Redis/multi-client and separate-worker challenge-consumption regression coverage remains in the suite. This does not establish production Redis host settings. |
+| 7 | Attestation retry/network/expiry | **In Progress** | Automated expiry, missing/non-integer challenge, transport timeout/connect failure, and same-evidence retry coverage exists and passed in the backend/frontend suites. Physical provider-backed device/network verification remains open. |
+| 8 | Backend production security audit | **In Progress** | Exact-head backend job passed 450 tests, 27 readiness checks, 78 security/privacy checks; `pip-audit` reported no known vulnerabilities. Deployed secrets, ingress/CORS, provider identity, live Redis TLS/sysctl, and production host hardening remain environment-verification gates. |
+| 9 | Privacy and logging audit | **In Progress** | Exact-head backend passed 78 security/privacy checks. Valid PNG image-data URI and private-intent redaction tests remain in the suite. Production log sink, ingress/access logs, retention, and operator access remain unverified. |
+| 10 | Release acceptance evidence | **In Progress** | Validation, CodeQL, and Dependency Review all passed for exact HEAD `2faa49c`. Review state: 17/17 inline threads resolved, 22 submissions, 0 APPROVED. Human approval and external production/pilot acceptance remain required. |
+| 11 | Mobile regression | **In Progress** | Exact-head frontend passed 285 tests across 58 files; Android Release/emulator smoke and iOS Release simulator/smoke passed. Physical-device regression remains. |
+| 12 | Camera/image processing | **In Progress** | Image-contract, permission-decision, and mobile regression tests exist. Representative physical capture, camera/gallery device flows, and real-photo coverage remain. |
+| 13 | Offline/weak network | **In Progress** | Abort/deadline/retry and provider transport failure tests exist. Real network interruption and reconnect recovery still need device/staging validation. |
+| 14 | API timeout/retry | **In Progress** | Monotonic end-to-end request deadline, bounded session bootstrap, and explicit-auth POST retry regressions exist. Real network interruption and backend-enforced POST idempotency remain unproven. |
+| 15 | Backend load test | **In Progress** | Guarded load-test harness exists. Execute only against owner-approved staging with agreed concurrency, duration, latency/error thresholds, and recorded results. |
+| 16 | Backup/restore | **Blocked** | Requires production datastore/Redis backup access and a witnessed restore/recovery drill with measured recovery-point and recovery-time evidence. |
+| 17 | AI cost optimization | **In Progress** | Shared client, bounded retries, and validated token/model telemetry exist. Pricing inputs, per-session budgets, provider-cost reconciliation, and production cost alerts remain. |
+| 18 | Product-recognition accuracy | **Blocked** | Requires a representative labeled dataset, agreed accuracy metrics, human evaluation, and explicit business acceptance. No benchmark is claimed. |
+| 19 | AI fallback | **In Progress** | Conservative scene/no-candidate fallback code and tests exist. Provider-outage behavior and fallback quality still need staging evidence. |
+| 20 | UI loading/empty/error/permission regression | **In Progress** | Exact-head 285-test frontend suite passed; permanently denied camera/gallery permission recovery and sanitized Error Boundary logging are covered. Full state matrix and physical-device validation remain. |
+| 21 | Monitoring/alerting | **Blocked** | Requires production monitoring workspace, alert destination, named on-call owner, configured thresholds, and a witnessed alert-delivery test. |
+| 22 | Staged rollout | **Blocked** | Requires production approval, TestFlight/Play track access, documented rollout/stop thresholds, and a named rollback owner with a tested rollback procedure. |
+| 23 | Analytics | **In Progress** | Token/model usage telemetry exists; product funnel, retention, dashboard validation, and production data-governance approval remain. |
+| 24 | Release pipeline | **In Progress** | Exact-head Expo Doctor 21/21, Android export/Release/emulator, iOS simulator, backend, CodeQL, and Dependency Review all passed. Signing, store distribution, promotion, staged rollout, and rollback ownership remain open. |
+| 25 | Pilot/business validation | **Blocked** | Requires a real pilot cohort, documented success/stop thresholds, named business owner, participant safeguards, and explicit business/release approval. |
+
+**Current count: 3 Done / 15 In Progress / 7 Blocked.** Source presence or simulator/emulator evidence alone does not satisfy physical-device, production, or pilot acceptance.
+
+---
+
 ## Latest 25-point status checkpoint — 2026-11-11 11:00 CET
 
 - Exact PR #41 HEAD at capture: [`9688f9378da0b26aaa53ce9ae8e663b92944b98d`](https://github.com/milanradics89-beep/POS-Doctor/commit/9688f9378da0b26aaa53ce9ae8e663b92944b98d); branch `fix/release-blockers-2026-10`, target `main`; PR remains open and unmerged. This documentation-only HEAD is a child of the previously validated `35fc1f3`.
