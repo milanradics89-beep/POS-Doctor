@@ -8,7 +8,7 @@ const workflow = readFileSync(
 
 describe('USEIT validation runner contract', () => {
   const frontendJob = workflow.match(
-    /^  frontend:\r?\n([\s\S]*?)(?=^  [A-Za-z0-9_-]+:\r?\n|$)/m,
+    /^  frontend:\r?\n([\s\S]*?)(?=^  [A-Za-z0-9_-]+:\r?\n)/m,
   )?.[1] ?? '';
 
   it('pins the Android/frontend validation job to the previously validated Ubuntu LTS image', () => {
@@ -22,6 +22,13 @@ describe('USEIT validation runner contract', () => {
   it('keeps the iOS build on the macOS runner', () => {
     expect(workflow).toMatch(/^  ios:\r?\n    runs-on: macos-latest$/m);
   });
+
+  it('captures the complete frontend job, including Expo Doctor and Android validation', () => {
+    expect(frontendJob).toContain('name: Validate Expo project health');
+    expect(frontendJob).toContain('name: Validate Android export');
+    expect(frontendJob).toContain('name: Runtime dependency audit');
+  });
+
   it('runs Expo Doctor with a pinned CLI and the lockfile-resolved @expo/env dependency', () => {
     const packageLock = JSON.parse(
       readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'),
@@ -32,7 +39,6 @@ describe('USEIT validation runner contract', () => {
     expect(frontendJob).toContain(
       `run: npm exec --yes --package=expo-doctor@1.21.7 --package=@expo/env@${expoEnvVersion} -- expo-doctor`,
     );
-    expect(frontendJob).not.toMatch(/^\\s+run:\\s+npx expo-doctor\\s*$/m);
+    expect(frontendJob).not.toMatch(/^\s+run:\s+npx expo-doctor\s*$/m);
   });
-
 });
