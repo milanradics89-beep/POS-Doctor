@@ -1,33 +1,42 @@
-PR #41 remained open and unmerged on `fix/release-blockers-2026-10`, targeting `main`, at capture. The last fully validated application/source-test HEAD was [`537b531`](https://github.com/milanradics89-beep/POS-Doctor/commit/537b53162d4ed6a6b9d77d81def76773b6012100). It is a child of [`81dd353`](https://github.com/milanradics89-beep/POS-Doctor/commit/81dd35318fea4bc998a2b7c53f6ea436e64ecbf5). This checkpoint is exact-head evidence for `537b531`; any later documentation-only commit must receive its own exact-head Validation, CodeQL, and Dependency Review before it is called validated.
+## Current pilot acceptance decision — captured 2026-11-11 05:53 CET
 
-### Exact-head automated evidence for `537b531`
+- PR #41 is **open, unmerged, and non-draft** on `fix/release-blockers-2026-10`, targeting `main`.
+- Current exact PR HEAD: [`f2a7f9f89ff69ed9a62ae89aefdca6787dea5e79`](https://github.com/milanradics89-beep/POS-Doctor/commit/f2a7f9f89ff69ed9a62ae89aefdca6787dea5e79), a documentation-only child of the last fully validated source/test HEAD [`537b53162d4ed6a6b9d77d81def76773b6012100`](https://github.com/milanradics89-beep/POS-Doctor/commit/537b53162d4ed6a6b9d77d81def76773b6012100).
+- Current branch comparison: **496 commits ahead / 0 behind** `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. PR diff: **97 files, 12,977 additions, 909 deletions**. GitHub currently reports `mergeable: true`; this does not replace required approval or release acceptance.
+- Exact-head Validation [#42959259888](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42959259888) — **success**: backend job [130321608918](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42959259888/job/130321608918}), frontend/Android job [130321609296](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42959259888/job/130321609296}), iOS job [130321609370](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42959259888/job/130321609370}).
+- Exact-head CodeQL [#42959259907](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42959259907) — **success**: analyze job [130321608956](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42959259907/job/130321608956}).
+- Exact-head Dependency Review [#42959259914](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42959259914) — **success**: dependency-review job [130321608554](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42959259914/job/130321608554}).
+- All three workflows above were queried against the exact same `f2a7f9f` SHA; the older parent runs are not being substituted for exact-head evidence.
+- The last validated source/test parent `537b531` passed Validation [#42950018548](https://api.github.com/repos/milanradics89-beep/POS-Doctor/actions/runs/42950018548), CodeQL [#42950018544](https://api.github.com/repos/milanradics89-beep/POS-Doctor/actions/runs/42950018544), and Dependency Review [#42950018559](https://api.github.com/repos/milanradics89-beep/POS-Doctor/actions/runs/42950018559). Its Validation recorded 450 backend tests, 27 readiness checks, 78 security/privacy checks, 280 frontend tests across 57 files, Expo Doctor 21/21, Android Release/emulator smoke, and iOS simulator build/smoke. These counts belong to the parent source/test SHA, not the documentation-only current HEAD.
+- PR #41 has **12/12 inline review threads resolved**, **18 review submissions**, and **0 APPROVED reviews**. One human approving review and last-push approval remain required.
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed (2026-11-02). Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) enforces six strict required checks, one approval, last-push approval, resolved threads, deletion/non-fast-forward protection, and no bypass actors.
+- Issue [#46](https://github.com/milanradics89-beep/POS-Doctor/issues/46) remains open for historical CodeQL action-version mismatch analysis. PRs #43/#44 must not be merged independently; draft #49 still needs base reconciliation and full validation.
+- Repository inventory: **32 branches, 19 open PRs, 4 open issues (#46, #25, #24, #23), 0 published releases**.
+- Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero**: their alert endpoints are not available through the connected GitHub integration.
+- Runtime npm audit still reports **four moderate** transitive `glob`/`minimatch` advisory instances. Dependency Review passing is not a zero-finding audit. OpenSSF Scorecard warnings remain for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5).
+- The Expo lock-refresh artifact from run [#42939371782](https://api.github.com/repos/milanradics89-beep/POS-Doctor/actions/runs/42939371782) was downloaded and verified on that workflow's older HEAD `6cb8cd3`: artifact ID `13819632595`, 76,729 bytes, ZIP SHA256 `6ef2bb2eb1eaec4f0c22bd406b3b5003abe5a0b3b5753cbeed3fc5c2c0622dfc`; both internal checksums passed. Its candidate lockfile still contains nested `glob@13.0.7` and `minimatch@10.2.6`; dependency remediation and item #24 remain In Progress.
+- The current `backend/rate_limit.py` review finding about TTL-less probe keys is resolved and the fix is present: `PEXPIRE` is preflighted on both unique readiness keys before the mutating Lua script; regression coverage denies either preflight and verifies that Lua is not invoked. Fix commits `6f6ab983` and `9df8ead0` are ancestors of the current HEAD.
+- Current 25-point tally remains **3 Done / 15 In Progress / 7 Blocked**. The seven external gates remain #4, #5, #16, #18, #21, #22, and #25; no simulator or emulator result is counted as physical-device or production acceptance.
 
-- Validation [#42950018548](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42950018548): **success**.
-  - Backend job [130291861473](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42950018548/job/130291861473): **450 tests**, **27 production-readiness checks**, and **78 security/privacy checks** passed. `pip-audit` reported no known Python vulnerabilities. Non-blocking warnings: Starlette/httpx TestClient deprecation and Redis CI service `vm.overcommit_memory` advisory; production host sysctl is not verified by this container run.
-  - Frontend/Android job [130291861392](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42950018548/job/130291861392): **280 tests across 57 files**, Expo Doctor **21/21** checks, Android export, Release build **BUILD SUCCESSFUL in 17m 17s**, and emulator install/launch smoke passed for `com.useit.app`. The runtime npm audit still reports **four moderate** transitive `glob`/`minimatch` advisory instances; the thresholded high-severity gate passing is not a clean dependency audit.
-  - iOS job [130291861212](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42950018548/job/130291861212): Release simulator build and install/launch smoke passed for `com.useit.app`. This is simulator evidence, not physical iPhone App Attest acceptance.
-- CodeQL [#42950018544](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42950018544), analyze job [130291861306](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42950018544/job/130291861306): **success**. Python (71/71) and GitHub Actions (4/4) analysis completed. SARIF merge emitted a non-fatal column-kind mismatch warning.
-- Dependency Review [#42950018559](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42950018559), job [130291861078](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42950018559/job/130291861078): **success**; no high-or-higher vulnerable package and no denied package. OpenSSF Scorecard warnings remain for `@expo/devcert` (2.9) and `is-mergeable-object` (1.5).
+### Acceptance decision
 
-### Review, governance, and repository state
+**Automated CI acceptance for exact PR HEAD `f2a7f9f`: PASSED. Pilot / production acceptance: NOT GRANTED.**
 
-- PR #41 inline review threads: **12/12 resolved**; review submissions: **18**, approved reviews: **0**. One human approving review and last-push approval remain required.
-- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is **closed as completed** (2026-11-02).
-- Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires six strict checks, one approving review, last-push approval, resolved threads, deletion/non-fast-forward protection, and no bypass actors. The direct branch-protection endpoint is not accessible to the connected integration; the repository ruleset endpoint is readable and active.
-- Main HEAD at capture: `7ef22a6`. The release branch is **495 commits ahead and 0 behind** main; PR diff: **97 files, 12,854 additions / 909 deletions**.
-- Repository inventory: **32 branch names returned**, **19 open PRs**, **4 open issues**, and **0 published releases**.
-- Issue [#46](https://github.com/milanradics89-beep/POS-Doctor/issues/46) remains open for historical CodeQL action-version mismatch investigation. PRs #43/#44 must not be merged independently; draft #49 still needs base reconciliation and full validation.
-- Code Scanning, Dependabot, and Secret Scanning alert endpoints are not exposed by the connected integration: inventories are **unverified, not zero**.
+| Gate | Status | Evidence still required |
+|---|---|---|
+| Exact-head Validation, CodeQL, Dependency Review | **Done** | All three exact-head workflows passed for `f2a7f9f` |
+| Main branch protection | **Done** | Ruleset 26370589 active; #47 closed |
+| Human PR approval | **Blocked** | One approving human review and last-push approval |
+| #4 iPhone App Attest | **Blocked** | Apple production entitlement and physical iPhone test |
+| #5 Android Play Integrity | **Blocked** | Play-distributed build and physical Android test |
+| #16 Backup / restore | **Blocked** | Production backup restore drill with witnessed evidence |
+| #18 Product recognition | **Blocked** | Representative labelled benchmark and business acceptance |
+| #21 Monitoring / alerting | **Blocked** | Production telemetry and verified alert delivery |
+| #22 Staged rollout / rollback | **Blocked** | Approved rollout plan and executed rollback evidence |
+| #25 Pilot / business validation | **Blocked** | Real-user pilot, acceptance results, and business sign-off |
 
-### Expo lock-refresh artifact evidence
+The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. No external gate is promoted by simulator/emulator CI or documentation updates alone.
 
-The artifact-only lock-refresh run [#42939371782](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42939371782) completed successfully on workflow-run HEAD [`6cb8cd3`](https://github.com/milanradics89-beep/POS-Doctor/commit/6cb8cd33be9c6b6e6f17596268271b09c671365d), not on `537b531`. Artifact [13819632595](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42939371782) (`expo-sdk57-lock-refresh-6cb8cd33be9c6b6e6f17596268271b09c671365d`, 76,729 bytes) was downloaded. ZIP SHA256: `6ef2bb2eb1eaec4f0c22bd406b3b5003abe5a0b3b5753cbeed3fc5c2c0622dfc`. The archive contains `package.json`, `package-lock.json`, and `SHA256SUMS`; both internal SHA256 checks passed. This proves artifact publication and integrity for that historical run. It does **not** remediate the dependency findings: the candidate lockfile still contains nested `glob@13.0.7` and `minimatch@10.2.6` entries. Item #24 remains In Progress.
-
-### External release gates
-
-The following remain blocked until the named external evidence exists: **#4** physical iPhone App Attest with production entitlement; **#5** Play-installed physical Android Play Integrity; **#16** witnessed production backup/restore; **#18** representative product-recognition benchmark and business acceptance; **#21** production monitoring and alert delivery; **#22** staged rollout and rollback approval; **#25** real-user pilot and business approval. Simulator/emulator CI does not satisfy these gates.
-
-**Automated CI acceptance for `537b531`: PASSED. Pilot acceptance: NOT GRANTED. PR #41 remains open and must not be merged automatically.**
 
 ---
 
