@@ -35,7 +35,7 @@ jobs:
       - name: Unit tests
         run: npm test -- --passWithNoTests
       - name: Validate Expo project health
-        run: npx expo-doctor
+        run: npm exec --yes --package=expo-doctor@1.21.7 --package=@expo/env@2.5.4 -- expo-doctor
       - name: Validate Android export
         run: npx expo export --platform android --output-dir .expo-export
       - name: Validate native Android release build

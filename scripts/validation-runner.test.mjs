@@ -22,4 +22,17 @@ describe('USEIT validation runner contract', () => {
   it('keeps the iOS build on the macOS runner', () => {
     expect(workflow).toMatch(/^  ios:\r?\n    runs-on: macos-latest$/m);
   });
+  it('runs Expo Doctor with a pinned CLI and the lockfile-resolved @expo/env dependency', () => {
+    const packageLock = JSON.parse(
+      readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'),
+    );
+    const expoEnvVersion = packageLock.packages['node_modules/@expo/env']?.version;
+
+    expect(expoEnvVersion).toBe('2.5.4');
+    expect(frontendJob).toContain(
+      `run: npm exec --yes --package=expo-doctor@1.21.7 --package=@expo/env@${expoEnvVersion} -- expo-doctor`,
+    );
+    expect(frontendJob).not.toMatch(/^\\s+run:\\s+npx expo-doctor\\s*$/m);
+  });
+
 });
