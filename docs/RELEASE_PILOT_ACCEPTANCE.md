@@ -1,16 +1,40 @@
-## Latest fully validated PR #41 automated checkpoint (captured 2026-11-11 00:39 CET)
+## Latest fully validated PR #41 automated checkpoint (captured 2026-11-11 01:18 CET; exact HEAD `3ef4c5f`)
 
-**Automated CI acceptance for exact PR HEAD `f56bdc9b4ddf61c321897e69cb2b5b69a46089c5`: PASSED. Pilot acceptance: NOT GRANTED.**
+**Automated CI acceptance for exact PR HEAD `3ef4c5f`: PASSED. Pilot acceptance: NOT GRANTED.**
 
-PR #41 remains open and unmerged on `fix/release-blockers-2026-10`, targeting `main`. The validated application/source-test baseline is [`7048957`](https://github.com/milanradics89-beep/POS-Doctor/commit/704895725c64b7839a3135526a4e2319cb49f0c5); exact documentation PR HEAD [`f56bdc9`](https://github.com/milanradics89-beep/POS-Doctor/commit/f56bdc9b4ddf61c321897e69cb2b5b69a46089c5) is a child of [`a33a465`](https://github.com/milanradics89-beep/POS-Doctor/commit/a33a465ffb8bfa6a65902806b9ff61fc845ed836) and has its own successful Validation, CodeQL, and Dependency Review:
+PR #41 was open and unmerged at capture. The exact-head automated evidence is attached to [`3ef4c5f`](https://github.com/milanradics89-beep/POS-Doctor/commit/3ef4c5ff75a1b14d286d46517accf7eec3933e24); the application/source-test baseline remains [`7048957`](https://github.com/milanradics89-beep/POS-Doctor/commit/704895725c64b7839a3135526a4e2319cb49f0c5).
 
-- Validation [#42912006709](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006709): backend [job 130164777835](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006709/job/130164777835) passed **450 tests**, **27 production-readiness checks**, and **78 security/privacy checks**. Frontend/Android [job 130164777270](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006709/job/130164777270) passed **277 tests across 57 files**, Android Release build (**BUILD SUCCESSFUL in 23m 18s**) and emulator install/launch smoke. iOS [job 130164778375](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006709/job/130164778375) passed Release simulator build and install/launch smoke.
-- CodeQL [#42912006185](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006185), analyze [job 130164775016](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006185/job/130164775016): passed; scanned 71 Python and 4 GitHub Actions files. SARIF merge emitted a non-fatal column-kind mismatch warning.
-- Dependency Review [#42912006535](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006535), job [130164776083](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42912006535/job/130164776083): passed with no high-or-higher vulnerable packages and no denied packages. The frontend runtime npm audit still reports four moderate `glob`/`minimatch` instances.
+### Exact-head automated evidence for parent checkpoint `3ef4c5f`
 
-At capture, all **12/12 inline review threads are resolved**; there are **18 review submissions and 0 APPROVED**. Human approval and last-push approval remain required. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed and main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) remains active.
+- Validation [#42925661354](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42925661354):
+  - Backend [job 130211363233](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42925661354/job/130211363233): **450 backend tests**, **27 production-readiness checks**, and **78 security/privacy checks** passed; `pip-audit` reported no known Python vulnerabilities.
+  - Frontend/Android [job 130211362781](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42925661354/job/130211362781): **277 tests across 57 files** passed; Android Release build succeeded in **18m 47s** and emulator install/launch smoke passed for `com.useit.app`.
+  - iOS [job 130211363287](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42925661354/job/130211363287): Release simulator build and install/launch smoke passed for `com.useit.app`.
+- CodeQL [#42925661388](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42925661388), analyze [job 130211362473](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42925661388/job/130211362473): passed; scanned **181 TypeScript**, **71 Python**, **4 GitHub Actions**, and **2 JavaScript** files. SARIF merge emitted a non-fatal column-kind mismatch warning.
+- Dependency Review [#42925661324](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42925661324), job [130211361986](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42925661324/job/130211361986): passed with no high-or-higher vulnerable packages and no denied packages. The separate frontend runtime audit still reports **four moderate** `glob`/`minimatch` advisory instances (GHSA-3g3m-2fjr-6pw4 and GHSA-g3hv-75wg-m249); this is not a zero-finding audit. Scorecard warnings include `@expo/devcert` **2.9** and `is-mergeable-object` **1.5**.
 
-The exact-head automated evidence does not establish physical iPhone App Attest, Play-installed Android Play Integrity, production provider configuration, production backup/restore, production monitoring/alert delivery, staged rollout/rollback, representative product-recognition benchmark, or pilot/business approval. Those gates remain open. PR #41 remains open and unmerged.
+### Review, governance, and repository state
+
+- PR #41 was open and unmerged at capture; its diff contains **97 files**.
+- Inline review threads: **12/12 resolved**; review submissions: **18**; approved reviews: **0**. One human approving review and last-push approval remain required.
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed as completed (2026-11-02).
+- Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) protects `main`: six strict required checks, one approving review, last-push approval, resolved review threads, deletion/non-fast-forward protection, and no bypass actors.
+- Main HEAD at capture: `7ef22a6`. The release branch was **490 commits ahead and 0 behind** main; this large history and 97-file diff still require human review.
+- Issue [#46](https://github.com/milanradics89-beep/POS-Doctor/issues/46) remains open for the historical CodeQL action-version mismatch. PRs #43/#44 must not be merged independently; draft #49 still needs base reconciliation and full validation.
+- GitHub Releases inventory returned **0 published releases**.
+- Code Scanning, Dependabot, and Secret Scanning alert endpoints were denied by the connected GitHub integration. Their inventories are **unverified, not zero**.
+
+### External release gates
+
+The following remain blocked until the named external evidence exists: **#4** physical iPhone App Attest with production entitlement; **#5** Play-installed physical Android Play Integrity; **#16** witnessed production backup/restore; **#18** representative product-recognition benchmark and business acceptance; **#21** production monitoring and alert delivery; **#22** staged rollout and rollback approval; **#25** real-user pilot and business approval. Simulator/emulator CI does not satisfy these gates.
+
+### Lock-refresh workflow hardening in this change
+
+`.github/workflows/expo-sdk57-lock-refresh.yml` is changed to an artifact-only process: repository permissions are read-only, no GitHub CLI credential helper or branch commit/push is used, and the candidate contains `package.json`, `package-lock.json`, and `SHA256SUMS`. The artifact uses the immutable `actions/upload-artifact` v7.0.2 commit and a seven-day retention period. The artifact is only a candidate; applying it requires a normal reviewed commit followed by exact-head Validation, CodeQL, and Dependency Review. The parent runs above do **not** validate the child change in this snapshot.
+
+The parent checkpoint's automated CI pass does not establish physical iPhone App Attest, Play-installed Android Play Integrity, production provider configuration, production backup/restore, production monitoring/alert delivery, staged rollout/rollback, representative product-recognition benchmark, or pilot/business approval. Those gates remain open. The artifact-only lock-refresh change in the child commit requires its own exact-head CI; parent results above are not inherited by that child.
+
+---
 
 ---
 

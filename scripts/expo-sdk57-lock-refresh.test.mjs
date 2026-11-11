@@ -36,43 +36,63 @@ describe('Expo SDK 57 lock refresh workflow', () => {
     expect(workflow).toContain('expo-modules-core must remain a transitive Expo dependency');
   });
 
-  it('runs reproducible install, Expo Doctor, typecheck and unit tests before any push', () => {
-    expect(workflow).toContain('npm ci --ignore-scripts --no-audit --no-fund');
-    expect(workflow).toContain('npx expo-doctor');
-    expect(workflow).toContain('npm run typecheck');
-    expect(workflow).toContain('npm test -- --passWithNoTests');
-    expect(workflow).toContain('if [[ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]]');
-    expect(workflow).toContain('git push origin "HEAD:refs/heads/$BRANCH"');
-    expect(workflow).not.toContain('git push --force');
+  it('runs reproducible install, Expo Doctor, typecheck and unit tests before artifact publication', () => {
+    const install = workflow.indexOf('npm ci --ignore-scripts --no-audit --no-fund');
+    const expoDoctor = workflow.indexOf('npx expo-doctor');
+    const typecheck = workflow.indexOf('npm run typecheck');
+    const tests = workflow.indexOf('npm test -- --passWithNoTests');
+    const artifact = workflow.indexOf('uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9');
+    expect([install, expoDoctor, typecheck, tests, artifact].every(index => index >= 0)).toBe(true);
+    expect(install).toBeLessThan(expoDoctor);
+    expect(expoDoctor).toBeLessThan(typecheck);
+    expect(typecheck).toBeLessThan(tests);
+    expect(tests).toBeLessThan(artifact);
   });
 
-  it('keeps checkout credentials disabled until project validation has finished', () => {
+  it('keeps checkout credentials disabled through validation and artifact publication', () => {
     const checkoutCredentials = workflow.indexOf('persist-credentials: false');
     const install = workflow.indexOf('npm ci --ignore-scripts --no-audit --no-fund');
     const expoDoctor = workflow.indexOf('npx expo-doctor');
     const typecheck = workflow.indexOf('npm run typecheck');
     const tests = workflow.indexOf('npm test -- --passWithNoTests');
-    const gitAuth = workflow.indexOf('gh auth setup-git');
-    const push = workflow.indexOf('git push origin "HEAD:refs/heads/$BRANCH"');
-
-    expect([checkoutCredentials, install, expoDoctor, typecheck, tests, gitAuth, push]
+    const artifact = workflow.indexOf('uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9');
+    expect([checkoutCredentials, install, expoDoctor, typecheck, tests, artifact]
       .every(index => index >= 0)).toBe(true);
     expect(checkoutCredentials).toBeLessThan(install);
     expect(install).toBeLessThan(expoDoctor);
     expect(expoDoctor).toBeLessThan(typecheck);
     expect(typecheck).toBeLessThan(tests);
-    expect(tests).toBeLessThan(gitAuth);
-    expect(gitAuth).toBeLessThan(push);
+    expect(tests).toBeLessThan(artifact);
   });
 
-  it('verifies the GitHub CLI credential helper before the final push', () => {
-    const gitAuth = workflow.indexOf('gh auth setup-git');
-    const helperCheck = workflow.indexOf("git config --get-regexp '^credential\\..*\\.helper$'");
-    const push = workflow.indexOf('git push origin "HEAD:refs/heads/$BRANCH"');
+  it('publishes only checksum-verified manifest files and fails if any artifact file is missing', () => {
+    expect(workflow).toContain('cp package.json package-lock.json .expo-sdk57-lock-refresh/');
+    expect(workflow).toContain('sha256sum package.json package-lock.json > SHA256SUMS');
+    expect(workflow).toContain('path: .expo-sdk57-lock-refresh/');
+    expect(workflow).toContain('if-no-files-found: error');
+    expect(workflow).toContain('retention-days: 7');
+    expect(workflow).toContain('ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}');
+  });
 
-    expect(gitAuth).toBeGreaterThanOrEqual(0);
-    expect(helperCheck).toBeGreaterThan(gitAuth);
-    expect(push).toBeGreaterThan(helperCheck);
-    expect(workflow).toContain('GitHub CLI credential helper was not configured for the final push.');
+  it('pins the artifact action to the verified immutable v7.0.2 commit', () => {
+    expect(workflow).toContain('actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2');
+    expect(workflow).toContain('name: expo-sdk57-lock-refresh-${{ github.sha }}');
+  });
+
+  it('uses read-only repository permissions and never commits or pushes manifests', () => {
+    expect(workflow).toMatch(/^permissions:\s*\n\s+contents:\s+read\s*$/m);
+    expect(workflow).not.toContain('contents: write');
+    expect(workflow).not.toContain('actions: write');
+    expect(workflow).not.toContain('GH_TOKEN:');
+    expect(workflow).not.toContain('gh auth setup-git');
+    expect(workflow).not.toContain('gh api');
+    expect(workflow).not.toContain('git commit');
+    expect(workflow).not.toContain('git push');
+  });
+
+  it('restricts execution to the release branch', () => {
+    expect(workflow).toContain('TARGET_REF: refs/heads/fix/release-blockers-2026-10');
+    expect(workflow).toContain('if ! is_allowed_ref "$GITHUB_REF"');
+    expect(workflow).toContain('Main must never be a lockfile-refresh target.');
   });
 });
