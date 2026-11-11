@@ -1,19 +1,21 @@
-## Latest acceptance checkpoint — 2026-11-11 08:53 CET
+## Latest acceptance checkpoint — 2026-11-11 10:31 CET
 
-**Automated CI acceptance for exact PR #41 HEAD [`f976b309e98fac4526cfe15308d5c9caa16403e6`](https://github.com/milanradics89-beep/POS-Doctor/commit/f976b309e98fac4526cfe15308d5c9caa16403e6): PASSED. Pilot acceptance: NOT GRANTED.**
+**Automated CI acceptance for exact PR #41 HEAD [`35fc1f3fe35bb2db41ee90db94286eda880b8812`](https://github.com/milanradics89-beep/POS-Doctor/commit/35fc1f3fe35bb2db41ee90db94286eda880b8812): PASSED. Pilot acceptance: NOT GRANTED.**
 
-- Validation [#42974906641](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641): **success**.
-  - Backend [job 130371609178](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641/job/130371609178): **450 tests**, **27 production-readiness checks**, **78 security/privacy checks** passed.
-  - Frontend/Android [job 130371608736](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641/job/130371608736): **283 tests across 58 files** passed on **ubuntu-24.04**; Android Release build succeeded in **14m 56s** and emulator install/launch smoke passed.
-  - iOS [job 130371609262](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641/job/130371609262): Release simulator build and install/launch smoke passed.
-- CodeQL [#42974906603](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906603), analyze [job 130371608602](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906603/job/130371608602): **success**.
-- Dependency Review [#42974906487](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906487), job [130371608175](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906487/job/130371608175): **success**.
-- The Android runner regression reported in issue [#62](https://github.com/milanradics89-beep/POS-Doctor/issues/62) is fixed by `f976b30` and the issue is closed. The frontend job log confirms `Image: ubuntu-24.04`; all three runner-contract tests passed as part of the 283-test suite.
-- PR #41 remains open and unmerged. Review threads: **12/12 resolved**; review submissions: **18**, approved reviews: **0**. Human approval and last-push approval are still required.
+- Validation [#42983110082](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42983110082): **success**.
+  - Backend [job 130397901241](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42983110082/job/130397901241): **450 tests**, **27 production-readiness checks**, **78 security/privacy checks** passed; pip-audit completed successfully.
+  - Frontend [job 130397901631](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42983110082/job/130397901631): successful on **ubuntu-24.04**; source-boundary guard, typecheck, unit tests, Expo Doctor, Android Release build, emulator install/launch smoke, and runtime dependency audit completed.
+  - iOS [job 130397901626](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42983110082/job/130397901626): Release simulator build and install/launch smoke passed.
+- CodeQL [#42983110277](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42983110277), analyze [job 130397902813](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42983110277/job/130397902813): **success**, covering 71 Python and 4 GitHub Actions files.
+- Dependency Review [#42983110196](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42983110196), job [130397901039](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42983110196/job/130397901039): **success**, with no high-or-higher vulnerable packages in the reviewed diff. One unknown-license entry and two low Scorecard findings remain; runtime npm audit still reports four moderate transitive `glob`/`minimatch` instances.
+- PR #41 remains open and unmerged. Review threads: **12/12 resolved**; submissions: **18**, approved reviews: **0**. Human approval and last-push approval are still required.
+- Issue #47 is closed; active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) protects `main` with six strict checks and no bypass actors. Issue #62 is closed after the Ubuntu 24.04 runner fix.
+- Branch comparison: **502 ahead / 0 behind** `main`; PR diff **98 files, 13,069 additions / 910 deletions**. Repository inventory: **32 branches, 19 open PRs, 4 open issues**. Releases inventory: **0 published releases**.
+- Code Scanning, Dependabot, and Secret Scanning alert inventories cannot be read through the connected integration and remain unverified, not zero.
 
 ### Acceptance decision
 
-Automated CI acceptance for exact HEAD `f976b30` is **PASSED**. Pilot/production acceptance is **NOT GRANTED**. The following external evidence remains required:
+Automated CI acceptance for exact HEAD `35fc1f3` is **PASSED**. Pilot/production acceptance is **NOT GRANTED**. External evidence remains required:
 
 - **#4:** Apple production App Attest capability/entitlement, signed production build, and supported physical iPhone enrollment/assertion test.
 - **#5:** Google Play internal-track installation on a physical Android device and production Play Integrity verification.
@@ -24,7 +26,6 @@ Automated CI acceptance for exact HEAD `f976b30` is **PASSED**. Pilot/production
 - **#25:** real-user pilot, measured acceptance criteria, and business sign-off.
 
 Simulator/emulator CI does not satisfy physical-device, production, backup/restore, monitoring, rollout, pilot, or business acceptance. Do not merge automatically or bypass required checks.
-
 ---
 
 ## Current pilot acceptance decision — captured 2026-11-11 07:14 CET
