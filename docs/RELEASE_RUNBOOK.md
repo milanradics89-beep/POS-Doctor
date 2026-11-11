@@ -1,3 +1,24 @@
+## Latest release checkpoint — 2026-11-11 08:53 CET
+
+PR #41 is **open, unmerged, and non-draft** on `fix/release-blockers-2026-10`, targeting `main`.
+
+- Exact validated PR HEAD: [`f976b309e98fac4526cfe15308d5c9caa16403e6`](https://github.com/milanradics89-beep/POS-Doctor/commit/f976b309e98fac4526cfe15308d5c9caa16403e6). This commit pins the Android/frontend Validation job to `ubuntu-24.04` and adds three workflow-contract regression tests; the iOS job remains on `macos-latest`.
+- Exact-head Validation [#42974906641](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641): **success**. Backend job [130371609178](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641/job/130371609178): **450 backend tests**, **27 production-readiness checks**, and **78 security/privacy checks** passed. Frontend/Android job [130371608736](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641/job/130371608736): **283 tests across 58 files** passed; the runner log confirms **ubuntu-24.04**; Android Release build completed successfully in **14m 56s**, and emulator install/launch smoke passed for `com.useit.app`. The runtime npm audit still reports **four moderate** transitive `glob`/`minimatch` findings. iOS job [130371609262](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641/job/130371609262): Release simulator build and install/launch smoke passed for `com.useit.app`.
+- Exact-head CodeQL [#42974906603](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906603), analyze job [130371608602](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906603/job/130371608602): **success**.
+- Exact-head Dependency Review [#42974906487](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906487), job [130371608175](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906487/job/130371608175): **success**.
+- Issue [#62](https://github.com/milanradics89-beep/POS-Doctor/issues/62), opened for the Ubuntu 26.04 Android Validation regression on parent checkpoint `32f6942`, is now **closed as completed**. The fix is commit `f976b30`; all three exact-head workflows above passed.
+- Review: **12/12 inline threads resolved**; **18 review submissions, 0 APPROVED**. A human approving review and last-push approval remain required.
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains closed as completed. Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires six strict checks, one approval, last-push approval, resolved threads, deletion/non-fast-forward protection, and no bypass actors.
+- Branch comparison: **501 commits ahead / 0 behind** `main` at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. PR diff: **98 files, 12,995 additions / 910 deletions**. Repository inventory: **32 branches, 19 open PRs, 4 open issues** after closing #62.
+- Runtime npm audit still reports four moderate transitive `glob`/`minimatch` advisory instances; do not use force/major overrides. The lock-refresh artifact previously verified belongs to older workflow HEAD `6cb8cd3`, not this current HEAD.
+- The connected integration does not expose the current Releases-list action or complete Code Scanning, Dependabot, and Secret Scanning alert inventories. Those inventories are **unverified, not zero**.
+
+The 25-point release register remains **3 Done / 15 In Progress / 7 Blocked**. External blockers: #4 physical iPhone App Attest production entitlement; #5 Play-installed physical Android Play Integrity; #16 witnessed production backup/restore; #18 representative product-recognition benchmark and business acceptance; #21 production monitoring and alert delivery; #22 staged rollout and rollback approval; #25 real-user pilot and business approval. Simulator/emulator CI does not satisfy these gates.
+
+**Automated CI acceptance for exact HEAD `f976b30`: PASSED. Pilot/production acceptance: NOT GRANTED. PR #41 remains unmerged pending human approval and external acceptance.**
+
+---
+
 ## Current release checkpoint — captured 2026-11-11 07:14 CET
 
 - PR #41 is **open, unmerged, and non-draft** on `fix/release-blockers-2026-10`, targeting `main`.

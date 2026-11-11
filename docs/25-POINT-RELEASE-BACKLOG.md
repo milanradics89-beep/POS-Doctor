@@ -1,3 +1,27 @@
+## Latest 25-point status checkpoint — 2026-11-11 08:53 CET
+
+- Exact validated PR #41 HEAD: [`f976b309e98fac4526cfe15308d5c9caa16403e6`](https://github.com/milanradics89-beep/POS-Doctor/commit/f976b309e98fac4526cfe15308d5c9caa16403e6); branch `fix/release-blockers-2026-10`, target `main`; PR remains open and unmerged.
+- The Android/frontend runner fix is included in `f976b30`: `ubuntu-24.04` pinned, with three workflow-contract tests. Exact-head Validation [42974906641](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641) passed: backend **450 tests / 27 readiness / 78 security-privacy**, frontend **283 tests across 58 files**, Android Release **14m 56s** and emulator smoke, iOS simulator build/smoke. CodeQL [42974906603](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906603) and Dependency Review [42974906487](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906487) also passed.
+- Issue [#62](https://github.com/milanradics89-beep/POS-Doctor/issues/62) is closed as completed after this exact-head CI pass. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains closed; main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) is active.
+- Branch comparison: **501 ahead / 0 behind**; PR diff **98 files, 12,995 additions / 910 deletions**. Repository inventory: **32 branches, 19 open PRs, 4 open issues**.
+- Review: **12/12 inline threads resolved; 18 submissions; 0 APPROVED**. Human approval remains mandatory.
+- Runtime npm audit: **four moderate** transitive `glob`/`minimatch` findings remain; Dependency Review success is not a zero-finding runtime audit. Full Code Scanning, Dependabot, Secret Scanning, and current Releases inventories are not exposed by the connected integration; report them as unverified, not zero.
+- **Current tally: 3 Done / 15 In Progress / 7 Blocked.** The row-level table below remains authoritative; do not promote any row without its stated evidence.
+
+### External blockers
+
+- **#4:** physical iPhone App Attest with production entitlement.
+- **#5:** Play-installed physical Android Play Integrity.
+- **#16:** witnessed production backup/restore.
+- **#18:** representative product-recognition benchmark and business acceptance.
+- **#21:** production monitoring and alert delivery.
+- **#22:** staged rollout and rollback approval.
+- **#25:** real-user pilot and business approval.
+
+Simulator/emulator CI is not physical-device or production acceptance. PR #41 remains unmerged pending human review and the external acceptance gates.
+
+---
+
 ## Current 25-point status register — captured 2026-11-11 07:14 CET
 
 - PR #41 is **open, unmerged, and non-draft** on `fix/release-blockers-2026-10`, targeting `main`.

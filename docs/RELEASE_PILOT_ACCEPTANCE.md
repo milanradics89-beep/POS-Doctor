@@ -1,3 +1,32 @@
+## Latest acceptance checkpoint — 2026-11-11 08:53 CET
+
+**Automated CI acceptance for exact PR #41 HEAD [`f976b309e98fac4526cfe15308d5c9caa16403e6`](https://github.com/milanradics89-beep/POS-Doctor/commit/f976b309e98fac4526cfe15308d5c9caa16403e6): PASSED. Pilot acceptance: NOT GRANTED.**
+
+- Validation [#42974906641](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641): **success**.
+  - Backend [job 130371609178](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641/job/130371609178): **450 tests**, **27 production-readiness checks**, **78 security/privacy checks** passed.
+  - Frontend/Android [job 130371608736](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641/job/130371608736): **283 tests across 58 files** passed on **ubuntu-24.04**; Android Release build succeeded in **14m 56s** and emulator install/launch smoke passed.
+  - iOS [job 130371609262](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906641/job/130371609262): Release simulator build and install/launch smoke passed.
+- CodeQL [#42974906603](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906603), analyze [job 130371608602](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906603/job/130371608602): **success**.
+- Dependency Review [#42974906487](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906487), job [130371608175](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/42974906487/job/130371608175): **success**.
+- The Android runner regression reported in issue [#62](https://github.com/milanradics89-beep/POS-Doctor/issues/62) is fixed by `f976b30` and the issue is closed. The frontend job log confirms `Image: ubuntu-24.04`; all three runner-contract tests passed as part of the 283-test suite.
+- PR #41 remains open and unmerged. Review threads: **12/12 resolved**; review submissions: **18**, approved reviews: **0**. Human approval and last-push approval are still required.
+
+### Acceptance decision
+
+Automated CI acceptance for exact HEAD `f976b30` is **PASSED**. Pilot/production acceptance is **NOT GRANTED**. The following external evidence remains required:
+
+- **#4:** Apple production App Attest capability/entitlement, signed production build, and supported physical iPhone enrollment/assertion test.
+- **#5:** Google Play internal-track installation on a physical Android device and production Play Integrity verification.
+- **#16:** witnessed production backup and restore with documented recovery point and recovery time.
+- **#18:** representative labelled product image benchmark, measured accuracy, and business acceptance.
+- **#21:** production metrics/log pipeline plus verified alert delivery and acknowledgement.
+- **#22:** approved staged rollout gates, monitoring thresholds, rollback owner, and tested rollback.
+- **#25:** real-user pilot, measured acceptance criteria, and business sign-off.
+
+Simulator/emulator CI does not satisfy physical-device, production, backup/restore, monitoring, rollout, pilot, or business acceptance. Do not merge automatically or bypass required checks.
+
+---
+
 ## Current pilot acceptance decision — captured 2026-11-11 07:14 CET
 
 - PR #41 is **open, unmerged, and non-draft** on `fix/release-blockers-2026-10`, targeting `main`.
