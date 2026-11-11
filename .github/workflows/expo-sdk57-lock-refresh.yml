@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Restrict execution and writes to the release branch
+      - name: Restrict execution to the release branch
         env:
           TARGET_REF: refs/heads/fix/release-blockers-2026-10
         run: |
@@ -40,7 +40,7 @@ jobs:
             exit 1
           fi
           if ! is_allowed_ref "$GITHUB_REF"; then
-            echo "::error::This workflow may only write to fix/release-blockers-2026-10 (got $GITHUB_REF)."
+            echo "::error::This workflow may only run on fix/release-blockers-2026-10 (got $GITHUB_REF)."
             exit 1
           fi
 
@@ -141,10 +141,10 @@ jobs:
           set -euo pipefail
           test -s package.json
           test -s package-lock.json
-          mkdir -p .expo-sdk57-lock-refresh
-          cp package.json package-lock.json .expo-sdk57-lock-refresh/
+          mkdir -p expo-sdk57-lock-refresh
+          cp package.json package-lock.json expo-sdk57-lock-refresh/
           (
-            cd .expo-sdk57-lock-refresh
+            cd expo-sdk57-lock-refresh
             sha256sum package.json package-lock.json > SHA256SUMS
           )
           {
@@ -161,7 +161,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: expo-sdk57-lock-refresh-${{ github.sha }}
-          path: .expo-sdk57-lock-refresh/
+          path: expo-sdk57-lock-refresh/
           if-no-files-found: error
           retention-days: 7
 
