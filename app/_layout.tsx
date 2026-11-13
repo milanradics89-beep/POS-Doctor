@@ -30,6 +30,7 @@ class AppErrorBoundary extends React.Component<React.PropsWithChildren, State> {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Try USEIT again"
+              accessibilityHint="Retries the current screen after recovering from an unexpected error."
               onPress={this.reset}
               style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
             >
