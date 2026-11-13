@@ -1,0 +1,84 @@
+name: USEIT full npm dependency audit
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/npm-full-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-full-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies reproducibly
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Audit production and development dependency tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT="$RUNNER_TEMP/npm-audit.json"
+          set +e
+          npm audit --json > "$REPORT"
+          audit_status=$?
+          set -e
+          node - "$REPORT" "$audit_status" <<'NODE'
+          const fs = require('node:fs');
+          const reportPath = process.argv[2];
+          const npmExitCode = Number(process.argv[3]);
+          const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+          if (report.error || !report.vulnerabilities || !report.metadata?.vulnerabilities) {
+            throw new Error('npm audit did not return a complete vulnerability report.');
+          }
+          const entries = Object.entries(report.vulnerabilities);
+          const counts = report.metadata.vulnerabilities;
+          console.log('Full dependency audit counts:', JSON.stringify(counts));
+          for (const [name, item] of entries.sort((a, b) => a[0].localeCompare(b[0]))) {
+            const via = (item.via || []).map((entry) =>
+              typeof entry === 'string' ? entry : `${entry.name || 'advisory'}: ${entry.title || entry.url || 'details unavailable'}`
+            );
+            console.log(JSON.stringify({
+              package: name,
+              severity: item.severity,
+              direct: item.isDirect,
+              range: item.range,
+              fixAvailable: item.fixAvailable,
+              via,
+            }));
+          }
+          const blocking = (counts.high || 0) + (counts.critical || 0);
+          if (blocking > 0) {
+            console.error(`Blocking high/critical npm advisories: ${blocking}`);
+            process.exit(1);
+          }
+          console.log('No high or critical npm advisories found in the full dependency tree.');
+          if (npmExitCode !== 0 && entries.length === 0) {
+            throw new Error('npm audit exited non-zero without reporting advisories.');
+          }
+          NODE
+      - name: Upload full npm audit report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: npm-full-audit-report
+          path: ${{ runner.temp }}/npm-audit.json
+          if-no-files-found: warn
+          retention-days: 14
