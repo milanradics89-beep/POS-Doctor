@@ -189,7 +189,13 @@ def _extract(parser: _HTMLParser, url: str) -> dict[str, Any] | None:
 async def _fetch_product_page(url: str) -> tuple[str, str, bytes]:
     current = validate_public_http_url(url)
     headers = {"User-Agent": "USEIT/1.0 (+product-discovery)"}
-    async with httpx.AsyncClient(\n        timeout=10,\n        follow_redirects=False,\n        headers=headers,\n        transport=DNSPinnedAsyncHTTPTransport(),\n        trust_env=False,\n    ) as client:
+    async with httpx.AsyncClient(
+        timeout=10,
+        follow_redirects=False,
+        headers=headers,
+        transport=DNSPinnedAsyncHTTPTransport(),
+        trust_env=False,
+    ) as client:
         for redirect_count in range(MAX_REDIRECTS + 1):
             async with client.stream("GET", current) as response:
                 validate_connected_peer(response)
