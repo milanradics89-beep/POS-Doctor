@@ -378,3 +378,41 @@ async def test_readiness_probe_lua_sets_both_ttls_before_a_later_probe_failure()
         await check_redis_rate_limit_capability(FakeRedis())
 
     assert [call[0] for call in calls] == ["pexpire", "pexpire", "eval", "eval"]
+
+
+@pytest.mark.asyncio
+async def test_readiness_probe_keeps_both_real_redis_ttls_when_second_probe_fails(monkeypatch):
+    url = _redis_integration_url()
+    probe_id = f"test-readiness-ttl-{uuid.uuid4().hex}"
+    monkeypatch.setattr("backend.rate_limit.secrets.token_hex", lambda _: probe_id)
+    client = Redis.from_url(url, decode_responses=True, socket_connect_timeout=2.0, socket_timeout=5.0)
+    probe_keys = []
+
+    class FailSecondEval:
+        def __init__(self):
+            self.eval_count = 0
+
+        async def pexpire(self, key, ttl_ms):
+            probe_keys.append(key)
+            return await client.pexpire(key, ttl_ms)
+
+        async def eval(self, *args):
+            self.eval_count += 1
+            if self.eval_count == 2:
+                raise RuntimeError("simulated transient failure on the second readiness probe")
+            return await client.eval(*args)
+
+    try:
+        await client.ping()
+        with pytest.raises(RuntimeError, match="simulated transient failure"):
+            await check_redis_rate_limit_capability(FailSecondEval())
+
+        assert len(probe_keys) == 2
+        events_key, sequence_key = probe_keys
+        assert events_key != sequence_key
+        assert 0 < await client.pttl(events_key) <= 60_000
+        assert 0 < await client.pttl(sequence_key) <= 60_000
+    finally:
+        if probe_keys:
+            await client.delete(*probe_keys)
+        await client.aclose()
