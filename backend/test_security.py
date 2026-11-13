@@ -1,8 +1,17 @@
-import asyncio\nimport ipaddress\nimport socket\n\nimport httpcore\nimport httpx\n
+import asyncio
+import ipaddress
+import socket
+
+import httpcore
+import httpx
 import pytest
 from fastapi import HTTPException
 
-from backend.security import (\n    DNSPinnedAsyncHTTPTransport,\n    validate_public_http_url,\n    validate_connected_peer,\n)
+from backend.security import (
+    DNSPinnedAsyncHTTPTransport,
+    validate_connected_peer,
+    validate_public_http_url,
+)
 
 
 def test_rejects_localhost():
@@ -52,6 +61,10 @@ def test_connected_peer_must_be_public():
     validate_connected_peer(_Response("8.8.8.8"))
 
 
+def test_connected_peer_accepts_httpcore_server_addr():
+    validate_connected_peer(_Response("8.8.8.8"))
+
+
 def test_connected_peer_rejects_private_address():
     with pytest.raises(HTTPException) as exc:
         validate_connected_peer(_Response("10.0.0.1"))
@@ -64,11 +77,14 @@ def test_connected_peer_requires_network_metadata():
     assert exc.value.status_code == 502
 
 
-@pytest.mark.parametrize("address", ["100.64.0.1", "192.0.2.1", "198.51.100.1", "203.0.113.1"])
+@pytest.mark.parametrize(
+    "address",
+    ["100.64.0.1", "192.0.2.1", "198.51.100.1", "203.0.113.1"],
+)
 def test_rejects_non_global_ip_ranges_during_url_validation(monkeypatch, address):
     monkeypatch.setattr(
         "backend.security.socket.getaddrinfo",
-        lambda hostname, port, type: [
+        lambda hostname, port, family, type: [
             (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (address, port))
         ],
     )
@@ -77,7 +93,10 @@ def test_rejects_non_global_ip_ranges_during_url_validation(monkeypatch, address
     assert exc.value.status_code == 400
 
 
-@pytest.mark.parametrize("address", ["100.64.0.1", "192.0.2.1", "198.51.100.1", "203.0.113.1"])
+@pytest.mark.parametrize(
+    "address",
+    ["100.64.0.1", "192.0.2.1", "198.51.100.1", "203.0.113.1"],
+)
 def test_connected_peer_rejects_non_global_ip_ranges(address):
     with pytest.raises(HTTPException) as exc:
         validate_connected_peer(_Response(address))
@@ -96,10 +115,6 @@ def test_rejects_malformed_urls_as_client_errors(url):
     with pytest.raises(HTTPException) as exc:
         validate_public_http_url(url)
     assert exc.value.status_code == 400
-
-
-def test_connected_peer_accepts_httpcore_server_addr():
-    validate_connected_peer(_Response("8.8.8.8"))
 
 
 def test_url_preflight_rejects_mixed_public_and_private_dns_answers(monkeypatch):
@@ -126,7 +141,7 @@ class _RecordingStream(httpcore.AsyncNetworkStream):
         if self._response_sent:
             return b""
         self._response_sent = True
-        return b"HTTP/1.1 200 OK\\r\\nContent-Length: 0\\r\\nConnection: close\\r\\n\\r\\n"
+        return b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
 
     async def write(self, buffer: bytes, timeout: float | None = None) -> None:
         self.writes.append(bytes(buffer))
@@ -193,7 +208,7 @@ async def test_transport_pins_tcp_ip_and_preserves_original_host_and_tls_sni():
     assert backend.connected_hosts == [("8.8.8.8", 443)]
     assert backend.stream.sni_hostname == "shop.example"
     request_bytes = b"".join(backend.stream.writes).lower()
-    assert b"host: shop.example\\r\\n" in request_bytes
+    assert b"host: shop.example\r\n" in request_bytes
 
 
 @pytest.mark.asyncio
@@ -227,7 +242,7 @@ async def test_dns_rebinding_to_private_ip_is_blocked_before_tcp_connect(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_transport_rejects_mixed_public_and_private_dns_answers(monkeypatch):
+async def test_transport_rejects_mixed_public_and_private_dns_answers():
     backend = _RecordingBackend()
 
     async def mixed_resolver(hostname: str, port: int):
