@@ -102,10 +102,11 @@ jobs:
               requirements.write_text(req)
 
           validation_test = Path("target/scripts/validation-runner.test.mjs")
-          validation = validation_test.read_text()
-          if "2.5.4" not in validation:
-              raise SystemExit("Expected the stale @expo/env 2.5.4 contract assertion")
-          validation_test.write_text(validation.replace("2.5.4", "2.6.0"))
+          if validation_test.exists():
+              validation = validation_test.read_text()
+              if "2.5.4" not in validation:
+                  raise SystemExit("Expected the stale @expo/env 2.5.4 contract assertion")
+              validation_test.write_text(validation.replace("2.5.4", "2.6.0"))
           PY
 
           cat > target/vendor/deepmerge/index.test.js <<'EOF'
@@ -173,7 +174,7 @@ jobs:
           fi
           git -C target config user.name "github-actions[bot]"
           git -C target config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C target add package.json package-lock.json backend/requirements.txt backend/attestation.py backend/test_apple_app_attest.py scripts/validation-runner.test.mjs scripts/app-attest-config.test.mjs vendor/deepmerge
+          git -C target add package.json package-lock.json backend/requirements.txt backend/attestation.py backend/test_apple_app_attest.py scripts/app-attest-config.test.mjs vendor/deepmerge
           git -C target commit -m "fix(ci): align Expo SDK 57, App Attest and runtime dependency audit"
           result_sha="$(git -C target rev-parse HEAD)"
           parent_sha="$(git -C target rev-parse HEAD^)"
