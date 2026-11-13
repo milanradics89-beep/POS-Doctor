@@ -1,3 +1,37 @@
+## Latest acceptance checkpoint — 2026-11-13 22:07 CET
+
+**Pilot/production acceptance: NOT GRANTED.**
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) was merged on 2026-11-13 20:40:35 UTC (21:40:35 CET). Reviewed PR HEAD: `68b380e73ca3c870048035197beef8febbf90ef1`; resulting main commit: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+
+All three required checks passed on the exact PR HEAD:
+- Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234): frontend, backend, and iOS jobs all passed. Frontend records 59 test files, Expo Doctor, Android Release build, and Android emulator smoke; iOS simulator smoke passed.
+- CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161): passed.
+- Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021): passed.
+A human APPROVED review was recorded before merge; all 22 inline review threads were resolved. Post-merge main push Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) also passed.
+
+These results establish automated CI acceptance for the merged code. They do **not** establish production or pilot acceptance.
+
+### Governance blocker after repository privatization
+
+The repository is private. The current main branch API reports `protected: false`; the rulesets API returns 403 and requires GitHub Pro or public repository visibility. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) has been reopened. Do not assume the previously verified ruleset remains enforced. Owner action is required to restore and verify main protection.
+
+### External acceptance gates remain blocked
+
+- **#4 App Attest:** production Apple App ID/capability and provisioning entitlement, signed production build, and provider-backed enrollment/assertion verification on a supported physical iPhone.
+- **#5 Play Integrity:** Play internal-track distribution, Play App Signing identity, Google Cloud service-account/API permissions, and verification on a physical Android installed from Play.
+- **#16 Backup/restore:** production datastore/Redis backup access and a witnessed restore drill with measured recovery-point/recovery-time evidence.
+- **#18 Product recognition:** representative labeled dataset, agreed accuracy metrics, human evaluation, and explicit business acceptance.
+- **#21 Monitoring:** production monitoring workspace, alert destination, named on-call owner, thresholds, and witnessed alert-delivery test.
+- **#22 Staged rollout:** production approval, TestFlight/Play track access, rollout/stop thresholds, named rollback owner, and tested rollback.
+- **#25 Pilot/business validation:** real pilot cohort, documented success/stop thresholds, named business owner, participant safeguards, and explicit business/release approval.
+
+Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open because the DNS-pinning/redirect remediation PRs #70 and #79 are still separate, unmerged branches. Their own exact-head CI success is not integrated security acceptance.
+
+There are **0 published GitHub releases**. Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unavailable/unverified, not empty**.
+
+---
+
 ## Latest acceptance checkpoint — 2026-11-13 18:49 CET
 
 **Pilot/production acceptance: NOT GRANTED.**
