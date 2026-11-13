@@ -54,6 +54,7 @@ describe('Expo SDK 57 lock refresh workflow', () => {
   it('keeps checkout credentials disabled through validation and artifact publication', () => {
     const checkoutCredentials = workflow.indexOf('persist-credentials: false');
     const install = workflow.indexOf('npm ci --ignore-scripts --no-audit --no-fund');
+    const installDoctor = workflow.indexOf('expo-doctor@1.20.5');
     const expoDoctor = workflow.indexOf('node node_modules/expo-doctor/bin/expo-doctor.js');
     const typecheck = workflow.indexOf('npm run typecheck');
     const tests = workflow.indexOf('npm test -- --passWithNoTests');
@@ -61,7 +62,8 @@ describe('Expo SDK 57 lock refresh workflow', () => {
     expect([checkoutCredentials, install, installDoctor, expoDoctor, typecheck, tests, artifact]
       .every(index => index >= 0)).toBe(true);
     expect(checkoutCredentials).toBeLessThan(install);
-    expect(install).toBeLessThan(expoDoctor);
+    expect(install).toBeLessThan(installDoctor);
+    expect(installDoctor).toBeLessThan(expoDoctor);
     expect(expoDoctor).toBeLessThan(typecheck);
     expect(typecheck).toBeLessThan(tests);
     expect(tests).toBeLessThan(artifact);
