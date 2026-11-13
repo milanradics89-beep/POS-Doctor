@@ -1,9 +1,14 @@
+import asyncio
+import socket
+
+import httpcore
+import httpx
 import pytest
 from fastapi import HTTPException
 
 from backend import product_extractor as extractor
 from backend.product_extractor import _HTMLParser, _extract, _number, _currency
-from backend.security import validate_public_http_url
+from backend.security import DNSPinnedAsyncHTTPTransport, validate_public_http_url
 
 
 def parse(html: str):
@@ -343,3 +348,127 @@ def test_extracts_schema_org_fragment_product_type():
     assert product is not None
     assert product["name"] == "Fragment Type Chair"
     assert product["priceHuf"] == 100
+
+
+class _RedirectScriptStream(httpcore.AsyncNetworkStream):
+    def __init__(self, peer_address: str, response: bytes):
+        self.peer_address = peer_address
+        self.response = response
+        self.writes: list[bytes] = []
+        self.sni_hostname: str | None = None
+        self._read = False
+
+    async def read(self, max_bytes: int, timeout: float | None = None) -> bytes:
+        if self._read:
+            return b""
+        self._read = True
+        return self.response
+
+    async def write(self, buffer: bytes, timeout: float | None = None) -> None:
+        self.writes.append(bytes(buffer))
+
+    async def aclose(self) -> None:
+        return None
+
+    async def start_tls(self, ssl_context, server_hostname: str | None = None, timeout: float | None = None):
+        self.sni_hostname = server_hostname
+        return self
+
+    def get_extra_info(self, info: str):
+        if info in {"server_addr", "peername"}:
+            return (self.peer_address, 443)
+        return None
+
+
+class _RedirectScriptBackend(httpcore.AsyncNetworkBackend):
+    def __init__(self, responses: list[bytes]):
+        self.responses = list(responses)
+        self.connected_hosts: list[tuple[str, int]] = []
+        self.streams: list[_RedirectScriptStream] = []
+
+    async def connect_tcp(self, host: str, port: int, timeout: float | None = None, local_address: str | None = None, socket_options=None):
+        self.connected_hosts.append((host, port))
+        if not self.responses:
+            raise AssertionError("Unexpected additional TCP connection")
+        stream = _RedirectScriptStream(host, self.responses.pop(0))
+        self.streams.append(stream)
+        return stream
+
+    async def connect_unix_socket(self, path: str, timeout=None, socket_options=None):
+        raise AssertionError("Unix sockets are not used for product-page requests")
+
+    async def sleep(self, seconds: float) -> None:
+        await asyncio.sleep(seconds)
+
+
+def _redirect_script_responses() -> list[bytes]:
+    return [
+        b"HTTP/1.1 302 Found\r\nLocation: https://cdn.example/product\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+        b"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 15\r\nConnection: close\r\n\r\n<html>ok</html>",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_fetch_product_page_redirect_re_resolves_pins_ip_and_preserves_host_and_sni(monkeypatch):
+    public_answers = {"shop.example": "8.8.8.8", "cdn.example": "1.1.1.1"}
+    monkeypatch.setattr(
+        "backend.security.socket.getaddrinfo",
+        lambda hostname, port, family, type: [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (public_answers[hostname], port))
+        ],
+    )
+    resolutions: list[tuple[str, int]] = []
+
+    async def resolver(hostname: str, port: int):
+        resolutions.append((hostname, port))
+        return [public_answers[hostname]]
+
+    backend = _RedirectScriptBackend(_redirect_script_responses())
+    monkeypatch.setattr(
+        extractor,
+        "DNSPinnedAsyncHTTPTransport",
+        lambda: DNSPinnedAsyncHTTPTransport(resolver=resolver, network_backend=backend),
+    )
+
+    final_url, content_type, body = await extractor._fetch_product_page("https://shop.example/product")
+
+    assert final_url == "https://cdn.example/product"
+    assert content_type == "text/html; charset=utf-8"
+    assert body == b"<html>ok</html>"
+    assert resolutions == [("shop.example", 443), ("cdn.example", 443)]
+    assert backend.connected_hosts == [("8.8.8.8", 443), ("1.1.1.1", 443)]
+    assert len(backend.streams) == 2
+    for stream, expected_host in zip(backend.streams, ("shop.example", "cdn.example"), strict=True):
+        assert stream.sni_hostname == expected_host
+        request_bytes = b"".join(stream.writes).lower()
+        assert f"host: {expected_host}\r\n".encode() in request_bytes
+
+
+@pytest.mark.asyncio
+async def test_fetch_product_page_redirect_dns_rebinding_is_blocked_before_second_tcp_connect(monkeypatch):
+    public_answers = {"shop.example": "8.8.8.8", "cdn.example": "1.1.1.1"}
+    monkeypatch.setattr(
+        "backend.security.socket.getaddrinfo",
+        lambda hostname, port, family, type: [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (public_answers[hostname], port))
+        ],
+    )
+    resolutions: list[tuple[str, int]] = []
+
+    async def rebound_resolver(hostname: str, port: int):
+        resolutions.append((hostname, port))
+        return ["8.8.8.8"] if hostname == "shop.example" else ["10.0.0.9"]
+
+    backend = _RedirectScriptBackend(_redirect_script_responses())
+    monkeypatch.setattr(
+        extractor,
+        "DNSPinnedAsyncHTTPTransport",
+        lambda: DNSPinnedAsyncHTTPTransport(resolver=rebound_resolver, network_backend=backend),
+    )
+
+    with pytest.raises(httpx.ConnectError):
+        await extractor._fetch_product_page("https://shop.example/product")
+
+    assert resolutions == [("shop.example", 443), ("cdn.example", 443)]
+    assert backend.connected_hosts == [("8.8.8.8", 443)]
+    assert len(backend.streams) == 1
