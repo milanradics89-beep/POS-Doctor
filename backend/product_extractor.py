@@ -199,7 +199,7 @@ async def _fetch_product_page(url: str) -> tuple[str, str, bytes]:
         for redirect_count in range(MAX_REDIRECTS + 1):
             async with client.stream("GET", current) as response:
                 validate_connected_peer(response)
-                if response.is_redirect or response.is_permanent_redirect:
+                if response.is_redirect:
                     if redirect_count >= MAX_REDIRECTS:
                         raise HTTPException(508, "Product page redirect chain is too long.")
                     location = response.headers.get("location")
