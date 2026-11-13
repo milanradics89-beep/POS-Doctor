@@ -3,7 +3,7 @@ name: Temporary Expo SDK 57 lockfile refresh
 on:
   push:
     branches:
-      - automation/expo-sdk57-lock-refresh-run-20261113
+      - automation/expo-sdk57-lock-refresh-run-20261113b
     paths:
       - .github/workflows/expo-sdk57-lock-refresh.yml
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
     steps:
       - name: Restrict execution to the release branch
         env:
-          TARGET_REF: refs/heads/automation/expo-sdk57-lock-refresh-run-20261113
+          TARGET_REF: refs/heads/automation/expo-sdk57-lock-refresh-run-20261113b
         run: |
           set -euo pipefail
           is_allowed_ref() {
@@ -40,7 +40,7 @@ jobs:
             exit 1
           fi
           if ! is_allowed_ref "$GITHUB_REF"; then
-            echo "::error::This workflow may only run on automation/expo-sdk57-lock-refresh-run-20261113 (got $GITHUB_REF)."
+            echo "::error::This workflow may only run on automation/expo-sdk57-lock-refresh-run-20261113b (got $GITHUB_REF)."
             exit 1
           fi
 
@@ -147,7 +147,7 @@ jobs:
           npm run typecheck
           npm test -- --passWithNoTests
 
-      - name: Prepare a checksum-verified manifest artifact
+      - name: Audit production runtime dependencies\n        run: npm audit --omit=dev --audit-level=high\n\n      - name: Prepare a checksum-verified manifest artifact
         run: |
           set -euo pipefail
           test -s package.json
