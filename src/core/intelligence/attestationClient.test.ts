@@ -824,7 +824,6 @@ describe('attestationClient session cache', () => {
     expect(nativeModule.markKeyAttested).toHaveBeenCalledWith('apple-key-id');
   });
 
-});
 
   it('uses a fresh assertion for a previously attested Apple key on later sessions', async () => {
     const nativeModule = {
@@ -904,3 +903,4 @@ describe('attestationClient session cache', () => {
     expect(nativeModule.markKeyAttested).toHaveBeenCalledWith('apple-key-id');
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+});
