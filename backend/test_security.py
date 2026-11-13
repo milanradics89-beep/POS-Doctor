@@ -162,7 +162,8 @@ class _RecordingStream(httpcore.AsyncNetworkStream):
 class _RecordingBackend(httpcore.AsyncNetworkBackend):
     def __init__(self):
         self.connected_hosts: list[tuple[str, int]] = []
-        self.stream = _RecordingStream("8.8.8.8")
+        self.streams: list[_RecordingStream] = []
+        self.stream: _RecordingStream | None = None
 
     async def connect_tcp(
         self,
@@ -173,7 +174,8 @@ class _RecordingBackend(httpcore.AsyncNetworkBackend):
         socket_options=None,
     ):
         self.connected_hosts.append((host, port))
-        self.stream.peer_address = host
+        self.stream = _RecordingStream(host)
+        self.streams.append(self.stream)
         return self.stream
 
     async def connect_unix_socket(self, path: str, timeout=None, socket_options=None):
@@ -253,3 +255,34 @@ async def test_transport_rejects_mixed_public_and_private_dns_answers(monkeypatc
 
     assert backend.connected_hosts == []
     assert backend.stream.writes == []
+
+@pytest.mark.asyncio
+async def test_transport_resolves_and_pins_a_fresh_ip_for_each_request():
+    answers = ["8.8.8.8", "1.1.1.1"]
+    resolutions: list[tuple[str, int]] = []
+
+    async def resolver(hostname: str, port: int):
+        resolutions.append((hostname, port))
+        return [answers[len(resolutions) - 1]]
+
+    backend = _RecordingBackend()
+    transport = DNSPinnedAsyncHTTPTransport(
+        resolver=resolver,
+        network_backend=backend,
+    )
+    async with httpx.AsyncClient(transport=transport, trust_env=False) as client:
+        await client.get("https://shop.example/first")
+        await client.get("https://shop.example/redirected")
+
+    # The product extractor follows redirects as separate requests. With
+    # keep-alive disabled, every hop must resolve and pin a fresh TCP peer.
+    assert transport._pool._max_keepalive_connections == 0
+    assert transport._pool._keepalive_expiry == 0.0
+    assert resolutions == [("shop.example", 443), ("shop.example", 443)]
+    assert backend.connected_hosts == [("8.8.8.8", 443), ("1.1.1.1", 443)]
+    assert len(backend.streams) == 2
+    for stream in backend.streams:
+        assert stream.sni_hostname == "shop.example"
+        request_bytes = b"".join(stream.writes).lower()
+        assert b"host: shop.example\r\n" in request_bytes
+
