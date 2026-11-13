@@ -35,7 +35,7 @@ describe('USEIT validation runner contract', () => {
     );
     const expoEnv = packageLock.packages['node_modules/@expo/env'];
 
-    expect(expoEnv?.version).toBe('2.5.4');
+    expect(expoEnv?.version).toBe('2.6.0');
     expect(expoEnv?.dev).not.toBe(true);
     expect(frontendJob).toContain(
       'npm pack --silent --pack-destination "$RUNNER_TEMP/expo-doctor" expo-doctor@1.20.5',
