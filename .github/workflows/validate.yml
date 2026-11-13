@@ -5,12 +5,16 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - name: Checkout
@@ -30,15 +34,37 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npm test -- --passWithNoTests
-      - name: Runtime dependency audit
-        run: npm audit --omit=dev --audit-level=high
+      - name: Install pinned Expo Doctor CLI
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/expo-doctor"
+          # Expo's published sdk-57 dist-tag resolves to expo-doctor 1.20.5.
+          TARBALL="$(npm pack --silent --pack-destination "$RUNNER_TEMP/expo-doctor" expo-doctor@1.20.5)"
+          mkdir -p node_modules/expo-doctor
+          tar -xzf "$RUNNER_TEMP/expo-doctor/$TARBALL" -C node_modules/expo-doctor --strip-components=1
+          node -e "const pkg = require('./node_modules/expo-doctor/package.json'); if (pkg.version !== '1.20.5') throw new Error('Unexpected Expo Doctor version'); require.resolve('@expo/env')"
       - name: Validate Expo project health
-        run: npx expo-doctor
+        run: node node_modules/expo-doctor/bin/expo-doctor.js
       - name: Validate Android export
         run: npx expo export --platform android --output-dir .expo-export
       - name: Validate native Android release build
         run: |
           npx expo prebuild --platform android --no-install
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          wrapper = Path("android/gradle/wrapper/gradle-wrapper.properties")
+          properties = wrapper.read_text(encoding="utf-8")
+          if re.search(r"(?m)^networkTimeout=", properties):
+              properties = re.sub(r"(?m)^networkTimeout=.*$", "networkTimeout=120000", properties)
+          else:
+              properties = properties.rstrip() + "\nnetworkTimeout=120000\n"
+          wrapper.write_text(properties, encoding="utf-8")
+          if not re.search(r"(?m)^networkTimeout=120000$", properties):
+              raise SystemExit("Gradle wrapper network timeout was not configured.")
+          print("Gradle wrapper download timeout configured to 120 seconds.")
+          PY
           cd android
           ./gradlew assembleRelease --no-daemon
       - name: Enable KVM for Android emulator
@@ -171,8 +197,12 @@ jobs:
           "$ADB_BIN" -s emulator-5554 shell am force-stop "$PACKAGE_NAME"
           echo "Android emulator smoke test passed for $PACKAGE_NAME"
 
+      - name: Runtime dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
   ios:
     runs-on: macos-latest
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -186,6 +216,8 @@ jobs:
       - name: Install dependencies reproducibly
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Generate native iOS project
+        env:
+          EAS_BUILD_PROFILE: production
         run: npx expo prebuild --platform ios --no-install
       - name: Install CocoaPods dependencies
         run: npx pod-install ios
@@ -201,6 +233,7 @@ jobs:
             -derivedDataPath build/ios-simulator \
             build
       - name: Install and launch iOS simulator smoke test
+        timeout-minutes: 15
         shell: bash
         run: |
           set -euo pipefail
@@ -219,6 +252,7 @@ jobs:
             exit 1
           fi
 
+          echo "Booting iOS simulator $DEVICE_UDID..."
           xcrun simctl boot "$DEVICE_UDID" 2>/dev/null || true
           xcrun simctl bootstatus "$DEVICE_UDID" -b
 
@@ -233,13 +267,26 @@ jobs:
           test -n "$BUNDLE_ID"
           echo "Installing $BUNDLE_ID from $APP_PATH"
 
+          echo "Installing app into simulator..."
           xcrun simctl install "$DEVICE_UDID" "$APP_PATH"
-          xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID"
-          sleep 3
-          xcrun simctl spawn "$DEVICE_UDID" launchctl print system 2>/dev/null >/dev/null
+          echo "Launching app in simulator..."
+          node scripts/ios-simulator-launch.mjs "$DEVICE_UDID" "$BUNDLE_ID"
+          echo "iOS simulator smoke test passed for $BUNDLE_ID"
 
   backend:
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      USEIT_TEST_REDIS_URL: redis://127.0.0.1:6379/15
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
