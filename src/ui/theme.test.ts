@@ -24,4 +24,12 @@ describe('USEIT text contrast tokens', () => {
   it('keeps error text at WCAG AA contrast on the error surface', () => {
     expect(contrast(theme.colors.danger, theme.colors.errorSurface)).toBeGreaterThanOrEqual(4.5);
   });
+
+  it('keeps the status indicator at WCAG AA non-text contrast on the canvas', () => {
+    expect(contrast(theme.colors.status, theme.colors.canvas)).toBeGreaterThanOrEqual(3);
+  });
+
+  it('keeps the camera outline at WCAG AA non-text contrast on its dark surface', () => {
+    expect(contrast(theme.colors.cameraOutline, theme.colors.captureStart)).toBeGreaterThanOrEqual(3);
+  });
 });

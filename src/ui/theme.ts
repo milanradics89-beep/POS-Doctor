@@ -16,7 +16,7 @@ export const theme = {
     danger: '#A94338',
     captureStart: '#202522',
     captureEnd: '#111512',
-    status: '#8BAA62',
+    status: '#6A8542',
     cameraOutline: '#707970',
     captureTextMuted: '#B7BEB7',
     confidenceSurface: '#303A2D',
