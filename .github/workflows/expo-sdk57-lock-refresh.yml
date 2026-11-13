@@ -128,8 +128,17 @@ jobs:
       - name: Verify reproducible installation
         run: npm ci --ignore-scripts --no-audit --no-fund
 
+      - name: Install pinned Expo Doctor CLI
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/expo-doctor"
+          TARBALL="$(npm pack --silent --pack-destination "$RUNNER_TEMP/expo-doctor" expo-doctor@1.20.5)"
+          mkdir -p node_modules/expo-doctor
+          tar -xzf "$RUNNER_TEMP/expo-doctor/$TARBALL" -C node_modules/expo-doctor --strip-components=1
+          node -e "const pkg = require('./node_modules/expo-doctor/package.json'); if (pkg.version !== '1.20.5') throw new Error('Unexpected Expo Doctor version'); require.resolve('@expo/env')"
+
       - name: Verify Expo SDK compatibility
-        run: npx expo-doctor
+        run: node node_modules/expo-doctor/bin/expo-doctor.js
 
       - name: Verify frontend types and tests
         run: |
