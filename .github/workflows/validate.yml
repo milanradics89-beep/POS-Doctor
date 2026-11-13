@@ -80,6 +80,36 @@ jobs:
           sudo udevadm trigger --name-match=kvm
           sudo chmod 0666 /dev/kvm
           ls -l /dev/kvm
+      - name: Free runner disk space before Android emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Disk before cleanup:"
+          df -h /
+
+          # The APK is already assembled, so Gradle caches are not needed by the install/launch smoke test.
+          rm -rf "$HOME/.gradle/caches" "$HOME/.gradle/daemon" "$HOME/.gradle/native"
+
+          # Remove unrelated preinstalled toolchains and Android build-only components.
+          # This job no longer needs them after assembleRelease; the emulator and platform tools are preserved.
+          sudo rm -rf /usr/share/dotnet /usr/local/share/powershell /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo rm -rf "$ANDROID_HOME/ndk" "$ANDROID_HOME/cmake"
+
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$SDK_ROOT"
+          for image in "$SDK_ROOT"/system-images/android-*/*/*; do
+            [[ -d "$image" ]] || continue
+            [[ "$image" == "$SDK_ROOT/system-images/android-35/google_apis/x86_64" ]] || rm -rf "$image"
+          done
+
+          echo "Disk after cleanup:"
+          df -h /
+          available_kb="$(df -Pk / | awk 'NR==2 {print $4}')"
+          if (( available_kb < 6291456 )); then
+            echo "::error::Only $((available_kb / 1024)) MiB remain; at least 6144 MiB are required for the Android emulator smoke test."
+            exit 1
+          fi
+
       - name: Install and launch Android emulator smoke test
         shell: bash
         run: |
