@@ -29,6 +29,7 @@ describe("Expo SDK 57 dependency refresh workflow", () => {
   it("applies only non-forced security updates and verifies the runtime audit", () => {
     expect(workflow).toContain("npm audit fix --ignore-scripts --no-fund || npm audit --audit-level=high");
     expect(workflow).toContain("npm audit --audit-level=high");
+    expect(workflow).toContain("Audit all dependencies (high severity gate)");
     expect(workflow).not.toContain("npm audit fix --force");
     expect(workflow).toContain('pkg.overrides.deepmerge = "$deepmerge";');
     expect(workflow).toContain('pkg.devDependencies.vitest = "^5.1.0";');

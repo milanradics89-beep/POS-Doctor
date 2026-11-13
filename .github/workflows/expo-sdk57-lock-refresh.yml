@@ -163,7 +163,7 @@ jobs:
           npm run typecheck
           npm test -- --passWithNoTests
 
-      - name: Audit production runtime dependencies
+      - name: Audit all dependencies (high severity gate)
         run: npm audit --audit-level=high
 
       - name: Prepare a checksum-verified manifest artifact
