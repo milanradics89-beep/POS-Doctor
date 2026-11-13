@@ -238,7 +238,13 @@ export default function Home() {
               Point your camera at almost anything. USEIT helps you discover what you can do with it.
             </Text>
 
-            <Pressable onPress={capture} style={s.capture}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Take a photo"
+              accessibilityHint="Opens the camera to take a photo for analysis."
+              onPress={capture}
+              style={s.capture}
+            >
               <LinearGradient colors={['#111', '#3b3b3b']} style={s.grad}>
                 <Text style={s.cam}>⌾</Text>
                 <Text style={s.cta}>SHOW ME</Text>
@@ -246,7 +252,13 @@ export default function Home() {
               </LinearGradient>
             </Pressable>
 
-            <Pressable onPress={chooseGallery} style={s.gallery}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Choose a photo from your gallery"
+              accessibilityHint="Opens your photo library."
+              onPress={chooseGallery}
+              style={s.gallery}
+            >
               <Text style={s.galleryTitle}>▣  CHOOSE FROM GALLERY</Text>
               <Text style={s.galleryHint}>Use a photo you already have</Text>
             </Pressable>
@@ -263,7 +275,12 @@ export default function Home() {
           <>
             <View style={s.top}>
               <Text style={s.small}>USEIT</Text>
-              <Pressable onPress={reset}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose another photo"
+                accessibilityHint="Returns to photo selection."
+                onPress={reset}
+              >
                 <Text style={s.close}>✕</Text>
               </Pressable>
             </View>
@@ -360,6 +377,9 @@ export default function Home() {
                       .slice(0, 5)
                       .map((x) => (
                         <Pressable
+                          accessibilityRole="link"
+                          accessibilityLabel={`Open ${x.title} product page`}
+                          accessibilityHint="Opens the product page in your browser."
                           style={s.product}
                           key={x.id}
                           onPress={() => { void openProductLink(x.url); }}
@@ -381,6 +401,9 @@ export default function Home() {
 
                 {redesign ? (
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Create visual concept"
+                    accessibilityHint="Generates a visual redesign from the selected photo."
                     style={s.primary}
                     onPress={createVisualConcept}
                   >
@@ -388,7 +411,13 @@ export default function Home() {
                   </Pressable>
                 ) : null}
 
-                <Pressable style={s.secondary} onPress={reset}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Try another photo"
+                  accessibilityHint="Returns to photo selection."
+                  style={s.secondary}
+                  onPress={reset}
+                >
                   <Text style={s.secondaryText}>TRY ANOTHER PHOTO</Text>
                 </Pressable>
               </>
@@ -398,6 +427,9 @@ export default function Home() {
 
                 {modes.map(([a, b]) => (
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${a.toUpperCase()} mode`}
+                    accessibilityHint={b}
                     key={a}
                     style={s.mode}
                     onPress={() => analyze(a)}
