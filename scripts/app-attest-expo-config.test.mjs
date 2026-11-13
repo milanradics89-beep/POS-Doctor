@@ -14,7 +14,7 @@ const plugin = require('../modules/useit-app-attest/app.plugin.js');
 const workflow = read('.github/workflows/validate.yml');
 
 function workflowJob(name) {
-  return workflow.split(`\\n  ${name}:\\n`)[1]?.split(/\\n  [a-z0-9_-]+:\\n/)[0] ?? '';
+  return workflow.split(`\n  ${name}:\n`)[1]?.split(/\n  [a-z0-9_-]+:\n/)[0] ?? '';
 }
 
 describe('App Attest config/runtime entrypoint separation', () => {
@@ -44,8 +44,8 @@ describe('App Attest config/runtime entrypoint separation', () => {
   });
 
   it('runs both Expo validation and iOS prebuild on Node 22', () => {
-    expect(workflowJob('frontend')).toMatch(/node-version:\\s*22/);
-    expect(workflowJob('ios')).toMatch(/node-version:\\s*22/);
+    expect(workflowJob('frontend')).toMatch(/node-version:\s*22/);
+    expect(workflowJob('ios')).toMatch(/node-version:\s*22/);
     expect(workflowJob('ios')).toContain('npx expo prebuild --platform ios --no-install');
   });
 });
