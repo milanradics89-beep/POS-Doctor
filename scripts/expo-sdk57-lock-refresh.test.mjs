@@ -43,13 +43,14 @@ describe('Expo SDK 57 lock refresh workflow', () => {
     const expoDoctor = workflow.indexOf('node node_modules/expo-doctor/bin/expo-doctor.js');
     const typecheck = workflow.indexOf('npm run typecheck');
     const tests = workflow.indexOf('npm test -- --passWithNoTests');
-    const audit = workflow.indexOf('npm audit --omit=dev --audit-level=high');\n    const audit = workflow.indexOf('npm audit --omit=dev --audit-level=high');\n    const artifact = workflow.indexOf('uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9');
+    const audit = workflow.indexOf('npm audit --omit=dev --audit-level=high');\n    const artifact = workflow.indexOf('uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9');
     expect([install, installDoctor, expoDoctor, typecheck, tests, audit, artifact].every(index => index >= 0)).toBe(true);
     expect(install).toBeLessThan(installDoctor);
     expect(installDoctor).toBeLessThan(expoDoctor);
     expect(expoDoctor).toBeLessThan(typecheck);
     expect(typecheck).toBeLessThan(tests);
-    expect(tests).toBeLessThan(audit);\n    expect(audit).toBeLessThan(artifact);
+    expect(tests).toBeLessThan(audit);
+    expect(audit).toBeLessThan(artifact);
   });
 
   it('keeps checkout credentials disabled through validation and artifact publication', () => {
@@ -59,6 +60,7 @@ describe('Expo SDK 57 lock refresh workflow', () => {
     const expoDoctor = workflow.indexOf('node node_modules/expo-doctor/bin/expo-doctor.js');
     const typecheck = workflow.indexOf('npm run typecheck');
     const tests = workflow.indexOf('npm test -- --passWithNoTests');
+    const audit = workflow.indexOf('npm audit --omit=dev --audit-level=high');
     const artifact = workflow.indexOf('uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9');
     expect([checkoutCredentials, install, installDoctor, expoDoctor, typecheck, tests, audit, artifact]
       .every(index => index >= 0)).toBe(true);
@@ -67,7 +69,8 @@ describe('Expo SDK 57 lock refresh workflow', () => {
     expect(installDoctor).toBeLessThan(expoDoctor);
     expect(expoDoctor).toBeLessThan(typecheck);
     expect(typecheck).toBeLessThan(tests);
-    expect(tests).toBeLessThan(audit);\n    expect(audit).toBeLessThan(artifact);
+    expect(tests).toBeLessThan(audit);
+    expect(audit).toBeLessThan(artifact);
   });
 
   it('publishes only checksum-verified manifest files and fails if any artifact file is missing', () => {

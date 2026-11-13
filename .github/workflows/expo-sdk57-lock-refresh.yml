@@ -147,7 +147,10 @@ jobs:
           npm run typecheck
           npm test -- --passWithNoTests
 
-      - name: Audit production runtime dependencies\n        run: npm audit --omit=dev --audit-level=high\n\n      - name: Prepare a checksum-verified manifest artifact
+      - name: Audit production runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Prepare a checksum-verified manifest artifact
         run: |
           set -euo pipefail
           test -s package.json
