@@ -98,7 +98,7 @@ describe('Expo SDK 57 lock refresh workflow', () => {
   });
 
   it('restricts execution to the release branch', () => {
-    expect(workflow).toContain('TARGET_REF: refs/heads/fix/release-blockers-2026-10');
+    expect(workflow).toContain('TARGET_REF: refs/heads/automation/expo-sdk57-lock-refresh-run-20261113');
     expect(workflow).toContain('if ! is_allowed_ref "$GITHUB_REF"');
     expect(workflow).toContain('Main must never be a lockfile-refresh target.');
   });

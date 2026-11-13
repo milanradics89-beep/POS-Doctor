@@ -29,7 +29,7 @@ jobs:
             [[ "$1" == "$TARGET_REF" ]]
           }
 
-          # Regression checks: accept the release ref and reject main/other refs.
+          # Regression checks: accept the isolated lock-refresh ref and reject main/other refs.
           is_allowed_ref "$TARGET_REF"
           if is_allowed_ref "refs/heads/main"; then
             echo "::error::Main must never be a lockfile-refresh target."
@@ -40,7 +40,7 @@ jobs:
             exit 1
           fi
           if ! is_allowed_ref "$GITHUB_REF"; then
-            echo "::error::This workflow may only run on fix/release-blockers-2026-10 (got $GITHUB_REF)."
+            echo "::error::This workflow may only run on automation/expo-sdk57-lock-refresh-run-20261113 (got $GITHUB_REF)."
             exit 1
           fi
 
