@@ -73,6 +73,8 @@ jobs:
           const fs = require('node:fs');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           pkg.dependencies ||= {};
+          pkg.overrides ||= {};
+          pkg.overrides.deepmerge = "$deepmerge";
 
           const expected = {
             expo: "~57.0.33",
@@ -91,6 +93,7 @@ jobs:
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           NODE
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm audit fix --ignore-scripts --no-fund
 
       - name: Verify generated SDK 57 manifest and lockfile
         run: |
@@ -120,6 +123,9 @@ jobs:
             if (actual !== expectedPackage.version) {
               throw new Error(`node_modules/${name} expected ${expectedPackage.version}, found ${actual || "missing"}`);
             }
+          }
+          if (pkg.overrides?.deepmerge !== "$deepmerge") {
+            throw new Error("The patched local deepmerge fork must override every transitive deepmerge copy");
           }
           if (Object.hasOwn(pkg.dependencies, "expo-modules-core")) {
             throw new Error("expo-modules-core must remain a transitive Expo dependency, not a direct root dependency");
