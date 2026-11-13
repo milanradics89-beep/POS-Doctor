@@ -29,6 +29,15 @@ describe('USEIT validation runner contract', () => {
     expect(frontendJob).toContain('name: Runtime dependency audit');
   });
 
+
+  it('pins Android Gradle to a reproducible Temurin JDK 21 runtime', () => {
+    expect(frontendJob).toContain(
+      'uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961',
+    );
+    expect(frontendJob).toMatch(/^\\s+distribution: temurin\\s*$/m);
+    expect(frontendJob).toMatch(/^\\s+java-version: '21'\\s*$/m);
+  });
+
   it('installs the published SDK 57 Expo Doctor CLI beside the lockfile-resolved @expo/env package', () => {
     const packageLock = JSON.parse(
       readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'),

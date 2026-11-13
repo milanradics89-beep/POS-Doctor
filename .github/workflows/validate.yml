@@ -36,6 +36,11 @@ jobs:
         run: npx expo-doctor
       - name: Validate Android export
         run: npx expo export --platform android --output-dir .expo-export
+      - name: Setup Java for Android native build
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '21'
       - name: Validate native Android release build
         run: |
           npx expo prebuild --platform android --no-install
