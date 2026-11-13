@@ -759,6 +759,7 @@ describe('attestationClient session cache', () => {
     vi.useFakeTimers();
     const nativeModule = {
       isAvailable: vi.fn(() => true),
+      isKeyAttested: vi.fn(() => false),
       isKeyAttestationPending: vi.fn(() => false),
       markKeyAttestationPending: vi.fn(),
       markKeyAttested: vi.fn(),
