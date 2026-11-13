@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import ipaddress
 import os
+import re
+from urllib.parse import urlsplit
 
 from fastapi import HTTPException
 
@@ -15,10 +18,83 @@ from backend.attestation import (
 
 TRUE_VALUES = {"1", "true", "yes", "on"}
 MIN_SESSION_SECRET_LENGTH = 32
+MIN_API_KEY_LENGTH = 32
+PLACEHOLDER_SECRET_VALUES = frozenset({"change-me", "changeme", "example", "placeholder", "test"})
+PLACEHOLDER_SECRET_PREFIXES = ("replace-with-", "your-")
+_DNS_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$", re.IGNORECASE)
+
+
+def _valid_origin_hostname(hostname: str) -> bool:
+    """Accept syntactically valid IP literals or DNS names, not URL-parser oddities."""
+    if not hostname or "%" in hostname:
+        return False
+    try:
+        ipaddress.ip_address(hostname)
+        return True
+    except ValueError:
+        pass
+    try:
+        ascii_hostname = hostname.encode("idna").decode("ascii").rstrip(".")
+    except UnicodeError:
+        return False
+    if not ascii_hostname or len(ascii_hostname) > 253:
+        return False
+    labels = ascii_hostname.split(".")
+    return all(_DNS_LABEL_RE.fullmatch(label) for label in labels)
+
+
+def _is_placeholder_secret(value: str) -> bool:
+    normalized = value.strip().lower()
+    return normalized in PLACEHOLDER_SECRET_VALUES or normalized.startswith(PLACEHOLDER_SECRET_PREFIXES)
 
 
 def production_mode() -> bool:
     return os.getenv("USEIT_ENV", "development").strip().lower() in {"production", "prod"}
+
+
+def validate_production_redis_transport() -> None:
+    """Require TLS for the shared Redis service used by production workers."""
+    redis_url = configured_redis_url()
+    if not redis_url:
+        raise RuntimeError("USEIT_REDIS_URL is required for production Redis")
+
+    try:
+        parsed = urlsplit(redis_url)
+        hostname = parsed.hostname
+        port = parsed.port
+    except ValueError as exc:
+        raise RuntimeError("USEIT_REDIS_URL must be a valid rediss:// URL in production") from exc
+
+    if parsed.scheme.lower() != "rediss" or not hostname:
+        raise RuntimeError("USEIT_REDIS_URL must use rediss:// with a valid host in production")
+    if port is not None and not 1 <= port <= 65535:
+        raise RuntimeError("USEIT_REDIS_URL port must be between 1 and 65535 in production")
+
+
+def validate_production_session_auth_configuration() -> None:
+    """Enforce the same session/attestation contract at startup and readiness."""
+    mode = configured_attestation_mode()
+    session_secret = os.getenv("USEIT_SESSION_SECRET", "").strip()
+
+    if mode is AttestationMode.DISABLED:
+        if session_secret:
+            raise RuntimeError(
+                "USEIT_ATTESTATION_MODE must be required when USEIT_SESSION_SECRET is configured in production"
+            )
+        return
+
+    if not session_secret:
+        raise RuntimeError(
+            "USEIT_SESSION_SECRET is required when USEIT_ATTESTATION_MODE is enabled in production"
+        )
+    if mode is not AttestationMode.REQUIRED:
+        raise RuntimeError(
+            "USEIT_ATTESTATION_MODE must be required when USEIT_SESSION_SECRET is configured in production"
+        )
+    if not configured_attestation_app_id():
+        raise RuntimeError("USEIT_ATTESTATION_APP_ID is required for production session authentication")
+    if not configured_redis_url():
+        raise RuntimeError("USEIT_REDIS_URL is required for production attestation challenge storage")
 
 
 def validate_production_security() -> None:
@@ -26,32 +102,78 @@ def validate_production_security() -> None:
         return
 
     missing = []
-    if not os.getenv("OPENAI_API_KEY"):
+    openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not openai_api_key:
         missing.append("OPENAI_API_KEY")
+    elif _is_placeholder_secret(openai_api_key):
+        raise RuntimeError("OPENAI_API_KEY must not be a placeholder value")
     api_key = os.getenv("USEIT_API_KEY", "").strip()
     session_secret = os.getenv("USEIT_SESSION_SECRET", "").strip()
     if not api_key and not session_secret:
         missing.append("USEIT_API_KEY or USEIT_SESSION_SECRET")
     if missing:
         raise RuntimeError("Missing required production secrets: " + ", ".join(missing))
+    if api_key and _is_placeholder_secret(api_key):
+        raise RuntimeError("USEIT_API_KEY must not be a placeholder value")
+    if session_secret and _is_placeholder_secret(session_secret):
+        raise RuntimeError("USEIT_SESSION_SECRET must not be a placeholder value")
+    if api_key and len(api_key) < MIN_API_KEY_LENGTH:
+        raise RuntimeError("USEIT_API_KEY must be at least 32 characters when configured")
     if session_secret and len(session_secret) < MIN_SESSION_SECRET_LENGTH:
         raise RuntimeError("USEIT_SESSION_SECRET must be at least 32 characters")
 
+    validate_production_session_auth_configuration()
+
     if session_secret:
-        mode = configured_attestation_mode()
         provider = configured_attestation_provider()
-        if mode is not AttestationMode.REQUIRED:
-            raise RuntimeError("USEIT_ATTESTATION_MODE must be required when USEIT_SESSION_SECRET is configured in production")
-        if not configured_attestation_app_id():
-            raise RuntimeError("USEIT_ATTESTATION_APP_ID is required for production session authentication")
-        if not configured_redis_url():
-            raise RuntimeError("USEIT_REDIS_URL is required for production attestation challenge storage")
-        if provider is AttestationProvider.PLAY_INTEGRITY and not os.getenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "").strip():
-            raise RuntimeError("USEIT_GOOGLE_PLAY_PACKAGE_NAME is required for Google Play Integrity")
+        if provider is AttestationProvider.PLAY_INTEGRITY:
+            play_package_name = os.getenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "").strip()
+            if not play_package_name:
+                raise RuntimeError("USEIT_GOOGLE_PLAY_PACKAGE_NAME is required for Google Play Integrity")
+            if configured_attestation_app_id() != play_package_name:
+                raise RuntimeError(
+                    "USEIT_ATTESTATION_APP_ID must match USEIT_GOOGLE_PLAY_PACKAGE_NAME for Google Play Integrity"
+                )
+            raw_certificate_pins = os.getenv("USEIT_GOOGLE_PLAY_CERT_SHA256", "").strip()
+            if not raw_certificate_pins:
+                raise RuntimeError("USEIT_GOOGLE_PLAY_CERT_SHA256 is required for production Google Play Integrity verification")
+            # Validate the parsed list used by the verifier, not only the raw string:
+            # values such as ",,," are non-empty but produce no certificate pins.
+            from backend.google_play_integrity import configured_certificates
+
+            if not configured_certificates():
+                raise RuntimeError(
+                    "USEIT_GOOGLE_PLAY_CERT_SHA256 must contain at least one non-empty signing certificate digest"
+                )
 
     origins = [x.strip() for x in os.getenv("USEIT_CORS_ORIGINS", "").split(",") if x.strip()]
-    if not origins or "*" in origins:
+    if not origins or any("*" in origin for origin in origins):
         raise RuntimeError("Wildcard CORS is forbidden in production")
+    for origin in origins:
+        try:
+            parsed_origin = urlsplit(origin)
+            hostname = parsed_origin.hostname
+            port = parsed_origin.port
+        except ValueError as exc:
+            raise RuntimeError(
+                "USEIT_CORS_ORIGINS must contain only valid HTTPS origins in production"
+            ) from exc
+        if (
+            parsed_origin.scheme.lower() != "https"
+            or not hostname
+            or not _valid_origin_hostname(hostname)
+            or any(ord(character) <= 0x20 or ord(character) == 0x7F for character in origin)
+            or "\\" in origin
+            or "?" in origin
+            or "#" in origin
+            or parsed_origin.username is not None
+            or parsed_origin.password is not None
+            or parsed_origin.path not in {"", "/"}
+            or (port is not None and not 1 <= port <= 65535)
+        ):
+            raise RuntimeError(
+                "USEIT_CORS_ORIGINS must contain only explicit HTTPS origins without credentials, paths, query, or fragment in production"
+            )
 
     if os.getenv("USEIT_ALLOW_DOCS", "false").strip().lower() in TRUE_VALUES:
         raise RuntimeError("Interactive API documentation must be explicitly disabled in production")
@@ -59,8 +181,11 @@ def validate_production_security() -> None:
     rate_mode = os.getenv("USEIT_RATE_LIMIT_MODE", "memory").strip().lower()
     if rate_mode not in {"memory", "redis"}:
         raise RuntimeError("USEIT_RATE_LIMIT_MODE must be memory or redis")
-    if rate_mode == "redis" and not os.getenv("USEIT_REDIS_URL", "").strip():
+    if rate_mode != "redis":
+        raise RuntimeError("USEIT_RATE_LIMIT_MODE must be redis in production to enforce shared rate limits across workers")
+    if not os.getenv("USEIT_REDIS_URL", "").strip():
         raise RuntimeError("USEIT_REDIS_URL is required when Redis rate limiting is enabled")
+    validate_production_redis_transport()
 
 
 def enforce_production_configuration() -> None:

@@ -10,11 +10,11 @@ function finiteScore(value: number, fallback = 0.5): number {
 export function rankProducts(scene: SceneModel, decision: ShoppingDecision, candidates: ProductCandidate[]): RankedProduct[] {
   return candidates.map(candidate => {
     const scoreBreakdown = {
-      categoryFit: finiteScore(decision.categories.includes(candidate.category) ? 1 : 0.35),
+      categoryFit: finiteScore(decision.categories.some(category => normalizeText(category) === normalizeText(candidate.category)) ? 1 : 0.35),
       budgetFit: finiteScore(scoreBudget(candidate, decision)),
       styleFit: finiteScore(scoreAttribute(candidate, decision, 'style')),
       colorFit: finiteScore(scoreAttribute(candidate, decision, 'color')),
-      availability: finiteScore(candidate.availability === 'in_stock' ? 1 : candidate.availability === 'out_of_stock' ? 0 : 0.5),
+      availability: finiteScore(candidate.availability === 'in_stock' ? 1 : candidate.availability === 'out_of_stock' ? 0 : 0.35),
     };
     const score = finiteScore(
       scoreBreakdown.categoryFit * 0.30 + scoreBreakdown.budgetFit * 0.25 + scoreBreakdown.styleFit * 0.20 + scoreBreakdown.colorFit * 0.10 + scoreBreakdown.availability * 0.15,
@@ -23,23 +23,33 @@ export function rankProducts(scene: SceneModel, decision: ShoppingDecision, cand
   }).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
 }
 
+function normalizeText(value: string): string {
+  return typeof value === 'string' ? value.trim().toLocaleLowerCase() : '';
+}
+
 function scoreBudget(candidate: ProductCandidate, decision: ShoppingDecision): number {
   const price = candidate.priceHuf;
   const budget = decision.budgetHuf;
-  if (price == null || budget == null) return 0.5;
-  if (!Number.isFinite(price) || price < 0 || !Number.isFinite(budget) || budget < 0) return 0.5;
+  if (budget == null) return 0.5;
+  if (price == null) return 0.35;
+  if (!Number.isFinite(price) || price < 0 || !Number.isFinite(budget) || budget < 0) return 0.35;
   if (budget === 0) return price === 0 ? 1 : 0;
-  if (price <= budget) return Math.max(0.4, 1 - price / (budget * 1.25));
-  return Math.max(0, 1 - (price - budget) / budget);
+  if (price <= budget) return 1 - 0.5 * (price / budget);
+  return Math.max(0, 0.5 - (price - budget) / budget);
 }
 
 function scoreAttribute(candidate: ProductCandidate, decision: ShoppingDecision, key: string): number {
-  const preferred = decision.constraints[`preferred${key[0].toUpperCase()}${key.slice(1)}s`];
-  if (!Array.isArray(preferred) || preferred.length === 0) return 0.5;
-  const value = candidate.attributes[key];
-  if (typeof value === 'string') return preferred.some(item => item.toLowerCase() === value.toLowerCase()) ? 1 : 0.25;
-  if (Array.isArray(value)) return preferred.some(item => value.map(String).map(v => v.toLowerCase()).includes(item.toLowerCase())) ? 1 : 0.25;
-  return 0.5;
+  const preferredValue = decision.constraints[`preferred${key[0].toUpperCase()}${key.slice(1)}s`];
+  if (!Array.isArray(preferredValue)) return 0.5;
+  const preferred = preferredValue.filter((item): item is string => typeof item === 'string' && Boolean(item.trim())).map(item => item.trim().toLocaleLowerCase());
+  if (preferred.length === 0) return 0.5;
+  const tagsKey = key === 'style' ? 'styleTags' : key === 'color' ? 'colorTags' : '';
+  const rawValue = candidate.attributes[key] ?? (tagsKey ? candidate.attributes[tagsKey] : undefined);
+  const values = (typeof rawValue === 'string' ? [rawValue] : Array.isArray(rawValue) ? rawValue : [])
+    .filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+    .map(item => item.trim().toLocaleLowerCase());
+  if (values.length === 0) return 0.5;
+  return preferred.some(item => values.includes(item)) ? 1 : 0.25;
 }
 
 function buildReasons(candidate: ProductCandidate, scores: Record<string, number>, scene: SceneModel): string[] {

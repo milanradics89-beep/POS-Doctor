@@ -1,18 +1,36 @@
 import base64
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from backend.redesign import _image_file
+from backend.redesign import _client, _image_file
 
 client = TestClient(app)
 
 
 def image_uri(payload: bytes = b"fake-png-bytes") -> str:
     return "data:image/png;base64," + base64.b64encode(payload).decode()
+
+
+def test_redesign_uses_application_scoped_async_openai_client():
+    shared_client = object()
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(openai_client=shared_client)))
+
+    assert _client(request) is shared_client
+
+
+def test_redesign_rejects_missing_application_openai_client():
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(openai_client=None)))
+
+    try:
+        _client(request)
+    except HTTPException as exc:
+        assert exc.status_code == 503
+    else:
+        raise AssertionError("Missing shared OpenAI client was not rejected")
 
 
 def test_redesign_requires_a_meaningful_prompt():
@@ -22,7 +40,21 @@ def test_redesign_requires_a_meaningful_prompt():
 
 def test_redesign_rejects_non_data_image_url():
     response = client.post("/v1/redesign", json={"imageUri": "https://example.com/image.png", "prompt": "Redesign this room in a modern style."})
-    assert response.status_code == 400
+    assert response.status_code == 422
+
+
+def test_redesign_rejects_non_base64_image_data_uri():
+    response = client.post("/v1/redesign", json={"imageUri": "data:image/png,ZmFrZS1wbmc=", "prompt": "Redesign this room in a modern style."})
+    assert response.status_code == 422
+
+
+def test_image_file_rejects_non_base64_data_uri():
+    try:
+        _image_file("data:image/png,ZmFrZS1wbmc=")
+    except HTTPException as exc:
+        assert exc.status_code == 400
+    else:
+        raise AssertionError("Non-base64 image data URI was accepted")
 
 
 def test_redesign_rejects_empty_image_data():
@@ -50,7 +82,7 @@ def test_redesign_bounds_product_metadata():
 def test_redesign_edits_source_and_returns_disclosure_and_products():
     generated = base64.b64encode(b"generated-image").decode()
     client_mock = Mock()
-    client_mock.images.edit.return_value = SimpleNamespace(data=[SimpleNamespace(b64_json=generated)])
+    client_mock.images.edit = AsyncMock(return_value=SimpleNamespace(data=[SimpleNamespace(b64_json=generated)]))
     products = [{"title": "Grey sofa", "category": "sofa", "priceHuf": 199000, "url": "https://example.com/sofa", "id": "p1", "confidence": 0.94}]
 
     with patch("backend.redesign._client", return_value=client_mock):
@@ -68,6 +100,7 @@ def test_redesign_edits_source_and_returns_disclosure_and_products():
     assert body["imageDataUrl"] == "data:image/png;base64," + generated
     assert "AI-generated visualization" in body["disclosure"]
     assert body["products"] == products
+    client_mock.images.edit.assert_awaited_once()
     call = client_mock.images.edit.call_args.kwargs
     assert call["model"]
     assert call["prompt"]
@@ -77,7 +110,7 @@ def test_redesign_edits_source_and_returns_disclosure_and_products():
 
 def test_redesign_reports_provider_failure_as_bad_gateway():
     client_mock = Mock()
-    client_mock.images.edit.side_effect = RuntimeError("provider unavailable")
+    client_mock.images.edit = AsyncMock(side_effect=RuntimeError("provider unavailable"))
 
     with patch("backend.redesign._client", return_value=client_mock):
         response = client.post(
@@ -86,3 +119,4 @@ def test_redesign_reports_provider_failure_as_bad_gateway():
         )
 
     assert response.status_code == 502
+    client_mock.images.edit.assert_awaited_once()

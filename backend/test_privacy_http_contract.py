@@ -24,11 +24,11 @@ def test_protected_route_requires_api_key(monkeypatch):
 
 def test_sensitive_payload_is_not_logged(monkeypatch, caplog):
     client = _load_client(monkeypatch)
-    secret_image = "data:image/png;base64,PRIVATE_PAYLOAD"
+    secret_image = "data:image/png;base64,UFJJVkFURV9QQVlMT0FE"
     with caplog.at_level(logging.INFO):
         response = client.post("/v1/analyze", headers={"X-API-Key": "test-key"}, json={"imageUri": secret_image})
     assert response.status_code in {502, 503}
-    assert "PRIVATE_PAYLOAD" not in caplog.text
+    assert "UFJJVkFURV9QQVlMT0FE" not in caplog.text
 
 
 def test_security_headers_present(monkeypatch):

@@ -6,7 +6,9 @@ from backend.production_security import validate_production_security
 def _production(monkeypatch):
     monkeypatch.setenv("USEIT_ENV", "production")
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
-    monkeypatch.setenv("USEIT_API_KEY", "secret")
+    monkeypatch.setenv("USEIT_API_KEY", "u" * 32)
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://localhost:6379/0")
 
 
 def test_production_requires_explicit_cors(monkeypatch):
@@ -28,3 +30,88 @@ def test_production_rejects_mixed_wildcard_origins(monkeypatch):
     monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://useit.example.com, *")
     with pytest.raises(RuntimeError, match="Wildcard CORS"):
         validate_production_security()
+
+
+
+@pytest.mark.parametrize(
+    "placeholder",
+    [
+        "replace-with-a-random-32-plus-character-secret",
+        "your-session-secret",
+        "change-me",
+    ],
+)
+def test_production_rejects_placeholder_session_secret(monkeypatch, placeholder):
+    _production(monkeypatch)
+    monkeypatch.setenv("USEIT_SESSION_SECRET", placeholder)
+    with pytest.raises(RuntimeError, match="USEIT_SESSION_SECRET must not be a placeholder"):
+        validate_production_security()
+
+
+@pytest.mark.parametrize(
+    "placeholder",
+    [
+        "replace-with-a-random-32-plus-character-api-key",
+        "your-api-key",
+        "change-me",
+    ],
+)
+def test_production_rejects_placeholder_api_key(monkeypatch, placeholder):
+    _production(monkeypatch)
+    monkeypatch.setenv("USEIT_API_KEY", placeholder)
+    with pytest.raises(RuntimeError, match="USEIT_API_KEY must not be a placeholder"):
+        validate_production_security()
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://useit.example.com",
+        "https://useit.example.com/api",
+        "https://useit.example.com?debug=true",
+        "https://useit.example.com#fragment",
+        "https://user:password@useit.example.com",
+        "https://useit.example.com:99999",
+        "https:///missing-host",
+        "https://useit*.example.com",
+        "https://useit.example.com?",
+        "https://useit.example.com#",
+        "https://useit.example.com/path?",
+        "https://bad_host.example.com",
+        "https://bad%.example.com",
+        "https://bad host.example.com",
+        "https://bad\\\\host.example.com",
+        "https://bad\thost.example.com",
+        "https://[not-an-ipv6-address]",
+    ],
+)
+def test_production_rejects_non_origin_or_insecure_cors_values(monkeypatch, origin):
+    _production(monkeypatch)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", origin)
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+
+    with pytest.raises(RuntimeError, match="CORS"):
+        validate_production_security()
+
+
+def test_production_accepts_https_origin_with_explicit_port(monkeypatch):
+    _production(monkeypatch)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", "https://useit.example.com:8443")
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+    validate_production_security()
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://192.0.2.10",
+        "https://[2001:db8::10]",
+        "https://useit.example.com/",
+        "https://münchen.example",
+    ],
+)
+def test_production_accepts_valid_https_origin_hosts(monkeypatch, origin):
+    _production(monkeypatch)
+    monkeypatch.setenv("USEIT_CORS_ORIGINS", origin)
+    monkeypatch.setenv("USEIT_ALLOW_DOCS", "false")
+    validate_production_security()

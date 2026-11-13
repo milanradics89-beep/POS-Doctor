@@ -41,12 +41,27 @@ class KnowledgeSearchRequest(BaseModel):
 
 
 def _source(url: str) -> str:
-    return urlparse(url).netloc.lower().removeprefix("www.")
+    hostname = urlparse(url).hostname or ""
+    return hostname.rstrip(".").lower().removeprefix("www.")
 
 
-def _trusted_http_url(url: str) -> bool:
-    parsed = urlparse(url)
-    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+def _trusted_http_url(url: Any) -> bool:
+    if not isinstance(url, str) or not url or url != url.strip():
+        return False
+    if any(ord(character) <= 0x20 or ord(character) == 0x7F for character in url) or "\\" in url:
+        return False
+    try:
+        parsed = urlparse(url)
+        scheme = parsed.scheme.lower()
+        if scheme not in {"http", "https"} or not parsed.hostname:
+            return False
+        if parsed.username is not None or parsed.password is not None:
+            return False
+        if parsed.port is not None and parsed.port != (443 if scheme == "https" else 80):
+            return False
+    except ValueError:
+        return False
+    return True
 
 
 async def search_knowledge(request: KnowledgeSearchRequest) -> list[KnowledgeResult]:
@@ -67,29 +82,37 @@ async def search_knowledge(request: KnowledgeSearchRequest) -> list[KnowledgeRes
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.get(GOOGLE_SEARCH_URL, params=params, headers=headers)
             response.raise_for_status()
-            payload: dict[str, Any] = response.json()
+            payload: Any = response.json()
     except httpx.HTTPStatusError as exc:
         raise HTTPException(502, "Knowledge search provider failed.") from exc
     except httpx.HTTPError as exc:
         raise HTTPException(504, "Knowledge search timed out.") from exc
+    except ValueError as exc:
+        raise HTTPException(502, "Knowledge search provider returned invalid JSON.") from exc
+
+    if not isinstance(payload, dict) or not isinstance(payload.get("results", []), list):
+        raise HTTPException(502, "Knowledge search provider returned an invalid response.")
 
     results: list[KnowledgeResult] = []
     seen: set[str] = set()
     for raw in payload.get("results", []):
+        if not isinstance(raw, dict):
+            continue
         url = raw.get("url") or raw.get("link")
         title = raw.get("title")
-        if not isinstance(url, str) or not isinstance(title, str) or not _trusted_http_url(url):
+        if not isinstance(title, str) or not title.strip() or not _trusted_http_url(url):
             continue
         canonical = url.split("#", 1)[0]
         if canonical in seen:
             continue
         seen.add(canonical)
+        snippet = raw.get("snippet", "")
         results.append(
             KnowledgeResult(
-                title=title[:300],
+                title=title.strip()[:300],
                 url=canonical,
                 source=_source(canonical),
-                snippet=str(raw.get("snippet", ""))[:1200],
+                snippet=snippet[:1200] if isinstance(snippet, str) else "",
                 rank=len(results) + 1,
             )
         )

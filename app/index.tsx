@@ -16,6 +16,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
+import { permissionDecision } from '../src/core/intelligence/permissionDecision';
+import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -33,12 +35,26 @@ export default function Home() {
   const [rendering, setRendering] = useState(false);
   const [rendered, setRendered] = useState<string | null>(null);
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
+  const redesign = result?.redesign ?? result?.phase3?.redesign;
 
   const reset = () => {
     setPhoto(null);
     setResult(null);
     setRendered(null);
   };
+
+  async function openProductLink(url: string) {
+    if (!isSafeExternalHttpUrl(url)) {
+      Alert.alert('Product link unavailable', 'This product link cannot be opened safely.');
+      return;
+    }
+
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Could not open product link', 'Please try again later.');
+    }
+  }
 
   async function analyze(intent?: OpportunityKind) {
     if (!API_URL) {
@@ -74,14 +90,14 @@ export default function Home() {
   }
 
   async function createVisualConcept() {
-    if (!photo || !result?.phase3?.redesign) return;
+    if (!photo || !redesign) return;
 
     setRendering(true);
 
     try {
       const api = new UseitApiProvider(API_URL);
 
-      const products = result.phase3.redesign.products.map((product) => ({
+      const products = redesign.products.map((product) => ({
         title: product.title,
         category: product.category,
         priceHuf: product.priceHuf,
@@ -91,7 +107,7 @@ export default function Home() {
 
       const renderedResult = await api.renderRedesign(
         photo,
-        result.phase3.redesign.prompt,
+        redesign.prompt,
         products
       );
 
@@ -107,13 +123,28 @@ export default function Home() {
   }
 
   async function chooseGallery() {
-    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!p.granted) {
-      Alert.alert(
-        'Photos permission needed',
-        'Allow USEIT to access a photo you want to explore.'
-      );
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const decision = permissionDecision(permission.granted, permission.canAskAgain);
+    if (decision !== 'granted') {
+      if (decision === 'open_settings') {
+        Alert.alert(
+          'Photos access is disabled',
+          'Enable photo library access in Settings to choose an image.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => { void Linking.openSettings(); } },
+          ],
+        );
+      } else {
+        Alert.alert(
+          'Photos permission needed',
+          'USEIT needs access to a photo you want to explore.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Try again', onPress: () => { void chooseGallery(); } },
+          ],
+        );
+      }
       return;
     }
 
@@ -142,13 +173,28 @@ export default function Home() {
   }
 
   async function capture() {
-    const p = await ImagePicker.requestCameraPermissionsAsync();
-
-    if (!p.granted) {
-      Alert.alert(
-        'Camera permission needed',
-        'Allow USEIT to see what you want to explore.'
-      );
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    const decision = permissionDecision(permission.granted, permission.canAskAgain);
+    if (decision !== 'granted') {
+      if (decision === 'open_settings') {
+        Alert.alert(
+          'Camera access is disabled',
+          'Enable camera access in Settings to take a photo.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => { void Linking.openSettings(); } },
+          ],
+        );
+      } else {
+        Alert.alert(
+          'Camera permission needed',
+          'USEIT needs camera access to photograph what you want to explore.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Try again', onPress: () => { void capture(); } },
+          ],
+        );
+      }
       return;
     }
 
@@ -227,7 +273,7 @@ export default function Home() {
                 <Text style={s.kicker}>VISUAL CONCEPT</Text>
                 <Image source={{ uri: rendered }} style={s.rendered} />
                 <Text style={s.disclosure}>
-                  {result?.phase3?.redesign?.disclosure}
+                  {redesign?.disclosure}
                 </Text>
               </>
             ) : (
@@ -286,17 +332,17 @@ export default function Home() {
                   </Text>
                 </View>
 
-                {result.phase3?.redesign ? (
+                {redesign ? (
                   <>
                     <Text style={s.section}>REDESIGN SOLUTION</Text>
 
                     <View style={s.solution}>
                       <Text style={s.solutionTitle}>
-                        {result.phase3.redesign.products.length} selected products
+                        {redesign.products.length} selected products
                       </Text>
 
                       <Text style={s.solutionText}>
-                        {result.phase3.redesign.actions
+                        {redesign.actions
                           .filter((x) => x.type === 'add')
                           .map((x) => x.target)
                           .join(' · ') ||
@@ -316,7 +362,7 @@ export default function Home() {
                         <Pressable
                           style={s.product}
                           key={x.id}
-                          onPress={() => x.url && Linking.openURL(x.url)}
+                          onPress={() => { void openProductLink(x.url); }}
                         >
                           <View style={s.productMain}>
                             <Text style={s.productTitle}>{x.title}</Text>
@@ -333,7 +379,7 @@ export default function Home() {
                   </>
                 ) : null}
 
-                {result.phase3?.redesign ? (
+                {redesign ? (
                   <Pressable
                     style={s.primary}
                     onPress={createVisualConcept}

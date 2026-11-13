@@ -5,16 +5,50 @@ import logging
 import re
 from typing import Any
 
-_SENSITIVE_KEYS = frozenset({"imageuri", "image_uri", "authorization", "x_api_key", "apikey", "api_key", "token", "password", "secret", "content"})
+# Compare canonical alphanumeric keys so camelCase, snake_case, kebab-case,
+# and header-style spellings receive identical redaction.
+_SENSITIVE_KEYS = frozenset({
+    "imageuri",
+    "authorization",
+    "xapikey",
+    "apikey",
+    "token",
+    "password",
+    "secret",
+    "content",
+    "prompt",
+    "userprompt",
+    "userintent",
+    "accesstoken",
+    "refreshtoken",
+    "sessiontoken",
+    "clientsecret",
+})
 _DATA_URI_RE = re.compile(r"data:image/[^;,]+(?:;[^,]*)?,.*", re.IGNORECASE)
+_MEMORY_PATH_RE = re.compile(r"(?i)(/v1/memory/)[^/?#]+")
 
 
 def redact_value(key: str, value: Any) -> Any:
-    normalized = key.lower().replace("-", "_")
+    normalized = re.sub(r"[^a-z0-9]", "", key.casefold())
     if normalized in _SENSITIVE_KEYS or ("image" in normalized and "uri" in normalized):
         return "[REDACTED]"
+    if normalized == "path" and isinstance(value, str):
+        # Memory IDs are bearer capabilities. Never put them in request logs.
+        return _MEMORY_PATH_RE.sub(r"\1[REDACTED]", value)
     if isinstance(value, str) and _DATA_URI_RE.fullmatch(value):
         return "[REDACTED_IMAGE]"
+    # Structured events may contain nested metadata or arrays of records.
+    # Redact their contents recursively so a sensitive key cannot bypass the
+    # top-level sanitizer simply by being placed inside a context object.
+    if isinstance(value, dict):
+        return {
+            str(nested_key): redact_value(str(nested_key), nested_value)
+            for nested_key, nested_value in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_value(key, item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_value(key, item) for item in value)
     return value
 
 

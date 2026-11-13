@@ -1,6 +1,9 @@
+import base64
+import binascii
 import json
 import logging
 import os
+from contextlib import asynccontextmanager
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -8,6 +11,11 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
+from redis import asyncio as redis_asyncio
+from redis.exceptions import RedisError
+
+from backend.security import validate_public_http_url
+from backend.privacy_logging import log_event
 
 from backend.action_layer import router as action_router
 from backend.api_auth import configured_api_key, configured_session_secret, issue_session_token, session_ttl_seconds
@@ -20,6 +28,7 @@ from backend.attestation import (
     configured_attestation_mode,
     configured_attestation_provider,
     configured_redis_url,
+    check_redis_challenge_store_capability,
     evaluate_attestation,
     issue_challenge_async,
     validate_challenge_binding_async,
@@ -32,11 +41,16 @@ from backend.personal_memory import router as personal_memory_router
 from backend.product_discovery import ProductDiscoveryRequest, discover_products, router as product_discovery_router
 from backend.product_extractor import router as product_extractor_router
 from backend.redesign import router as redesign_router
-from backend.rate_limit import install_rate_limit
+from backend.rate_limit import install_rate_limit, rate_limit_mode, check_redis_rate_limit_capability
 from backend.request_controls import install_request_controls
 from backend.observability import install_observability
 from backend.security_headers import install_security_headers
-from backend.production_security import production_mode, validate_production_security
+from backend.production_security import (
+    production_mode,
+    validate_production_security,
+    validate_production_session_auth_configuration,
+    validate_production_redis_transport,
+)
 from backend.scene_quality import quality_gate
 from backend.scene_understanding import normalize_scene_understanding
 from backend.scene_reasoning import derive_scene_facts, derive_scene_reasoning
@@ -48,8 +62,57 @@ from backend.specialist_agents import build_specialist_context
 logger = logging.getLogger("useit")
 logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
 
+OPENAI_TIMEOUT_SECONDS = 35.0
+
 if production_mode():
     validate_production_security()
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    redis_client = None
+    openai_client = None
+    application.state.redis_client = None
+    application.state.openai_client = None
+    try:
+        redis_url = configured_redis_url()
+        if redis_url:
+            redis_client = redis_asyncio.Redis.from_url(
+                redis_url,
+                decode_responses=False,
+                socket_connect_timeout=2.0,
+                socket_timeout=5.0,
+            )
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if api_key:
+            # Analysis requests are billable POSTs. Keep one bounded client per
+            # application lifespan and disable implicit retries until requests
+            # have an end-to-end idempotency contract.
+            openai_client = AsyncOpenAI(
+                api_key=api_key,
+                timeout=OPENAI_TIMEOUT_SECONDS,
+                max_retries=0,
+            )
+        application.state.redis_client = redis_client
+        application.state.openai_client = openai_client
+        yield
+    finally:
+        application.state.redis_client = None
+        application.state.openai_client = None
+        if openai_client is not None:
+            try:
+                await openai_client.close()
+            except Exception as exc:
+                logger.warning(
+                    "Application shutdown could not close the shared OpenAI client cleanly (exception_type=%s)",
+                    type(exc).__name__,
+                )
+        if redis_client is not None:
+            try:
+                await redis_client.aclose()
+            except (RedisError, TimeoutError, OSError):
+                logger.warning("Application shutdown could not close the shared Redis client cleanly")
+
 
 app = FastAPI(
     title="USEIT Intelligence API",
@@ -57,19 +120,23 @@ app = FastAPI(
     docs_url=None if production_mode() else "/docs",
     redoc_url=None if production_mode() else "/redoc",
     openapi_url=None if production_mode() else "/openapi.json",
+    lifespan=lifespan,
 )
 origins = [x.strip() for x in os.environ.get("USEIT_CORS_ORIGINS", "*").split(",") if x.strip()]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "Authorization", "X-API-Key", "X-Request-ID"])
 install_request_controls(app)
-install_observability(app, logger)
-install_security_headers(app)
 install_runtime_auth_guard(app)
 install_rate_limit(app)
+# Keep CORS, security headers, and observability outside short-circuiting
+# auth/rate-limit middleware so 401/429/503 responses receive the same
+# browser policy, security headers, request ID, and request-completion log.
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "Authorization", "X-API-Key", "X-Request-ID"])
+install_security_headers(app)
+install_observability(app, logger)
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
 
 class AnalyzeRequest(BaseModel):
     imageUri: str = Field(min_length=20, max_length=8_000_000)
-    userIntent: Optional[str] = None
+    userIntent: Optional[str] = Field(default=None, max_length=2_000)
     prompt: Optional[str] = Field(default=None, max_length=20_000)
     locale: str = Field(default="hu-HU", max_length=20)
     responseFormat: str = Field(default="scene_analysis_v1", max_length=64)
@@ -77,15 +144,28 @@ class AnalyzeRequest(BaseModel):
     @field_validator("imageUri")
     @classmethod
     def validate_image_uri(cls, value: str) -> str:
-        if value.startswith("data:image/"):
+        if value.lower().startswith("data:image/"):
             header, separator, payload = value.partition(",")
-            if not separator or not payload: raise ValueError("Invalid image data URI")
-            mime = header[5:].split(";", 1)[0].lower()
-            if mime not in {"image/jpeg", "image/png", "image/webp", "image/gif"}: raise ValueError("Unsupported image MIME type")
+            if not separator or not payload:
+                raise ValueError("Invalid image data URI")
+            parts = header[5:].split(";")
+            mime = parts[0].lower()
+            if mime not in {"image/jpeg", "image/png", "image/webp", "image/gif"}:
+                raise ValueError("Unsupported image MIME type")
+            if not any(part.strip().lower() == "base64" for part in parts[1:]):
+                raise ValueError("Image data URI must use base64 encoding")
+            try:
+                decoded = base64.b64decode(payload, validate=True)
+            except (binascii.Error, ValueError) as exc:
+                raise ValueError("Image data URI contains invalid base64") from exc
+            if not decoded:
+                raise ValueError("Image data URI payload is empty")
             return value
-        parsed = urlparse(value)
-        if parsed.scheme in {"https", "http"} and parsed.netloc: return value
-        raise ValueError("imageUri must be an image data URI or HTTP(S) URL")
+
+        try:
+            return validate_public_http_url(value)
+        except HTTPException as exc:
+            raise ValueError(exc.detail) from exc
 
 class UseItAnalyzeRequest(AnalyzeRequest):
     budgetHuf: int | None = Field(default=None, ge=0, le=100_000_000)
@@ -99,11 +179,19 @@ class SessionRequest(BaseModel):
     challenge: str | None = Field(default=None, min_length=16, max_length=512)
     assertion: str | None = Field(default=None, min_length=1, max_length=64_000)
     appId: str | None = Field(default=None, max_length=512)
+    keyId: str | None = Field(default=None, max_length=512)
+    clientData: str | None = Field(default=None, max_length=64_000)
 
 def _get_client() -> AsyncOpenAI:
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key: raise HTTPException(503, "Vision service is not configured.")
-    return AsyncOpenAI(api_key=api_key)
+    client = getattr(app.state, "openai_client", None)
+    if client is None:
+        detail = (
+            "Vision service is not configured."
+            if not os.environ.get("OPENAI_API_KEY")
+            else "Vision service is not initialized."
+        )
+        raise HTTPException(503, detail)
+    return client
 
 async def _analyze(request: AnalyzeRequest):
     if request.responseFormat != "scene_analysis_v1": raise HTTPException(400, "Unsupported response format.")
@@ -122,13 +210,30 @@ async def _analyze(request: AnalyzeRequest):
             ],
             response_format={"type":"json_schema","json_schema":{"name":"useit_scene_analysis","strict":True,"schema":SCHEMA}},
         )
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            prompt_tokens = getattr(usage, "prompt_tokens", None)
+            completion_tokens = getattr(usage, "completion_tokens", None)
+            total_tokens = getattr(usage, "total_tokens", None)
+            token_counts = (prompt_tokens, completion_tokens, total_tokens)
+            if all(type(value) is int and value >= 0 for value in token_counts):
+                # Token counts provide a privacy-safe baseline for AI cost analysis.
+                # Never log prompts, images, model responses, or provider payloads.
+                log_event(
+                    logger,
+                    "vision_usage",
+                    model=MODEL,
+                    promptTokens=prompt_tokens,
+                    completionTokens=completion_tokens,
+                    totalTokens=total_tokens,
+                )
         content = response.choices[0].message.content
         if not content: raise HTTPException(502, "Vision analysis returned no structured content.")
         scene = quality_gate(json.loads(content))
         return normalize_scene_understanding(scene)
     except HTTPException: raise
     except Exception as exc:
-        logger.exception("Vision analysis failed")
+        logger.error("Vision analysis failed (exception_type=%s)", type(exc).__name__)
         raise HTTPException(502, "Vision analysis failed.") from exc
 
 def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
@@ -145,8 +250,49 @@ async def ready():
     dependencies_ready = bool(os.environ.get("OPENAI_API_KEY"))
     if production_mode():
         dependencies_ready = dependencies_ready and bool(configured_api_key() or configured_session_secret())
-        if configured_attestation_mode() is AttestationMode.REQUIRED:
-            dependencies_ready = dependencies_ready and bool(configured_attestation_app_id()) and bool(configured_redis_url())
+        attestation_mode = configured_attestation_mode()
+        try:
+            validate_production_session_auth_configuration()
+            validate_production_redis_transport()
+        except RuntimeError:
+            # Readiness must not report healthy for a session/attestation
+            # combination that startup validation would reject.
+            dependencies_ready = False
+
+        # Production rate limiting is shared across workers, so Redis is a
+        # mandatory readiness dependency even when App Attest is disabled.
+        dependencies_ready = (
+            dependencies_ready
+            and rate_limit_mode() == "redis"
+            and bool(configured_redis_url())
+        )
+        if dependencies_ready:
+            redis_client = getattr(app.state, "redis_client", None)
+            owns_redis_client = redis_client is None
+            try:
+                if redis_client is None:
+                    redis_client = redis_asyncio.Redis.from_url(
+                        configured_redis_url(),
+                        socket_connect_timeout=2,
+                        socket_timeout=2,
+                    )
+                await redis_client.ping()
+                if not await check_redis_rate_limit_capability(redis_client):
+                    logger.warning("Readiness check failed: Redis rate-limit commands are unavailable")
+                    dependencies_ready = False
+                elif configured_attestation_mode() is not AttestationMode.DISABLED:
+                    if not await check_redis_challenge_store_capability(redis_client):
+                        logger.warning("Readiness check failed: Redis attestation challenge commands are unavailable")
+                        dependencies_ready = False
+            except (RedisError, TimeoutError, OSError, ValueError):
+                logger.warning("Readiness check failed: shared Redis is unavailable")
+                dependencies_ready = False
+            finally:
+                if owns_redis_client and redis_client is not None:
+                    try:
+                        await redis_client.aclose()
+                    except (RedisError, TimeoutError, OSError):
+                        logger.warning("Readiness check could not close the temporary Redis client cleanly")
     if not dependencies_ready:
         raise HTTPException(status_code=503, detail="Service is not ready.")
     return {"status": "ready"}
@@ -155,7 +301,11 @@ async def ready():
 async def create_attestation_challenge(response: Response):
     if production_mode() and configured_attestation_mode() is AttestationMode.REQUIRED and not configured_redis_url():
         raise HTTPException(status_code=503, detail="Attestation shared storage is not configured.")
-    challenge = await issue_challenge_async()
+    try:
+        challenge = await issue_challenge_async(redis_client=getattr(app.state, "redis_client", None))
+    except (RuntimeError, RedisError, TimeoutError) as exc:
+        logger.warning("Attestation challenge storage is unavailable")
+        raise HTTPException(status_code=503, detail="Attestation challenge service is temporarily unavailable.") from exc
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
     return {"challenge": challenge.challenge, "provider": challenge.provider.value, "appId": challenge.app_id, "expiresAt": challenge.expires_at}
@@ -179,8 +329,17 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             challenge=request.challenge,
             assertion=request.assertion,
             app_id=request.appId,
+            key_id=request.keyId,
+            client_data=request.clientData,
         )
-        binding = await validate_challenge_binding_async(evidence)
+        try:
+            binding = await validate_challenge_binding_async(evidence, redis_client=getattr(app.state, "redis_client", None))
+        except (RedisError, TimeoutError) as exc:
+            logger.warning("Attestation challenge storage is unavailable")
+            raise HTTPException(
+                status_code=503,
+                detail="Attestation challenge service is temporarily unavailable.",
+            ) from exc
         if not binding.verified:
             raise HTTPException(status_code=401, detail=binding.reason)
         expected_provider = configured_attestation_provider()
@@ -188,7 +347,17 @@ async def create_session(request: SessionRequest | None = None, response: Respon
             raise HTTPException(status_code=401, detail="wrong_provider")
         if configured_attestation_app_id() and evidence.app_id != configured_attestation_app_id():
             raise HTTPException(status_code=401, detail="wrong_app")
-        provider_result = await verify_attestation_provider(evidence)
+        try:
+            provider_result = await verify_attestation_provider(
+                evidence,
+                redis_client=getattr(app.state, "redis_client", None),
+            )
+        except (RedisError, TimeoutError) as exc:
+            logger.warning("App Attest verification storage is unavailable")
+            raise HTTPException(
+                status_code=503,
+                detail="Attestation verification service is temporarily unavailable.",
+            ) from exc
         result = evaluate_attestation(evidence, provider_result, mode)
         if not result.verified:
             status_code = 503 if result.reason == "provider_unavailable" else 401
@@ -217,8 +386,8 @@ async def useit_analyze(request: UseItAnalyzeRequest):
         if query:
             try:
                 shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
-            except Exception:
-                logger.exception("Unified product discovery degraded")
+            except Exception as exc:
+                logger.error("Unified product discovery degraded (exception_type=%s)", type(exc).__name__)
                 shopping = {"query": query, "candidates": [], "errors": [{"url": "", "message": "product discovery unavailable"}]}
     suggestions = [{"id":o["id"],"title":o["title"],"description":o["description"],"kind":o["kind"],"effort":o["effort"],"durationMinutes":o["durationMinutes"],"visualizable":o["visualizable"],"score":o["score"],"preferenceScore":o.get("preferenceScore",0.0),"rank":o["rank"],"reasons":build_suggestion_reasons(o,intent,scene,context)} for o in ranked]
     scene["sceneFacts"] = derive_scene_facts(scene)
