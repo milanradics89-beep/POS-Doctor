@@ -75,6 +75,9 @@ jobs:
           pkg.dependencies ||= {};
           pkg.overrides ||= {};
           pkg.overrides.deepmerge = "$deepmerge";
+          pkg.devDependencies ||= {};
+          // Major upgrade is covered by the complete frontend migration test suite below.
+          pkg.devDependencies.vitest = "^5.1.0";
 
           const expected = {
             expo: "~57.0.33",
@@ -124,6 +127,13 @@ jobs:
               throw new Error(`node_modules/${name} expected ${expectedPackage.version}, found ${actual || "missing"}`);
             }
           }
+          if (pkg.devDependencies?.vitest !== "^5.1.0") {
+            throw new Error("Vitest 5 migration target is missing from package.json");
+          }
+          const vitestVersion = lock.packages?.["node_modules/vitest"]?.version;
+          if (vitestVersion !== "5.1.0") {
+            throw new Error(`Vitest expected 5.1.0 after lock refresh, found ${vitestVersion || "missing"}`);
+          }
           if (pkg.overrides?.deepmerge !== "$deepmerge") {
             throw new Error("The patched local deepmerge fork must override every transitive deepmerge copy");
           }
@@ -154,7 +164,7 @@ jobs:
           npm test -- --passWithNoTests
 
       - name: Audit production runtime dependencies
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --audit-level=high
 
       - name: Prepare a checksum-verified manifest artifact
         run: |

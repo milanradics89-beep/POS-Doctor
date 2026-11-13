@@ -28,9 +28,11 @@ describe("Expo SDK 57 dependency refresh workflow", () => {
 
   it("applies only non-forced security updates and verifies the runtime audit", () => {
     expect(workflow).toContain("npm audit fix --ignore-scripts --no-fund");
-    expect(workflow).toContain("npm audit --omit=dev --audit-level=high");
+    expect(workflow).toContain("npm audit --audit-level=high");
     expect(workflow).not.toContain("npm audit fix --force");
     expect(workflow).toContain('pkg.overrides.deepmerge = "$deepmerge";');
+    expect(workflow).toContain('pkg.devDependencies.vitest = "^5.1.0";');
+    expect(workflow).toContain("npm audit --audit-level=high");
   });
 
   it("keeps expo-modules-core transitive and verifies the lockfile before reproducible install", () => {
@@ -49,7 +51,7 @@ describe("Expo SDK 57 dependency refresh workflow", () => {
     const expoDoctor = workflow.indexOf("node node_modules/expo-doctor/bin/expo-doctor.js");
     const typecheck = workflow.indexOf("npm run typecheck");
     const tests = workflow.indexOf("npm test -- --passWithNoTests");
-    const audit = workflow.indexOf("npm audit --omit=dev --audit-level=high");
+    const audit = workflow.indexOf("npm audit --audit-level=high");
     const artifact = workflow.indexOf("uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9");
     expect([expoDoctor, typecheck, tests, audit, artifact].every(index => index >= 0)).toBe(true);
     expect(expoDoctor).toBeLessThan(typecheck);
