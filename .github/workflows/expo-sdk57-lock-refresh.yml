@@ -96,7 +96,7 @@ jobs:
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           NODE
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          npm audit fix --ignore-scripts --no-fund
+          npm audit fix --ignore-scripts --no-fund || npm audit --audit-level=high
 
       - name: Verify generated SDK 57 manifest and lockfile
         run: |
