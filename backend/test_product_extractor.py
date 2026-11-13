@@ -219,7 +219,12 @@ async def test_fetch_product_page_allows_configured_maximum_redirects(monkeypatc
     responses.append(_FakeStreamResponse(200, {"content-type": "text/html"}, b"<html>ok</html>"))
     client = _FakeAsyncClient(responses)
     monkeypatch.setattr(extractor.httpx, "AsyncClient", lambda **kwargs: client)
-    monkeypatch.setattr(extractor, "validate_public_http_url", lambda url: url)
+    validated_urls = []
+    monkeypatch.setattr(
+        extractor,
+        "validate_public_http_url",
+        lambda url: validated_urls.append(url) or url,
+    )
     monkeypatch.setattr(extractor, "validate_connected_peer", lambda response: None)
 
     final_url, content_type, body = await extractor._fetch_product_page("https://shop.example/product")
@@ -228,6 +233,13 @@ async def test_fetch_product_page_allows_configured_maximum_redirects(monkeypatc
     assert content_type == "text/html"
     assert body == b"<html>ok</html>"
     assert len(client.requested_urls) == extractor.MAX_REDIRECTS + 1
+    assert validated_urls == [
+        "https://shop.example/product",
+        *[
+            f"https://shop.example/redirect/{index}"
+            for index in range(extractor.MAX_REDIRECTS)
+        ],
+    ]
 
 
 @pytest.mark.asyncio
