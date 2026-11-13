@@ -24,11 +24,12 @@ describe('Expo SDK 57 lock refresh workflow', () => {
     expect(workflow).not.toContain('gh run download 42121369533');
   });
 
-  it('aligns the four Expo Doctor SDK 57 patch requirements exactly', () => {
-    expect(workflow).toContain('expo: "~57.0.32"');
-    expect(workflow).toContain('"expo-constants": "~57.0.23"');
+  it('aligns all five Expo Doctor SDK 57 patch requirements exactly', () => {
+    expect(workflow).toContain('expo: "~57.0.33"');
+    expect(workflow).toContain('"expo-constants": "~57.0.24"');
     expect(workflow).toContain('"expo-image-picker": "~57.0.21"');
-    expect(workflow).toContain('"expo-router": "~57.0.30"');
+    expect(workflow).toContain('"expo-linking": "~57.0.14"');
+    expect(workflow).toContain('"expo-router": "~57.0.31"');
   });
 
   it('keeps expo-modules-core transitive to avoid the incompatible Worklets peer graph', () => {
