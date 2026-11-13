@@ -48,8 +48,8 @@ describe('App Attest config/runtime entrypoint separation', () => {
   });
 
   it('runs both Expo validation and iOS prebuild on Node 22', () => {
-    expect(workflowJob('frontend')).toMatch(/node-version:\\s*22/);
-    expect(workflowJob('ios')).toMatch(/node-version:\\s*22/);
+    expect(workflowJob('frontend')).toContain('node-version: 22');
+    expect(workflowJob('ios')).toContain('node-version: 22');
     expect(workflowJob('ios')).toContain('npx expo prebuild --platform ios --no-install');
   });
 });
