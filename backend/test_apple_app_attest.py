@@ -17,7 +17,7 @@ def test_pinned_apple_root_is_parseable_and_pinned():
     cert = x509.load_pem_x509_certificate(APPLE_APP_ATTEST_ROOT_PEM.encode())
     assert cert.subject == cert.issuer
     assert root_certificate_fingerprint() == APPLE_APP_ATTEST_ROOT_SHA256
-    assert len(cert.public_key().public_numbers().x) > 0
+    assert cert.public_key().key_size == 256
 
 
 def test_authenticator_data_parser_rejects_truncated_data():
