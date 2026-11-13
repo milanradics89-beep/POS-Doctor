@@ -66,49 +66,24 @@ jobs:
           unzip -q /tmp/expo-sdk57-artifact.zip -d /tmp/expo-sdk57-artifact
           (cd /tmp/expo-sdk57-artifact && sha256sum -c SHA256SUMS)
 
-      - name: Apply manifests and validated dependency contracts
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Apply manifests and dependency regression tests
         run: |
           set -euo pipefail
           cp /tmp/expo-sdk57-artifact/package.json target/package.json
           cp /tmp/expo-sdk57-artifact/package-lock.json target/package-lock.json
 
-          HELPER_BRANCH="automation/expo-sdk57-lock-refresh-run-20261113b"
-          API="https://api.github.com/repos/${GITHUB_REPOSITORY}"
-          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.raw" "$API/contents/.github/workflows/expo-sdk57-lock-refresh.yml?ref=automation%2Fexpo-sdk57-lock-refresh-run-20261113b" -o /tmp/expo-sdk57-lock-refresh.yml
-          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.raw" "$API/contents/scripts/expo-sdk57-lock-refresh.test.mjs?ref=automation%2Fexpo-sdk57-lock-refresh-run-20261113b" -o /tmp/expo-sdk57-lock-refresh.test.mjs
-
           python - <<'PY'
           from pathlib import Path
-          import re
 
-          target = Path("target")
-          helper = "automation/expo-sdk57-lock-refresh-run-20261113b"
-          release = "fix/release-blockers-2026-10"
-
-          requirements = target / "backend/requirements.txt"
-          req = requirements.read_text()
-          if "cryptography>=50,<51" not in req and "cryptography>=50.0.0,<51" not in req:
-              req, count = re.subn(r"^cryptography>=44,<47$", "cryptography>=50.0.0,<51", req, flags=re.MULTILINE)
-              if count != 1:
-                  raise SystemExit("Expected one vulnerable cryptography constraint in backend/requirements.txt")
-              requirements.write_text(req)
-
-          validation_test = target / "scripts/validation-runner.test.mjs"
+          validation_test = Path("target/scripts/validation-runner.test.mjs")
           validation = validation_test.read_text()
           if "2.5.4" not in validation:
               raise SystemExit("Expected the stale @expo/env 2.5.4 contract assertion")
           validation_test.write_text(validation.replace("2.5.4", "2.6.0"))
 
-          workflow = Path("/tmp/expo-sdk57-lock-refresh.yml").read_text()
-          test = Path("/tmp/expo-sdk57-lock-refresh.test.mjs").read_text()
-          if helper not in workflow or helper not in test:
-              raise SystemExit("Helper workflow/test branch contract did not match the validated source branch")
-          workflow = workflow.replace(helper, release).replace("isolated lock-refresh ref", "release ref")
-          test = test.replace(helper, release).replace("isolated refresh branch", "release branch")
-          (target / ".github/workflows/expo-sdk57-lock-refresh.yml").write_text(workflow)
-          (target / "scripts/expo-sdk57-lock-refresh.test.mjs").write_text(test)
+          requirements = Path("target/backend/requirements.txt").read_text()
+          if "cryptography>=50,<51" not in requirements and "cryptography>=50.0.0,<51" not in requirements:
+              raise SystemExit("PR #65 backend cryptography floor is not patched")
           PY
 
           cat > target/vendor/deepmerge/index.test.js <<'EOF'
@@ -182,7 +157,7 @@ jobs:
           fi
           git -C target config user.name "github-actions[bot]"
           git -C target config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C target add package.json package-lock.json scripts/validation-runner.test.mjs scripts/expo-sdk57-lock-refresh.test.mjs .github/workflows/expo-sdk57-lock-refresh.yml vendor/deepmerge/index.test.js
+          git -C target add package.json package-lock.json scripts/validation-runner.test.mjs vendor/deepmerge/index.test.js
           git -C target commit -m "fix(deps): align Expo SDK 57 and remediate high-severity dependency audit"
           result_sha="$(git -C target rev-parse HEAD)"
           parent_sha="$(git -C target rev-parse HEAD^)"
