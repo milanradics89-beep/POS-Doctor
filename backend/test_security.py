@@ -235,7 +235,8 @@ async def test_dns_rebinding_to_private_ip_is_blocked_before_tcp_connect(monkeyp
             await client.get(url)
 
     assert backend.connected_hosts == []
-    assert backend.stream.writes == []
+    assert backend.stream is None
+    assert backend.streams == []
 
 
 @pytest.mark.asyncio
@@ -254,7 +255,8 @@ async def test_transport_rejects_mixed_public_and_private_dns_answers(monkeypatc
             await client.get("https://shop.example/product")
 
     assert backend.connected_hosts == []
-    assert backend.stream.writes == []
+    assert backend.stream is None
+    assert backend.streams == []
 
 @pytest.mark.asyncio
 async def test_transport_resolves_and_pins_a_fresh_ip_for_each_request():
