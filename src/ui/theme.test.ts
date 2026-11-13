@@ -32,4 +32,18 @@ describe('USEIT text contrast tokens', () => {
   it('keeps the camera outline at WCAG AA non-text contrast on its dark surface', () => {
     expect(contrast(theme.colors.cameraOutline, theme.colors.captureStart)).toBeGreaterThanOrEqual(3);
   });
+
+  it('keeps interactive outlines at WCAG AA non-text contrast on light surfaces', () => {
+    for (const background of [theme.colors.canvas, theme.colors.surface]) {
+      expect(contrast(theme.colors.controlBorder, background)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('keeps muted capture text at WCAG AA contrast on the capture surface', () => {
+    expect(contrast(theme.colors.captureTextMuted, theme.colors.captureStart)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('keeps muted dark-surface text at WCAG AA contrast', () => {
+    expect(contrast(theme.colors.darkMuted, theme.colors.confidenceSurface)).toBeGreaterThanOrEqual(4.5);
+  });
 });

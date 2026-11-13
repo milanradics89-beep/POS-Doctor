@@ -11,7 +11,7 @@ function PreferenceRow({ title, description, value, onValueChange, disabled = fa
   return (
     <View style={styles.preferenceRow}>
       <View style={styles.preferenceCopy}><Text style={styles.preferenceTitle}>{title}</Text><Text style={styles.preferenceDescription}>{description}</Text></View>
-      <Switch accessibilityLabel={title} accessibilityHint={description} disabled={disabled} value={value} onValueChange={onValueChange} trackColor={{ false: theme.colors.line, true: theme.colors.accentDark }} thumbColor={theme.colors.surface} />
+      <Switch accessibilityLabel={title} accessibilityHint={description} disabled={disabled} value={value} onValueChange={onValueChange} trackColor={{ false: theme.colors.controlBorder, true: theme.colors.accentDark }} thumbColor={theme.colors.surface} />
     </View>
   );
 }
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.canvas },
   page: { paddingHorizontal: 22, paddingTop: 12, paddingBottom: 48 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.controlBorder, alignItems: 'center', justifyContent: 'center' },
   backText: { color: theme.colors.ink, fontSize: 30, lineHeight: 32, marginTop: -3 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   wordmark: { color: theme.colors.ink, fontSize: 15, fontWeight: '900', letterSpacing: -0.6 },

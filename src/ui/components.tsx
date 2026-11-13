@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 10 },
   eyebrow: { color: theme.colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1.6 },
   detail: { color: theme.colors.subtle, fontSize: 8, fontWeight: '900', letterSpacing: 1 },
-  product: { minHeight: 76, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line, borderRadius: 18, padding: 12, marginBottom: 9, flexDirection: 'row', alignItems: 'center' },
+  product: { minHeight: 76, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.controlBorder, borderRadius: 18, padding: 12, marginBottom: 9, flexDirection: 'row', alignItems: 'center' },
   productMark: { width: 42, height: 42, borderRadius: 14, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' },
   productMarkText: { color: theme.colors.ink, fontSize: 20 },
   productCopy: { flex: 1, paddingHorizontal: 12 },
