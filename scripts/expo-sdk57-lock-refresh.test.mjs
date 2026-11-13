@@ -38,12 +38,14 @@ describe('Expo SDK 57 lock refresh workflow', () => {
 
   it('runs reproducible install, Expo Doctor, typecheck and unit tests before artifact publication', () => {
     const install = workflow.indexOf('npm ci --ignore-scripts --no-audit --no-fund');
-    const expoDoctor = workflow.indexOf('npx expo-doctor');
+    const installDoctor = workflow.indexOf('expo-doctor@1.20.5');
+    const expoDoctor = workflow.indexOf('node node_modules/expo-doctor/bin/expo-doctor.js');
     const typecheck = workflow.indexOf('npm run typecheck');
     const tests = workflow.indexOf('npm test -- --passWithNoTests');
     const artifact = workflow.indexOf('uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9');
-    expect([install, expoDoctor, typecheck, tests, artifact].every(index => index >= 0)).toBe(true);
-    expect(install).toBeLessThan(expoDoctor);
+    expect([install, installDoctor, expoDoctor, typecheck, tests, artifact].every(index => index >= 0)).toBe(true);
+    expect(install).toBeLessThan(installDoctor);
+    expect(installDoctor).toBeLessThan(expoDoctor);
     expect(expoDoctor).toBeLessThan(typecheck);
     expect(typecheck).toBeLessThan(tests);
     expect(tests).toBeLessThan(artifact);
@@ -52,11 +54,11 @@ describe('Expo SDK 57 lock refresh workflow', () => {
   it('keeps checkout credentials disabled through validation and artifact publication', () => {
     const checkoutCredentials = workflow.indexOf('persist-credentials: false');
     const install = workflow.indexOf('npm ci --ignore-scripts --no-audit --no-fund');
-    const expoDoctor = workflow.indexOf('npx expo-doctor');
+    const expoDoctor = workflow.indexOf('node node_modules/expo-doctor/bin/expo-doctor.js');
     const typecheck = workflow.indexOf('npm run typecheck');
     const tests = workflow.indexOf('npm test -- --passWithNoTests');
     const artifact = workflow.indexOf('uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9');
-    expect([checkoutCredentials, install, expoDoctor, typecheck, tests, artifact]
+    expect([checkoutCredentials, install, installDoctor, expoDoctor, typecheck, tests, artifact]
       .every(index => index >= 0)).toBe(true);
     expect(checkoutCredentials).toBeLessThan(install);
     expect(install).toBeLessThan(expoDoctor);
