@@ -51,7 +51,7 @@ describe("Expo SDK 57 dependency refresh workflow", () => {
     const expoDoctor = workflow.indexOf("node node_modules/expo-doctor/bin/expo-doctor.js");
     const typecheck = workflow.indexOf("npm run typecheck");
     const tests = workflow.indexOf("npm test -- --passWithNoTests");
-    const audit = workflow.indexOf("npm audit --audit-level=high");
+    const audit = workflow.lastIndexOf("npm audit --audit-level=high");
     const artifact = workflow.indexOf("uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9");
     expect([expoDoctor, typecheck, tests, audit, artifact].every(index => index >= 0)).toBe(true);
     expect(expoDoctor).toBeLessThan(typecheck);
