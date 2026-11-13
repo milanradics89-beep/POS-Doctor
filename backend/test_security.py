@@ -1,8 +1,18 @@
-import asyncio\nimport ipaddress\nimport socket\n\nimport httpcore\nimport httpx\n
+import asyncio
+import ipaddress
+import socket
+
+import httpcore
+import httpx
+
 import pytest
 from fastapi import HTTPException
 
-from backend.security import (\n    DNSPinnedAsyncHTTPTransport,\n    validate_public_http_url,\n    validate_connected_peer,\n)
+from backend.security import (
+    DNSPinnedAsyncHTTPTransport,
+    validate_public_http_url,
+    validate_connected_peer,
+)
 
 
 def test_rejects_localhost():
@@ -126,7 +136,7 @@ class _RecordingStream(httpcore.AsyncNetworkStream):
         if self._response_sent:
             return b""
         self._response_sent = True
-        return b"HTTP/1.1 200 OK\\r\\nContent-Length: 0\\r\\nConnection: close\\r\\n\\r\\n"
+        return b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
 
     async def write(self, buffer: bytes, timeout: float | None = None) -> None:
         self.writes.append(bytes(buffer))
@@ -193,7 +203,7 @@ async def test_transport_pins_tcp_ip_and_preserves_original_host_and_tls_sni():
     assert backend.connected_hosts == [("8.8.8.8", 443)]
     assert backend.stream.sni_hostname == "shop.example"
     request_bytes = b"".join(backend.stream.writes).lower()
-    assert b"host: shop.example\\r\\n" in request_bytes
+    assert b"host: shop.example\r\n" in request_bytes
 
 
 @pytest.mark.asyncio
