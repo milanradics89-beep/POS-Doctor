@@ -14,7 +14,11 @@ const plugin = require('../modules/useit-app-attest/app.plugin.js');
 const workflow = read('.github/workflows/validate.yml');
 
 function workflowJob(name) {
-  return workflow.split(`\\n  ${name}:\\n`)[1]?.split(/\\n  [a-z0-9_-]+:\\n/)[0] ?? '';
+  const lines = workflow.split('\n');
+  const start = lines.findIndex((line) => line === `  ${name}:`);
+  if (start === -1) return '';
+  const nextJob = lines.findIndex((line, index) => index > start && /^  [a-z0-9_-]+:$/.test(line));
+  return lines.slice(start + 1, nextJob === -1 ? undefined : nextJob).join('\n');
 }
 
 describe('App Attest config/runtime entrypoint separation', () => {
