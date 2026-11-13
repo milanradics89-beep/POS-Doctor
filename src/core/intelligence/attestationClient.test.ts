@@ -825,3 +825,82 @@ describe('attestationClient session cache', () => {
   });
 
 });
+
+  it('uses a fresh assertion for a previously attested Apple key on later sessions', async () => {
+    const nativeModule = {
+      isAvailable: vi.fn(() => true),
+      isKeyAttested: vi.fn((keyId: string) => keyId === 'apple-key-id'),
+      isKeyAttestationPending: vi.fn(() => false),
+      getPendingAttestation: vi.fn(() => null),
+      storePendingAttestation: vi.fn(),
+      discardKey: vi.fn(),
+      markKeyAttestationPending: vi.fn(),
+      markKeyAttested: vi.fn(),
+      getOrCreateKeyId: vi.fn(async () => 'apple-key-id'),
+      createNewKeyId: vi.fn(async () => 'replacement-apple-key-id'),
+      attest: vi.fn(async () => 'unexpected-attestation-object'),
+      generateAssertion: vi.fn(async () => 'assertion-object'),
+    };
+    vi.doMock('../../../modules/useit-app-attest', () => ({ default: nativeModule }));
+
+    const challenge = {
+      challenge: 'challenge-next-session',
+      provider: 'apple_app_attest',
+      appId: 'TEAMID.com.useit.app',
+      expiresAt: Math.floor(Date.now() / 1000) + 300,
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/v1/session/challenge')) {
+        return new Response(JSON.stringify(challenge), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      const payload = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+      if (!payload.provider) {
+        return new Response(JSON.stringify({ detail: 'attestation_required' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({
+        accessToken: 'session-token-after-assertion',
+        expiresAt: Math.floor(Date.now() / 1000) + 600,
+        expiresIn: 600,
+        tokenType: 'Bearer',
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getSessionToken } = await import('./attestationClient');
+    await expect(getSessionToken('https://api-a.example')).resolves.toBe('session-token-after-assertion');
+
+    const submitted = JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body ?? '{}')) as Record<string, unknown>;
+    const clientData = JSON.stringify({
+      challenge: 'challenge-next-session',
+      action: 'session',
+    });
+    expect(submitted).toMatchObject({
+      provider: 'apple_app_attest',
+      challenge: 'challenge-next-session',
+      appId: 'TEAMID.com.useit.app',
+      keyId: 'apple-key-id',
+      assertion: 'assertion-object',
+      clientData,
+    });
+    expect(nativeModule.isKeyAttested).toHaveBeenCalledWith('apple-key-id');
+    expect(nativeModule.generateAssertion).toHaveBeenCalledWith(
+      'challenge-next-session',
+      'apple-key-id',
+      clientData,
+    );
+    expect(nativeModule.attest).not.toHaveBeenCalled();
+    expect(nativeModule.markKeyAttestationPending).not.toHaveBeenCalled();
+    expect(nativeModule.markKeyAttested).toHaveBeenCalledWith('apple-key-id');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
