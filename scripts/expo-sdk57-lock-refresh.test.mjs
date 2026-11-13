@@ -24,11 +24,17 @@ describe('Expo SDK 57 lock refresh workflow', () => {
     expect(workflow).not.toContain('gh run download 42121369533');
   });
 
-  it('aligns the four Expo Doctor SDK 57 patch requirements exactly', () => {
-    expect(workflow).toContain('expo: "~57.0.32"');
-    expect(workflow).toContain('"expo-constants": "~57.0.23"');
+  it('aligns SDK 57 package versions with the release manifest', () => {
+    expect(workflow).toContain('expo: "~57.0.33"');
+    expect(workflow).toContain('"expo-constants": "~57.0.24"');
+    expect(workflow).toContain('"expo-linking": "~57.0.14"');
+    expect(workflow).toContain('expo: { range: "~57.0.33", version: "57.0.33" }');
+    expect(workflow).toContain('"expo-constants": { range: "~57.0.24", version: "57.0.24" }');
+    expect(workflow).toContain('"expo-linking": { range: "~57.0.14", version: "57.0.14" }');
+    expect(workflow).toContain('"expo-image-picker": { range: "~57.0.21", version: "57.0.21" }');
+    expect(workflow).toContain('"expo-router": { range: "~57.0.31", version: "57.0.31" }');
     expect(workflow).toContain('"expo-image-picker": "~57.0.21"');
-    expect(workflow).toContain('"expo-router": "~57.0.30"');
+    expect(workflow).toContain('"expo-router": "~57.0.31"');
   });
 
   it('keeps expo-modules-core transitive to avoid the incompatible Worklets peer graph', () => {

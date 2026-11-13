@@ -75,10 +75,11 @@ jobs:
           pkg.dependencies ||= {};
 
           const expected = {
-            expo: "~57.0.32",
-            "expo-constants": "~57.0.23",
+            expo: "~57.0.33",
+            "expo-constants": "~57.0.24",
+            "expo-linking": "~57.0.14",
             "expo-image-picker": "~57.0.21",
-            "expo-router": "~57.0.30",
+            "expo-router": "~57.0.31",
           };
           for (const [name, version] of Object.entries(expected)) {
             if (!Object.hasOwn(pkg.dependencies, name)) {
@@ -99,10 +100,11 @@ jobs:
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
           const expected = {
-            expo: { range: "~57.0.32", version: "57.0.32" },
-            "expo-constants": { range: "~57.0.23", version: "57.0.23" },
+            expo: { range: "~57.0.33", version: "57.0.33" },
+            "expo-constants": { range: "~57.0.24", version: "57.0.24" },
+            "expo-linking": { range: "~57.0.14", version: "57.0.14" },
             "expo-image-picker": { range: "~57.0.21", version: "57.0.21" },
-            "expo-router": { range: "~57.0.30", version: "57.0.30" },
+            "expo-router": { range: "~57.0.31", version: "57.0.31" },
           };
 
           const root = lock.packages?.[""];
