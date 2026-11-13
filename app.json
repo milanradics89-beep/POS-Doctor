@@ -8,7 +8,8 @@
     "userInterfaceStyle": "light",
     "plugins": [
       "expo-router",
-      "expo-image-picker"
+      "expo-image-picker",
+      "./modules/useit-app-attest/app.plugin.js"
     ],
     "experiments": {
       "typedRoutes": true

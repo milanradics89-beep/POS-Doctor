@@ -6,9 +6,14 @@ const readJson = (path) => JSON.parse(
 );
 
 const app = readJson("../app.json").expo;
+const modulePackage = readJson("../modules/useit-app-attest/package.json");
 const nativeModule = readJson("../modules/useit-app-attest/expo-module.config.json");
 const runtimeEntry = readFileSync(
   new URL("../modules/useit-app-attest/index.ts", import.meta.url),
+  "utf8",
+);
+const pluginEntry = readFileSync(
+  new URL("../modules/useit-app-attest/app.plugin.js", import.meta.url),
   "utf8",
 );
 const workflow = readFileSync(
@@ -18,19 +23,19 @@ const workflow = readFileSync(
 const iosJob = workflow.split("\n  ios:\n")[1]?.split("\n  backend:\n")[0] ?? "";
 
 describe("App Attest Expo module registration", () => {
-  it("does not load the runtime TypeScript entrypoint as a config plugin", () => {
-    expect(app.plugins).toEqual(expect.arrayContaining(["expo-router", "expo-image-picker"]));
+  it("loads the JavaScript config plugin, never the runtime TypeScript package root", () => {
+    expect(app.plugins).toContain("./modules/useit-app-attest/app.plugin.js");
     expect(app.plugins).not.toContain("./modules/useit-app-attest");
-    expect(app.ios.entitlements[
-      "com.apple.developer.devicecheck.appattest-environment"
-    ]).toBe("development");
-  });
-
-  it("keeps native iOS autolinking independent from config plugins", () => {
-    expect(nativeModule.platforms).toContain("ios");
-    expect(nativeModule.ios.modules).toContain("UseitAppAttestModule");
+    expect(modulePackage.main).toBe("index.ts");
+    expect(pluginEntry).toContain("require('@expo/config-plugins')");
+    expect(pluginEntry).not.toContain("expo-modules-core");
     expect(runtimeEntry).toContain("requireNativeModule");
     expect(runtimeEntry).toContain("expo-modules-core");
+  });
+
+  it("keeps native iOS autolinking independent from config-plugin loading", () => {
+    expect(nativeModule.platforms).toContain("ios");
+    expect(nativeModule.ios.modules).toContain("UseitAppAttestModule");
   });
 
   it("runs iOS prebuild on Node 22 in the validation workflow", () => {
