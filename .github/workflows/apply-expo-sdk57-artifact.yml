@@ -1,0 +1,196 @@
+name: Apply validated Expo SDK 57 artifact
+
+on:
+  push:
+    branches:
+      - automation/apply-expo-sdk57-artifact-20261113
+    paths:
+      - .github/workflows/apply-expo-sdk57-artifact.yml
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: apply-expo-sdk57-artifact
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout workflow branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Verify exact target head and no active target-branch CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          API="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          EXPECTED_TARGET_SHA="b022cad483f94b5b014659ca89f043f691bed9fb"
+          TARGET_REF="fix%2Frelease-remediation-2026-11-13"
+          branch_json="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API/git/ref/heads/$TARGET_REF")"
+          actual_sha="$(jq -r '.object.sha' <<< "$branch_json")"
+          if [[ "$actual_sha" != "$EXPECTED_TARGET_SHA" ]]; then
+            echo "::error::PR #65 target head changed; refusing to apply stale artifact."
+            exit 1
+          fi
+          runs_json="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API/actions/runs?branch=$TARGET_REF&per_page=100")"
+          active_count="$(jq '[.workflow_runs[] | select(.status == "queued" or .status == "in_progress")] | length' <<< "$runs_json")"
+          if [[ "$active_count" != "0" ]]; then
+            echo "::error::PR #65 has active CI; refusing to write while checks are running."
+            exit 1
+          fi
+
+      - name: Checkout PR #65 target branch without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/release-remediation-2026-11-13
+          path: target
+          persist-credentials: false
+
+      - name: Download and verify the validated SDK 57 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          API="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          EXPECTED_ARTIFACT_SHA="134d78c892ac4505fc7671ac5d83346c5fdf86a3cde3eaece6b04f3eb1ebb2c9"
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API/actions/artifacts/14039707022/zip" -o /tmp/expo-sdk57-artifact.zip
+          echo "$EXPECTED_ARTIFACT_SHA  /tmp/expo-sdk57-artifact.zip" | sha256sum -c -
+          mkdir -p /tmp/expo-sdk57-artifact
+          unzip -q /tmp/expo-sdk57-artifact.zip -d /tmp/expo-sdk57-artifact
+          (cd /tmp/expo-sdk57-artifact && sha256sum -c SHA256SUMS)
+
+      - name: Apply manifests and validated dependency contracts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp /tmp/expo-sdk57-artifact/package.json target/package.json
+          cp /tmp/expo-sdk57-artifact/package-lock.json target/package-lock.json
+
+          HELPER_BRANCH="automation/expo-sdk57-lock-refresh-run-20261113b"
+          API="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.raw" "$API/contents/.github/workflows/expo-sdk57-lock-refresh.yml?ref=automation%2Fexpo-sdk57-lock-refresh-run-20261113b" -o /tmp/expo-sdk57-lock-refresh.yml
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.raw" "$API/contents/scripts/expo-sdk57-lock-refresh.test.mjs?ref=automation%2Fexpo-sdk57-lock-refresh-run-20261113b" -o /tmp/expo-sdk57-lock-refresh.test.mjs
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          target = Path("target")
+          helper = "automation/expo-sdk57-lock-refresh-run-20261113b"
+          release = "fix/release-blockers-2026-10"
+
+          requirements = target / "backend/requirements.txt"
+          req = requirements.read_text()
+          if "cryptography>=50,<51" not in req and "cryptography>=50.0.0,<51" not in req:
+              req, count = re.subn(r"^cryptography>=44,<47$", "cryptography>=50.0.0,<51", req, flags=re.MULTILINE)
+              if count != 1:
+                  raise SystemExit("Expected one vulnerable cryptography constraint in backend/requirements.txt")
+              requirements.write_text(req)
+
+          validation_test = target / "scripts/validation-runner.test.mjs"
+          validation = validation_test.read_text()
+          if "2.5.4" not in validation:
+              raise SystemExit("Expected the stale @expo/env 2.5.4 contract assertion")
+          validation_test.write_text(validation.replace("2.5.4", "2.6.0"))
+
+          workflow = Path("/tmp/expo-sdk57-lock-refresh.yml").read_text()
+          test = Path("/tmp/expo-sdk57-lock-refresh.test.mjs").read_text()
+          if helper not in workflow or helper not in test:
+              raise SystemExit("Helper workflow/test branch contract did not match the validated source branch")
+          workflow = workflow.replace(helper, release).replace("isolated lock-refresh ref", "release ref")
+          test = test.replace(helper, release).replace("isolated refresh branch", "release branch")
+          (target / ".github/workflows/expo-sdk57-lock-refresh.yml").write_text(workflow)
+          (target / "scripts/expo-sdk57-lock-refresh.test.mjs").write_text(test)
+          PY
+
+          cat > target/vendor/deepmerge/index.test.js <<'EOF'
+          import { describe, expect, it } from "vitest";
+          import deepmerge from "./index.js";
+
+          describe("patched deepmerge prototype-pollution regression", () => {
+            it("ignores an own __proto__ payload key", () => {
+              const payload = JSON.parse('{"__proto__":{"polluted":true}}');
+              const result = deepmerge({}, payload);
+
+              expect(Object.prototype).not.toHaveProperty("polluted");
+              expect(Object.hasOwn(result, "__proto__")).toBe(false);
+              expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            });
+
+            it("does not merge inherited constructor.prototype payloads", () => {
+              const payload = JSON.parse('{"constructor":{"prototype":{"polluted":true}}}');
+              const result = deepmerge({}, payload);
+
+              expect(Object.prototype).not.toHaveProperty("polluted");
+              expect(Object.hasOwn(result, "constructor")).toBe(false);
+            });
+
+            it("continues to merge safe own enumerable properties", () => {
+              expect(
+                deepmerge(
+                  { nested: { left: true }, list: [1] },
+                  { nested: { right: true }, list: [2] },
+                ),
+              ).toEqual({ nested: { left: true, right: true }, list: [1, 2] });
+            });
+          });
+          EOF
+
+          git -C target diff --check
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const pkg = JSON.parse(fs.readFileSync("target/package.json", "utf8"));
+          const lock = JSON.parse(fs.readFileSync("target/package-lock.json", "utf8"));
+          const expected = {
+            expo: ["~57.0.33", "57.0.33"],
+            "expo-constants": ["~57.0.24", "57.0.24"],
+            "expo-image-picker": ["~57.0.21", "57.0.21"],
+            "expo-linking": ["~57.0.14", "57.0.14"],
+            "expo-router": ["~57.0.31", "57.0.31"],
+          };
+          for (const [name, [range, version]] of Object.entries(expected)) {
+            if (pkg.dependencies[name] !== range || lock.packages[`node_modules/${name}`]?.version !== version) {
+              throw new Error(`Unexpected ${name} package/lock version`);
+            }
+          }
+          if (pkg.devDependencies.vitest !== "^5.1.0") throw new Error("Vitest 5 migration target missing");
+          if (pkg.overrides?.deepmerge !== "$deepmerge") throw new Error("Patched deepmerge override missing");
+          if (pkg.overrides?.zod !== "$zod") throw new Error("Zod override missing");
+          if (pkg.overrides?.["decode-uri-component"] !== "0.5.1") throw new Error("decode-uri-component override missing");
+          if (lock.packages["node_modules/@expo/env"]?.version !== "2.6.0") throw new Error("Unexpected @expo/env lock version");
+          NODE
+
+      - name: Create a result commit on an isolated branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          EXPECTED_PARENT="b022cad483f94b5b014659ca89f043f691bed9fb"
+          RESULT_BRANCH="automation/apply-expo-sdk57-artifact-result-20261113"
+          actual_parent="$(git -C target rev-parse HEAD)"
+          if [[ "$actual_parent" != "$EXPECTED_PARENT" ]]; then
+            echo "::error::Target checkout is not the verified PR #65 head."
+            exit 1
+          fi
+          git -C target config user.name "github-actions[bot]"
+          git -C target config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C target add package.json package-lock.json scripts/validation-runner.test.mjs scripts/expo-sdk57-lock-refresh.test.mjs .github/workflows/expo-sdk57-lock-refresh.yml vendor/deepmerge/index.test.js
+          git -C target commit -m "fix(deps): align Expo SDK 57 and remediate high-severity dependency audit"
+          result_sha="$(git -C target rev-parse HEAD)"
+          parent_sha="$(git -C target rev-parse HEAD^)"
+          if [[ "$parent_sha" != "$EXPECTED_PARENT" ]]; then
+            echo "::error::Result commit parent is not the expected PR #65 head."
+            exit 1
+          fi
+          git -C target remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git -C target push origin "HEAD:refs/heads/$RESULT_BRANCH"
+          echo "Result commit: $result_sha" >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::RESULT_COMMIT_SHA=$result_sha"
