@@ -32,6 +32,8 @@ class AttestationEvidence:
     challenge: str
     assertion: str
     app_id: str
+    key_id: str | None = None
+    client_data: str | None = None
 
 
 @dataclass(frozen=True)
