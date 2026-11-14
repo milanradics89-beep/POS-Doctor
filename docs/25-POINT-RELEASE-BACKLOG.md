@@ -765,7 +765,7 @@ The seven pre-existing external blockers remain **#4 physical iPhone App Attest,
 
 ---
 
-## Latest 25-point status checkpoint — 2026-11-13 18:49 CET
+## Historical 25-point status checkpoint — 2026-11-13 18:49 CET (superseded)
 
 Immediately before this integration commit, PR #41 exact HEAD was `b793a47f8f0a84155d1200fc797f191701f4eb92`. Validation [43463804114](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804114) failed at Expo Doctor after 285/285 frontend unit tests passed; backend and iOS jobs passed. CodeQL [43463804128](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804128) and Dependency Review [43463804149](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804149) passed on that exact pre-integration HEAD.
 
@@ -775,7 +775,7 @@ PR #41 review inventory before integration: **22/22 inline threads resolved; 25 
 
 Repository inventory: **57 branches, 33 open PRs, 0 published releases**. Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero**.
 
-**Current tally remains 3 Done / 15 In Progress / 7 Blocked.** The row-level register below remains authoritative. Do not promote a row based on another branch's CI or on simulator/emulator evidence where physical-device, production, or business acceptance is specified.
+**Historical tally at this checkpoint: 3 Done / 15 In Progress / 7 Blocked.** This snapshot predates the PR #41 merge and the later main-protection re-verification; it is not the current tally. The current authoritative row-level register and latest checkpoints report **2 Done / 15 In Progress / 8 Blocked**. Do not promote a row based on another branch's CI or on simulator/emulator evidence where physical-device, production, or business acceptance is specified.
 
 External blockers remain **#4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark and business acceptance, #21 production monitoring and alert delivery, #22 staged rollout/rollback approval, and #25 real-user pilot/business approval**.
 
