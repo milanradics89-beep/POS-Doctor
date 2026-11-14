@@ -51,7 +51,7 @@ def _public_addresses(hostname: str, port: int) -> set[str]:
         raise HTTPException(400, "Product host could not be resolved safely.") from exc
 
 
-def validate_public_http_url(url: str) -> str:
+def validate_public_http_url(url: str, *, resolve_dns: bool = true) -> str:
     try:
         parsed = urlparse(url)
         hostname_value = parsed.hostname
@@ -67,7 +67,18 @@ def validate_public_http_url(url: str) -> str:
         raise HTTPException(400, "Local product hosts are not allowed.")
     if port is not None and port != (443 if parsed.scheme.lower() == "https" else 80):
         raise HTTPException(400, "Only standard HTTP(S) ports are allowed.")
-    _public_addresses(hostname, port or (443 if parsed.scheme.lower() == "https" else 80))
+    if resolve_dns:
+        _public_addresses(hostname, port or (443 if parsed.scheme.lower() == "https" else 80))
+    else:
+        # The async product-fetch path performs authoritative DNS validation
+        # in DNSPinnedNetworkBackend under the HTTP connect deadline. Keep
+        # literal non-global IPs rejected before transport creation.
+        try:
+            literal_ip = ipaddress.ip_address(hostname)
+        except ValueError:
+            literal_ip = None
+        if literal_ip is not None and not literal_ip.is_global:
+            raise HTTPException(400, "Product host is not publicly reachable.")
     return url
 
 

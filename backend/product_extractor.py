@@ -187,7 +187,7 @@ def _extract(parser: _HTMLParser, url: str) -> dict[str, Any] | None:
     return {"id": canonical, "name": str(name).strip(), "brand": brand, "url": canonical, "imageUrl": image, "price": price_number, "priceHuf": price_huf, "currency": currency, "availability": availability, "retailer": urlparse(canonical).hostname, "category": category, "color": color, "material": material, "evidence": evidence, "qualityScore": quality}
 
 async def _fetch_product_page(url: str) -> tuple[str, str, bytes]:
-    current = validate_public_http_url(url)
+    current = validate_public_http_url(url, resolve_dns=False)
     headers = {"User-Agent": "USEIT/1.0 (+product-discovery)"}
     async with httpx.AsyncClient(
         timeout=10,
@@ -204,7 +204,7 @@ async def _fetch_product_page(url: str) -> tuple[str, str, bytes]:
                         raise HTTPException(508, "Product page redirect chain is too long.")
                     location = response.headers.get("location")
                     if not location: raise HTTPException(502, "Product page returned an invalid redirect.")
-                    current = validate_public_http_url(urljoin(current, location))
+                    current = validate_public_http_url(urljoin(current, location), resolve_dns=False)
                     continue
                 response.raise_for_status()
                 if "text/html" not in response.headers.get("content-type", "").lower():

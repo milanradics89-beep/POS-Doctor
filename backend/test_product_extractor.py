@@ -231,11 +231,12 @@ async def test_fetch_product_page_allows_configured_maximum_redirects(monkeypatc
     client = _FakeAsyncClient(responses)
     monkeypatch.setattr(extractor.httpx, "AsyncClient", lambda **kwargs: client)
     validated_urls = []
-    monkeypatch.setattr(
-        extractor,
-        "validate_public_http_url",
-        lambda url: validated_urls.append(url) or url,
-    )
+    def validate_syntax(url, *, resolve_dns=True):
+        assert resolve_dns is False
+        validated_urls.append(url)
+        return url
+
+    monkeypatch.setattr(extractor, "validate_public_http_url", validate_syntax)
     monkeypatch.setattr(extractor, "validate_connected_peer", lambda response: None)
 
     final_url, content_type, body = await extractor._fetch_product_page("https://shop.example/product")
@@ -261,7 +262,7 @@ async def test_fetch_product_page_rejects_redirect_chain_over_limit(monkeypatch)
     ]
     client = _FakeAsyncClient(responses)
     monkeypatch.setattr(extractor.httpx, "AsyncClient", lambda **kwargs: client)
-    monkeypatch.setattr(extractor, "validate_public_http_url", lambda url: url)
+    monkeypatch.setattr(extractor, "validate_public_http_url", lambda url, **kwargs: url)
     monkeypatch.setattr(extractor, "validate_connected_peer", lambda response: None)
 
     with pytest.raises(HTTPException) as exc:

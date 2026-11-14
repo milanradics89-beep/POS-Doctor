@@ -353,3 +353,22 @@ async def test_dns_pinned_network_backend_shares_connect_budget_across_addresses
     assert backend.timeouts[1] < backend.timeouts[0]
     assert backend.connected_hosts == [("1.1.1.1", 443)]
 
+
+
+def test_syntax_only_url_validation_does_not_resolve_dns(monkeypatch):
+    def unexpected_dns_lookup(*args, **kwargs):
+        raise AssertionError("Syntax-only validation must leave DNS to the bounded transport.")
+
+    monkeypatch.setattr("backend.security.socket.getaddrinfo", unexpected_dns_lookup)
+    url = "https://shop.example/product"
+    assert validate_public_http_url(url, resolve_dns=False) == url
+
+
+def test_syntax_only_url_validation_rejects_private_literal_without_dns(monkeypatch):
+    def unexpected_dns_lookup(*args, **kwargs):
+        raise AssertionError("Private literal IPs must be rejected without DNS.")
+
+    monkeypatch.setattr("backend.security.socket.getaddrinfo", unexpected_dns_lookup)
+    with pytest.raises(HTTPException) as exc:
+        validate_public_http_url("http://127.0.0.1/product", resolve_dns=False)
+    assert exc.value.status_code == 400
