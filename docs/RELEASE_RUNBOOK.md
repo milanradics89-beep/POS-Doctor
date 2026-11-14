@@ -1,3 +1,35 @@
+## Latest release operations checkpoint — 2026-11-14 10:38 CET
+
+### Accepted application baseline
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is closed and merged from `fix/release-blockers-2026-10`. Exact reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge/current main `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Its exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) passed. The source branch ref still equals the reviewed HEAD. Review inventory: 108 combined timeline records, 22/22 inline threads resolved, 26 review submissions (25 COMMENTED, 1 human APPROVED). Post-merge main Validation and CodeQL passed; no separate post-merge Dependency Review is claimed.
+
+### Current documentation gate — PR #85
+
+PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) remains open/unmerged on `docs/post-merge-release-evidence-20261113`, exact pre-update HEAD `277555f5f07752a3313e3a30d071f424d195c141`. Its own Validation [43577412306](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43577412306), CodeQL [43577412333](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43577412333), and Dependency Review [43577412275](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43577412275) failed. Backend, frontend, iOS, CodeQL analyze, and Dependency Review jobs have empty step lists; sampled log downloads returned HTTP 404 `BlobNotFound`. No application tests, native builds, CodeQL analysis, or dependency review executed on that exact SHA. The exact GitHub-side dispatch cause remains unverified. Do not reuse PR #41 or parent-commit results.
+
+### SSRF security review — PR #95 / issue #64
+
+Draft PR [#95](https://github.com/milanradics89-beep/POS-Doctor/pull/95) is main-based at exact HEAD `adac0e6dd6525b197ba7433f290e2afb017d7903`. It includes bounded DNS/connect deadline handling and NAT64 well-known-prefix embedded-IPv4 rejection across URL validation, DNS answers, transport connection validation, and post-connect peer checks, with five focused regression tests. Validation [43578843298](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43578843298) failed on attempt 2; CodeQL [43578843319](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43578843319) and Dependency Review [43578843263](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43578843263) failed. All five jobs have empty step records and sampled logs return `BlobNotFound`; the new tests have not executed on this exact HEAD. Keep issue #64 open and PR #95 draft pending executed exact-head checks and human security review.
+
+### Dependency security — PRs #81 and #98
+
+PR [#81](https://github.com/milanradics89-beep/POS-Doctor/pull/81) exact HEAD `efe16ec11b3dcb3fb373431c0619093efa66db14` passed its own Validation, CodeQL, and Dependency Review on the older `fix/release-remediation-2026-11-13` base. Its full npm audit reported 3 moderate, 0 high, 0 critical advisories; the moderate `minimatch` globparts-amplification DoS range is 7.0.0–11.0.0, transitive through `@expo/fingerprint`/`expo`.
+
+Main-based draft PR [#98](https://github.com/milanradics89-beep/POS-Doctor/pull/98) proposes `minimatch@11.0.5` plus migration tests for globstar, brace expansion, extglob, and dotfile behavior. Exact HEAD `468ec2684bb969da8676b29b07a6680790f2bdfd` has Validation [43579189877](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43579189877), CodeQL [43579189858](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43579189858), and Dependency Review [43579189714](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43579189714) all failed before steps; no test or scan execution is evidenced. Keep item #3 In Progress until this main-based remediation has executed exact-head CI and human review.
+
+### Repository settings and release evidence
+
+Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is open/reopened. Main currently reports `protected: false`; rulesets read returns HTTP 403 under the current private-repository plan, and branch-protection read returns HTTP 403. Owner action is required to restore supported private-repository governance and verify required checks, approval, last-push approval, resolved threads, no bypass, and deletion/non-fast-forward protection.
+
+Issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84) records Code Scanning and Dependency Graph / GitHub Advanced Security capability blockers. Keep CodeQL and Dependency Review mandatory; do not broaden permissions or remove checks as a workaround.
+
+GitHub Releases API returned an empty list (0 published releases). Code Scanning, Dependabot, and Secret Scanning alert inventories are unavailable/unverified, not empty. The main copies of the three release records remain at the stale 2026-11-13 18:49 CET checkpoint until the documentation PR is reviewed and integrated.
+
+**Release decision: automated application CI is accepted for PR #41 only. Documentation, SSRF integration, and dependency remediation remain unaccepted. Pilot/production acceptance: NOT GRANTED.** Preserve the existing production configuration, mobile signing, staging load-probe, rollout, monitoring, rollback, and release-record procedures below; this checkpoint does not replace them.
+
+---
+
 ## Latest release runbook checkpoint — 2026-11-14 06:37 CET
 
 ### Merged application baseline

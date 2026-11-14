@@ -1,3 +1,41 @@
+## Latest acceptance checkpoint — 2026-11-14 10:38 CET
+
+**Pilot/production acceptance: NOT GRANTED.**
+
+### Automated application baseline
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is closed and merged at reviewed exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`, merge/current main `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) passed. PR #41 review has 22/22 resolved inline threads and one human APPROVED submission among 26 reviews. This accepts the automated application baseline only.
+
+### Documentation exact-head gate
+
+PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) remains open/unmerged at pre-update exact HEAD `277555f5f07752a3313e3a30d071f424d195c141`. Its own Validation [43577412306](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43577412306), CodeQL [43577412333](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43577412333), and Dependency Review [43577412275](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43577412275) failed. Five jobs have empty step lists and sampled logs return HTTP 404 `BlobNotFound`; no tests or scans executed on this SHA. The cause remains unverified. This new documentation checkpoint requires its own exact-head checks; parent or PR #41 results are not substituted.
+
+### SSRF security acceptance — issue #64 / PR #95
+
+Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open. Draft PR [#95](https://github.com/milanradics89-beep/POS-Doctor/pull/95) exact HEAD `adac0e6dd6525b197ba7433f290e2afb017d7903` contains bounded DNS/connect deadlines and NAT64 well-known-prefix embedded-IPv4 rejection, with deterministic URL/DNS/transport/peer regression tests. Its Validation [43578843298](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43578843298) failed on attempt 2; CodeQL [43578843319](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43578843319) and Dependency Review [43578843263](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43578843263) failed. The five jobs did not execute steps and sampled logs are unavailable. The NAT64 and transport tests have **not executed** on this exact HEAD. No SSRF integration acceptance or production deployment is claimed.
+
+### Dependency remediation acceptance — PRs #81 and #98
+
+PR #81's full npm audit passed on its own older release-remediation branch and reported 3 moderate, 0 high, 0 critical advisories, including a minimatch globparts-amplification DoS affecting 7.0.0–11.0.0. Main-based draft PR [#98](https://github.com/milanradics89-beep/POS-Doctor/pull/98) proposes `minimatch@11.0.5` and compatibility regressions. Its exact-head Validation [43579189877](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43579189877), CodeQL [43579189858](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43579189858), and Dependency Review [43579189714](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43579189714) failed before steps. The override and tests are not accepted until they execute on the exact main-based head and receive review.
+
+### Governance and external acceptance
+
+Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open/reopened. Main reports `protected: false`; rulesets and branch-protection reads are blocked by HTTP 403 under the current private-repository configuration. Issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84) records Code Scanning and Dependency Graph / GitHub Advanced Security capability blockers. Security alert inventories remain unavailable/unverified, not empty. The GitHub Releases API returns 0 published releases.
+
+The 25-point register remains **2 Done / 15 In Progress / 8 Blocked**. Blocked items: #2 main branch protection; #4 physical iPhone App Attest; #5 Play-installed physical Android Play Integrity; #16 witnessed production backup/restore; #18 representative product-recognition benchmark/business acceptance; #21 production monitoring/alert delivery; #22 staged rollout/rollback approval; #25 real-user pilot/business approval.
+
+- **#4 App Attest:** Apple production App ID/capability and provisioning entitlement, signed production build, and provider-backed enrollment/assertion on a supported physical iPhone.
+- **#5 Play Integrity:** Google Play internal-track distribution, Play App Signing identity, Google Cloud service-account/API permissions, and verification on a physical Android installed from Play.
+- **#16 Backup/restore:** witnessed production backup and restore with measured recovery-point and recovery-time evidence.
+- **#18 Product accuracy:** representative labeled dataset, measured accuracy, human evaluation, and business acceptance.
+- **#21 Monitoring:** production metrics/log pipeline, named on-call owner, and verified alert delivery/acknowledgement.
+- **#22 Rollout:** approved staged rollout thresholds, named rollback owner, and tested rollback.
+- **#25 Pilot:** real-user cohort, measured acceptance criteria, participant safeguards, and business sign-off.
+
+Simulator/emulator CI, injected network backends, and repository-only checks do not satisfy physical-device, production-cloud, witnessed recovery, monitoring, rollout, pilot, or business acceptance.
+
+---
+
 ## Latest acceptance checkpoint - 2026-11-14 05:42 CET
 
 **Pilot/production acceptance: NOT GRANTED.**
