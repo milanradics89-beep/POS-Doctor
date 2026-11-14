@@ -68,7 +68,7 @@ describe('USEIT screen accessibility semantics', () => {
 
     visit(file);
 
-    expect(componentNames).toEqual(expect.arrayContaining(['BrandMark', 'FadeIn', 'StatePanel']));
+    expect([...componentNames]).toEqual(expect.arrayContaining(['BrandMark', 'FadeIn', 'StatePanel']));
     expect(source).toContain('setAnalysisError');
     expect(source).toContain('onAction={() => { void analyze(lastIntent); }}');
     expect(source).toContain('No product matches yet');
