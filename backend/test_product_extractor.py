@@ -1,5 +1,6 @@
 import asyncio
 import socket
+from types import SimpleNamespace
 
 import httpcore
 import httpx
@@ -8,7 +9,12 @@ from fastapi import HTTPException
 
 from backend import product_extractor as extractor
 from backend.product_extractor import _HTMLParser, _extract, _number, _currency
-from backend.security import DNSPinnedAsyncHTTPTransport, validate_public_http_url
+from backend.security import (
+    DNSPinnedNetworkBackend,
+    DNSPinnedAsyncHTTPTransport,
+    validate_connected_peer,
+    validate_public_http_url,
+)
 
 
 def parse(html: str):
@@ -472,3 +478,86 @@ async def test_fetch_product_page_redirect_dns_rebinding_is_blocked_before_secon
     assert resolutions == [("shop.example", 443), ("cdn.example", 443)]
     assert backend.connected_hosts == [("8.8.8.8", 443)]
     assert len(backend.streams) == 1
+
+
+class _PeerInfoStream:
+    def __init__(self, peer):
+        self.peer = peer
+
+    def get_extra_info(self, info: str):
+        if info in {"server_addr", "peername"}:
+            return self.peer
+        return None
+
+
+def test_validate_public_http_url_rejects_a_mixed_public_and_private_dns_answer(monkeypatch):
+    monkeypatch.setattr(
+        "backend.security.socket.getaddrinfo",
+        lambda hostname, port, family, type: [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("8.8.8.8", port)),
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("10.0.0.9", port)),
+        ],
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        validate_public_http_url("https://shop.example/product")
+
+    assert exc.value.status_code == 400
+    assert "not publicly reachable" in str(exc.value.detail)
+
+
+@pytest.mark.asyncio
+async def test_dns_pinned_network_backend_rejects_a_mixed_public_and_private_answer():
+    async def resolver(hostname: str, port: int):
+        return ["8.8.8.8", "10.0.0.9"]
+
+    backend = DNSPinnedNetworkBackend(resolver=resolver)
+
+    with pytest.raises(httpcore.ConnectError, match="non-public IP"):
+        await backend._validated_ips("shop.example", 443)
+
+
+@pytest.mark.asyncio
+async def test_dns_pinned_network_backend_rejects_an_empty_dns_answer():
+    async def resolver(hostname: str, port: int):
+        return []
+
+    backend = DNSPinnedNetworkBackend(resolver=resolver)
+
+    with pytest.raises(httpcore.ConnectError, match="DNS response was empty"):
+        await backend._validated_ips("shop.example", 443)
+
+
+@pytest.mark.parametrize(
+    "peer",
+    [
+        ("10.0.0.9", 443),
+        ("127.0.0.1", 443),
+        ("169.254.169.254", 443),
+        ("::1", 443, 0, 0),
+    ],
+)
+def test_validate_connected_peer_rejects_non_global_peers(peer):
+    response = SimpleNamespace(extensions={"network_stream": _PeerInfoStream(peer)})
+
+    with pytest.raises(HTTPException) as exc:
+        validate_connected_peer(response)
+
+    assert exc.value.status_code == 400
+
+
+def test_validate_connected_peer_accepts_a_public_peer():
+    response = SimpleNamespace(
+        extensions={"network_stream": _PeerInfoStream(("8.8.8.8", 443))}
+    )
+
+    validate_connected_peer(response)
+
+
+def test_validate_connected_peer_fails_closed_when_the_peer_is_unavailable():
+    response = SimpleNamespace(extensions={"network_stream": _PeerInfoStream(None)})
+
+    with pytest.raises(HTTPException) as exc:
+        validate_connected_peer(response)
+
+    assert exc.value.status_code == 502
