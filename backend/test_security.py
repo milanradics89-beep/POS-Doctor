@@ -291,8 +291,12 @@ async def test_transport_resolves_and_pins_a_fresh_ip_for_each_request():
 
 @pytest.mark.asyncio
 async def test_dns_resolution_is_bounded_by_connect_timeout_before_any_tcp_attempt():
+    resolver_started = asyncio.Event()
+    release_resolver = asyncio.Event()
+
     async def slow_resolver(hostname: str, port: int):
-        await asyncio.sleep(0.05)
+        resolver_started.set()
+        await release_resolver.wait()
         return ["8.8.8.8"]
 
     backend = _RecordingBackend()
@@ -300,9 +304,15 @@ async def test_dns_resolution_is_bounded_by_connect_timeout_before_any_tcp_attem
         resolver=slow_resolver,
         backend=backend,
     )
+    connect_task = asyncio.create_task(
+        pinned_backend.connect_tcp("shop.example", 443, timeout=0.1)
+    )
 
+    # Prove the resolver actually started before observing the deadline. This
+    # avoids passing merely because a cold thread-pool executor took >5 ms.
+    await asyncio.wait_for(resolver_started.wait(), timeout=1.0)
     with pytest.raises(httpcore.ConnectTimeout, match="DNS resolution timed out"):
-        await pinned_backend.connect_tcp("shop.example", 443, timeout=0.005)
+        await connect_task
 
     assert backend.connected_hosts == []
 
