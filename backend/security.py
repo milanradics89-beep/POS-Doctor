@@ -18,15 +18,18 @@ AddressResolver = Callable[[str, int], Awaitable[Iterable[str]] | Iterable[str]]
 _NAT64_WELL_KNOWN_PREFIX = ipaddress.ip_network("64:ff9b::/96")
 
 
+def _is_public_unicast_address(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Require a globally reachable unicast address, not multicast/reserved space."""
+    return ip.is_global and not ip.is_multicast and not ip.is_reserved and not ip.is_unspecified
+
+
 def _is_public_address(address: str | ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    """Reject non-global IPs, including NAT64 addresses embedding private IPv4."""
+    """Reject non-global/non-unicast IPs, including private IPv4 embedded in NAT64."""
     ip = ipaddress.ip_address(address)
-    if not ip.is_global:
-        return False
     if isinstance(ip, ipaddress.IPv6Address) and ip in _NAT64_WELL_KNOWN_PREFIX:
         embedded_ipv4 = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
-        return embedded_ipv4.is_global
-    return True
+        return ip.is_global and not ip.is_multicast and _is_public_unicast_address(embedded_ipv4)
+    return _is_public_unicast_address(ip)
 
 _T = TypeVar("_T")
 
