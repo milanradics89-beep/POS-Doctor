@@ -8,7 +8,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from backend.security import validate_connected_peer, validate_public_http_url
+from backend.security import DNSPinnedAsyncHTTPTransport, validate_connected_peer, validate_public_http_url
 
 router = APIRouter(prefix="/v1/products", tags=["products"])
 MAX_PRODUCT_PAGE_BYTES = 2_000_000
@@ -187,18 +187,24 @@ def _extract(parser: _HTMLParser, url: str) -> dict[str, Any] | None:
     return {"id": canonical, "name": str(name).strip(), "brand": brand, "url": canonical, "imageUrl": image, "price": price_number, "priceHuf": price_huf, "currency": currency, "availability": availability, "retailer": urlparse(canonical).hostname, "category": category, "color": color, "material": material, "evidence": evidence, "qualityScore": quality}
 
 async def _fetch_product_page(url: str) -> tuple[str, str, bytes]:
-    current = validate_public_http_url(url)
+    current = validate_public_http_url(url, resolve_dns=False)
     headers = {"User-Agent": "USEIT/1.0 (+product-discovery)"}
-    async with httpx.AsyncClient(timeout=10, follow_redirects=False, headers=headers) as client:
+    async with httpx.AsyncClient(
+        timeout=10,
+        follow_redirects=False,
+        headers=headers,
+        transport=DNSPinnedAsyncHTTPTransport(),
+        trust_env=False,
+    ) as client:
         for redirect_count in range(MAX_REDIRECTS + 1):
             async with client.stream("GET", current) as response:
                 validate_connected_peer(response)
-                if response.is_redirect or response.is_permanent_redirect:
+                if response.is_redirect:
                     if redirect_count >= MAX_REDIRECTS:
                         raise HTTPException(508, "Product page redirect chain is too long.")
                     location = response.headers.get("location")
                     if not location: raise HTTPException(502, "Product page returned an invalid redirect.")
-                    current = validate_public_http_url(urljoin(current, location))
+                    current = validate_public_http_url(urljoin(current, location), resolve_dns=False)
                     continue
                 response.raise_for_status()
                 if "text/html" not in response.headers.get("content-type", "").lower():
