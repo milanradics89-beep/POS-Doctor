@@ -1,3 +1,32 @@
+## Latest acceptance checkpoint — 2026-11-14 02:15 CET
+
+**Pilot/production acceptance: NOT GRANTED.**
+
+PR #41 is merged: reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`, merge/current main HEAD `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) passed. Post-merge main Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) passed. PR #41 review: 108 timeline records, 22/22 inline threads resolved, 26 submissions (25 COMMENTED, 1 human APPROVED).
+
+### Current documentation gate
+
+PR #85 remains open at exact HEAD `e3d99b1f58b2133318d168ec4c20e58b515cf2c2`, 3 commits ahead / 0 behind main. Its exact-head Validation [43533470828](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43533470828) was **cancelled**: backend and iOS passed, but frontend was cancelled during the Android native Release Gradle build; Android build completion, emulator smoke, and runtime dependency audit are not established. CodeQL [43533470808](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43533470808) **failed** at workflow-run metadata access (`Resource not accessible by integration`), ending with `configuration error`. Dependency Review [43533471028](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43533471028) **failed** because GitHub reports the feature unsupported on this repository and requires Dependency Graph plus GitHub Advanced Security. These are not passing checks and no parent CI is substituted. The single P2 tally thread is resolved; the one COMMENTED review submission is anchored to an earlier commit, with no approval on current HEAD.
+
+### Governance blocker
+
+The repository is private; current `main` reports `protected: false`. The rulesets API returns HTTP 403 requiring GitHub Pro or public visibility. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open; November 2 ruleset #26370589 evidence is historical, not current enforcement proof. Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open. PRs [#70](https://github.com/milanradics89-beep/POS-Doctor/pull/70) and [#79](https://github.com/milanradics89-beep/POS-Doctor/pull/79) passed their own exact-head three-check suites but remain separate, unmerged branches; their CI is not integrated SSRF acceptance.
+
+### External acceptance gates remain Blocked
+
+- **#2 Main branch protection:** restore a supported private-repository plan/configuration and independently verify the active ruleset and required checks.
+- **#4 App Attest:** production Apple capability/entitlement, signed production build, and provider-backed verification on a physical iPhone.
+- **#5 Play Integrity:** Play internal-track distribution, Play App Signing identity, Google Cloud permissions, and verification on a physical Android installed from Play.
+- **#16 Backup/restore:** witnessed production recovery drill with measured RPO/RTO.
+- **#18 Product recognition:** representative labeled dataset, agreed metrics, human evaluation, and business acceptance.
+- **#21 Monitoring:** production monitoring, named on-call owner, thresholds, and witnessed alert delivery.
+- **#22 Staged rollout:** approved rollout/stop thresholds, named rollback owner, and tested rollback.
+- **#25 Pilot/business validation:** real-user cohort, success/stop thresholds, participant safeguards, and business sign-off.
+
+Releases API: **0 published releases**. Inventory: **63 branches, 37 open PRs, 7 open issues**. Code Scanning, Dependabot, and Secret Scanning inventories are **unavailable/unverified, not empty**. The 25-point register is **2 Done / 15 In Progress / 8 Blocked**; blocked items are #2, #4, #5, #16, #18, #21, #22, and #25. Pilot/production acceptance remains **NOT GRANTED**.
+
+---
+
 ## Latest acceptance checkpoint — 2026-11-14 01:16 CET
 
 **Pilot/production acceptance: NOT GRANTED.**
