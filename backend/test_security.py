@@ -665,12 +665,12 @@ async def test_real_httpx_httpcore_transport_preserves_host_sni_and_pinned_peer(
         headers = []
         while True:
             line = await reader.readline()
-            if line in (b"\\r\\n", b""):
+            if line in (b"\r\n", b""):
                 break
             headers.append(line.decode("latin-1").strip())
         observed_request["line"] = request_line.decode("latin-1").strip()
         observed_request["headers"] = headers
-        writer.write(b"HTTP/1.1 200 OK\\r\\nContent-Length: 2\\r\\nConnection: close\\r\\n\\r\\nok")
+        writer.write(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok")
         await writer.drain()
         writer.close()
         await writer.wait_closed()
