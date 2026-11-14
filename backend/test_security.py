@@ -10,6 +10,7 @@ from fastapi import HTTPException
 
 from backend.security import (
     DNSPinnedAsyncHTTPTransport,
+    DNSPinnedNetworkBackend,
     validate_public_http_url,
     validate_connected_peer,
 )
@@ -287,4 +288,68 @@ async def test_transport_resolves_and_pins_a_fresh_ip_for_each_request():
         assert stream.sni_hostname == "shop.example"
         request_bytes = b"".join(stream.writes).lower()
         assert b"host: shop.example\r\n" in request_bytes
+
+@pytest.mark.asyncio
+async def test_dns_resolution_is_bounded_by_connect_timeout_before_any_tcp_attempt():
+    async def slow_resolver(hostname: str, port: int):
+        await asyncio.sleep(0.05)
+        return ["8.8.8.8"]
+
+    backend = _RecordingBackend()
+    pinned_backend = DNSPinnedNetworkBackend(
+        resolver=slow_resolver,
+        backend=backend,
+    )
+
+    with pytest.raises(httpcore.ConnectTimeout, match="DNS resolution timed out"):
+        await pinned_backend.connect_tcp("shop.example", 443, timeout=0.005)
+
+    assert backend.connected_hosts == []
+
+
+@pytest.mark.asyncio
+async def test_dns_pinned_network_backend_shares_connect_budget_across_addresses():
+    class _FirstAddressFailsBackend(_RecordingBackend):
+        def __init__(self):
+            super().__init__()
+            self.attempted_hosts: list[str] = []
+            self.timeouts: list[float | None] = []
+
+        async def connect_tcp(
+            self,
+            host: str,
+            port: int,
+            timeout: float | None = None,
+            local_address: str | None = None,
+            socket_options=None,
+        ):
+            self.attempted_hosts.append(host)
+            self.timeouts.append(timeout)
+            if len(self.attempted_hosts) == 1:
+                await asyncio.sleep(0.02)
+                raise httpcore.ConnectError("First public address is unavailable.")
+            return await super().connect_tcp(
+                host,
+                port,
+                timeout,
+                local_address,
+                socket_options,
+            )
+
+    async def resolver(hostname: str, port: int):
+        return ["8.8.8.8", "1.1.1.1"]
+
+    backend = _FirstAddressFailsBackend()
+    pinned_backend = DNSPinnedNetworkBackend(
+        resolver=resolver,
+        backend=backend,
+    )
+
+    await pinned_backend.connect_tcp("shop.example", 443, timeout=0.5)
+
+    assert backend.attempted_hosts == ["8.8.8.8", "1.1.1.1"]
+    assert backend.timeouts[0] is not None
+    assert backend.timeouts[1] is not None
+    assert backend.timeouts[1] < backend.timeouts[0]
+    assert backend.connected_hosts == [("1.1.1.1", 443)]
 

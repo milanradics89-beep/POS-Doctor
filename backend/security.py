@@ -4,6 +4,7 @@ import asyncio
 import ipaddress
 import socket
 from collections.abc import Awaitable, Callable, Iterable
+from typing import TypeVar, cast
 from urllib.parse import urlparse
 
 import httpcore
@@ -12,6 +13,17 @@ from fastapi import HTTPException
 
 
 AddressResolver = Callable[[str, int], Awaitable[Iterable[str]] | Iterable[str]]
+
+_T = TypeVar("_T")
+
+
+async def _await_with_deadline(awaitable: Awaitable[_T], deadline: float | None) -> _T:
+    if deadline is None:
+        return await awaitable
+    remaining = deadline - asyncio.get_running_loop().time()
+    if remaining <= 0:
+        raise asyncio.TimeoutError
+    return await asyncio.wait_for(awaitable, timeout=remaining)
 
 
 def _public_addresses(hostname: str, port: int) -> set[str]:
@@ -85,11 +97,25 @@ class DNSPinnedNetworkBackend(httpcore.AsyncNetworkBackend):
         self._resolver = resolver or _resolve_addresses
         self._backend = backend or httpcore.AnyIOBackend()
 
-    async def _validated_ips(self, hostname: str, port: int) -> list[str]:
+    async def _validated_ips(
+        self,
+        hostname: str,
+        port: int,
+        *,
+        deadline: float | None = None,
+    ) -> list[str]:
         try:
-            result = self._resolver(hostname, port)
-            if hasattr(result, "__await__"):
-                result = await result  # type: ignore[assignment]
+            raw_result = await _await_with_deadline(
+                asyncio.to_thread(self._resolver, hostname, port),
+                deadline,
+            )
+            if hasattr(raw_result, "__await__"):
+                result = await _await_with_deadline(
+                    cast(Awaitable[Iterable[str]], raw_result),
+                    deadline,
+                )
+            else:
+                result = cast(Iterable[str], raw_result)
             addresses = set()
             for value in result:
                 address = str(value).split("%", 1)[0]
@@ -108,6 +134,10 @@ class DNSPinnedNetworkBackend(httpcore.AsyncNetworkBackend):
                     address,
                 ),
             )
+        except asyncio.TimeoutError as exc:
+            raise httpcore.ConnectTimeout(
+                "Product host DNS resolution timed out."
+            ) from exc
         except httpcore.ConnectError:
             raise
         except (OSError, ValueError, TypeError, IndexError) as exc:
@@ -123,17 +153,29 @@ class DNSPinnedNetworkBackend(httpcore.AsyncNetworkBackend):
         local_address: str | None = None,
         socket_options: Iterable[httpcore.SOCKET_OPTION] | None = None,
     ) -> httpcore.AsyncNetworkStream:
-        addresses = await self._validated_ips(host, port)
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + max(timeout, 0.0) if timeout is not None else None
+        addresses = await self._validated_ips(host, port, deadline=deadline)
         last_error: Exception | None = None
         for address in addresses:
+            remaining = None if deadline is None else deadline - loop.time()
+            if remaining is not None and remaining <= 0:
+                raise httpcore.ConnectTimeout(
+                    "Product host connection timed out before all addresses were attempted."
+                )
             try:
-                return await self._backend.connect_tcp(
+                connection = self._backend.connect_tcp(
                     address,
                     port,
-                    timeout=timeout,
+                    timeout=remaining,
                     local_address=local_address,
                     socket_options=socket_options,
                 )
+                return await _await_with_deadline(connection, deadline)
+            except asyncio.TimeoutError as exc:
+                raise httpcore.ConnectTimeout(
+                    "Product host connection timed out."
+                ) from exc
             except (httpcore.ConnectError, httpcore.ConnectTimeout) as exc:
                 last_error = exc
         if last_error is not None:
