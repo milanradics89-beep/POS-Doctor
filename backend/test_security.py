@@ -576,3 +576,141 @@ async def test_transport_rejects_multicast_dns_answers_before_tcp_connect(addres
 
     assert backend.connected_hosts == []
     assert backend.streams == []
+
+
+@pytest.mark.asyncio
+async def test_real_httpx_httpcore_transport_preserves_host_sni_and_pinned_peer(monkeypatch, tmp_path):
+    """Exercise the real AnyIO socket backend and TLS stack, not a fake stream."""
+    import ssl
+    from datetime import datetime, timedelta, timezone
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+
+    import backend.security as security_module
+
+    now = datetime.now(timezone.utc)
+    root_key = ec.generate_private_key(ec.SECP256R1())
+    root_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "USEIT transport test root")])
+    root_certificate = (
+        x509.CertificateBuilder()
+        .subject_name(root_name)
+        .issuer_name(root_name)
+        .public_key(root_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(days=1))
+        .not_valid_after(now + timedelta(days=30))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .add_extension(x509.SubjectKeyIdentifier.from_public_key(root_key.public_key()), critical=False)
+        .add_extension(x509.AuthorityKeyIdentifier.from_issuer_public_key(root_key.public_key()), critical=False)
+        .add_extension(
+            x509.KeyUsage(
+                digital_signature=True,
+                content_commitment=False,
+                key_encipherment=False,
+                data_encipherment=False,
+                key_agreement=False,
+                key_cert_sign=True,
+                crl_sign=True,
+                encipher_only=False,
+                decipher_only=False,
+            ),
+            critical=True,
+        )
+        .sign(root_key, hashes.SHA256())
+    )
+    leaf_key = ec.generate_private_key(ec.SECP256R1())
+    leaf_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "shop.example")])
+    leaf_certificate = (
+        x509.CertificateBuilder()
+        .subject_name(leaf_name)
+        .issuer_name(root_name)
+        .public_key(leaf_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(days=1))
+        .not_valid_after(now + timedelta(days=30))
+        .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+        .add_extension(x509.SubjectAlternativeName([x509.DNSName("shop.example")]), critical=False)
+        .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]), critical=False)
+        .add_extension(x509.SubjectKeyIdentifier.from_public_key(leaf_key.public_key()), critical=False)
+        .add_extension(x509.AuthorityKeyIdentifier.from_issuer_public_key(root_key.public_key()), critical=False)
+        .sign(root_key, hashes.SHA256())
+    )
+
+    root_path = tmp_path / "test-root.pem"
+    certificate_path = tmp_path / "server-cert.pem"
+    key_path = tmp_path / "server-key.pem"
+    root_path.write_bytes(root_certificate.public_bytes(serialization.Encoding.PEM))
+    certificate_path.write_bytes(leaf_certificate.public_bytes(serialization.Encoding.PEM))
+    key_path.write_bytes(
+        leaf_key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+    )
+
+    server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    server_context.load_cert_chain(str(certificate_path), str(key_path))
+    observed_sni: list[str | None] = []
+    server_context.set_servername_callback(
+        lambda _socket, server_name, _context: observed_sni.append(server_name)
+    )
+    observed_request: dict[str, object] = {}
+
+    async def handle_request(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        request_line = await reader.readline()
+        headers = []
+        while True:
+            line = await reader.readline()
+            if line in (b"\\r\\n", b""):
+                break
+            headers.append(line.decode("latin-1").strip())
+        observed_request["line"] = request_line.decode("latin-1").strip()
+        observed_request["headers"] = headers
+        writer.write(b"HTTP/1.1 200 OK\\r\\nContent-Length: 2\\r\\nConnection: close\\r\\n\\r\\nok")
+        await writer.drain()
+        writer.close()
+        await writer.wait_closed()
+
+    server = await asyncio.start_server(handle_request, "127.0.0.1", 0, ssl=server_context)
+    port = server.sockets[0].getsockname()[1]
+    original_public_check = security_module._is_public_address
+    # Loopback is allowed only inside this isolated local-socket test harness.
+    monkeypatch.setattr(
+        security_module,
+        "_is_public_address",
+        lambda address: address.is_loopback or original_public_check(address),
+    )
+
+    async def resolver(hostname: str, requested_port: int) -> list[str]:
+        assert hostname == "shop.example"
+        assert requested_port == port
+        return ["127.0.0.1"]
+
+    try:
+        transport = DNSPinnedAsyncHTTPTransport(resolver=resolver)
+        # Trust only the ephemeral test CA while retaining normal hostname verification.
+        transport._pool._ssl_context.load_verify_locations(cafile=str(root_path))
+        async with httpx.AsyncClient(
+            transport=transport,
+            trust_env=False,
+            follow_redirects=False,
+        ) as client:
+            async with client.stream("GET", f"https://shop.example:{port}/product") as response:
+                validate_connected_peer(response)
+                assert response.status_code == 200
+                assert await response.aread() == b"ok"
+                stream = response.extensions["network_stream"]
+                peer = stream.get_extra_info("server_addr")
+                assert peer[0] == "127.0.0.1"
+    finally:
+        server.close()
+        await server.wait_closed()
+
+    assert observed_sni == ["shop.example"]
+    assert observed_request["line"] == "GET /product HTTP/1.1"
+    normalized_headers = [header.lower() for header in observed_request["headers"]]
+    assert f"host: shop.example:{port}" in normalized_headers
