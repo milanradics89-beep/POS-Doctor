@@ -18,7 +18,7 @@ import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
-import { ProductCard, SectionHeader } from '../src/ui/components';
+import { BrandMark, FadeIn, ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 import { theme } from '../src/ui/theme';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
@@ -37,12 +37,16 @@ export default function Home() {
   const [rendering, setRendering] = useState(false);
   const [rendered, setRendered] = useState<string | null>(null);
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [lastIntent, setLastIntent] = useState<OpportunityKind | undefined>();
   const redesign = result?.redesign ?? result?.phase3?.redesign;
 
   const reset = () => {
     setPhoto(null);
     setResult(null);
     setRendered(null);
+    setAnalysisError(null);
+    setLastIntent(undefined);
   };
 
   async function openProductLink(url: string) {
@@ -69,6 +73,8 @@ export default function Home() {
 
     if (!photo) return;
 
+    setLastIntent(intent);
+    setAnalysisError(null);
     setBusy(true);
     setRendered(null);
 
@@ -80,8 +86,7 @@ export default function Home() {
       );
       setResult(response);
     } catch (error) {
-      Alert.alert(
-        'Could not understand the image',
+      setAnalysisError(
         error instanceof Error
           ? error.message
           : 'Please try again with a clearer photo.'
@@ -172,6 +177,8 @@ export default function Home() {
     setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
     setResult(null);
     setRendered(null);
+    setAnalysisError(null);
+    setLastIntent(undefined);
   }
 
   async function capture() {
@@ -221,14 +228,20 @@ export default function Home() {
     setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
     setResult(null);
     setRendered(null);
+    setAnalysisError(null);
+    setLastIntent(undefined);
   }
 
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView contentContainerStyle={s.page}>
         {!photo ? (
+          <FadeIn delay={40}>
           <>
-            <Text style={s.logo}>USEIT</Text>
+            <View style={s.brandRow}>
+              <BrandMark />
+              <Text style={s.logo}>USEIT</Text>
+            </View>
 
             <Text style={s.kicker}>SEE WHAT’S POSSIBLE</Text>
 
@@ -273,10 +286,14 @@ export default function Home() {
               ))}
             </View>
           </>
+          </FadeIn>
         ) : (
           <>
             <View style={s.top}>
-              <Text style={s.small}>USEIT</Text>
+              <View style={s.brandRow}>
+                <BrandMark compact />
+                <Text style={s.small}>USEIT</Text>
+              </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Choose another photo"
@@ -300,15 +317,30 @@ export default function Home() {
             )}
 
             {busy ? (
+              <FadeIn>
               <View style={s.loading}>
                 <ActivityIndicator size="large" />
                 <Text style={s.load}>Understanding what I see…</Text>
               </View>
+              </FadeIn>
             ) : rendering ? (
+              <FadeIn>
               <View style={s.loading}>
                 <ActivityIndicator size="large" />
                 <Text style={s.load}>Creating your visual concept…</Text>
               </View>
+              </FadeIn>
+            ) : analysisError ? (
+              <FadeIn>
+                <StatePanel
+                  kind="error"
+                  title="Could not understand the image"
+                  description={analysisError}
+                  actionLabel="TRY AGAIN"
+                  actionAccessibilityHint="Retries analysis using the selected mode."
+                  onAction={() => { void analyze(lastIntent); }}
+                />
+              </FadeIn>
             ) : result ? (
               <>
                 <Text style={s.kicker}>ONE IDEA</Text>
@@ -350,6 +382,16 @@ export default function Home() {
                     {Math.round((result.intelligence?.intentConfidence || 0) * 100)}% CONFIDENCE
                   </Text>
                 </View>
+
+                {!redesign && (result.intelligence?.rankedCandidates?.length ?? 0) === 0 ? (
+                  <FadeIn delay={120}>
+                    <StatePanel
+                      kind="empty"
+                      title="No product matches yet"
+                      description="USEIT found a next action, but not enough reliable product matches. Try another photo or mode."
+                    />
+                  </FadeIn>
+                ) : null}
 
                 {redesign ? (
                   <>
@@ -442,6 +484,11 @@ export default function Home() {
 }
 
 const s = StyleSheet.create({
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   safe: {
     flex: 1,
     backgroundColor: theme.colors.canvas,
