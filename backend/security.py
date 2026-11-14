@@ -14,6 +14,20 @@ from fastapi import HTTPException
 
 AddressResolver = Callable[[str, int], Awaitable[Iterable[str]] | Iterable[str]]
 
+
+_NAT64_WELL_KNOWN_PREFIX = ipaddress.ip_network("64:ff9b::/96")
+
+
+def _is_public_address(address: str | ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Reject non-global IPs, including NAT64 addresses embedding private IPv4."""
+    ip = ipaddress.ip_address(address)
+    if not ip.is_global:
+        return False
+    if isinstance(ip, ipaddress.IPv6Address) and ip in _NAT64_WELL_KNOWN_PREFIX:
+        embedded_ipv4 = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+        return embedded_ipv4.is_global
+    return True
+
 _T = TypeVar("_T")
 
 
@@ -41,7 +55,7 @@ def _public_addresses(hostname: str, port: int) -> set[str]:
         normalized: set[str] = set()
         for address in resolved:
             ip = ipaddress.ip_address(address)
-            if not ip.is_global:
+            if not _is_public_address(ip):
                 raise HTTPException(400, "Product host is not publicly reachable.")
             normalized.add(ip.compressed)
         return normalized
@@ -77,7 +91,7 @@ def validate_public_http_url(url: str, *, resolve_dns: bool = True) -> str:
             literal_ip = ipaddress.ip_address(hostname)
         except ValueError:
             literal_ip = None
-        if literal_ip is not None and not literal_ip.is_global:
+        if literal_ip is not None and not _is_public_address(literal_ip):
             raise HTTPException(400, "Product host is not publicly reachable.")
     return url
 
@@ -131,7 +145,7 @@ class DNSPinnedNetworkBackend(httpcore.AsyncNetworkBackend):
             for value in result:
                 address = str(value).split("%", 1)[0]
                 ip = ipaddress.ip_address(address)
-                if not ip.is_global:
+                if not _is_public_address(ip):
                     raise httpcore.ConnectError(
                         "Product host resolved to a non-public IP address."
                     )
@@ -269,5 +283,5 @@ def validate_connected_peer(response: object) -> None:
         ip = ipaddress.ip_address(str(address).split("%", 1)[0])
     except ValueError as exc:
         raise HTTPException(502, "Product host connection could not be verified.") from exc
-    if not ip.is_global:
+    if not _is_public_address(ip):
         raise HTTPException(400, "Product host is not publicly reachable.")

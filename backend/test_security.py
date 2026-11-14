@@ -382,3 +382,54 @@ def test_syntax_only_url_validation_rejects_private_literal_without_dns(monkeypa
     with pytest.raises(HTTPException) as exc:
         validate_public_http_url("http://127.0.0.1/product", resolve_dns=False)
     assert exc.value.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["https://[64:ff9b::a00:9]/product"],
+)
+def test_syntax_only_validation_rejects_nat64_address_embedding_private_ipv4(url):
+    with pytest.raises(HTTPException) as exc:
+        validate_public_http_url(url, resolve_dns=False)
+    assert exc.value.status_code == 400
+
+
+def test_url_preflight_rejects_nat64_dns_answer_embedding_private_ipv4(monkeypatch):
+    monkeypatch.setattr(
+        "backend.security.socket.getaddrinfo",
+        lambda hostname, port, family, type: [
+            (socket.AF_INET6, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("64:ff9b::a00:9", port, 0, 0))
+        ],
+    )
+    with pytest.raises(HTTPException) as exc:
+        validate_public_http_url("https://shop.example/product")
+    assert exc.value.status_code == 400
+
+
+def test_connected_peer_rejects_nat64_address_embedding_private_ipv4():
+    with pytest.raises(HTTPException) as exc:
+        validate_connected_peer(_Response("64:ff9b::a00:9"))
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_transport_rejects_nat64_dns_answer_embedding_private_ipv4_before_tcp_connect():
+    backend = _RecordingBackend()
+
+    async def resolver(hostname: str, port: int):
+        return ["64:ff9b::a00:9"]
+
+    transport = DNSPinnedAsyncHTTPTransport(
+        resolver=resolver,
+        network_backend=backend,
+    )
+    async with httpx.AsyncClient(transport=transport, trust_env=False) as client:
+        with pytest.raises(httpx.ConnectError):
+            await client.get("https://shop.example/product")
+
+    assert backend.connected_hosts == []
+    assert backend.streams == []
+
+
+def test_connected_peer_accepts_nat64_address_embedding_global_ipv4():
+    validate_connected_peer(_Response("64:ff9b::808:808"))
