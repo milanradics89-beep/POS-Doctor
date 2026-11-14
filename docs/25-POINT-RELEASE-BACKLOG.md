@@ -1,3 +1,42 @@
+## Latest audit addendum — 2026-11-14 11:29 CET
+
+### Repository and release evidence
+
+- Current `main` HEAD: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`; PR #41 is merged at that commit. PR #41 has 22/22 inline review threads resolved, 26 review submissions, and one human APPROVED review. Its two Redis runbook P2 findings are resolved.
+- Live GitHub branch metadata reports `main.protected: false`. The branch-protection endpoint returns HTTP 403 and the repository rulesets endpoint returns HTTP 403 with the GitHub Pro/private-repository restriction. The older 2026-11-02 ruleset evidence is historical and does not prove current enforcement. Item #2 remains **Blocked** until the owner restores supported private-repository ruleset access and verifies the six required checks, one approval, last-push approval, resolved threads, deletion/non-fast-forward protection, and no bypass.
+- Current repository inventory: **70 branch names, 40 open PRs, 7 open issues**. The repository remains private.
+- The row-level release register remains **2 Done / 15 In Progress / 8 Blocked**. External blockers #4, #5, #16, #18, #21, #22, and #25 remain unchanged.
+
+### PR #85 exact-head workflow result before this documentation update
+
+Pre-write PR #85 HEAD: `0727a5616f32ed6176a1a0dd15f592f014b116bf`.
+
+- Validation [43581889793](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43581889793): backend, frontend, and iOS jobs all completed with failure and `steps=null`, `logs_url=null`.
+- CodeQL [43581889816](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43581889816): analyze job completed with failure and no steps/log URL.
+- Dependency Review [43581889851](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43581889851): job completed with failure and no steps/log URL.
+- Job-log retrieval returned `BlobNotFound`. No tests, native builds, CodeQL analysis, or Dependency Review execution is evidenced for this exact head. This is not an application test failure and is not a pass.
+- The single P2 backlog-tally review thread remains resolved; the only review submission is COMMENTED, not APPROVED. PR #85 remains open/unmerged.
+
+### npm audit / minimatch compatibility disposition
+
+- The current main lockfile resolves `@expo/fingerprint@0.20.16` with a declared `minimatch ^10.2.6` dependency; a separate `glob@14.0.4` path already uses patched `minimatch@11.0.5`.
+- GitHub advisory [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) identifies minimatch versions `>=7.0.0 <11.0.1` as affected and 11.0.1 as patched.
+- Expo upstream issue [#52735](https://github.com/expo/expo/issues/52735) records the maintainer's assessment that this is local CLI/build tooling, not a vulnerability in shipped apps, and that fingerprint's minimatch 10 range is retained because of breaking changes. Expo PR [#52753](https://github.com/expo/expo/pull/52753) (fingerprint → minimatch 11) and [#52790](https://github.com/expo/expo/pull/52790) (picomatch replacement) both closed without merge; SDK-57 PR [#52819](https://github.com/expo/expo/pull/52819) updated glob where applicable but explicitly excluded fingerprint.
+- Project PR #98's global minimatch 11 override was therefore closed without merge. It would override the declared Expo fingerprint range without the upstream compatibility change. A focused `Minimatch` class test was added on its branch at commit `6428924ebdc339683d8ae9a19671435a9c179273`, but no exact-head tests ran; this does not establish full Expo fingerprint compatibility.
+- Keep the moderate audit finding visible and **In Progress**; do not claim a clean npm audit or force the global override. Revisit when Expo publishes a supported SDK-57 fingerprint fix or an explicitly tested compatibility migration.
+
+### Current active mainline candidates
+
+- PR #90 design foundation: HEAD `205d7f4a646300d710ad91a28673ad60784c34f5`; exact-head Validation `43566731474`, CodeQL `43566731464`, Dependency Review `43566731482` all failed before steps.
+- PR #95 SSRF/NAT64: HEAD `adac0e6dd6525b197ba7433f290e2afb017d7903`; Validation `43578843298`, CodeQL `43578843319`, Dependency Review `43578843263` all failed before steps. The five NAT64 regressions and DNS-timeout regressions have not executed on this head; issue #64 remains open.
+- PR #96 Copilot guidance: HEAD `598735d45bcd34570b6fb1887cd380432c58bbf2`; Validation `43561261094`, CodeQL `43561261044`, Dependency Review `43561261047` all failed before steps.
+- PR #97 Redis readiness: HEAD `a2c02acfe4fa9861b765e80f88316c7060a97f59`; Validation `43561295099`, CodeQL `43561295147`, Dependency Review `43561295126` all failed before steps.
+- PR #98 is closed without merge; its final head was `6428924ebdc339683d8ae9a19671435a9c179273`; Validation `43585751528`, CodeQL `43585751472`, and Dependency Review `43585751665` failed before steps. No migration test or Expo build executed.
+
+No item is promoted to Done by this addendum. Exact-head CI, human review, current main protection, device, production, monitoring, rollout, and pilot gates remain separate acceptance requirements.
+
+---
+
 ## Latest exact-head release audit — 2026-11-14 10:38 CET
 
 ### Merged application baseline — PR #41
