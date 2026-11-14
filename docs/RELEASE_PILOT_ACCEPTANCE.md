@@ -1,3 +1,24 @@
+## Latest acceptance checkpoint — 2026-11-14 13:34 CET
+
+**Pilot/production acceptance: NOT GRANTED.**
+
+### Automated application baseline
+- PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is closed/merged. Exact reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge/current main commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+- Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) passed on PR #41's exact HEAD. This accepts the merged automated baseline only.
+
+### Documentation and security candidates
+- PR #85 exact HEAD `32b7c300eb3be3f2bd548bbba40090da7a32ec01` has its own terminal Validation [43592077952](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43592077952), CodeQL [43592077937](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43592077937), and Dependency Review [43592077920](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43592077920) failures. All five jobs have no executed steps. Its documentation is not integrated into main.
+- PR #95 exact HEAD `35f8afe5fd947d25b1d9d6fa55e40f02365dcb67` has its own terminal Validation [43595304397](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43595304397), CodeQL [43595304402](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43595304402), and Dependency Review [43595304460](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43595304460) failures. All five jobs have no executed steps. DNS pinning, timeout, NAT64/multicast, pinned-peer, and real-socket regressions are not executed/accepted on this HEAD. Issue #64 remains open.
+- PR #98 was closed without merge because its minimatch 11.0.5 root override violates Expo fingerprint's declared `^10.2.6` range. No clean dependency audit or compatible mainline remediation is claimed.
+
+### Governance and external acceptance
+- Issue #47 remains open. A fresh main branch read reports `protected:false` and required-status enforcement `off`; the rulesets endpoint returns HTTP 403 under the current private-repository plan. Issue #84 tracks unavailable Code Scanning / Dependency Graph capabilities.
+- The releases API returned an empty list. Code Scanning, Dependabot, and Secret Scanning alert inventories are unavailable through the connected integration, not verified empty.
+- **Blocked external gates:** #2 main branch protection; #4 physical iPhone App Attest; #5 Play-installed physical Android Play Integrity; #16 witnessed production backup/restore; #18 representative product-recognition benchmark and business acceptance; #21 production monitoring/alert delivery; #22 staged rollout/rollback approval; #25 real-user pilot/business approval.
+- Simulator/emulator runs, injected backends, and CI on another SHA do not satisfy physical-device, production-cloud, witnessed recovery, monitoring, rollout, pilot, or business acceptance. No external gate is promoted by this checkpoint.
+
+---
+
 ## Latest acceptance checkpoint — 2026-11-14 12:20 CET
 
 **Pilot/production acceptance: NOT GRANTED.**
