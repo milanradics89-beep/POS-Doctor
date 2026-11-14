@@ -1,3 +1,24 @@
+## Latest acceptance checkpoint — 2026-11-14 12:20 CET
+
+**Pilot/production acceptance: NOT GRANTED.**
+
+### Follow-up exact-head CI result — PR #85 checkpoint commit
+- The preceding documentation update was committed as `072ab3bdabbb9cfcbc6cd954b47cc7d446f8be55`; PR #85 now points to this exact HEAD (23 commits, three release-record files).
+- Exact-head Validation [43589918942](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43589918942), CodeQL [43589918950](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43589918950), and Dependency Review [43589918966](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43589918966) all completed with failure.
+- Five jobs (backend `132432256450`, frontend `132432256636`, iOS `132432256700`, CodeQL `132432256536`, Dependency Review `132432256079`) each have zero executed steps. Sampled job-log downloads return HTTP 404 `BlobNotFound`.
+- No tests, native builds, CodeQL scan, or Dependency Review execution is evidenced on this exact HEAD. This is not an application assertion failure and is not a pass. The exact GitHub-side dispatch/log-storage cause remains unverified.
+- The current 25-row register is **2 Done / 15 In Progress / 8 Blocked**. Row #2 is **Blocked** because live main metadata reports `protected:false` and required-status enforcement `off`; branch-protection/rulesets reads return HTTP 403 under the current private-repository plan. Issue #47 remains open.
+- No further commit should be made until these exact-head checks are reconciled with GitHub Actions execution availability. Pilot/production acceptance remains **NOT GRANTED**.
+
+### Acceptance boundary
+- The successful PR #41 exact-head CI accepts the merged automated application baseline only.
+- PR #85's current documentation HEAD failed before executing steps; its records are not accepted or integrated into main.
+- PR #95's SSRF multicast/NAT64/DNS regression tests remain unexecuted on its exact head. Issue #64 stays open.
+- PR #98 was closed without merge because its global minimatch 11 override violates Expo fingerprint's declared range. The moderate build-tooling audit finding remains visible; no clean audit is claimed.
+- Row #2 main branch protection is Blocked. External items #4, #5, #16, #18, #21, #22, and #25 remain Blocked pending physical-device, production, witnessed recovery, monitoring, rollout, and real-user/business evidence.
+
+---
+
 ## Latest acceptance checkpoint — 2026-11-14 12:17 CET
 
 **Pilot/production acceptance: NOT GRANTED.**

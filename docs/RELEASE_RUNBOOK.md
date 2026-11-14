@@ -1,3 +1,22 @@
+## Latest release operations checkpoint — 2026-11-14 12:20 CET
+
+### Follow-up exact-head CI result — PR #85 checkpoint commit
+- The preceding documentation update was committed as `072ab3bdabbb9cfcbc6cd954b47cc7d446f8be55`; PR #85 now points to this exact HEAD (23 commits, three release-record files).
+- Exact-head Validation [43589918942](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43589918942), CodeQL [43589918950](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43589918950), and Dependency Review [43589918966](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43589918966) all completed with failure.
+- Five jobs (backend `132432256450`, frontend `132432256636`, iOS `132432256700`, CodeQL `132432256536`, Dependency Review `132432256079`) each have zero executed steps. Sampled job-log downloads return HTTP 404 `BlobNotFound`.
+- No tests, native builds, CodeQL scan, or Dependency Review execution is evidenced on this exact HEAD. This is not an application assertion failure and is not a pass. The exact GitHub-side dispatch/log-storage cause remains unverified.
+- The current 25-row register is **2 Done / 15 In Progress / 8 Blocked**. Row #2 is **Blocked** because live main metadata reports `protected:false` and required-status enforcement `off`; branch-protection/rulesets reads return HTTP 403 under the current private-repository plan. Issue #47 remains open.
+- No further commit should be made until these exact-head checks are reconciled with GitHub Actions execution availability. Pilot/production acceptance remains **NOT GRANTED**.
+
+### Current release decision
+- PR #41 remains the validated merged application baseline at exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1` and merge/main `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+- PR #95 remains a draft SSRF integration candidate at `aec819f2c4ff321611ff7a4899e7d0666b0cd845`; its Validation, CodeQL, and Dependency Review failed before steps. The multicast/NAT64/DNS tests are not executed/accepted; issue #64 remains open.
+- PR #98 is closed without merge due to the incompatible minimatch 11 override for Expo fingerprint. The full npm audit finding remains moderate and In Progress; do not force the override.
+- Main branch protection remains blocked; current private-repository security entitlements and Actions execution need owner intervention. Security alert inventories remain unavailable/unverified, not empty.
+- The release register is 2 Done / 15 In Progress / 8 Blocked. Production and pilot acceptance remain NOT GRANTED.
+
+---
+
 ## Latest release operations checkpoint — 2026-11-14 12:17 CET
 
 ### Merged application baseline — PR #41

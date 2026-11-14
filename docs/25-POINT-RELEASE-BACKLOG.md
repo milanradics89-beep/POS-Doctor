@@ -1,3 +1,20 @@
+## Latest audit addendum — 2026-11-14 12:20 CET
+
+### Follow-up exact-head CI result — PR #85 checkpoint commit
+- The preceding documentation update was committed as `072ab3bdabbb9cfcbc6cd954b47cc7d446f8be55`; PR #85 now points to this exact HEAD (23 commits, three release-record files).
+- Exact-head Validation [43589918942](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43589918942), CodeQL [43589918950](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43589918950), and Dependency Review [43589918966](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43589918966) all completed with failure.
+- Five jobs (backend `132432256450`, frontend `132432256636`, iOS `132432256700`, CodeQL `132432256536`, Dependency Review `132432256079`) each have zero executed steps. Sampled job-log downloads return HTTP 404 `BlobNotFound`.
+- No tests, native builds, CodeQL scan, or Dependency Review execution is evidenced on this exact HEAD. This is not an application assertion failure and is not a pass. The exact GitHub-side dispatch/log-storage cause remains unverified.
+- The current 25-row register is **2 Done / 15 In Progress / 8 Blocked**. Row #2 is **Blocked** because live main metadata reports `protected:false` and required-status enforcement `off`; branch-protection/rulesets reads return HTTP 403 under the current private-repository plan. Issue #47 remains open.
+- No further commit should be made until these exact-head checks are reconciled with GitHub Actions execution availability. Pilot/production acceptance remains **NOT GRANTED**.
+
+### Current dependency and SSRF disposition
+- PR #95 exact HEAD `aec819f2c4ff321611ff7a4899e7d0666b0cd845` contains multicast/reserved/unspecified destination rejection and focused syntax/DNS/peer/transport tests, but its exact-head checks all failed before steps. No test result is claimed; issue #64 remains open.
+- PR #98 closed without merge because the minimatch 11 override violates `@expo/fingerprint@0.20.16`'s declared `^10.2.6` range. PR #81's separate legacy-base audit reports 3 moderate, 0 high, 0 critical findings. Keep item #3 In Progress and do not force the override.
+- Main remains private, `protected:false`, and required status enforcement off. Issue #47 remains open; issue #84 records unavailable Code Scanning/Dependency Graph capabilities. Security alert inventories remain unavailable/unverified, not empty. Releases API returned an empty list.
+
+---
+
 ## Latest audit addendum — 2026-11-14 12:17 CET
 
 ### Merged baseline and repository state
@@ -706,7 +723,7 @@ The five job failures on PR #85/#95 are not evidence of application test failure
 | # | Workstream | Status | Evidence / next gate |
 |---:|---|---|---|
 | 1 | iOS CI closure | **Done** | Exact validated-parent iOS job [130764391399](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044324/job/130764391399) passed Release simulator build and install/launch smoke. Physical iPhone acceptance remains separate item #4. |
-| 2 | Main branch protection | **Done** | Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed. Active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) enforces six strict required checks, one approval, last-push approval, resolved threads, no bypass, and deletion/non-fast-forward protection. |
+| 2 | Main branch protection | **Blocked** | Live main branch metadata reports `protected:false` and required-status-check enforcement `off`; branch-protection and rulesets reads return HTTP 403 under the current private-repository plan. Issue #47 remains open. The 2026-11-02 ruleset verification is historical, not current enforcement proof. Owner must restore supported private-repository ruleset access and verify required checks, approvals, last-push approval, resolved threads, no bypass, and deletion/non-fast-forward protection. |
 | 3 | Dependency Review warnings | **In Progress** | PR #81 full-tree npm audit [43463421519](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463421519) passed on its separate legacy release-remediation base and reports 3 moderate, 0 high, 0 critical findings. Advisory [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) affects minimatch >=7.0.0 <11.0.1. PR #98 was closed without merge because its global 11.0.5 override violates @expo/fingerprint@0.20.16's declared ^10.2.6 range; Expo maintainers retain minimatch 10 due compatibility differences. Keep the moderate build-tooling finding visible; no clean-audit claim or forced override. Alert inventories remain unavailable/unverified, not empty. |
 | 4 | Physical iPhone App Attest production entitlement | **Blocked** | Requires Apple Developer production App ID/capability and provisioning entitlement, a signed production build, and provider-backed App Attest enrollment/assertion verification on a supported physical iPhone. |
 | 5 | Play-installed physical Android Play Integrity | **Blocked** | Requires Play internal-track distribution, Play App Signing certificate identity, Google Cloud service-account/API permissions, and verification on a physical Android device installed from Play. |
