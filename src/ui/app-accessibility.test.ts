@@ -38,6 +38,8 @@ function isNullishExpression(expression: ts.Expression): boolean {
 function hasAccessibleExpression(expression: ts.Expression): boolean {
   const value = unwrapExpression(expression);
 
+  if (ts.isIdentifier(value) && value.text === 'undefined') return false;
+
   if (ts.isStringLiteralLike(value) || ts.isNoSubstitutionTemplateLiteral(value)) {
     return value.text.trim().length > 0;
   }
