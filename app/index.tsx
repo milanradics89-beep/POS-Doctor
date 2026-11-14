@@ -18,6 +18,8 @@ import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
+import { ProductCard, SectionHeader } from '../src/ui/components';
+import { theme } from '../src/ui/theme';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -238,15 +240,27 @@ export default function Home() {
               Point your camera at almost anything. USEIT helps you discover what you can do with it.
             </Text>
 
-            <Pressable onPress={capture} style={s.capture}>
-              <LinearGradient colors={['#111', '#3b3b3b']} style={s.grad}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Take a photo"
+              accessibilityHint="Opens the camera to take a photo for analysis."
+              onPress={capture}
+              style={s.capture}
+            >
+              <LinearGradient colors={[theme.colors.ink, theme.colors.captureEnd]} style={s.grad}>
                 <Text style={s.cam}>⌾</Text>
                 <Text style={s.cta}>SHOW ME</Text>
                 <Text style={s.hint}>Take a photo</Text>
               </LinearGradient>
             </Pressable>
 
-            <Pressable onPress={chooseGallery} style={s.gallery}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Choose a photo from your gallery"
+              accessibilityHint="Opens your photo library."
+              onPress={chooseGallery}
+              style={s.gallery}
+            >
               <Text style={s.galleryTitle}>▣  CHOOSE FROM GALLERY</Text>
               <Text style={s.galleryHint}>Use a photo you already have</Text>
             </Pressable>
@@ -263,7 +277,12 @@ export default function Home() {
           <>
             <View style={s.top}>
               <Text style={s.small}>USEIT</Text>
-              <Pressable onPress={reset}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose another photo"
+                accessibilityHint="Returns to photo selection."
+                onPress={reset}
+              >
                 <Text style={s.close}>✕</Text>
               </Pressable>
             </View>
@@ -334,7 +353,7 @@ export default function Home() {
 
                 {redesign ? (
                   <>
-                    <Text style={s.section}>REDESIGN SOLUTION</Text>
+                    <SectionHeader eyebrow="REDESIGN SOLUTION" />
 
                     <View style={s.solution}>
                       <Text style={s.solutionTitle}>
@@ -354,33 +373,28 @@ export default function Home() {
 
                 {(result.intelligence?.rankedCandidates?.length ?? 0) > 0 ? (
                   <>
-                    <Text style={s.section}>MATCHING OPTIONS</Text>
+                    <SectionHeader eyebrow="MATCHING OPTIONS" />
 
                     {result.intelligence.rankedCandidates
                       .slice(0, 5)
                       .map((x) => (
-                        <Pressable
-                          style={s.product}
+                        <ProductCard
                           key={x.id}
+                          title={x.title}
+                          category={x.category}
+                          source={x.source}
+                          price={typeof x.priceHuf === 'number' ? x.priceHuf : undefined}
                           onPress={() => { void openProductLink(x.url); }}
-                        >
-                          <View style={s.productMain}>
-                            <Text style={s.productTitle}>{x.title}</Text>
-                            <Text style={s.productMeta}>
-                              {x.category} · {x.source}
-                            </Text>
-                          </View>
-
-                          <Text style={s.price}>
-                            {x.priceHuf?.toLocaleString('hu-HU') ?? 0} Ft
-                          </Text>
-                        </Pressable>
+                        />
                       ))}
                   </>
                 ) : null}
 
                 {redesign ? (
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Create visual concept"
+                    accessibilityHint="Generates a visual redesign from the selected photo."
                     style={s.primary}
                     onPress={createVisualConcept}
                   >
@@ -388,7 +402,13 @@ export default function Home() {
                   </Pressable>
                 ) : null}
 
-                <Pressable style={s.secondary} onPress={reset}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Try another photo"
+                  accessibilityHint="Returns to photo selection."
+                  style={s.secondary}
+                  onPress={reset}
+                >
                   <Text style={s.secondaryText}>TRY ANOTHER PHOTO</Text>
                 </Pressable>
               </>
@@ -398,6 +418,9 @@ export default function Home() {
 
                 {modes.map(([a, b]) => (
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${a.toUpperCase()} mode`}
+                    accessibilityHint={b}
                     key={a}
                     style={s.mode}
                     onPress={() => analyze(a)}
@@ -421,7 +444,7 @@ export default function Home() {
 const s = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F7F7F2',
+    backgroundColor: theme.colors.canvas,
   },
   page: {
     padding: 24,
@@ -438,7 +461,7 @@ const s = StyleSheet.create({
     fontSize: 36,
     fontWeight: '900',
     letterSpacing: -2,
-    color: '#111',
+    color: theme.colors.ink,
     marginTop: 12,
   },
   small: {
@@ -448,13 +471,13 @@ const s = StyleSheet.create({
   },
   close: {
     fontSize: 20,
-    color: '#777',
+    color: theme.colors.muted,
   },
   kicker: {
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 2,
-    color: '#777',
+    color: theme.colors.muted,
     marginTop: 32,
   },
   hero: {
@@ -462,7 +485,7 @@ const s = StyleSheet.create({
     lineHeight: 53,
     fontWeight: '800',
     letterSpacing: -2.5,
-    color: '#111',
+    color: theme.colors.ink,
     marginTop: 10,
   },
   title: {
@@ -470,13 +493,13 @@ const s = StyleSheet.create({
     lineHeight: 44,
     fontWeight: '800',
     letterSpacing: -2,
-    color: '#111',
+    color: theme.colors.ink,
     marginVertical: 20,
   },
   sub: {
     fontSize: 17,
     lineHeight: 25,
-    color: '#666',
+    color: theme.colors.muted,
     marginTop: 16,
   },
   capture: {
@@ -490,24 +513,24 @@ const s = StyleSheet.create({
   },
   cam: {
     fontSize: 30,
-    color: '#fff',
+    color: theme.colors.surface,
   },
   cta: {
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: 1,
-    color: '#fff',
+    color: theme.colors.surface,
     marginTop: 8,
   },
   hint: {
     fontSize: 12,
-    color: '#aaa',
+    color: theme.colors.captureTextMuted,
     marginTop: 6,
   },
   gallery: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.line,
     borderRadius: 20,
     padding: 18,
     alignItems: 'center',
@@ -520,7 +543,7 @@ const s = StyleSheet.create({
   },
   galleryHint: {
     fontSize: 12,
-    color: '#888',
+    color: theme.colors.subtle,
     marginTop: 4,
   },
   tags: {
@@ -531,13 +554,13 @@ const s = StyleSheet.create({
   },
   tag: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.line,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 7,
     fontSize: 10,
     fontWeight: '800',
-    color: '#777',
+    color: theme.colors.muted,
   },
   photo: {
     width: '100%',
@@ -555,15 +578,15 @@ const s = StyleSheet.create({
   },
   load: {
     marginTop: 14,
-    color: '#666',
+    color: theme.colors.muted,
   },
   mode: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#e5e5df',
+    borderColor: theme.colors.line,
   },
   modeTitle: {
     fontSize: 20,
@@ -571,7 +594,7 @@ const s = StyleSheet.create({
   },
   modeDesc: {
     fontSize: 14,
-    color: '#777',
+    color: theme.colors.muted,
     marginTop: 4,
     maxWidth: '85%',
   },
@@ -580,18 +603,18 @@ const s = StyleSheet.create({
     right: 18,
     top: 17,
     fontSize: 28,
-    color: '#aaa',
+    color: theme.colors.captureTextMuted,
   },
   section: {
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 2,
-    color: '#888',
+    color: theme.colors.subtle,
     marginTop: 26,
     marginBottom: 10,
   },
   action: {
-    backgroundColor: '#111',
+    backgroundColor: theme.colors.ink,
     borderRadius: 20,
     padding: 20,
   },
@@ -599,25 +622,25 @@ const s = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 2,
-    color: '#aaa',
+    color: theme.colors.captureTextMuted,
   },
   actionTitle: {
     fontSize: 21,
     fontWeight: '900',
-    color: '#fff',
+    color: theme.colors.surface,
     marginTop: 7,
   },
   actionMeta: {
     fontSize: 11,
-    color: '#aaa',
+    color: theme.colors.captureTextMuted,
     marginTop: 10,
   },
   solution: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#e5e5df',
+    borderColor: theme.colors.line,
   },
   solutionTitle: {
     fontSize: 17,
@@ -625,11 +648,11 @@ const s = StyleSheet.create({
   },
   solutionText: {
     fontSize: 13,
-    color: '#666',
+    color: theme.colors.muted,
     marginTop: 7,
   },
   product: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 18,
     padding: 18,
     marginBottom: 9,
@@ -637,7 +660,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e5e5df',
+    borderColor: theme.colors.line,
   },
   productMain: {
     flex: 1,
@@ -649,7 +672,7 @@ const s = StyleSheet.create({
   },
   productMeta: {
     fontSize: 11,
-    color: '#888',
+    color: theme.colors.subtle,
     marginTop: 5,
   },
   price: {
@@ -657,9 +680,9 @@ const s = StyleSheet.create({
     fontWeight: '900',
   },
   notice: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.line,
     borderRadius: 18,
     padding: 16,
     marginTop: 18,
@@ -671,24 +694,24 @@ const s = StyleSheet.create({
   },
   noticeText: {
     fontSize: 13,
-    color: '#666',
+    color: theme.colors.muted,
     marginTop: 5,
   },
   primary: {
-    backgroundColor: '#111',
+    backgroundColor: theme.colors.ink,
     padding: 18,
     borderRadius: 18,
     alignItems: 'center',
     marginTop: 28,
   },
   primaryText: {
-    color: '#fff',
+    color: theme.colors.surface,
     fontWeight: '900',
   },
   disclosure: {
     fontSize: 11,
     lineHeight: 17,
-    color: '#888',
+    color: theme.colors.subtle,
     marginTop: 10,
   },
   secondary: {
@@ -699,6 +722,6 @@ const s = StyleSheet.create({
   secondaryText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#111',
+    color: theme.colors.ink,
   },
 });
