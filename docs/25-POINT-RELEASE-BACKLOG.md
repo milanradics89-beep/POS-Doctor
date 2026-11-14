@@ -1,3 +1,40 @@
+## Latest 25-point status checkpoint — 2026-11-14 06:37 CET
+
+### Merged application baseline
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is closed and merged. Reviewed exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge/current `main` HEAD `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) passed. Post-merge main Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) passed; no separate post-merge Dependency Review run is claimed. PR #41 review inventory: 108 combined timeline records, 22/22 inline threads resolved, 26 review submissions (25 COMMENTED, 1 human APPROVED).
+
+### Current documentation gate — PR #85
+
+PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) remains open and unmerged on `docs/post-merge-release-evidence-20261113`, targeting `main`. Exact HEAD `e35adf9d1a2108e73e6e3653ed6c830912edee5d`; 10 commits ahead / 0 behind; 3 changed files (+614 / -8). Its exact-head Validation [43558302250](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43558302250), CodeQL [43558302183](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43558302183), and Dependency Review [43558302180](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43558302180) all completed with failure. Backend, frontend, iOS, CodeQL analyze, and Dependency Review jobs have no executed step records; explicit step lookup returned an empty list and job-log retrieval returned HTTP 404 `BlobNotFound`. No tests, native builds, scan upload, or dependency review executed on this exact HEAD. This is not a test pass or an application assertion failure. The exact GitHub dispatch/runner cause remains unverified. The P2 register-tally review finding remains resolved; the current 25-row table reconciles to 2 / 15 / 8.
+
+The runbook and pilot-acceptance documents on this PR branch still carry the 05:42 CET checkpoint. This commit refreshes the authoritative backlog first; those two documents are intentionally left for a later sequential commit after this new exact-head CI gate is terminal.
+
+### Mainline SSRF integration — PR #95
+
+Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open. Draft PR [#95](https://github.com/milanradics89-beep/POS-Doctor/pull/95) is based directly on main `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`, exact HEAD `5971e4275c8263d5728910369dfd80d1f2b8b88f`, 1 commit, 5 files (+608 / -21). It carries DNS-pinned HTTPX/httpcore transport, fresh per-connection resolution, rejection of mixed public/private DNS answers, numeric-IP dialing while preserving original Host/TLS SNI, disabled environment proxies/keep-alive reuse, redirect-by-redirect URL validation, and post-connect peer verification, with deterministic transport/redirect/rebinding tests.
+
+Its exact-head Validation [43561091697](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43561091697), CodeQL [43561091647](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43561091647), and Dependency Review [43561091637](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43561091637) all completed with failure. The three Validation jobs have no step records; job logs are unavailable. The added tests therefore have not been executed on this mainline integration HEAD. CodeQL and Dependency Review are also blocked by the repository capability issues tracked in #84. PR #95 has no human review submissions or inline review threads and remains draft/unmerged. Static review note: the custom transport rebuilds an httpcore pool using HTTPX private pool attributes; the narrow HTTPX/httpcore version constraints are therefore part of its compatibility contract and require exact-head CI plus human security review.
+
+Earlier PRs #70 (DNS pinning) and #79 (redirect transport fix) passed their own exact-head three-check suites, but those results do not substitute for PR #95. PR #94's peer/mixed-DNS tests were not executed on its own failed exact-head Validation. Keep #64 open until the mainline integration receives executed CI, human review, and integration acceptance.
+
+### Other mainline candidates
+
+- Draft PR [#90](https://github.com/milanradics89-beep/POS-Doctor/pull/90), exact HEAD `3a1650649d99efdcde4e8f631d8c2466782b2eae`, adds the accessible USEIT design foundation (5 commits, 9 files, +407 / -26). Its exact-head Validation [43534946927](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43534946927) passed; CodeQL [43534947109](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43534947109) and Dependency Review [43534947012](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43534947012) failed under the repository security-capability blocker.
+- Draft PR [#96](https://github.com/milanradics89-beep/POS-Doctor/pull/96), exact HEAD `598735d45bcd34570b6fb1887cd380432c58bbf2`, adds 45 lines of Copilot repository guidance. Its exact-head Validation [43561261094](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43561261094), CodeQL [43561261044](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43561261044), and Dependency Review [43561261047](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43561261047) failed.
+- Draft PR [#97](https://github.com/milanradics89-beep/POS-Doctor/pull/97), exact HEAD `a2c02acfe4fa9861b765e80f88316c7060a97f59`, adds 116 lines of Redis readiness TTL regression tests. Its exact-head Validation [43561295099](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43561295099), CodeQL [43561295147](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43561295147), and Dependency Review [43561295126](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43561295126) failed. No passing result is inferred from parent commits.
+- Draft PR [#48](https://github.com/milanradics89-beep/POS-Doctor/pull/48) remains on the old `fix/release-blockers-2026-10` base (71 commits, 23 files). PR #90 is the separate main-based design-foundation candidate; do not merge or retarget #48 automatically.
+
+### Governance, inventories, and release decision
+
+Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open. The repository is private; the latest recorded main branch metadata reports `protected: false`, and rulesets reads return HTTP 403 requiring a supported plan or public visibility. Current main enforcement is therefore unverified. Issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84) confirms Code Scanning is not enabled and Dependency Graph / GitHub Advanced Security is unavailable or not enabled for this private-repository configuration. Code Scanning, Dependabot, and Secret Scanning alert inventories remain unavailable/unverified, not empty.
+
+Current search inventory: 66 branches, 40 open PRs, and 7 open issues. The last recorded releases inventory returned 0 published releases; a releases-list read is not exposed by the current connected GitHub action set, so that count is not independently refreshed in this checkpoint.
+
+**Authoritative 25-row tally: 2 Done / 15 In Progress / 8 Blocked.** Done: #1 and #6. Blocked: #2, #4, #5, #16, #18, #21, #22, and #25. The remaining 15 rows stay In Progress. Preserve all physical-device, production-cloud, witnessed backup/restore, monitoring, staged-rollout, pilot, and business-approval gates until their stated evidence exists. Pilot/production acceptance remains **NOT GRANTED**.
+
+---
+
 ## Latest 25-point status checkpoint - 2026-11-14 05:42 CET
 
 ### Exact merged application baseline
