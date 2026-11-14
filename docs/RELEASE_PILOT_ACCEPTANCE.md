@@ -1,3 +1,38 @@
+## Latest acceptance checkpoint — 2026-11-14 05:25 CET
+
+**Pilot/production acceptance: NOT GRANTED.**
+
+### Automated application baseline
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is merged. Reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge/current main HEAD `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) passed. Frontend, backend, iOS, CodeQL, and Dependency Review jobs all passed. Post-merge main Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) passed. These results establish automated CI acceptance for the merged code only, not production or pilot acceptance.
+
+### Current documentation gate — PR #85
+
+PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) remains open at exact HEAD `c1c85ad27bd43176f981516bbffd2676bbda452b`, targeting `main` at `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Its exact-head Validation [43550836422](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43550836422), CodeQL [43550836413](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43550836413), and Dependency Review [43550836406](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43550836406) all completed with failure before runner assignment. All five jobs started at 03:17:14 UTC and completed at 03:17:16 UTC with `runner_id: 0`, empty runner name, zero steps, and no downloadable logs (HTTP 404 `BlobNotFound`). No application test, Android/iOS build, CodeQL scan, or Dependency Review step executed on this exact HEAD. The precise GitHub-side dispatch cause remains unverified; do not describe this as a code test failure or a pass. No human approval for current PR #85 HEAD is recorded. Its only inline review thread (P2 tally finding) is resolved.
+
+### Governance and security acceptance
+
+The repository is private. Current main metadata reports `protected: false`; rulesets and branch-protection reads return HTTP 403, with GitHub requiring GitHub Pro or public visibility for rulesets. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open. Historical November 2 ruleset evidence is not current enforcement evidence. Issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84) confirms Code Scanning is disabled and Dependency Graph / GitHub Advanced Security is unavailable or not enabled for the current private-repository configuration. Owner action is required; do not remove or bypass either required security workflow.
+
+Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open. PR #70 DNS pinning and PR #79 redirect transport correction passed their own exact-head Validation, CodeQL, and Dependency Review runs, but remain separate/unmerged branches. PR #94's mixed-DNS/peer tests have not executed because its exact-head workflows failed before runner assignment. Integrated SSRF acceptance is not established.
+
+### External acceptance gates remain Blocked
+
+- **#2 Main branch protection:** restore a supported private-repository plan/configuration and independently verify the active ruleset, exact required checks, human approval, last-push approval, thread resolution, and force-push/deletion protections.
+- **#4 App Attest:** production Apple App ID/capability and provisioning entitlement, signed production build, and provider-backed enrollment/assertion verification on a supported physical iPhone.
+- **#5 Play Integrity:** Play internal-track distribution, Play App Signing identity, Google Cloud service-account/API permissions, and verification on a physical Android installed from Play.
+- **#16 Backup/restore:** production datastore/Redis backup access and a witnessed restore drill with measured recovery-point and recovery-time evidence.
+- **#18 Product recognition:** representative labeled dataset, agreed accuracy metrics, human evaluation, and explicit business acceptance.
+- **#21 Monitoring:** production monitoring workspace, alert destination, named on-call owner, thresholds, and witnessed alert-delivery test.
+- **#22 Staged rollout:** production approval, TestFlight/Play track access, rollout/stop thresholds, named rollback owner, and tested rollback.
+- **#25 Pilot/business validation:** real pilot cohort, documented success/stop thresholds, named business owner, participant safeguards, and explicit business/release approval.
+
+The 25-point register remains **2 Done / 15 In Progress / 8 Blocked**. No physical-device, production-cloud, backup/restore, monitoring, rollout, pilot, or business acceptance item may be promoted based on CI, simulator, or emulator evidence.
+
+The releases endpoint currently returns **0 published GitHub releases**. Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unavailable/unverified, not empty**. Production/pilot acceptance remains **NOT GRANTED**.
+
+---
+
 ## Latest acceptance checkpoint — 2026-11-14 02:15 CET
 
 **Pilot/production acceptance: NOT GRANTED.**
