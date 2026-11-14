@@ -1,3 +1,30 @@
+## Latest acceptance checkpoint — 2026-11-14 11:29 CET
+
+**Pilot/production acceptance: NOT GRANTED.**
+
+### Automated application baseline
+- PR #41 reviewed exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1` passed Validation `43492153234`, CodeQL `43492153161`, and Dependency Review `43492153021`, then merged as main `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+- Post-merge main Validation `43503743786` and CodeQL `43503743752` passed. No separate post-merge Dependency Review is claimed.
+- PR #41 review: 22/22 inline threads resolved, 26 review submissions, one human APPROVED review. Both Redis runbook P2 findings are resolved. This accepts the merged automated application baseline only.
+
+### Current documentation gate
+- PR #85 pre-write HEAD `3ec68482a31c974e6955d4f846ed47446ea29992`; Validation `43585978140`, CodeQL `43585978083`, and Dependency Review `43585978102` all failed before steps with no logs. This documentation update requires its own exact-head checks and human review.
+- The main branch still contains the historical 3 Done / 15 In Progress / 7 Blocked register and marks main protection Done. The PR #85 candidate corrects row #2 to Blocked and the register to **2 Done / 15 In Progress / 8 Blocked**. It is not merged; main's documents remain stale until approved integration.
+
+### Security and dependency acceptance
+- PR #95 exact HEAD `adac0e6dd6525b197ba7433f290e2afb017d7903` includes DNS-pinned HTTPX/httpcore transport, per-hop DNS/public-address validation, numeric-IP connection pinning, Host/TLS SNI preservation, peer checks, DNS/connect deadline handling, and NAT64 embedded-private-IPv4 rejection. Its Validation `43578843298`, CodeQL `43578843319`, and Dependency Review `43578843263` failed before steps; the NAT64 and timeout tests have not executed. Issue #64 remains open. No SSRF integration acceptance is claimed.
+- PR #98 was closed without merge. Its global minimatch 11 override conflicts with `@expo/fingerprint@0.20.16`'s declared minimatch 10 range. Expo upstream issue #52735 says fingerprint retains minimatch 10 due to breaking changes and assesses the finding as local CLI/build tooling rather than shipped-app vulnerability. Keep the moderate audit finding visible; do not claim a clean npm audit.
+- PR #90 HEAD `a603fd181d963c0a0da9a367560711fb29f71593`, #96 HEAD `598735d45bcd34570b6fb1887cd380432c58bbf2`, and #97 HEAD `a2c02acfe4fa9861b765e80f88316c7060a97f59` all have failed-before-step Validation/CodeQL/Dependency Review runs. No acceptance is inferred from source presence.
+
+### Governance and external release gates
+- Main is private and currently reports `protected:false`; rulesets and branch-protection reads return HTTP 403. Issue #47 remains open. Issue #84 records the separate Code Scanning and Dependency Graph / Advanced Security capability blockers.
+- The release register is **2 Done / 15 In Progress / 8 Blocked**. Blocked items: #2 main protection; #4 physical iPhone App Attest; #5 Play-installed physical Android Play Integrity; #16 witnessed production backup/restore; #18 representative product-recognition benchmark/business acceptance; #21 production monitoring/alert delivery; #22 staged rollout/rollback approval; #25 real-user pilot/business approval.
+- The repository inventory is 70 branch names, 36 open PRs, and 7 open issues. No production or pilot acceptance is granted by these repository checks.
+
+No external gate is promoted to Done. Physical-device, production-cloud, witnessed backup/restore, monitoring, staged rollout/rollback, and real-user pilot/business evidence remain required.
+
+---
+
 ## Latest acceptance checkpoint — 2026-11-14 10:38 CET
 
 **Pilot/production acceptance: NOT GRANTED.**

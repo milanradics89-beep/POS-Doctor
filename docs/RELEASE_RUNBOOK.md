@@ -1,3 +1,37 @@
+## Latest release operations checkpoint — 2026-11-14 11:29 CET
+
+### Merged application baseline
+- PR #41 reviewed exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1` passed Validation `43492153234`, CodeQL `43492153161`, and Dependency Review `43492153021`; merged as current main `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+- Post-merge main Validation `43503743786` (frontend/backend/iOS) and CodeQL `43503743752` passed. No separate post-merge Dependency Review is claimed.
+- PR #41 has 22/22 inline review threads resolved, 26 review submissions, and one human APPROVED review. Both known Redis runbook P2 findings are resolved.
+
+### Current documentation gate — PR #85
+- Pre-write exact HEAD: `3ec68482a31c974e6955d4f846ed47446ea29992`, 21 commits ahead / 0 behind main.
+- Exact-head Validation `43585978140`, CodeQL `43585978083`, and Dependency Review `43585978102` all completed with failure before any step. All five jobs had `steps=null` and `logs_url=null`; no tests, native builds, CodeQL analysis, or Dependency Review execution is evidenced.
+- The new documentation commit created by this checkpoint requires its own exact-head checks. Do not reuse PR #41 or parent results.
+
+### Mainline candidates
+- PR #90 HEAD `a603fd181d963c0a0da9a367560711fb29f71593`: Validation `43586115513`, CodeQL `43586115512`, Dependency Review `43586115530` all failed before steps.
+- PR #95 HEAD `adac0e6dd6525b197ba7433f290e2afb017d7903`: Validation `43578843298`, CodeQL `43578843319`, Dependency Review `43578843263` all failed before steps. NAT64 and DNS-timeout tests remain unexecuted; issue #64 remains open.
+- PR #96 HEAD `598735d45bcd34570b6fb1887cd380432c58bbf2`: Validation `43561261094`, CodeQL `43561261044`, Dependency Review `43561261047` all failed before steps.
+- PR #97 HEAD `a2c02acfe4fa9861b765e80f88316c7060a97f59`: Validation `43561295099`, CodeQL `43561295147`, Dependency Review `43561295126` all failed before steps.
+- Recent pre-step failures have empty step lists and no log URLs. Treat them as GitHub Actions execution/logging failures, not application test failures or passes.
+
+### Dependency security disposition
+- PR #98 was closed without merge at final HEAD `6428924ebdc339683d8ae9a19671435a9c179273`. Its global minimatch 11 override would violate `@expo/fingerprint@0.20.16`'s declared `minimatch ^10.2.6` range.
+- Expo upstream issue #52735 says the moderate finding is local CLI/build tooling, not shipped-app runtime, and fingerprint's minimatch 10 range is retained due to breaking changes. Upstream PRs #52753 and #52790 closed unmerged; SDK-57 PR #52819 updated glob where applicable but excluded fingerprint.
+- Keep the moderate npm audit finding visible and In Progress. Do not claim a clean audit or force a global override without upstream-supported compatibility and exact-head tests.
+
+### Governance and owner actions
+- Repository is private. Live main metadata reports `protected:false` and required-status-check enforcement `off`; branch-protection and rulesets reads return HTTP 403. Issue #47 remains open. The November 2 ruleset record is historical, not current enforcement evidence.
+- Issue #84 separately records Code Scanning disabled and Dependency Graph / GitHub Advanced Security unavailable or not enabled for the current private-repository configuration. Keep CodeQL and Dependency Review mandatory; do not broaden permissions or bypass checks.
+- Owner action: restore supported private-repository GitHub Pro/security capabilities, then verify the exact six required checks, one approval, last-push approval, resolved threads, no bypass, and deletion/non-fast-forward protection.
+- Inventory: 70 branch names, 36 open PRs, 7 open issues. The main copy of the release records remains stale until this documentation PR is reviewed and integrated.
+
+**Release decision: NOT READY. Pilot/production acceptance: NOT GRANTED.**
+
+---
+
 ## Latest release operations checkpoint — 2026-11-14 10:38 CET
 
 ### Accepted application baseline
