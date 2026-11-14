@@ -29,6 +29,12 @@ function unwrapExpression(expression: ts.Expression): ts.Expression {
   return current;
 }
 
+function isNullishExpression(expression: ts.Expression): boolean {
+  const value = unwrapExpression(expression);
+  return value.kind === ts.SyntaxKind.NullKeyword
+    || (ts.isIdentifier(value) && value.text === 'undefined');
+}
+
 function hasAccessibleExpression(expression: ts.Expression): boolean {
   const value = unwrapExpression(expression);
 
@@ -53,7 +59,9 @@ function hasAccessibleExpression(expression: ts.Expression): boolean {
       return hasAccessibleExpression(value.left) || hasAccessibleExpression(value.right);
     }
     if (value.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
-      return hasAccessibleExpression(value.left) && hasAccessibleExpression(value.right);
+      return isNullishExpression(value.left)
+        ? hasAccessibleExpression(value.right)
+        : hasAccessibleExpression(value.left) && hasAccessibleExpression(value.right);
     }
     if (value.operatorToken.kind === ts.SyntaxKind.PlusToken) {
       return hasAccessibleExpression(value.left) || hasAccessibleExpression(value.right);
@@ -141,6 +149,7 @@ describe('USEIT screen-level accessibility contract', () => {
     expect(hasAccessibleExpression(parseExpression('null'))).toBe(false);
     expect(hasAccessibleExpression(parseExpression("condition ? 'Retry' : ''"))).toBe(false);
     expect(hasAccessibleExpression(parseExpression("condition ? '' : 'Retry'"))).toBe(false);
+    expect(hasAccessibleExpression(parseExpression("'' ?? 'Fallback'"))).toBe(false);
   });
 
   it('accepts non-empty dynamic labels and expressions with a non-empty fallback', () => {
@@ -148,6 +157,7 @@ describe('USEIT screen-level accessibility contract', () => {
     expect(hasAccessibleExpression(parseExpression('`Open ${productTitle} product page`'))).toBe(true);
     expect(hasAccessibleExpression(parseExpression("hint || 'Use the available action.'"))).toBe(true);
     expect(hasAccessibleExpression(parseExpression("hint ?? 'Use the available action.'"))).toBe(true);
+    expect(hasAccessibleExpression(parseExpression("undefined ?? 'Use the available action.'"))).toBe(true);
   });
 
   it('gives every actionable Pressable in app screens and shared UI a role, non-empty name, and hint', () => {
