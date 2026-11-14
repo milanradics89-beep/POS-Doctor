@@ -79,7 +79,7 @@ def test_connected_peer_requires_network_metadata():
 def test_rejects_non_global_ip_ranges_during_url_validation(monkeypatch, address):
     monkeypatch.setattr(
         "backend.security.socket.getaddrinfo",
-        lambda hostname, port, type: [
+        lambda hostname, port, family, type: [
             (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (address, port))
         ],
     )
@@ -472,6 +472,57 @@ def test_connected_peer_rejects_multicast_destinations(address):
     with pytest.raises(HTTPException) as exc:
         validate_connected_peer(_Response(address))
     assert exc.value.status_code == 400
+
+
+_PRIVATE_TRANSITION_IPV6_ADDRESSES = [
+    "::ffff:10.0.0.9",
+    "2002:0a00:0009::",
+    "2001:0:808:808::f5ff:fff6",
+]
+
+
+@pytest.mark.parametrize("address", _PRIVATE_TRANSITION_IPV6_ADDRESSES)
+def test_syntax_only_validation_rejects_private_ipv4_embedded_in_ipv6_transition_addresses(address):
+    with pytest.raises(HTTPException) as exc:
+        validate_public_http_url(f"https://[{address}]/product", resolve_dns=False)
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.parametrize("address", _PRIVATE_TRANSITION_IPV6_ADDRESSES)
+def test_url_preflight_rejects_private_ipv4_embedded_in_ipv6_transition_dns_answers(monkeypatch, address):
+    def getaddrinfo(hostname, port, family, type):
+        return [
+            (socket.AF_INET6, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (address, port, 0, 0))
+        ]
+
+    monkeypatch.setattr("backend.security.socket.getaddrinfo", getaddrinfo)
+    with pytest.raises(HTTPException) as exc:
+        validate_public_http_url("https://shop.example/product")
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.parametrize("address", _PRIVATE_TRANSITION_IPV6_ADDRESSES)
+def test_connected_peer_rejects_private_ipv4_embedded_in_ipv6_transition_addresses(address):
+    with pytest.raises(HTTPException) as exc:
+        validate_connected_peer(_Response(address))
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("address", _PRIVATE_TRANSITION_IPV6_ADDRESSES)
+async def test_transport_rejects_private_ipv4_embedded_in_ipv6_transition_dns_answers_before_tcp_connect(address):
+    backend = _RecordingBackend()
+
+    async def resolver(hostname: str, port: int):
+        return [address]
+
+    transport = DNSPinnedAsyncHTTPTransport(resolver=resolver, network_backend=backend)
+    async with httpx.AsyncClient(transport=transport, trust_env=False) as client:
+        with pytest.raises(httpx.ConnectError):
+            await client.get("https://shop.example/product")
+
+    assert backend.connected_hosts == []
+    assert backend.streams == []
 
 
 @pytest.mark.asyncio

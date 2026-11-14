@@ -24,11 +24,28 @@ def _is_public_unicast_address(ip: ipaddress.IPv4Address | ipaddress.IPv6Address
 
 
 def _is_public_address(address: str | ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    """Reject non-global/non-unicast IPs, including private IPv4 embedded in NAT64."""
+    """Reject non-global/non-unicast IPs, including IPv4 embedded in IPv6 transition formats."""
     ip = ipaddress.ip_address(address)
-    if isinstance(ip, ipaddress.IPv6Address) and ip in _NAT64_WELL_KNOWN_PREFIX:
-        embedded_ipv4 = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
-        return ip.is_global and not ip.is_multicast and _is_public_unicast_address(embedded_ipv4)
+    if isinstance(ip, ipaddress.IPv6Address):
+        if ip in _NAT64_WELL_KNOWN_PREFIX:
+            embedded_ipv4 = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+            return ip.is_global and not ip.is_multicast and _is_public_unicast_address(embedded_ipv4)
+
+        if not _is_public_unicast_address(ip):
+            return False
+
+        # Older Python ipaddress versions classify some transition prefixes
+        # as global based only on the outer IPv6 range. Validate their embedded
+        # IPv4 endpoints too, so a private target cannot hide inside IPv6.
+        if ip.ipv4_mapped is not None:
+            return _is_public_unicast_address(ip.ipv4_mapped)
+        if ip.sixtofour is not None:
+            return _is_public_unicast_address(ip.sixtofour)
+        if ip.teredo is not None:
+            server, client = ip.teredo
+            return _is_public_unicast_address(server) and _is_public_unicast_address(client)
+        return True
+
     return _is_public_unicast_address(ip)
 
 _T = TypeVar("_T")
