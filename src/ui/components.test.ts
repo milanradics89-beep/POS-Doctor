@@ -39,7 +39,7 @@ describe('USEIT shared component accessibility', () => {
     }
   });
   it('hides decorative marks from both VoiceOver and TalkBack', () => {
-    expect(source.match(/accessibilityElementsHidden\\s+importantForAccessibility="no-hide-descendants"/g)).toHaveLength(3);
+    expect(source.match(/accessibilityElementsHidden\s+importantForAccessibility="no-hide-descendants"/g)).toHaveLength(3);
   });
 
   it('does not announce unavailable product details as an actionable link', () => {
