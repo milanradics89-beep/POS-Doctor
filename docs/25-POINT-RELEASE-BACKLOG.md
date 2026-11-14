@@ -2109,3 +2109,45 @@ The repository remains private. Issue [#47](https://github.com/milanradics89-bee
 The releases API currently returns an empty list: **0 published GitHub releases**. The branch search returned 66 branches; the current issue search returned 39 open pull requests and 7 open issues. Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unavailable/unverified, not empty**. The Code Scanning feature/configuration issue is tracked separately in #84.
 
 The 25-point register remains **2 Done / 15 In Progress / 8 Blocked**. Done: #1 and #6. Blocked: #2, #4, #5, #16, #18, #21, #22, and #25. The other 15 remain In Progress. Pilot/production acceptance remains **NOT GRANTED**. Do not promote physical-device, production-cloud, witnessed backup/restore, monitoring, staged-rollout, real-user-pilot, or business-approval items based on CI, simulator, or emulator evidence.
+
+
+---
+
+## Verified repository checkpoint — 2026-11-14 22:59 CET
+
+**Release decision: NOT READY. Pilot/production acceptance: NOT GRANTED.** This checkpoint supersedes the 22:08 CET repository checkpoint above. It records only the latest exact-head evidence and current GitHub configuration.
+
+### Repository and main governance
+- Repository visibility is currently **public**. Live inventory: **74 branches, 39 open PRs, 7 open non-PR issues, 0 published GitHub Releases**.
+- Current main HEAD: \`f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1\`.
+- The GitHub branch metadata endpoint reports \`protected: true\`. Active repository ruleset [Protect main, ID 26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) targets the default branch and requires a pull request, one approval, stale-review dismissal, last-push approval, resolved review threads, and strict \`CodeQL\`, \`backend\`, \`frontend\`, \`ios\`, \`analyze\`, and \`dependency-review\` checks. Deletion and non-fast-forward updates are blocked; bypass actors are empty and current-user bypass is \`never\`.
+- The legacy \`/branches/main/protection\` detail endpoint returns HTTP 403 to the connected integration and the branch payload's legacy \`protection.enabled\` field is false. This does **not** negate the separately readable active ruleset and \`protected: true\` branch metadata. No protection setting was changed.
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed/completed after live ruleset verification. The repository's final public/private decision remains an owner decision; current public visibility is not treated as permanent authorization.
+- Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unavailable/unverified, not empty**. No zero-alert claim is made.
+
+### PR #85 — exact-head release-documentation CI
+- PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) exact parent HEAD \`3268fb78da02f3c2f0843f8455ac065683712651\` completed all required workflows successfully:
+  - Validation [43641492814](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43641492814): SUCCESS.
+  - CodeQL [43641492911](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43641492911): SUCCESS; Analyze completed.
+  - Dependency Review [43641492818](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43641492818): SUCCESS.
+- Exact Validation job logs: backend **450 passed**, readiness **27 passed**, production-security **78 passed**; cryptography **50.0.2**; pip-audit: **No known vulnerabilities found**. Frontend **289/289 tests across 59/59 files**, Expo Doctor **21/21**, Android Release build and emulator install/launch smoke passed, and iOS Release build and simulator install/launch smoke passed.
+- Runtime npm audit reports **3 moderate** findings for \`minimatch 10.2.6\` via \`@expo/fingerprint 0.20.16\`, advisory [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249); no high/critical finding was reported at the configured \`--audit-level=high\` threshold. The advisory's patched version is \`11.0.1\`; the SDK 57 lock currently resolves \`@expo/fingerprint 0.20.16\` with \`minimatch ^10.2.6\`. \`npm audit fix --force\` proposes downgrading Expo to 52.0.49. Do not force a major override or downgrade without a tested SDK-compatible migration.
+- The single P2 status-tally review thread is resolved/outdated. Human reviewer \`tarlaci1984-sketch\` was requested on PR #85; no human APPROVED review has yet been submitted. PR remains open and unmerged. The new documentation commit below requires its own exact-head CI.
+
+### SSRF — PR #99 and issue #64
+- PR [#99](https://github.com/milanradics89-beep/POS-Doctor/pull/99) remains draft, base \`main\` at \`f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1\`, exact source HEAD \`e15392a0dbb0c9bbcb8dd0d83e02d4c972a42cc9\`.
+- Source-SHA Validation [43604802611](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43604802611), CodeQL [43604802662](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43604802662), and Dependency Review [43604802669](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43604802669) all succeeded **before** the base retarget to \`main\` at 2026-11-14 16:20:47 UTC. No post-retarget PR-triggered check set exists for this exact source SHA.
+- Source Validation recorded 508 backend tests, 27 readiness checks, 78 production-security checks, real HTTPX 0.28.1/httpcore 1.0.9 TCP/TLS peer verification, numeric-IP pinning, original Host/SNI preservation, redirect-hop re-resolution, rebinding rejection, and bounded DNS/connect deadlines. These are source-SHA results, not post-retarget integration acceptance.
+- Human reviewer \`tarlaci1984-sketch\` was requested for PR #99; no human review submission is recorded. Keep issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) open pending fresh post-retarget exact-head checks, independent security review, and authorized integration. No production security acceptance is claimed.
+
+### Other active PRs and historical remediation
+- PR #100 exact HEAD \`a91434c1669ad159fa50fd3526b6594f2c2f8ebd\`: Validation [43624487754](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43624487754), CodeQL [43624487717](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43624487717), and Dependency Review [43624487726](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43624487726) all SUCCESS. It remains draft and unmerged.
+- PR #87 exact HEAD \`18eec1bda29d419d8e71958df895c14fac4de464\`: Validation, CodeQL, and Dependency Review all SUCCESS; CodeQL SARIF upload and Dependency Review are working in the current public repository state. Alert inventories remain unverified.
+- PR #41 is merged; its exact-head three workflows succeeded, all **22/22** inline review threads are resolved, and human APPROVED review by \`tarlaci1984-sketch\` is recorded.
+- PR #65 is closed/unmerged; its exact-head three workflows succeeded. Its \`package.json\` and \`package-lock.json\` blobs match main, including Expo SDK 57 alignment.
+- PR #67 is closed/unmerged; its historical Validation failure was **175 passed / 2 failed** on stale App Attest fixtures. PR #68 is closed/unmerged; its historical backend validation recorded **177 passed**, cryptography 50.0.2, and clean pip-audit. PR #69 is closed/unmerged; its historical Node 22 Validation failure is not current-main evidence. Main now has the CommonJS \`app.plugin.js\` config-plugin entrypoint separated from the TypeScript \`index.ts\` runtime entrypoint; current Node 22 Validation on PR #85 passed.
+
+### Release register and acceptance
+- The 25-point register remains **2 Done / 15 In Progress / 8 Blocked**. Done: #1 and #6. Blocked: #2 final owner visibility/plan decision, #4 physical iPhone App Attest and production entitlement, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product benchmark and business acceptance, #21 production monitoring/verified alert delivery, #22 approved staged rollout and tested rollback, and #25 real-user pilot/business sign-off. The other 15 remain In Progress.
+- CI, CodeQL, Dependency Review, simulator, and emulator evidence do not satisfy physical-device, production-cloud, witnessed recovery, monitoring, rollout, real-user pilot, or business-approval gates. **Pilot/production acceptance remains NOT GRANTED.**
+

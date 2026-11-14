@@ -862,3 +862,19 @@ The repository remains private. Issue [#47](https://github.com/milanradics89-bee
 The releases API currently returns an empty list: **0 published GitHub releases**. The branch search returned 66 branches; the current issue search returned 39 open pull requests and 7 open issues. Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unavailable/unverified, not empty**. The Code Scanning feature/configuration issue is tracked separately in #84.
 
 The 25-point register remains **2 Done / 15 In Progress / 8 Blocked**. Done: #1 and #6. Blocked: #2, #4, #5, #16, #18, #21, #22, and #25. The other 15 remain In Progress. Pilot/production acceptance remains **NOT GRANTED**. Do not promote physical-device, production-cloud, witnessed backup/restore, monitoring, staged-rollout, real-user-pilot, or business-approval items based on CI, simulator, or emulator evidence.
+
+
+---
+
+## Current release and governance checkpoint — 2026-11-14 22:59 CET
+
+The repository is currently public. Main HEAD is \`f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1\`; GitHub branch metadata reports \`protected: true\`. Active ruleset [Protect main, ID 26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) enforces pull requests, one approval, stale-review dismissal, last-push approval, resolved review threads, six strict required checks (\`CodeQL\`, \`backend\`, \`frontend\`, \`ios\`, \`analyze\`, \`dependency-review\`), deletion/non-fast-forward protection, and no bypass actors. The legacy branch-protection detail endpoint is not readable by the connected integration (HTTP 403); the active ruleset is directly readable. No protection setting was changed. Issue #47 is closed after verification. The owner's final public/private decision remains separate.
+
+PR #85 parent HEAD \`3268fb78da02f3c2f0843f8455ac065683712651\` passed exact-head Validation [43641492814](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43641492814), CodeQL [43641492911](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43641492911), and Dependency Review [43641492818](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43641492818). Validation recorded backend 450/450, readiness 27/27, production-security 78/78, frontend 289/289 across 59 files, Expo Doctor 21/21, Android Release/emulator smoke and iOS Release/simulator smoke success, cryptography 50.0.2, and clean pip-audit. Runtime npm audit still reports three moderate minimatch findings; do not force the incompatible major fix or downgrade Expo.
+
+The dependency-review workflow now succeeds on this public repository state. If it becomes unsupported again after an owner visibility/plan change, enable the required Dependency Graph capability in repository settings and rerun the exact release commit. Never remove, skip, or weaken the check. Code Scanning, Dependabot, and Secret Scanning alert inventories remain unavailable/unverified, not empty.
+
+PR #99 remains draft. Its source-SHA checks passed before retarget to main, but no post-retarget exact-head set exists. A human security review has been requested; none is submitted yet. Issue #64 remains open. PR #85 also has a human reviewer request pending; neither review request is approval.
+
+Production release still requires the external steps in this runbook: Apple/Google production configuration, signed store builds, physical-device attestation, production deployment and monitoring, witnessed backup/restore, staged rollout/rollback, and real-user pilot/business approval. CI success does not satisfy those gates. **Release remains NOT READY; production/pilot acceptance is NOT GRANTED.**
+

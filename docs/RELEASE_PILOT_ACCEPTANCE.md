@@ -682,3 +682,26 @@ The repository remains private. Issue [#47](https://github.com/milanradics89-bee
 The releases API currently returns an empty list: **0 published GitHub releases**. The branch search returned 66 branches; the current issue search returned 39 open pull requests and 7 open issues. Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unavailable/unverified, not empty**. The Code Scanning feature/configuration issue is tracked separately in #84.
 
 The 25-point register remains **2 Done / 15 In Progress / 8 Blocked**. Done: #1 and #6. Blocked: #2, #4, #5, #16, #18, #21, #22, and #25. The other 15 remain In Progress. Pilot/production acceptance remains **NOT GRANTED**. Do not promote physical-device, production-cloud, witnessed backup/restore, monitoring, staged-rollout, real-user-pilot, or business-approval items based on CI, simulator, or emulator evidence.
+
+
+---
+
+## Latest automated evidence and acceptance decision — 2026-11-14 22:59 CET
+
+### Automated evidence
+- Repository is currently public. Main HEAD \`f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1\`; branch metadata reports \`protected: true\`. Active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires PR review, one approval, last-push approval, resolved threads, six strict checks, deletion/non-fast-forward protection, and no bypass. No governance setting was changed. Issue #47 is closed. Final public/private visibility remains an owner decision.
+- PR #85 exact parent HEAD \`3268fb78da02f3c2f0843f8455ac065683712651\`: Validation [43641492814](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43641492814), CodeQL [43641492911](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43641492911), and Dependency Review [43641492818](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43641492818) all SUCCESS. Backend 450, readiness 27, production-security 78, frontend 289 across 59 files, Expo Doctor 21/21, Android Release/emulator smoke, and iOS Release/simulator smoke all passed. Cryptography 50.0.2; pip-audit found no known Python vulnerabilities.
+- PR #85 has a human review request pending; no APPROVED review is recorded. PR #99 has a human security-review request pending; its three green source-SHA checks predate the main-base retarget, so post-retarget exact-head checks remain outstanding.
+- Runtime npm audit reports three moderate minimatch findings through Expo SDK 57 fingerprint tooling. No high/critical finding was reported at the configured high threshold. No forced major override or Expo downgrade was applied.
+
+### Acceptance decision
+Automated CI and simulator/emulator results do **not** grant production or pilot acceptance. The following remain blocked until independently evidenced:
+- Apple production App Attest entitlement, signed build, and physical iPhone assertion test.
+- Google Play production configuration and Play-installed physical Android Integrity test.
+- Production cloud deployment and witnessed backup/restore.
+- Production monitoring, verified alert delivery, and named on-call ownership.
+- Approved staged rollout, tested rollback, and named rollback owner.
+- Representative product accuracy benchmark, real-user pilot, and business sign-off.
+
+**Release: NOT READY. Pilot/production acceptance: NOT GRANTED.**
+
