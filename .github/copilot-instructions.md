@@ -1,7 +1,7 @@
 # Copilot instructions for USEIT / POS-Doctor
 
 ## Mission
-Make small, reviewable, production-safe changes. Prefer fixing the underlying cause over adding workarounds. Treat this repository as a security-sensitive payment-terminal operations product.
+Make small, reviewable, production-safe changes. Prefer fixing the underlying cause over adding workarounds. Treat this repository as the USEIT consumer product-discovery and visual-assistance application, with a security-sensitive backend and external-service integrations. The POS-Doctor repository name is historical and does not define the product domain.
 
 ## Before changing code
 - Read the relevant implementation, tests, package manifests, and nearby documentation first.
@@ -17,7 +17,7 @@ Make small, reviewable, production-safe changes. Prefer fixing the underlying ca
 - Keep platform-specific behavior explicit. Do not claim Android or iOS validation from TypeScript/unit tests alone.
 
 ## Security and privacy
-- Never log, expose, commit, or place secrets, tokens, credentials, personal data, PAN, track data, PIN data, or terminal identifiers in examples or tests.
+- Never log, expose, commit, or place secrets, tokens, credentials, personal data, user photos, session tokens, or attestation payloads in examples or tests. Do not introduce payment-card or payment-terminal identifiers into USEIT flows; treat any legacy occurrence as highly restricted.
 - Validate all untrusted input at trust boundaries. Use parameterized database access and safe output handling.
 - For outbound URL fetching, defend against SSRF and DNS rebinding: validate every redirect hop, reject non-public destinations, pin the connection to the validated IP, preserve the original Host and TLS SNI, and retain connected-peer verification.
 - Do not weaken authentication, authorization, rate limiting, TLS validation, audit logging, or security headers to make tests pass.
