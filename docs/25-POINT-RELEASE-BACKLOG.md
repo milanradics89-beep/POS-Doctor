@@ -1226,3 +1226,35 @@ Exact-head workflows for `599888db0015ce5de636d2ae81c472f793fa946f`:
 The current 25-row register and all current tally statements reconcile to **2 Done / 15 In Progress / 8 Blocked**. The main branch-protection row is Blocked; external production/device/pilot rows remain Blocked. The P2 tally review thread `PRRT_kwDOSkaDTM63ShCN` is resolved after verifying the current table/footer and historical 3/15/7 checkpoints.
 
 Main remains `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. This documentation branch remains open and unmerged. No release/pilot acceptance is granted. Do not inherit PR #41 or main CI results for this PR #85 head.
+
+
+## Latest 25-point status checkpoint — 2026-11-14 03:10 CET
+
+### PR #41 merged release baseline
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) remains closed and merged. Reviewed source HEAD: `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit and current `main` baseline: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. PR #41 exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) all completed successfully. The review inventory is 108 timeline records, 22/22 inline threads resolved, and 26 review submissions (25 COMMENTED, 1 human APPROVED). Post-merge main Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) passed. No separate post-merge Dependency Review run is claimed.
+
+The merged source branch still exists. Its comparison with `main` is 517 commits ahead / 1 behind after the merge; do not treat the old source branch as the current development base or force-update it.
+
+### Current documentation branch gate — PR #85
+
+PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) remains open and unmerged on `docs/post-merge-release-evidence-20261113`, targeting `main`. Current exact HEAD: `e77a6148e8e91f58eeb7b392dc0e164ff7454058`; base/main HEAD at this capture: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. The PR has 5 commits and changes the three release-record files.
+
+Exact-head workflows for `e77a6148e8e91f58eeb7b392dc0e164ff7454058` all completed with **failure**:
+- Validation [43543607206](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43543607206): **failure**. The jobs endpoint reports backend [132290218849](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43543607206/job/132290218849), frontend [132290218450](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43543607206/job/132290218450), and iOS [132290218694](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43543607206/job/132290218694) as failed. The connected steps endpoint returned no steps and log downloads returned HTTP 404 `BlobNotFound`; the specific Validation failure cause is **unverified**.
+- CodeQL [43543607212](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43543607212): **failure**; analyze job [132289579051](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43543607212/job/132289579051) failed. The current job steps/logs were unavailable through the connector (`BlobNotFound`), so the exact cause on this SHA is **unverified**. Issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84) separately records exact-head evidence on PRs #90/#91 that Code Scanning is not enabled for this private repository; PR #87's job-scoped `actions: read` permission did not resolve that repository-level blocker. Do not infer a successful CodeQL upload from SARIF generation.
+- Dependency Review [43543607326](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43543607326): **failure**; dependency-review job [132289579083](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43543607326/job/132289579083) failed. Current logs were unavailable through the connector (`BlobNotFound`), so the exact cause on this SHA is **unverified**. Prior PR #85 runs and issue #84 document the repository capability blocker: Dependency Graph / GitHub Advanced Security is unavailable or not enabled for the current private-repository plan. Do not remove or skip the check.
+
+These results belong only to exact HEAD `e77a614`. Do not substitute PR #41 or main's successful CI. PR #85 currently has one resolved P2 review thread and one COMMENTED review submission anchored to an earlier head; no human approval for the current head is recorded.
+
+### Governance, security and external acceptance
+
+The repository remains private. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is open. The last observed main branch metadata reported `protected: false`; the rulesets API returned HTTP 403 requiring GitHub Pro or public visibility. This remains an owner action and current branch-protection enforcement is not verified. Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open. PRs [#70](https://github.com/milanradics89-beep/POS-Doctor/pull/70) and [#79](https://github.com/milanradics89-beep/POS-Doctor/pull/79) passed their own exact-head CI but remain separate, unmerged branches; their results are not integrated SSRF acceptance on main.
+
+The connected GitHub integration does not expose a current releases-list or security-alert inventory endpoint. The last recorded repository checkpoint reported 0 published releases, but that count is **not independently refreshed in this run**. Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unavailable/unverified, not empty**.
+
+### Current register and release decision
+
+The 25 row-level statuses remain **2 Done / 15 In Progress / 8 Blocked**: Done #1 and #6; Blocked #2, #4, #5, #16, #18, #21, #22, and #25; the remaining 15 are In Progress. Do not promote physical-device, production-cloud, witnessed backup/restore, monitoring, staged-rollout, real-user-pilot, or business-approval items based on CI, simulator, or emulator evidence. Pilot/production acceptance remains **NOT GRANTED**.
+
+PR #85's current exact-head Validation, CodeQL, and Dependency Review are terminal failures, so no workflow is queued/running on this PR #85 SHA at this checkpoint. Any next commit must first refresh PR #41's exact head and required Actions states again, and must be followed by new exact-head CI evidence.
