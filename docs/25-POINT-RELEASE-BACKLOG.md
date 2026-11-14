@@ -1,3 +1,39 @@
+## Latest exact-head checkpoint — 2026-11-14 07:32 CET
+
+### PR #41 merged application baseline
+
+- PR #41 is closed and merged from `fix/release-blockers-2026-10`; exact reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit and current main HEAD `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+- Exact PR-head Validation [435?](https://github.com/milanradics89-beep/POS-Doctor/actions) is not substituted: recorded PR-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) all completed successfully on the exact reviewed HEAD. Main push Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) also succeeded on the merge commit.
+- PR #41 review inventory: 108 combined timeline records, 22/22 inline threads resolved, 26 review submissions, including one human APPROVED review. The source branch ref still points to the exact reviewed HEAD.
+
+### Documentation PR #85
+
+- Current exact HEAD at this checkpoint: `700fdfee40d32e32f9c792cb7786d4323411a409`, 14 commits, 3 release-record files changed.
+- Exact-head Validation [43566883628](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43566883628), CodeQL [43566883764](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43566883764), and Dependency Review [43566883634](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43566883634) all ended in failure.
+- All five jobs (frontend, backend, iOS, CodeQL analyze, Dependency Review) returned `steps=null`; the explicit step endpoint returned empty arrays and job-log downloads returned HTTP 404 `BlobNotFound`. No documentation tests, app tests, CodeQL scan, or dependency review executed on this SHA. This is a pre-runner/dispatch failure, not a content-test result and not a pass.
+- The P2 status-tally review thread is resolved. The PR branch's row-level register is 2 Done / 15 In Progress / 8 Blocked. PR #85 remains open and unmerged. The `main` copies of the three release records are still stale at the 2026-11-13 18:49 CET checkpoint and still describe PR #41 as unmerged; do not treat the PR branch documents as already integrated.
+
+### SSRF bounded-DNS timeout correction — PR #95
+
+- PR #95 remains draft/open, based on main. Previous exact HEAD `5971e4275c8263d5728910369dfd80d1f2b8b88f` was updated by commit [`cf3867d78ec8f01de7ea6a11edaca09f84c96d50`](https://github.com/milanradics89-beep/POS-Doctor/commit/cf3867d78ec8f01de7ea6a11edaca09f84c96d50).
+- The change bounds DNS resolver execution by the HTTP connect deadline, converts resolver timeout to `httpcore.ConnectTimeout`, carries the remaining deadline across sequential pinned-IP connection attempts, and applies the same deadline to each connection attempt.
+- Two deterministic regression tests were added: slow DNS must time out before any TCP attempt; sequential address attempts must receive a decreasing remaining timeout budget.
+- Exact new-head Validation [43567232105](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43567232105), CodeQL [43567232047](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43567232047), and Dependency Review [43567232048](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43567232048) all ended in failure before executing steps. The three Validation jobs, CodeQL analyze, and Dependency Review job had empty step arrays and log downloads returned HTTP 404 `BlobNotFound`. The new regression tests have **not executed** and the fix is **not CI-validated**.
+- Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open. Keep PR #95 draft/open pending executed exact-head Validation, CodeQL, Dependency Review, and human security review. This is a boundedness/reliability correction, not evidence of an SSRF exploit.
+
+### Governance and release status
+
+- Repository remains private. Current main HEAD is `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`; GitHub branch metadata reports `protected: false`. Rulesets and branch-protection reads return HTTP 403 under the current private-repository plan. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open; current enforcement is unverified.
+- Issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84) records that Code Scanning is not enabled and Dependency Graph / GitHub Advanced Security is unavailable or not enabled for this private repository configuration. Do not remove, skip, or weaken CodeQL or Dependency Review.
+- GitHub Releases API returned an empty list (0 published releases). Code Scanning, Dependabot, and Secret Scanning alert inventories are unavailable through the current integration and remain **unverified, not empty**.
+- The latest main-commit auxiliary CI auto-recovery run [43567241932](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43567241932) failed; its retry job had no steps/logs and the reporting job was skipped. This does not overturn the successful main Validation and CodeQL runs above.
+
+### Authoritative 25-point register
+
+**2 Done / 15 In Progress / 8 Blocked.** Done: #1 and #6. Blocked: #2 main branch protection, #4 physical iPhone App Attest, #5 Play-installed Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark and business acceptance, #21 production monitoring/alert delivery, #22 staged rollout/rollback approval, and #25 real-user pilot/business approval. The other 15 remain In Progress. Production/pilot acceptance remains **NOT GRANTED**. Physical-device, production-cloud, witnessed recovery, rollout, and business acceptance cannot be promoted based on CI, emulator, simulator, or injected-backend tests.
+
+---
+
 ## Latest 25-point status checkpoint — 2026-11-14 exact-head refresh
 
 ### Mainline and governance
