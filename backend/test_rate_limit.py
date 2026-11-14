@@ -16,6 +16,7 @@ from backend.rate_limit import (
     MAX_MEMORY_RATE_LIMIT_BUCKETS,
     _prune_expired_buckets,
     _redis_allowed,
+    check_redis_rate_limit_capability,
     install_rate_limit,
 )
 
@@ -299,4 +300,119 @@ async def test_redis_rate_limit_is_atomic_across_independent_clients(monkeypatch
         assert 1 <= await client.pttl(sequence_key) <= 60_000
     finally:
         await client.delete(events_key, sequence_key)
+        await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_readiness_preflights_both_pexpire_permissions_before_running_lua():
+    calls = []
+
+    class FakeRedis:
+        async def pexpire(self, key, ttl_ms):
+            calls.append(("pexpire", key, ttl_ms))
+            return False  # The unique probe keys do not exist yet.
+
+        async def eval(self, script, numkeys, events_key, sequence_key, window_ms, limit):
+            calls.append(("eval", events_key, sequence_key, window_ms, limit))
+            if len([call for call in calls if call[0] == "eval"]) == 1:
+                return [1, 0]
+            return [0, 1]
+
+    assert await check_redis_rate_limit_capability(FakeRedis()) is True
+
+    assert [call[0] for call in calls] == ["pexpire", "pexpire", "eval", "eval"]
+    first_probe, second_probe = calls[:2]
+    assert first_probe[1] != second_probe[1]
+    assert first_probe[2] == second_probe[2] == 60_000
+    first_eval, second_eval = calls[2:]
+    assert first_eval[1:3] == second_eval[1:3] == (first_probe[1], second_probe[1])
+    assert first_eval[3:] == second_eval[3:] == (60_000, 1)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("denied_preflight", [1, 2])
+async def test_readiness_does_not_execute_lua_when_pexpire_permission_is_denied(denied_preflight):
+    calls = []
+    preflight_count = 0
+
+    class FakeRedis:
+        async def pexpire(self, key, ttl_ms):
+            nonlocal preflight_count
+            preflight_count += 1
+            calls.append(("pexpire", key, ttl_ms))
+            if preflight_count == denied_preflight:
+                raise PermissionError("NOPERM PEXPIRE")
+            return False
+
+        async def eval(self, *args):
+            calls.append(("eval",))
+            pytest.fail("Lua must not run until both PEXPIRE permissions are preflighted.")
+
+    with pytest.raises(PermissionError, match="NOPERM PEXPIRE"):
+        await check_redis_rate_limit_capability(FakeRedis())
+
+    assert [call[0] for call in calls] == ["pexpire"] * denied_preflight
+
+
+@pytest.mark.asyncio
+async def test_readiness_probe_lua_sets_both_ttls_before_a_later_probe_failure():
+    calls = []
+    eval_count = 0
+
+    class FakeRedis:
+        async def pexpire(self, key, ttl_ms):
+            calls.append(("pexpire", key, ttl_ms))
+            return False
+
+        async def eval(self, script, numkeys, events_key, sequence_key, window_ms, limit):
+            nonlocal eval_count
+            eval_count += 1
+            calls.append(("eval", events_key, sequence_key))
+            assert f"redis.call('PEXPIRE', KEYS[1], window_ms)" in script
+            assert f"redis.call('PEXPIRE', KEYS[2], window_ms)" in script
+            if eval_count == 1:
+                return [1, 0]
+            raise RuntimeError("simulated transient failure on the second probe")
+
+    with pytest.raises(RuntimeError, match="simulated transient failure"):
+        await check_redis_rate_limit_capability(FakeRedis())
+
+    assert [call[0] for call in calls] == ["pexpire", "pexpire", "eval", "eval"]
+
+
+@pytest.mark.asyncio
+async def test_readiness_probe_keeps_both_real_redis_ttls_when_second_probe_fails(monkeypatch):
+    url = _redis_integration_url()
+    probe_id = f"test-readiness-ttl-{uuid.uuid4().hex}"
+    monkeypatch.setattr("backend.rate_limit.secrets.token_hex", lambda _: probe_id)
+    client = Redis.from_url(url, decode_responses=True, socket_connect_timeout=2.0, socket_timeout=5.0)
+    probe_keys = []
+
+    class FailSecondEval:
+        def __init__(self):
+            self.eval_count = 0
+
+        async def pexpire(self, key, ttl_ms):
+            probe_keys.append(key)
+            return await client.pexpire(key, ttl_ms)
+
+        async def eval(self, *args):
+            self.eval_count += 1
+            if self.eval_count == 2:
+                raise RuntimeError("simulated transient failure on the second readiness probe")
+            return await client.eval(*args)
+
+    try:
+        await client.ping()
+        with pytest.raises(RuntimeError, match="simulated transient failure"):
+            await check_redis_rate_limit_capability(FailSecondEval())
+
+        assert len(probe_keys) == 2
+        events_key, sequence_key = probe_keys
+        assert events_key != sequence_key
+        assert 0 < await client.pttl(events_key) <= 60_000
+        assert 0 < await client.pttl(sequence_key) <= 60_000
+    finally:
+        if probe_keys:
+            await client.delete(*probe_keys)
         await client.aclose()
