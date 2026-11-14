@@ -51,7 +51,7 @@ def _public_addresses(hostname: str, port: int) -> set[str]:
         raise HTTPException(400, "Product host could not be resolved safely.") from exc
 
 
-def validate_public_http_url(url: str, *, resolve_dns: bool = true) -> str:
+def validate_public_http_url(url: str, *, resolve_dns: bool = True) -> str:
     try:
         parsed = urlparse(url)
         hostname_value = parsed.hostname
