@@ -1,3 +1,43 @@
+## Verified repository checkpoint — 2026-11-14 16:44 CET
+
+**Release decision: NOT READY. Pilot/production acceptance: NOT GRANTED.**
+
+### Merged application baseline — PR #41
+- PR #41 is closed and merged. Source branch `fix/release-blockers-2026-10` remains at exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit and current `main` are `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+- Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) all succeeded.
+- Review inventory: 108 combined timeline records; 52 conversation comments; 30 inline review comments; 22/22 threads resolved; 26 review submissions (25 COMMENTED, one human APPROVED by `tarlaci1984-sketch`).
+
+### Current documentation gate — PR #85
+- Current exact HEAD: `322516376d15323dd181b9b6f550e14855f7f6df`; branch `docs/post-merge-release-evidence-20261113`; PR remains open and unmerged.
+- Exact-head Validation [43608976346](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43608976346): success. Backend, frontend, and iOS jobs completed successfully (13, 17, and 11 steps). Backend log records 450 tests, 27 readiness checks, and 78 security/privacy checks passed. Android build/emulator smoke and iOS Release simulator build/smoke completed.
+- Exact-head CodeQL [43608976345](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43608976345): success; SARIF generation and upload completed. A non-fatal SARIF column-kind warning did not prevent upload.
+- Exact-head Dependency Review [43608976479](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43608976479): success.
+- PR #85 review: one resolved inline thread, one COMMENTED review submission, no human APPROVED review. Do not merge automatically.
+
+### SSRF integration — PR #95 / child PR #99 / issue #64
+- Parent PR #95 exact HEAD `35f8afe5fd947d25b1d9d6fa55e40f02365dcb67` has its own Validation failure [43595304397](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43595304397): backend 507 passed / 1 failed because a regression expected resolver input order instead of deterministic sorted IP order. Parent CodeQL [43595304402](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43595304402) and Dependency Review [43595304460](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43595304460) passed.
+- Stacked child PR #99 exact HEAD `e15392a0dbb0c9bbcb8dd0d83e02d4c972a42cc9` corrects only the two test expectations; production security assertions are unchanged. Its own Validation [43604802611](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43604802611), CodeQL [43604802662](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43604802662), and Dependency Review [43604802669](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43604802669) all passed. Backend: 508 tests, 27 readiness checks, 78 security/privacy checks passed; pip-audit reported no known Python dependency vulnerabilities. Android and iOS simulator smoke also passed.
+- PR #99 remains stacked on #95 and open/draft. Its green checks are not attributed to parent #95. Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open pending integration, fresh parent exact-head checks, and human security review.
+
+### Governance, alerts, dependencies, and releases
+- Repository visibility is currently public, described by the owner as temporary. Main is `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Active ruleset [Protect main, ID 26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires PRs, one approval, stale-review dismissal, last-push approval, resolved threads, strict CodeQL/backend/frontend/iOS/analyze/Dependency Review checks, blocks deletion and non-fast-forward updates, and has no bypass actors.
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open until the owner decides whether to keep the repository public or move to a private plan that preserves the same protections. Re-verify enforcement after any visibility change.
+- Issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84) needs reconciliation: exact-head CodeQL SARIF upload and Dependency Review now succeeded on PR #85 and #99, but this does not expose or prove the complete alert inventory.
+- Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unavailable/unverified, not empty**. Alert endpoints are not exposed to this integration.
+- GitHub Releases API returned an empty array: 0 published releases. Repository inventory: 74 branches, 40 open PRs, 8 open issues.
+
+### Authoritative 25-point release register
+- **2 Done / 15 In Progress / 8 Blocked**; retain exactly 25 row-level entries.
+- Done: #1 iOS CI closure; #6 Redis multi-instance concurrency.
+- Blocked: #2 durable main-protection/visibility-plan decision; #4 physical iPhone App Attest and production entitlement; #5 Play-installed physical Android Play Integrity; #16 witnessed production backup/restore; #18 representative product-recognition benchmark and business acceptance; #21 production monitoring and alert delivery; #22 staged rollout and tested rollback approval; #25 real-user pilot and business sign-off.
+- The other 15 remain In Progress. PR #99's successful child CI strengthens item #8 but does not make the parent integration Done.
+- External console setup, physical-device tests, production cloud access, witnessed recovery, rollout approval, and real-user/business acceptance remain blocked until independent evidence exists.
+
+### Operational consequence
+PR #85 now has terminal-success Validation, CodeQL, and Dependency Review on its own exact HEAD. This documentation checkpoint does not authorize a merge. Human approval and all external acceptance evidence remain required.
+
+---
+
 ## Verified repository checkpoint — 2026-11-14 16:09 CET
 
 **Release decision: NOT READY. Pilot/production acceptance: NOT GRANTED.**
