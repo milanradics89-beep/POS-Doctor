@@ -702,10 +702,10 @@ async def test_real_httpx_httpcore_transport_preserves_host_sni_and_pinned_peer(
             async with client.stream("GET", f"https://shop.example:{port}/product") as response:
                 validate_connected_peer(response)
                 assert response.status_code == 200
-                assert await response.aread() == b"ok"
                 stream = response.extensions["network_stream"]
                 peer = stream.get_extra_info("server_addr")
-                assert peer[0] == "127.0.0.1"
+                assert peer is not None and peer[0] == "127.0.0.1"
+                assert await response.aread() == b"ok"
     finally:
         server.close()
         await server.wait_closed()
