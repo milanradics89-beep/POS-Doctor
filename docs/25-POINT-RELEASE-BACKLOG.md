@@ -1,3 +1,30 @@
+## Latest 25-point status checkpoint — 2026-11-14 01:16 CET
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is closed/merged. Reviewed exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit and current `main` HEAD `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Exact PR-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) all passed. Review: 22/22 inline threads resolved; 26 submissions (25 COMMENTED, 1 APPROVED). Main push Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) also passed on the merge commit.
+
+### Current tally: **2 Done / 15 In Progress / 8 Blocked**
+
+The 25 row-level statuses below are authoritative and reconcile to this tally: #1 and #6 Done; #2, #4, #5, #16, #18, #21, #22, and #25 Blocked; the remaining 15 items In Progress. Item #2 remains Blocked because the private repository's current `main` branch object reports `protected: false` and the rulesets API returns HTTP 403 requiring GitHub Pro or public visibility. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is open. The prior 2026-11-02 ruleset evidence is historical and is not current enforcement proof.
+
+### Documentation CI: previous PR #85 exact HEAD
+
+Before this checkpoint commit, PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) was at exact HEAD `ab302518de26a798fc417b22a32bda10376fcf11`. Its three workflows all completed with failure:
+- Validation [43520112435](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43520112435): backend and iOS passed; frontend failed while provisioning the Google APIs Intel x86_64 Atom System Image because the runner reported `No space left on device`. Emulator smoke and later runtime dependency audit did not complete.
+- CodeQL [43520112498](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43520112498): scan processed 75/75 Python and 5/5 GitHub Actions files and exported SARIF, but the action failed because Code Scanning is not enabled and workflow-run metadata access returned `Resource not accessible by integration`.
+- Dependency Review [43520112508](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43520112508): failed because Dependency Review is not supported on this private repository without the required Dependency Graph/GitHub Advanced Security capability.
+
+PR [#87](https://github.com/milanradics89-beep/POS-Doctor/pull/87), exact HEAD `18eec1bda29d419d8e71958df895c14fac4de464`, is an unmerged permission candidate: Validation cancelled, CodeQL failed with Code Scanning not enabled, and Dependency Review failed with the same repository capability error. Do not mark CodeQL or Dependency Review as passed. This documentation update creates a new PR #85 exact-head gate; its checks must be evaluated on the resulting SHA, not inherited from PR #41, main, or the previous PR #85 head.
+
+The PR #85 P2 register-tally finding is resolved: the current 25 row-level entries total 2 Done / 15 In Progress / 8 Blocked, and row #2 is Blocked. The older 2026-11-13 18:49 CET checkpoint's 3/15/7 tally is a historical pre-reopen snapshot, not the current register.
+
+### Security, SSRF, and repository inventory
+
+Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open. PR #70 exact HEAD `935cb0a6b88810696849f93c61a336541ce50914` and PR #79 exact HEAD `109e77ba8ccd78d42d4c4dc9cc0d557c98c0d902` each passed all three required workflows on their own branches; both remain open/unmerged and are not integrated acceptance on `main`. PR #81's separate npm-audit candidate passed its own three workflows and reported 3 moderate, 0 high, and 0 critical findings; this result is not attributed to the merged main tree.
+
+Main HEAD is `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`; its branch API reports `protected: false`, and the rulesets endpoint returns 403. The repository has 61 branches, 36 open PRs, 8 open issues, and 0 published GitHub releases. Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero** because their endpoints are unavailable through the connected interface.
+
+Physical-device, production-cloud, witnessed backup/restore, monitoring, staged rollout, and real-user/business approval remain external blockers. Pilot/production acceptance is **NOT GRANTED**.
+
 ## Latest 25-point status checkpoint — 2026-11-13 22:07 CET
 
 PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) was merged at 2026-11-13 20:40:35 UTC (21:40:35 CET). Reviewed exact PR HEAD: `68b380e73ca3c870048035197beef8febbf90ef1`; resulting `main` commit: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.

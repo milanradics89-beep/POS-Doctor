@@ -1,3 +1,33 @@
+## Latest acceptance checkpoint — 2026-11-14 01:16 CET
+
+**Pilot/production acceptance: NOT GRANTED.**
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is merged. Reviewed exact PR HEAD: `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit/current `main` HEAD: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) all passed on that exact PR HEAD. Main push Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) passed on the merge commit.
+
+These results establish automated CI acceptance for the merged application code. They do not establish physical-device, production, or pilot acceptance.
+
+### Current governance blocker
+
+The repository is private and the current `main` branch API reports `protected: false`. The rulesets API returns HTTP 403 and requires GitHub Pro or public visibility. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open. Main branch protection is **Blocked** until the owner restores a supported plan/configuration and the active ruleset is independently verified.
+
+### Documentation PR #85 exact-head results
+
+Before this refresh, PR #85 exact HEAD was `ab302518de26a798fc417b22a32bda10376fcf11`. Its Validation [43520112435](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43520112435) failed because the frontend job exhausted runner disk space while downloading the Android emulator system image; backend and iOS jobs passed, but emulator smoke/runtime dependency audit did not complete. CodeQL [43520112498](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43520112498) failed after SARIF export because Code Scanning is not enabled and the action could not access workflow-run metadata. Dependency Review [43520112508](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43520112508) failed because Dependency Review is unsupported without the required Dependency Graph/GitHub Advanced Security capability. This new documentation commit has its own exact-head checks; no prior run is substituted.
+
+### External acceptance gates remain Blocked
+
+- **#4 App Attest:** production Apple App ID/capability, provisioning entitlement, signed production build, and provider-backed enrollment/assertion test on a supported physical iPhone.
+- **#5 Play Integrity:** Play internal-track distribution, Play App Signing identity, Google Cloud service-account/API permissions, and verification on a physical Android installed from Play.
+- **#16 Backup/restore:** witnessed production backup and restore with measured recovery-point and recovery-time evidence.
+- **#18 Product recognition:** representative labeled dataset, agreed accuracy metrics, human evaluation, and explicit business acceptance.
+- **#21 Monitoring:** production monitoring workspace, alert destination, named on-call owner, thresholds, and witnessed alert delivery/acknowledgement.
+- **#22 Staged rollout:** production approval, TestFlight/Play track access, documented rollout/stop thresholds, named rollback owner, and tested rollback.
+- **#25 Pilot/business validation:** real-user cohort, success/stop thresholds, named business owner, participant safeguards, and explicit business/release approval.
+
+Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open. PRs #70 and #79 each passed their own exact-head Validation, CodeQL, and Dependency Review, but remain open/unmerged on separate branches. Their CI is not integrated SSRF acceptance on `main`.
+
+There are 0 published GitHub releases. Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unavailable/unverified, not empty**. The 25-point register is **2 Done / 15 In Progress / 8 Blocked**; item #2 main branch protection is Blocked. Production and pilot acceptance remain NOT GRANTED.
+
 ## Latest acceptance checkpoint — 2026-11-13 22:07 CET
 
 **Pilot/production acceptance: NOT GRANTED.**
