@@ -1,3 +1,36 @@
+## Latest 25-point status checkpoint — 2026-11-14 exact-head refresh
+
+### Mainline and governance
+
+- Current `main` commit: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. PR #41 is closed/merged; its reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1` passed exact-head Validation `43492153234`, CodeQL `43492153161`, and Dependency Review `43492153021`. Post-merge main Validation `43503743786` and CodeQL `43503743752` passed. PR #41 review inventory: 22/22 inline threads resolved, 26 submissions (25 COMMENTED, 1 human APPROVED).
+- Issue #47 is open again after privatization. Latest recorded repository state is private, main `protected:false`, and rulesets read unavailable (HTTP 403 requiring a supported plan or public visibility). The #2 row is therefore **Blocked**; the 2026-11-02 ruleset evidence is historical, not current enforcement proof.
+- Main's existing `docs/25-POINT-RELEASE-BACKLOG.md` still shows the old **3 Done / 15 In Progress / 7 Blocked** tally and #2 Done. This PR branch corrects it to **2 Done / 15 In Progress / 8 Blocked** with #2 Blocked. Main remains unchanged until an authorized, reviewed integration; do not treat this draft branch as already published.
+- Issue #84 confirms Code Scanning is not enabled and Dependency Graph / Advanced Security is unavailable or not enabled for the current private-repository plan. Do not remove or bypass CodeQL/Dependency Review.
+
+### Exact-head documentation and mainline candidate status
+
+- PR #85 parent HEAD before this checkpoint: `ffffc6c9fa3a7d15ebea8c6187c11fb677fbcd15`. Its Validation `43562911841`, CodeQL `43562911830`, and Dependency Review `43562911818` all completed failure. Validation backend/frontend/iOS jobs had `steps=null`; no runner steps or tests executed. These failures are not source/test assertions.
+- PR #90 main-based design foundation: exact HEAD `205d7f4a646300d710ad91a28673ad60784c34f5`, 7 ahead / 0 behind main. It contains the recursive screen-wide accessibility AST test from the #92/#93 work and the least-privilege CodeQL `actions: read` permission. Exact-head Validation `43566731474`, CodeQL `43566731464`, Dependency Review `43566731482` all failed before steps; all jobs have `steps=null`. The new tests and permission workflow were not executed.
+- PR #95 main-based SSRF candidate: exact HEAD `5971e4275c8263d5728910369dfd80d1f2b8b88f`. Validation `43561091697`, CodeQL `43561091647`, Dependency Review `43561091637` failed before steps. Static review found DNS resolution is not bounded by the HTTPX/httpcore connect timeout; a slow resolver can exceed the intended deadline. Required follow-up is a remaining-budget timeout around DNS and address attempts plus deterministic slow-resolver/no-connect tests. Issue #64 remains open.
+- PR #96 main-based Copilot guidance: exact HEAD `598735d45bcd34570b6fb1887cd380432c58bbf2`; Validation `43561261094`, CodeQL `43561261044`, Dependency Review `43561261047` failed before steps.
+- PR #97 main-based Redis readiness tests: exact HEAD `a2c02acfe4fa9861b765e80f88316c7060a97f59`; Validation `43561295099`, CodeQL `43561295147`, Dependency Review `43561295126` failed before steps.
+- PR #90/#95/#96/#97 remain drafts and have no human approvals. No workflow result from a parent or older stacked branch is attributed to these exact heads.
+
+### Verified remediation already on main
+
+- PR #65 candidate HEAD `678fe7fde32f4dc785288d5a8ac939f1ac6478f0` passed Validation `43452488602`, CodeQL `43452493289`, Dependency Review `43452488754`. Main has Expo SDK 57.0.33 package versions, Node 22 validation, and the App Attest config/runtime split.
+- Main `app.json` references `modules/useit-app-attest/app.plugin.js`; that CommonJS plugin imports only `@expo/config-plugins`. The runtime `modules/useit-app-attest/index.ts` imports `expo-modules-core`, and its package manifest main is `index.ts`. This keeps the Expo config loader away from the runtime TypeScript entrypoint. PR #65's exact-head Node 22 Expo Doctor/Android/iOS evidence remains the execution proof.
+- PR #68 exact HEAD `a4324896a95aca621885ba89daa44f96bdcb636f` passed all three required workflows; backend validation recorded 177 passing tests, cryptography 50.0.2, and pip-audit no known vulnerabilities. Main requires `cryptography>=50,<51`.
+- PR #76 Copilot guidance, #79 SSRF transport, #81 full npm audit, and #83 Redis readiness each passed all three checks on their own exact heads (`730eeb49...`, `109e77ba...`, `efe16ec1...`, `bd6b85f5...`). They remain older-base evidence, not validation of the newer mainline PRs. PR #81's full npm audit artifact records 3 moderate, 0 high, 0 critical, 0 low; do not force a major minimatch upgrade without migration tests.
+- Main `docs/RELEASE_RUNBOOK.md` confirms shared Redis production rate limiting, 2-second connect / 5-second socket timeouts, and bounded temporary readiness-probe client closure. Production environment and real-device checks remain external.
+
+### Current authoritative status
+
+**2 Done / 15 In Progress / 8 Blocked.** Done: #1 and #6. Blocked: #2, #4, #5, #16, #18, #21, #22, #25. Preserve all physical-device, production-cloud, witnessed backup/restore, monitoring, staged-rollout, pilot, and business-approval gates until their named evidence exists. Pilot/production acceptance remains **NOT GRANTED**.
+
+This documentation commit is a child of parent HEAD `ffffc6c9fa3a7d15ebea8c6187c11fb677fbcd15`. It requires its own exact-head Validation, CodeQL, and Dependency Review; no parent run is reused.
+---
+
 ## Latest 25-point status checkpoint — 2026-11-14 06:37 CET
 
 ### Exact merged application baseline
