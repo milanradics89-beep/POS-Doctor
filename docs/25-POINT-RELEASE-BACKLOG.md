@@ -1258,3 +1258,20 @@ The connected GitHub integration does not expose a current releases-list or secu
 The 25 row-level statuses remain **2 Done / 15 In Progress / 8 Blocked**: Done #1 and #6; Blocked #2, #4, #5, #16, #18, #21, #22, and #25; the remaining 15 are In Progress. Do not promote physical-device, production-cloud, witnessed backup/restore, monitoring, staged-rollout, real-user-pilot, or business-approval items based on CI, simulator, or emulator evidence. Pilot/production acceptance remains **NOT GRANTED**.
 
 PR #85's current exact-head Validation, CodeQL, and Dependency Review are terminal failures, so no workflow is queued/running on this PR #85 SHA at this checkpoint. Any next commit must first refresh PR #41's exact head and required Actions states again, and must be followed by new exact-head CI evidence.
+
+
+## Exact-head retry checkpoint — 2026-11-14 03:55 CET
+
+PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) is open, unmerged, targets `main`, and currently contains 6 commits across the three release-record files. The current exact HEAD before this documentation update is `3e2c41a0743239cbaf1cb6b46083f7630e8c4e8f`; main/base HEAD is `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+
+Exact-head workflow evidence for `3e2c41a0743239cbaf1cb6b46083f7630e8c4e8f`:
+
+- Validation [43545088697](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43545088697), retry attempt 2: **failure before runner assignment**. Backend job `132306003577`, frontend job `132306003276`, and iOS job `132306003548` each completed within approximately 2–4 seconds with empty `runner_name`, zero steps, and no downloadable log (`BlobNotFound`). This does not establish a test failure or pass; the validation code was not shown to execute.
+- CodeQL [43545088627](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43545088627): **failure**. The exact-head job log was unavailable, so no run-specific failure cause is inferred. Repository-level Code Scanning configuration is separately confirmed as blocked in issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84).
+- Dependency Review [43545088618](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43545088618): **failure**. The exact-head log was unavailable; the repository-level Dependency Graph / GitHub Advanced Security capability blocker is documented in issue #84. Do not skip or remove this check.
+
+The P2 status-tally review thread `PRRT_kwDOSkaDTM63ShCN` remains resolved (1/1). The row-level register remains **2 Done / 15 In Progress / 8 Blocked**. Historical 3/15/7 totals remain historical only.
+
+The repository is private. Current main branch metadata reports `protected: false`, and the rulesets API returns HTTP 403 with the GitHub Pro/public-visibility requirement. This governance gate remains Blocked and requires repository-owner action. No branch-protection setting was changed in this run.
+
+This checkpoint records failure and infrastructure evidence only. It does not grant release or pilot acceptance, and it does not substitute main's or PR #41's successful CI for this PR's exact-head checks. All physical-device, production, monitoring, staged-rollout, pilot, and business-approval gates remain open until independently evidenced.
