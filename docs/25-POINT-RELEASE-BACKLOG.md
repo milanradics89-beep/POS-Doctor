@@ -1212,3 +1212,17 @@ Do not conflate the npm audit report with Dependency Review's vulnerable-package
 ## Release decision
 
 The PR remains open and must not be merged until all required checks pass for the exact final SHA and all externally verifiable release gates have recorded evidence. A blank or unverified acceptance item is not a pass.
+
+
+## Exact-head refresh — 2026-11-14 02:56 CET
+
+PR #85 current exact HEAD at this checkpoint: `599888db0015ce5de636d2ae81c472f793fa946f` (commit `docs(release): record current exact-head CI and release gates`). The immediately preceding PR #85 head `e3d99b1f58b2133318d168ec4c20e58b515cf2c2` and its workflow results are historical; they are not evidence for this SHA.
+
+Exact-head workflows for `599888db0015ce5de636d2ae81c472f793fa946f`:
+- Validation [43539914540](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43539914540): **failure**. The jobs endpoint reports backend, frontend, and iOS jobs as failed. The connected log-download endpoint returned `BlobNotFound` for these job logs, and the step endpoint returned no steps; the specific failure cause is therefore **unverified**, not inferred.
+- CodeQL [43539914530](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43539914530): **failure**. This repository's Code Scanning feature is not enabled; the failure is recorded separately in issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84). Do not treat generated SARIF as a successful upload or weaken the workflow.
+- Dependency Review [43539914663](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43539914663): **failure**. The job log explicitly reports that Dependency Review is unsupported until Dependency Graph and GitHub Advanced Security are enabled for this repository under a supported plan.
+
+The current 25-row register and all current tally statements reconcile to **2 Done / 15 In Progress / 8 Blocked**. The main branch-protection row is Blocked; external production/device/pilot rows remain Blocked. The P2 tally review thread `PRRT_kwDOSkaDTM63ShCN` is resolved after verifying the current table/footer and historical 3/15/7 checkpoints.
+
+Main remains `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. This documentation branch remains open and unmerged. No release/pilot acceptance is granted. Do not inherit PR #41 or main CI results for this PR #85 head.
