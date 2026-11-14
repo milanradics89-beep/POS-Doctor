@@ -1,3 +1,36 @@
+## Latest release operations checkpoint — 2026-11-14 12:17 CET
+
+### Merged application baseline — PR #41
+- PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is closed/merged from `fix/release-blockers-2026-10`. Exact reviewed HEAD: `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit and current `main` HEAD: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+- Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) all passed on the same PR HEAD. Validation frontend/backend/iOS jobs passed; CodeQL analyze and Dependency Review passed.
+- Post-merge main Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) passed. No separate post-merge Dependency Review is claimed.
+- Review inventory: 108 combined timeline records, 22/22 inline threads resolved, and 26 review submissions (25 COMMENTED, one human APPROVED). The source branch still points to the reviewed SHA; comparison is 517 ahead / 1 behind main after merge.
+
+### Current documentation gate — PR #85
+- PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) remains open/unmerged on `docs/post-merge-release-evidence-20261113`, based on main `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Current exact HEAD: `71116d40a7e1a36bea015fc7c8da8d6043e911c9` (22 commits, three release-record files).
+- Exact-head Validation [43586364962](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586364962), CodeQL [43586364980](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586364980), and Dependency Review [43586364929](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586364929) are terminal failures. Backend, frontend, iOS, CodeQL analyze, and Dependency Review job records all have empty step lists; sampled job-log downloads return HTTP 404 `BlobNotFound`.
+- No application tests, native builds, CodeQL scan, or Dependency Review execution is evidenced on this HEAD. This is not a source assertion failure and is not a pass. No human approval is recorded for PR #85.
+
+### Mainline SSRF candidate — PR #95
+- Draft PR [#95](https://github.com/milanradics89-beep/POS-Doctor/pull/95) remains open/unmerged on main. Current exact HEAD: `aec819f2c4ff321611ff7a4899e7d0666b0cd845`; latest commit message: `fix(security): reject multicast SSRF destinations`.
+- The shared public-unicast predicate now explicitly rejects multicast, reserved, and unspecified addresses, including IPv4/IPv6 multicast and NAT64-embedded multicast. Regression coverage addresses syntax-only URL validation, synchronous DNS answers, connected peers, and async transport rejection before TCP connection. Existing DNS pinning, bounded resolver/connect deadline, NAT64 embedded-private-address rejection, Host/TLS SNI preservation, and post-connect peer validation remain.
+- Exact-head Validation [43586519237](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586519237), CodeQL [43586519299](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586519299), and Dependency Review [43586519266](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586519266) are terminal failures. All five jobs have empty step lists; sampled logs return `BlobNotFound`. The new multicast/NAT64/DNS tests have not executed on this exact HEAD. Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open; no SSRF acceptance is claimed.
+
+### Dependency advisory — PR #98 closed without merge
+- PR [#98](https://github.com/milanradics89-beep/POS-Doctor/pull/98) was closed without merge at exact HEAD `6428924ebdc339683d8ae9a19671435a9c179273`. Its global `minimatch@11.0.5` override conflicts with `@expo/fingerprint@0.20.16`'s declared `minimatch ^10.2.6` range. Expo upstream attempts to move fingerprint to minimatch 11 and to replace it with picomatch closed without merge because of compatibility/pattern differences; maintainers retain minimatch 10 for this SDK line.
+- PR #81's full-tree npm audit artifact (exact HEAD `efe16ec11b3dcb3fb373431c0619093efa66db14`, on a separate legacy release-remediation base) reports 3 moderate, 0 high, 0 critical findings. Advisory [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) affects minimatch versions `>=7.0.0 <11.0.1`. Expo issue [#52735](https://github.com/expo/expo/issues/52735) assesses this as local CLI/build tooling rather than shipped-app runtime and documents the compatibility reason for retaining minimatch 10.
+- Keep the moderate finding visible and In Progress. Do not claim a clean npm audit or force an unsupported global override. PR #81's green checks apply only to its own older-base audit branch.
+
+### Governance, inventories, and release gates
+- Repository remains private. Live `main` metadata reports `protected: false` and required-status-check enforcement `off`; branch-protection read returns HTTP 403 and rulesets read returns HTTP 403 with GitHub's GitHub Pro/private-repository restriction. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open. Current main enforcement is not verified; owner action is required.
+- Issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84) separately confirms Code Scanning is not enabled and Dependency Graph / GitHub Advanced Security is unavailable or not enabled under the current private-repository configuration. Do not remove, skip, or weaken CodeQL or Dependency Review.
+- Current inventory: 70 branch names (pagination exhausted), 36 open PRs, and 7 open issues. GitHub Releases API returned an empty list: 0 published releases.
+- Code Scanning, Dependabot, and Secret Scanning alert inventories are not exposed by the connected GitHub operations; they remain **unavailable/unverified, not empty**.
+- The 25-point register is **2 Done / 15 In Progress / 8 Blocked**. Blocked: #2 main branch protection; #4 physical iPhone App Attest; #5 Play-installed physical Android Play Integrity; #16 witnessed production backup/restore; #18 representative product-recognition benchmark/business acceptance; #21 production monitoring/alert delivery; #22 staged rollout/rollback approval; #25 real-user pilot/business approval.
+- Pilot/production acceptance remains **NOT GRANTED**. Physical-device, production-cloud, witnessed recovery, monitoring, rollout, pilot, and business-approval gates remain blocked until their named evidence exists.
+
+---
+
 ## Latest release operations checkpoint — 2026-11-14 11:29 CET
 
 ### Merged application baseline

@@ -1,3 +1,29 @@
+## Latest acceptance checkpoint — 2026-11-14 12:17 CET
+
+**Pilot/production acceptance: NOT GRANTED.**
+
+### Automated application baseline
+- PR #41 is closed/merged from `fix/release-blockers-2026-10`, exact reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`, merge/current main commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+- Its own exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) passed. Post-merge main Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) passed. No separate post-merge Dependency Review is claimed.
+- PR #41 review: 22/22 inline threads resolved; 26 submissions (25 COMMENTED, one human APPROVED). This accepts the merged automated application baseline only.
+
+### Documentation acceptance
+- PR #85 current exact HEAD `71116d40a7e1a36bea015fc7c8da8d6043e911c9` remains open/unmerged. Its own Validation [43586364962](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586364962), CodeQL [43586364980](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586364980), and Dependency Review [43586364929](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586364929) all failed before executing any steps. Five jobs have empty step lists and sampled log downloads return `BlobNotFound`. No documentation or application test result is inferred. The new checkpoint commit requires its own exact-head checks and human review.
+
+### Security and dependency acceptance
+- PR #95 current exact HEAD `aec819f2c4ff321611ff7a4899e7d0666b0cd845` adds explicit multicast/reserved/unspecified destination rejection to the SSRF DNS-pinned transport, with syntax, DNS-answer, peer, and pre-TCP transport regressions. Validation [43586519237](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586519237), CodeQL [43586519299](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586519299), and Dependency Review [43586519266](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43586519266) failed before steps; the new tests have not executed. Issue #64 remains open; no integrated SSRF acceptance is claimed.
+- PR #98 was closed without merge because a global minimatch 11 override violates `@expo/fingerprint@0.20.16`'s declared minimatch 10 range and upstream compatibility work remains unresolved. PR #81's separate legacy-base full npm audit reports 3 moderate, 0 high, 0 critical findings. Expo's maintainer assessment describes the fingerprint finding as local build tooling rather than shipped-app runtime. Keep the moderate finding visible; do not claim a clean audit or force the override.
+
+### Governance and external acceptance
+- Main is private and currently reports `protected: false` with required-status-check enforcement off. Branch-protection and rulesets reads return HTTP 403; issue #47 remains open. The current main ruleset is not verified.
+- Issue #84 records Code Scanning disabled and Dependency Graph / GitHub Advanced Security unavailable or not enabled for this private-repository configuration. Required checks remain mandatory.
+- The current register is **2 Done / 15 In Progress / 8 Blocked**. Blocked items: #2 main protection; #4 physical iPhone App Attest; #5 Play-installed physical Android Play Integrity; #16 witnessed production backup/restore; #18 representative product-recognition benchmark/business acceptance; #21 production monitoring/alert delivery; #22 staged rollout/rollback approval; #25 real-user pilot/business approval.
+- GitHub Releases API returned 0 published releases. Security alert inventories remain unavailable/unverified, not empty. No repository CI result substitutes for production or pilot acceptance.
+
+Physical-device verification, production cloud/provider access, witnessed backup/restore, monitoring/alert delivery, staged rollout/rollback approval, and real-user pilot/business approval remain blocked until independent evidence exists.
+
+---
+
 ## Latest acceptance checkpoint — 2026-11-14 11:29 CET
 
 **Pilot/production acceptance: NOT GRANTED.**
