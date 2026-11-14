@@ -1,3 +1,18 @@
+## PR #85 checkpoint-commit CI result — 2026-11-14 09:22 CET
+
+The preceding 09:19 CET audit checkpoint was committed as [`5eeeb6e1c9a6d3e76980a57355f6e92e1d8156fd`](https://github.com/milanradics89-beep/POS-Doctor/commit/5eeeb6e1c9a6d3e76980a57355f6e92e1d8156fd). PR #85 now points to this exact HEAD (17 commits, 3 release-record files; base `main` at `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1)).
+
+All three workflows triggered by that commit are terminal failures on the exact HEAD:
+- Validation [43575542915](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43575542915): frontend, backend, and iOS jobs failed.
+- CodeQL [43575542897](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43575542897): analyze job failed.
+- Dependency Review [43575542895](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43575542895): dependency-review job failed.
+
+The five job records all report zero executed steps; explicit step reads returned empty arrays. Sampled log downloads returned HTTP 404 `BlobNotFound`. No documentation tests, application tests, CodeQL scan, or Dependency Review execution is evidenced on this exact HEAD. The specific GitHub-side cause remains unverified. Do not substitute parent-head results or treat these failures as source-code test failures.
+
+The 25-point register remains **2 Done / 15 In Progress / 8 Blocked**: Done #1 and #6; Blocked #2, #4, #5, #16, #18, #21, #22, and #25. Pilot/production acceptance remains **NOT GRANTED**. The next repository write must wait until the current exact-head workflows for this checkpoint commit are terminal; then refresh PR #41 HEAD and its current required workflows again before writing.
+
+---
+
 ## Latest exact-head audit — 2026-11-14 09:19 CET
 
 ### Merged application baseline — PR #41
