@@ -1,3 +1,25 @@
+## Latest acceptance checkpoint - 2026-11-14 05:42 CET
+
+**Pilot/production acceptance: NOT GRANTED.**
+
+### Automated application baseline
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) remains merged at reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`, merge/current main HEAD `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Its exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) passed. Post-merge main Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) passed. These establish automated CI evidence for the merged application baseline only.
+
+### Documentation branch exact-head gate
+
+PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) remains open and unmerged at exact HEAD `f05c85f85e5f38ee6c36f74e784dd3cbbfd38b78`. Its Validation [43556921830](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43556921830), CodeQL [43556921835](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43556921835), and Dependency Review [43556921848](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43556921848) all failed before runner assignment. Backend, frontend, iOS, CodeQL, and Dependency Review jobs each report `runner_id: 0`, empty runner name, zero steps, and no retrievable logs. No tests or scans executed on this exact HEAD. The GitHub-side dispatch/runner cause remains unverified. Do not reuse PR #41 or parent-commit CI as evidence for PR #85.
+
+### Governance and external acceptance
+
+The private repository's current `main` branch reports `protected: false`; rulesets reads are blocked by GitHub HTTP 403 on the current plan/visibility combination. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open for owner action. Issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84) records the Code Scanning and Dependency Graph / Advanced Security capability blockers. Security alert inventories are unavailable/unverified, not empty.
+
+The release register remains **2 Done / 15 In Progress / 8 Blocked**. Blocked items are #2 main protection, #4 physical iPhone App Attest, #5 Play-installed Android Play Integrity, #16 witnessed production backup/restore, #18 product-recognition benchmark/business acceptance, #21 production monitoring/alert delivery, #22 staged rollout/rollback approval, and #25 real-user pilot/business approval. Physical-device tests, production cloud access, witnessed recovery, rollout approval, and pilot/business acceptance have not been evidenced.
+
+No published GitHub release is present in the current releases API response. Store, production, and pilot acceptance remain **NOT GRANTED**.
+
+---
+
 ## Latest acceptance checkpoint — 2026-11-14 05:25 CET
 
 **Pilot/production acceptance: NOT GRANTED.**
