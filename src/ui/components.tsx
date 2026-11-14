@@ -4,7 +4,7 @@ import { theme } from './theme';
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
-    <View style={[styles.brandMark, compact && styles.brandMarkCompact]} accessibilityElementsHidden>
+    <View style={[styles.brandMark, compact && styles.brandMarkCompact]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <View style={styles.brandDot} />
       <View style={styles.brandDotSmall} />
     </View>
@@ -25,14 +25,14 @@ export function ProductCard({ title, category, source, price, onPress }: {
 }) {
   return (
     <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={`Open product page for ${title}`}
-      accessibilityHint="Opens the product page in your browser."
+      accessibilityRole={onPress ? 'link' : 'text'}
+      accessibilityLabel={onPress ? `Open product page for ${title}` : `${title} product details unavailable`}
+      accessibilityHint={onPress ? 'Opens the product page in your browser.' : 'Product details are not available for this item.'}
       onPress={onPress}
       disabled={!onPress}
       style={({ pressed }) => [styles.product, pressed && styles.pressed]}
     >
-      <View style={styles.productMark} accessibilityElementsHidden><Text style={styles.productMarkText}>✳</Text></View>
+      <View style={styles.productMark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><Text style={styles.productMarkText}>✳</Text></View>
       <View style={styles.productCopy}>
         <Text style={styles.productTitle} numberOfLines={2}>{title}</Text>
         <Text style={styles.productMeta} numberOfLines={1}>{category} · {source}</Text>
@@ -56,7 +56,7 @@ export function StatePanel({ kind, title, description, actionLabel, actionAccess
   const accent = kind === 'error' ? theme.colors.danger : theme.colors.ink;
   return (
     <View accessibilityRole="summary" style={[styles.statePanel, kind === 'error' && styles.errorPanel]}>
-      <View style={[styles.stateIcon, kind === 'error' && styles.errorIcon]} accessibilityElementsHidden>
+      <View style={[styles.stateIcon, kind === 'error' && styles.errorIcon]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Text style={[styles.stateSymbol, { color: accent }]}>{kind === 'error' ? '!' : kind === 'empty' ? '＋' : '✳'}</Text>
       </View>
       <Text style={styles.stateTitle}>{title}</Text>

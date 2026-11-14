@@ -38,4 +38,13 @@ describe('USEIT shared component accessibility', () => {
       expect(attributes.get('accessibilityHint')?.initializer).toBeDefined();
     }
   });
+  it('hides decorative marks from both VoiceOver and TalkBack', () => {
+    expect(source.match(/accessibilityElementsHidden\\s+importantForAccessibility="no-hide-descendants"/g)).toHaveLength(3);
+  });
+
+  it('does not announce unavailable product details as an actionable link', () => {
+    expect(source).toContain("accessibilityRole={onPress ? 'link' : 'text'}");
+    expect(source).toContain("accessibilityLabel={onPress ? `Open product page for ${title}` : `${title} product details unavailable`}");
+    expect(source).toContain("accessibilityHint={onPress ? 'Opens the product page in your browser.' : 'Product details are not available for this item.'}");
+  });
 });
