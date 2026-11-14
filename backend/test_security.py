@@ -131,6 +131,7 @@ class _RecordingStream(httpcore.AsyncNetworkStream):
         self.peer_address = peer_address
         self.writes: list[bytes] = []
         self.sni_hostname: str | None = None
+        self.closed = False
         self._response_sent = False
 
     async def read(self, max_bytes: int, timeout: float | None = None) -> bytes:
@@ -143,7 +144,7 @@ class _RecordingStream(httpcore.AsyncNetworkStream):
         self.writes.append(bytes(buffer))
 
     async def aclose(self) -> None:
-        return None
+        self.closed = True
 
     async def start_tls(
         self,
@@ -207,6 +208,41 @@ async def test_transport_pins_tcp_ip_and_preserves_original_host_and_tls_sni():
     assert backend.stream.sni_hostname == "shop.example"
     request_bytes = b"".join(backend.stream.writes).lower()
     assert b"host: shop.example\r\n" in request_bytes
+
+
+@pytest.mark.asyncio
+async def test_transport_rejects_a_tcp_peer_that_differs_from_the_pinned_ip_before_tls_or_request():
+    class _MismatchedPeerBackend(_RecordingBackend):
+        async def connect_tcp(
+            self,
+            host: str,
+            port: int,
+            timeout: float | None = None,
+            local_address: str | None = None,
+            socket_options=None,
+        ):
+            self.connected_hosts.append((host, port))
+            self.stream = _RecordingStream("10.0.0.9")
+            self.streams.append(self.stream)
+            return self.stream
+
+    async def resolver(hostname: str, port: int):
+        return ["8.8.8.8"]
+
+    backend = _MismatchedPeerBackend()
+    transport = DNSPinnedAsyncHTTPTransport(
+        resolver=resolver,
+        network_backend=backend,
+    )
+    async with httpx.AsyncClient(transport=transport, trust_env=False) as client:
+        with pytest.raises(httpx.ConnectError, match="pinned product host IP"):
+            await client.get("https://shop.example/product")
+
+    assert backend.connected_hosts == [("8.8.8.8", 443)]
+    assert len(backend.streams) == 1
+    assert backend.stream.closed is True
+    assert backend.stream.sni_hostname is None
+    assert backend.stream.writes == []
 
 
 @pytest.mark.asyncio

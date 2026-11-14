@@ -216,7 +216,21 @@ class DNSPinnedNetworkBackend(httpcore.AsyncNetworkBackend):
                     local_address=local_address,
                     socket_options=socket_options,
                 )
-                return await _await_with_deadline(connection, deadline)
+                stream = await _await_with_deadline(connection, deadline)
+                peer_ip = _stream_peer_ip(stream)
+                pinned_ip = ipaddress.ip_address(address)
+                if (
+                    peer_ip is None
+                    or _normalize_peer_ip(peer_ip) != _normalize_peer_ip(pinned_ip)
+                ):
+                    try:
+                        await stream.aclose()
+                    except Exception:
+                        pass
+                    raise httpcore.ConnectError(
+                        "Connected peer did not match the pinned product host IP."
+                    )
+                return stream
             except asyncio.TimeoutError as exc:
                 raise httpcore.ConnectTimeout(
                     "Product host connection timed out."
@@ -287,21 +301,37 @@ class DNSPinnedAsyncHTTPTransport(httpx.AsyncHTTPTransport):
         )
 
 
+def _stream_peer_ip(stream: object) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    """Read the connected socket peer from httpcore's network-stream metadata."""
+    getter = getattr(stream, "get_extra_info", None)
+    if not callable(getter):
+        return None
+    try:
+        peer = getter("server_addr") or getter("peername")
+        if not peer:
+            return None
+        address = peer[0] if isinstance(peer, tuple) else peer
+        return ipaddress.ip_address(str(address).split("%", 1)[0])
+    except (OSError, TypeError, ValueError, IndexError):
+        return None
+
+
+def _normalize_peer_ip(
+    address: ipaddress.IPv4Address | ipaddress.IPv6Address,
+) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
+    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
+        return address.ipv4_mapped
+    return address
+
+
 def validate_connected_peer(response: object) -> None:
     """Fail closed if the established HTTP connection reached a non-public IP."""
     extensions = getattr(response, "extensions", {})
     stream = extensions.get("network_stream") if isinstance(extensions, dict) else None
-    if stream is None or not hasattr(stream, "get_extra_info"):
+    if stream is None:
         raise HTTPException(502, "Product host connection could not be verified.")
-    # httpcore's AnyIO stream exposes "server_addr"; retain "peername" for
-    # compatible custom transports and existing test doubles.
-    peer = stream.get_extra_info("server_addr") or stream.get_extra_info("peername")
-    if not peer:
+    ip = _stream_peer_ip(stream)
+    if ip is None:
         raise HTTPException(502, "Product host connection could not be verified.")
-    address = peer[0] if isinstance(peer, tuple) else peer
-    try:
-        ip = ipaddress.ip_address(str(address).split("%", 1)[0])
-    except ValueError as exc:
-        raise HTTPException(502, "Product host connection could not be verified.") from exc
     if not _is_public_address(ip):
         raise HTTPException(400, "Product host is not publicly reachable.")
