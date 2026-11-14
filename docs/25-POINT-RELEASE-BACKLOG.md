@@ -1,3 +1,42 @@
+## Latest exact-head audit — 2026-11-14 09:19 CET
+
+### Merged application baseline — PR #41
+
+- PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is closed/merged from `fix/release-blockers-2026-10`. Exact reviewed HEAD: `68b380e73ca3c870048035197beef8febbf90ef1`; merge/current main commit: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+- Exact PR-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) all completed successfully on this exact HEAD. Post-merge main Validation [43503743786](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743786) and CodeQL [43503743752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43503743752) passed; no separate post-merge Dependency Review run is claimed.
+- Review inventory: 108 combined timeline records, 22/22 inline threads resolved, 26 submissions (25 COMMENTED, 1 human APPROVED). The source branch ref still points to the reviewed HEAD.
+
+### Documentation PR #85 — current exact HEAD
+
+- PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) remains open/unmerged on `docs/post-merge-release-evidence-20261113`, targeting main `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Exact HEAD: `8f948caaa6a02a5ee757e9c13f63f1e59e09b4e2`; 16 commits, 3 release-record files changed (+790 / -8).
+- Exact-head Validation [43567425274](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43567425274), CodeQL [43567425195](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43567425195), and Dependency Review [43567425146](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43567425146) all completed with failure.
+- The jobs endpoint reports backend, frontend, iOS, CodeQL analyze, and Dependency Review as failed with no step records; explicit step reads returned empty arrays. Sampled job-log downloads returned HTTP 404 `BlobNotFound`. No application test or security scan success is inferred from these runs. The exact GitHub-side cause for this HEAD is unverified.
+- PR #85 review inventory: 6 timeline records, 1/1 inline review thread resolved, 1 COMMENTED review submission, no human approval. The P2 tally finding remains resolved.
+
+### SSRF mainline candidate — PR #95
+
+- Draft PR [#95](https://github.com/milanradics89-beep/POS-Doctor/pull/95) remains open/unmerged, based directly on main `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Current exact HEAD: `6ff1d0cc7ec8bd60197ea3ce674bb54ceb8c183f`; 5 commits, 5 files (+761 / -26).
+- The branch contains the bounded DNS-connect-deadline correction and deterministic test hardening: resolver execution is bounded by the connect deadline, timeout maps to `httpcore.ConnectTimeout`, sequential pinned-address attempts share the remaining budget, and product URL preflight is syntax-only so authoritative DNS validation occurs in the pinned transport. The slow-resolver test uses an `asyncio.Event` handshake to prove the resolver started before asserting timeout and zero TCP attempts.
+- Exact-head Validation [43574284810](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43574284810), CodeQL [43574284827](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43574284827), and Dependency Review [43574284747](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43574284747) all completed with failure. Backend, frontend, iOS, CodeQL analyze, and Dependency Review job records have no step records; sampled job-log downloads returned HTTP 404 `BlobNotFound`. The new DNS timeout tests have **not executed on this HEAD** and the correction is not CI-validated.
+- PR #95 has no human review submissions or inline review threads. Keep it draft/open pending actually executed exact-head Validation, CodeQL, Dependency Review, and human security review. Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open. PRs #70 and #79 passed their own earlier exact-head checks but remain separate branches; those results are not integrated acceptance.
+
+### Governance, inventory, and release evidence
+
+- Repository remains private. The latest issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) owner-side verification at 07:51 CET reports main `protected:false`, required-check enforcement off, and rulesets API HTTP 403 requiring a supported private-repository plan or public visibility. Current main protection is therefore not verified; issue #47 remains open.
+- Issue [#84](https://github.com/milanradics89-beep/POS-Doctor/issues/84) separately confirms Code Scanning is not enabled and Dependency Graph / GitHub Advanced Security is unavailable or not enabled for the current private-repository configuration. Do not remove, skip, or weaken CodeQL or Dependency Review.
+- Issue #64 remains open for SSRF remediation and exact-head acceptance. No production exploit is claimed.
+- Branch search returned 69 branches (continuation exhausted); repository search returned 40 open PRs and 7 open issues.
+- A fresh published-release inventory and security-alert inventories were not available through the connected GitHub operations in this audit. The last recorded release inventory was 0 published releases, but that count is not independently refreshed here. Code Scanning, Dependabot, and Secret Scanning alerts remain **unavailable/unverified, not empty**.
+- The three release documents on this PR branch are ahead of main; main's copies remain stale at the 2026-11-13 18:49 CET checkpoint until an authorized, reviewed integration. This PR branch is not merged.
+
+### Authoritative 25-point register and release decision
+
+**2 Done / 15 In Progress / 8 Blocked.** Done: #1 iOS CI closure and #6 Redis multi-instance concurrency. Blocked: #2 main branch protection, #4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark and business acceptance, #21 production monitoring/alert delivery, #22 staged rollout/rollback approval, and #25 real-user pilot/business approval. The other 15 remain In Progress.
+
+Do not promote physical-device, production-cloud, witnessed backup/restore, monitoring, staged-rollout, pilot, or business-approval items based on CI, simulator, emulator, or injected-backend evidence. Pilot/production acceptance remains **NOT GRANTED**.
+
+---
+
 ## Latest exact-head checkpoint — 2026-11-14 07:32 CET
 
 ### PR #41 merged application baseline
