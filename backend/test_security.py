@@ -393,11 +393,12 @@ async def test_dns_pinned_network_backend_shares_connect_budget_across_addresses
 
     await pinned_backend.connect_tcp("shop.example", 443, timeout=0.5)
 
-    assert backend.attempted_hosts == ["8.8.8.8", "1.1.1.1"]
+    # The transport sorts validated addresses deterministically before fallback.
+    assert backend.attempted_hosts == ["1.1.1.1", "8.8.8.8"]
     assert backend.timeouts[0] is not None
     assert backend.timeouts[1] is not None
     assert backend.timeouts[1] < backend.timeouts[0]
-    assert backend.connected_hosts == [("1.1.1.1", 443)]
+    assert backend.connected_hosts == [("8.8.8.8", 443)]
 
 
 
