@@ -61,9 +61,9 @@ function hasAccessibleExpression(expression: ts.Expression): boolean {
       return hasAccessibleExpression(value.left) || hasAccessibleExpression(value.right);
     }
     if (value.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
-      return isNullishExpression(value.left)
-        ? hasAccessibleExpression(value.right)
-        : hasAccessibleExpression(value.left) && hasAccessibleExpression(value.right);
+      // Nullish coalescing does not fall back for an empty string.
+      // A dynamic left operand can therefore still produce an empty accessibility label.
+      return isNullishExpression(value.left) && hasAccessibleExpression(value.right);
     }
     if (value.operatorToken.kind === ts.SyntaxKind.PlusToken) {
       return hasAccessibleExpression(value.left) || hasAccessibleExpression(value.right);
@@ -158,8 +158,13 @@ describe('USEIT screen-level accessibility contract', () => {
     expect(hasAccessibleExpression(parseExpression('label'))).toBe(true);
     expect(hasAccessibleExpression(parseExpression('`Open ${productTitle} product page`'))).toBe(true);
     expect(hasAccessibleExpression(parseExpression("hint || 'Use the available action.'"))).toBe(true);
-    expect(hasAccessibleExpression(parseExpression("hint ?? 'Use the available action.'"))).toBe(true);
     expect(hasAccessibleExpression(parseExpression("undefined ?? 'Use the available action.'"))).toBe(true);
+  });
+
+  it('rejects nullish coalescing when a dynamic left operand may be an empty string', () => {
+    expect(hasAccessibleExpression(parseExpression("hint ?? 'Use the available action.'"))).toBe(false);
+    expect(hasAccessibleExpression(parseExpression("label ?? 'Fallback label'"))).toBe(false);
+    expect(hasAccessibleExpression(parseExpression("null ?? 'Use the available action.'"))).toBe(true);
   });
 
   it('gives every actionable Pressable in app screens and shared UI a role, non-empty name, and hint', () => {
