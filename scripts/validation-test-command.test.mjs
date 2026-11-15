@@ -10,7 +10,7 @@ const packageJson = JSON.parse(readFileSync(resolve(repositoryRoot, 'package.jso
 describe('validation test command contract', () => {
   it('runs the normal Vitest command and fails when no tests are discovered', () => {
     expect(packageJson.scripts.test).toBe('vitest run');
-    expect(workflow).toMatch(/^\\s*run:\\s*npm test\\s*$/m);
+    expect(workflow.split(/\r?\n/).some((line) => line.trim() === 'run: npm test')).toBe(true);
     expect(workflow).not.toContain('--passWithNoTests');
   });
 });
