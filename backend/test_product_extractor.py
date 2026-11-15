@@ -574,8 +574,8 @@ async def test_same_host_redirect_re_resolves_dns_and_blocks_rebinding_before_se
 
     backend = _RedirectScriptBackend(
         [
-            b"HTTP/1.1 302 Found\\r\\nLocation: /next\\r\\nContent-Length: 0\\r\\nConnection: close\\r\\n\\r\\n",
-            b"HTTP/1.1 200 OK\\r\\nContent-Type: text/html\\r\\nContent-Length: 15\\r\\nConnection: close\\r\\n\\r\\n<html>ok</html>",
+            b"HTTP/1.1 302 Found\r\nLocation: /next\r\nContent-Length: 0\r\n\r\n",
+            b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 15\r\nConnection: close\r\n\r\n<html>ok</html>",
         ]
     )
     monkeypatch.setattr(
@@ -587,8 +587,10 @@ async def test_same_host_redirect_re_resolves_dns_and_blocks_rebinding_before_se
     with pytest.raises(httpx.ConnectError):
         await extractor._fetch_product_page("https://shop.example/product")
 
-    # A same-origin redirect must not reuse the first pooled connection: each
-    # hop resolves again, and a private second answer is rejected before TCP.
+    # Keep the 302 response persistent: a fresh lookup must come from the
+    # transport's zero-keepalive pool policy, not a server Connection: close.
+    # The private second answer must be rejected before another TCP connect.
     assert resolutions == [("shop.example", 443), ("shop.example", 443)]
     assert backend.connected_hosts == [("8.8.8.8", 443)]
     assert len(backend.streams) == 1
+    assert b"connection: close" not in backend.streams[0].response.lower()
