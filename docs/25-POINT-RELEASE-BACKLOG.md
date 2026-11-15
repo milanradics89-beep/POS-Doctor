@@ -2716,3 +2716,28 @@ This checkpoint supersedes earlier workflow/head summaries in this document. His
 - PR #41 is merged; its merged head is `68b380e73ca3c870048035197beef8febbf90ef1`, 22/22 inline review threads are resolved, and one human APPROVED review was submitted.
 - The 25-point release register remains **2 Done / 15 In Progress / 8 Blocked**. The 64-point Issue #74 checklist remains **26 checked / 38 open** at this checkpoint.
 - Release remains **NOT READY** and production/pilot acceptance remains **NOT GRANTED**. Physical iPhone App Attest, Play-installed physical Android Play Integrity, witnessed production backup/restore, monitoring/alert delivery, staged rollout/rollback approval, representative benchmark/business acceptance, and real-user pilot remain external or human gates.
+
+
+
+## Exact-head 25-point register and release evidence — 2026-11-15 23:12 CET
+
+This checkpoint supersedes the 22:07 CET snapshot above. Historical rows/checkpoints remain for audit history; the latest evidence below is authoritative.
+
+### Current exact-head evidence
+- **#41:** merged, reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; source branch ref matches. Validation 43492153234, CodeQL 43492153161, Dependency Review 43492153021 all SUCCESS. 52 conversation comments, 30 inline comments, 26 review submissions (one human APPROVED), 22/22 threads resolved. Three obsolete runs remain queued on `b46c5b8` with empty jobs; they are not current-head checks.
+- **#85:** current documentation HEAD `c0d7c54ff4d94750415e92c9023bee5e917303e8`; Validation 43762241856, CodeQL 43762241890, Dependency Review 43762241889 all SUCCESS. Backend/frontend/iOS jobs passed, Android emulator and iOS simulator smoke passed. 28 conversation comments, 3 automated COMMENTED reviews, 2/2 threads resolved; no human approval.
+- **#107:** HEAD `431d96a31beb523be31c109d81c7009d49357318`; Validation 43746773703, CodeQL 43746773650, Dependency Review 43746773667 all SUCCESS. Full npm audit artifact 14175052989: 3 moderate / 0 high / 0 critical / 0 low. Findings remain visible; no downgrade/override/suppression.
+- **#90:** HEAD `606e57ddb86d869a8806aabce947e75857350018`; Validation 43766269840 IN_PROGRESS (backend/frontend passed, iOS running), CodeQL 43766269973 SUCCESS, Dependency Review 43766269879 SUCCESS. Two P2 threads open: shopping-only empty panel (implementation now gates through `shouldShowEmptyProductPanel`, pending validation/re-review) and VoiceOver announcement.
+- **#99 / #64:** HEAD `f122e239da624a3d8d7e38bf80bd088433ae1f77`; Validation 43766380573 IN_PROGRESS, CodeQL 43766380577 SUCCESS, Dependency Review 43766380576 SUCCESS. Backend 535 passed / 1 failed at the well-known NAT64 connected-peer acceptance test; frontend/iOS still running. Two NAT64 P2 threads remain open. Issue #64 is open with 34 comments.
+
+### Governance and inventories
+- Main HEAD `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`; repository public; active Protect main ruleset 26370589 requires one approval, last-push approval, resolved threads and six strict checks, with deletion/non-fast-forward protection and no bypass actors. Issue #47 closed (10 comments). Item #2 remains Blocked for the owner's final visibility/plan decision, not for missing current ruleset enforcement.
+- GitHub Releases API: 0 published releases. Code Scanning, Dependabot and Secret Scanning inventories: unavailable/unverified, not empty.
+- Issue #74: 64 boxes, 31 checked / 33 open (81 comments).
+
+### Authoritative register — unchanged
+- **Done (2):** #1 iOS simulator CI closure; #6 Redis multi-instance concurrency.
+- **In Progress (15):** #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.
+- **Blocked (8):** #2 owner visibility/plan decision; #4 physical iPhone App Attest and production entitlement; #5 Play-installed physical Android Play Integrity; #16 witnessed production backup/restore; #18 representative product-recognition benchmark and business acceptance; #21 production monitoring and verified alert delivery; #22 approved staged rollout and tested rollback; #25 real-user pilot and business sign-off.
+
+No physical-device, production-cloud, witnessed backup/restore, monitoring, staged-rollout, pilot or business-approval item is promoted by CI. Release remains NOT READY; production/pilot acceptance remains NOT GRANTED.

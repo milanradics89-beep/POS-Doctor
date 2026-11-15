@@ -1300,3 +1300,30 @@ This checkpoint supersedes earlier workflow/head summaries in this document. His
 - PR #41 is merged; its merged head is `68b380e73ca3c870048035197beef8febbf90ef1`, 22/22 inline review threads are resolved, and one human APPROVED review was submitted.
 - The 25-point release register remains **2 Done / 15 In Progress / 8 Blocked**. The 64-point Issue #74 checklist remains **26 checked / 38 open** at this checkpoint.
 - Release remains **NOT READY** and production/pilot acceptance remains **NOT GRANTED**. Physical iPhone App Attest, Play-installed physical Android Play Integrity, witnessed production backup/restore, monitoring/alert delivery, staged rollout/rollback approval, representative benchmark/business acceptance, and real-user pilot remain external or human gates.
+
+
+
+## Exact-head production and pilot acceptance reconciliation — 2026-11-15 23:12 CET
+
+**Acceptance decision: NOT GRANTED. Release decision: NOT READY.** This checkpoint supersedes the 22:07 CET snapshot above.
+
+### Automated evidence
+- PR #41 is merged at reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; source ref matches, all three exact-head workflows succeeded, and the review inventory contains one human APPROVED review and 22/22 resolved threads.
+- PR #85 current documentation HEAD `c0d7c54ff4d94750415e92c9023bee5e917303e8`: Validation 43762241856, CodeQL 43762241890 and Dependency Review 43762241889 all succeeded. Backend, frontend/Android and iOS jobs passed, including emulator/simulator launch smoke tests. Human approval remains absent.
+- PR #107 HEAD `431d96a31beb523be31c109d81c7009d49357318`: Validation 43746773703, CodeQL 43746773650 and Dependency Review 43746773667 all succeeded. Full dependency-tree audit: 3 moderate / 0 high / 0 critical / 0 low; advisories remain visible.
+- PR #90 HEAD `606e57ddb86d869a8806aabce947e75857350018`: Validation 43766269840 is IN_PROGRESS (backend/frontend passed; iOS Release build still running); CodeQL 43766269973 and Dependency Review 43766269879 succeeded. Two P2 review threads remain open, including VoiceOver announcement behavior.
+- PR #99 HEAD `f122e239da624a3d8d7e38bf80bd088433ae1f77`: Validation 43766380573 remains IN_PROGRESS with backend 535 passed / 1 failed on well-known NAT64 public-address handling; frontend and iOS jobs were still running. CodeQL 43766380577 and Dependency Review 43766380576 succeeded. Two NAT64 P2 review threads remain open; issue #64 remains open with 34 comments.
+- PR #85 human approval, PR #107 human security approval, PR #99 independent transport security review and PR #90 accessibility/design approval remain outstanding.
+
+### External acceptance gates — NOT SATISFIED
+- Final owner decision on repository visibility/plan; current repository visibility is public and main ruleset 26370589 is active, but the long-term visibility decision is not recorded.
+- Production Apple App Attest entitlement/provider configuration and assertion verification on a supported physical iPhone.
+- Play-installed physical Android device with production Play Integrity identity and verification.
+- Owner-authorized production cloud configuration and secrets; witnessed production backup/restore with measured RPO/RTO.
+- Production monitoring, named on-call owner, verified alert delivery/acknowledgement, staged rollout and tested rollback.
+- Representative labelled product-recognition benchmark, agreed thresholds and business approval.
+- Real-user pilot with safeguards, measured outcomes and explicit business sign-off.
+
+The 25-point register remains 2 Done / 15 In Progress / 8 Blocked. Issue #74 has 64 checklist boxes: 31 checked / 33 open. Published GitHub releases: 0. Code Scanning, Dependabot and Secret Scanning alert inventories remain unavailable/unverified, not empty.
+
+Simulator/emulator CI, backend tests, dependency scans, documentation or green security workflows do not satisfy these gates. **Release NOT READY; production/pilot acceptance NOT GRANTED.**
