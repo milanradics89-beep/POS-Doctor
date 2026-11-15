@@ -1,29 +1,27 @@
-## Latest production and pilot acceptance checkpoint — 2026-11-15 18:31 CET
+## Latest production and pilot acceptance checkpoint — 2026-11-15 19:42 CET
 
 **Acceptance decision: NOT GRANTED. Release decision: NOT READY.**
 
-## Exact-head reconciliation — 2026-11-15 18:31 CET
+This checkpoint records current exact-head observations as of 2026-11-15 19:42 CET. It is committed as a new child of validated PR #85 parent `ab0652e97dacaadafd43fcf04e41e26383fa77d1`; this child must pass its own Validation, CodeQL and Dependency Review. Parent checks are not inherited.
 
-This checkpoint supersedes the 17:43 CET summary above. It records only exact-head workflow results observed on current branches; no parent result is substituted.
+### Verified automated evidence
+- PR #85 validated parent `ab0652e97dacaadafd43fcf04e41e26383fa77d1`: Validation `43741911579`, CodeQL `43741911524`, Dependency Review `43741911549` all SUCCESS. This documentation update creates a new child; its own exact-head checks are pending.
+- PR #108 no-empty-Vitest guard: exact-head Validation `43730870752`, CodeQL `43730870781`, Dependency Review `43730870776` all SUCCESS.
+- PR #99 SSRF transport: exact-head Validation `43684598555`, CodeQL `43684598557`, Dependency Review `43684598448` all SUCCESS; 509 backend, 27 readiness, 78 production-security checks passed; real HTTPX/httpcore transport regressions verify DNS-per-hop, pinned public IP, peer, Host/SNI and rebinding rejection. Independent human security review remains outstanding.
+- PR #107 current HEAD `431d96a31beb523be31c109d81c7009d49357318`: CodeQL and Dependency Review SUCCESS; Validation still running. Full npm audit has not yet executed on this exact head. The last completed parent audit reported 3 moderate, 0 high, 0 critical.
+- PR #96 corrected Copilot guidance exact HEAD `15e9c9fbd0e605911d4618e2e9216ebf611ab33f`: Dependency Review SUCCESS; Validation and CodeQL running.
+- PR #41 is merged with human approval and 22/22 review threads resolved. The active main ruleset remains unchanged.
 
-### Current validated candidates
-- **PR #85 release documentation:** exact HEAD `8ebce1851bebe60977c1d57bbcf5df033ea0c821`; Validation [43737426753](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43737426753), CodeQL [43737426723](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43737426723), and Dependency Review [43737426765](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43737426765) all **SUCCESS**. Backend, frontend/Android and iOS jobs passed, including emulator and simulator smoke. PR remains open/unmerged; only automated COMMENTED review is recorded, so human approval remains required.
-- **PR #107 full npm audit:** exact HEAD `6e0d24587466fc7da35ace3a4af7a044d266991a`; Validation [43730357960](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43730357960), CodeQL [43730357954](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43730357954), Dependency Review [43730357937](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43730357937) all **SUCCESS**. Backend 450, readiness 27, production-security 78; frontend 296 tests/60 files; Expo Doctor 21/21; Android Release/emulator and iOS Release/simulator smoke passed. Full-tree audit artifact [14168971891](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43730357960/artifacts/14168971891) reports **3 moderate, 0 high, 0 critical**. No dependency version, audit threshold or security gate was weakened.
-- **PR #108 non-empty Vitest gate:** exact HEAD `e565b9aa029072d88298d83de2c37f6c55f97f2e`; Validation [43730870752](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43730870752), CodeQL [43730870781](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43730870781), Dependency Review [43730870776](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43730870776) all **SUCCESS**. The latest Validation attempt passed backend (450), readiness (27), production-security (78), frontend tests, Expo Doctor, Android Release/emulator smoke, iOS Release/simulator smoke and runtime audit. An earlier attempt hit a pre-compilation Foojay Gradle plugin resolution failure; the targeted rerun passed without a source workaround. The workflow now runs plain `npm test`, and its regression test rejects `--passWithNoTests`. No test was skipped or removed.
-- **PR #99 SSRF transport:** exact HEAD `0c66d9c3f0d6d3ba28db8020cd67eed04952c28f`; Validation [43684598555](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43684598555), CodeQL [43684598557](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43684598557), Dependency Review [43684598448](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43684598448) all **SUCCESS**. Backend 509, readiness 27, production-security 78; frontend and Android/iOS smoke passed. Actual HTTPX/httpcore transport tests cover redirect-hop DNS re-resolution, public-IP pinning, peer verification, Host/TLS SNI preservation and same-host rebinding rejection. Independent human security review remains outstanding; issue #64 stays open.
-- **PR #106 Redis client migration:** exact HEAD `8e7679de7dbf5bd68d6d0e5e38716fbe027f89c7`; Validation [43705947653](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43705947653), CodeQL [43705947633](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43705947633), Dependency Review [43705947631](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43705947631) all **SUCCESS**. This proves redis-py 8.1.0 against Redis server 7.4.12, not a Redis server 8 production migration. Human review remains outstanding.
-- **PR #96/#102 Copilot guidance:** exact heads `598735d45bcd34570b6fb1887cd380432c58bbf2` and `d34fc14875606f481baa7ba5d2af249a14e8f96d`; their required Validation, CodeQL and Dependency Review checks are successful. #102 remains stacked on #96 and is not independently mergeable. No human APPROVED review is recorded.
-- **PR #41:** merged at reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; one human APPROVED review and 22/22 resolved inline threads. PR #65, #67, #68 and #69 are closed unmerged historical branches; their prior CI results are not current-main runs.
+### External acceptance gates — not satisfied
+- Production Apple App Attest entitlement/provider configuration and assertion verification on a supported physical iPhone.
+- Play-installed physical Android device with production Play Integrity identity and verification.
+- Owner-authorized production cloud configuration and secrets; witnessed production backup/restore with measured RPO/RTO.
+- Production monitoring, named on-call owner, alert delivery/acknowledgement, staged rollout and tested rollback.
+- Representative labelled product-recognition benchmark, agreed acceptance thresholds and business approval.
+- Real-user pilot with safeguards, measured outcomes and explicit business sign-off.
 
-### Repository and release controls
-- Main remains `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`; active Protect main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) remains unchanged. No merge, force-push, bypass, test deletion or security-check weakening occurred.
-- Inventory: 78 branches, 39 open PRs, 7 open non-PR issues. Repository is public. Code Scanning, Dependabot and Secret Scanning alert inventories remain unavailable/unverified, not empty.
-- Three moderate npm build-tool advisories remain visible. The suggested Expo 52 downgrade and global minimatch 11 override remain rejected.
-- The 25-point release register remains **2 Done / 15 In Progress / 8 Blocked**. Release remains **NOT READY**; production/pilot acceptance remains **NOT GRANTED**. Physical iPhone App Attest, Play-installed physical Android Play Integrity, production backup/restore witness, monitoring/alert delivery, staged rollout/rollback approval, representative benchmark/business acceptance and real-user pilot remain external or human gates.
+Simulator/emulator CI, backend tests, documentation, or a green security workflow do not satisfy these external gates.
 
-
-
-Remaining external acceptance work requires owner-authorized Apple/Google console configuration, physical devices, production-cloud access, witnessed recovery, named monitoring/on-call ownership, approved rollout/rollback controls, a representative labelled benchmark and an approved real-user pilot. These cannot be marked Done from repository CI.
 ## Latest pilot and production acceptance checkpoint — 2026-11-15 17:43 CET
 
 **Acceptance decision: NOT GRANTED. Release decision: NOT READY.** This checkpoint records the last fully validated PR #85 parent before this documentation update. The commit containing this checkpoint is a new PR #85 child and requires its own exact-head Validation, CodeQL and Dependency Review.
