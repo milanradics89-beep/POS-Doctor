@@ -52,7 +52,7 @@ export function formatNpmAuditSummary(summary) {
     summary.shouldFail
       ? `Blocking high/critical npm advisories: ${summary.blocking}`
       : "No high or critical npm advisories found in the full dependency tree.",
-  ].join("\\n");
+  ].join("\n");
 }
 
 function main() {

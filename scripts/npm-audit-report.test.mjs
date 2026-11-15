@@ -34,7 +34,10 @@ describe("full npm audit report", () => {
     expect(result.entries[0].via).toEqual(["minimatch: ReDoS advisory"]);
     expect(result.blocking).toBe(0);
     expect(result.shouldFail).toBe(false);
-    expect(formatNpmAuditSummary(result)).toContain('"package":"minimatch"');
+    const formatted = formatNpmAuditSummary(result);
+    expect(formatted).toContain('"package":"minimatch"');
+    expect(formatted).toContain("\n");
+    expect(formatted).not.toContain("\\n");
   });
 
   it.each(["high", "critical"])("blocks %s findings", (severity) => {
