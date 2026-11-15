@@ -1,3 +1,25 @@
+## Latest production and pilot acceptance checkpoint — 2026-11-15 21:14 CET
+
+**Acceptance decision: NOT GRANTED. Release decision: NOT READY.** This checkpoint supersedes the 20:41 CET snapshot below and is committed as a new child of validated PR #85 parent a964933d646338a4f80856ddc846735a1a63beaf. The documentation child must pass its own exact-head checks.
+
+### Exact-head automated evidence
+- PR #85 parent a964933d646338a4f80856ddc846735a1a63beaf: Validation 43754312793, CodeQL 43754312748 and Dependency Review 43754312725 all SUCCESS; backend, frontend and iOS jobs passed. Human approval is still absent.
+- PR #96 15e9c9fbd0e605911d4618e2e9216ebf611ab33f, PR #97 6212c217e700e6cf263d6f98e0481af4888c3fa4, PR #99 0c66d9c3f0d6d3ba28db8020cd67eed04952c28f, PR #106 8e7679de7dbf5bd68d6d0e5e38716fbe027f89c7, PR #107 431d96a31beb523be31c109d81c7009d49357318 and PR #108 e565b9aa029072d88298d83de2c37f6c55f97f2e each passed their own exact-head Validation, CodeQL and Dependency Review.
+- PR #107 full npm audit: 3 moderate, 0 high, 0 critical, 0 low; advisories remain visible and unsuppressed. No major downgrade or forced override.
+- PR #99 HTTPX/httpcore DNS-pinning transport is covered by real transport tests, but independent human security review remains outstanding; issue #64 remains open.
+- PR #90 parent 49e1cf958a25cf8399e40b2495c8d96a67bd4d02 passed all three checks with 305/305 frontend tests and accessibility/contrast coverage. Current child 01940599717eed35374b03b8b8ab2018aae0da19 adds loading/empty state integration; Validation and CodeQL are running, Dependency Review succeeded. Parent results do not validate the child.
+
+### External acceptance gates — NOT SATISFIED
+- Production Apple App Attest entitlement/provider configuration and assertion verification on a supported physical iPhone.
+- Play-installed physical Android device with production Play Integrity identity and verification.
+- Owner-authorized production cloud configuration and secrets; witnessed production backup/restore with measured RPO/RTO.
+- Production monitoring, named on-call owner, alert delivery/acknowledgement, staged rollout and tested rollback.
+- Representative labelled product-recognition benchmark, agreed acceptance thresholds and business approval.
+- Real-user pilot with safeguards, measured outcomes and explicit business sign-off.
+- Owner decision on repository visibility/plan and post-change verification if visibility is changed.
+
+Simulator/emulator CI, backend tests, dependency scans, documentation or green security workflows do not satisfy these gates. Security alert inventories remain unavailable/unverified, not empty.
+
 ## Latest production and pilot acceptance checkpoint — 2026-11-15 20:41 CET
 
 **Acceptance decision: NOT GRANTED. Release decision: NOT READY.**

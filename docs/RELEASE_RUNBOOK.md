@@ -1,3 +1,22 @@
+## Latest verified operational release checkpoint — 2026-11-15 21:14 CET
+
+This checkpoint supersedes the 20:41 CET snapshot below. It is a new documentation child of validated PR #85 parent a964933d646338a4f80856ddc846735a1a63beaf; run Validation, CodeQL and Dependency Review again on the new child before treating this documentation update as validated.
+
+### Current operational and CI state
+- Main: f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1. Protect main ruleset 26370589 is active and unchanged: six strict required checks, one approval, last-push approval, resolved review threads, deletion/non-fast-forward protection, no bypass actors.
+- PR #41 is merged at approved HEAD 68b380e73ca3c870048035197beef8febbf90ef1; 22/22 review threads resolved. Both Redis runbook P2 fixes are present on main. Three obsolete #41 runs remain queued with no jobs on b46c5b8082ecbebd263a86cd53b1321a86e570d1: 43098210284, 43098210473 and 43098210255. Owner/admin cancellation is required.
+- PR #65/#67/#68/#69 are closed unmerged. Their relevant outcomes are on main: SDK 57 dependency alignment; Redis runbook corrections; cryptography 50.0.2 with clean pip-audit; App Attest JS config plugin separated from runtime TS module under Node 22.
+- PR #85 validated parent a964933d646338a4f80856ddc846735a1a63beaf passed Validation 43754312793, CodeQL 43754312748 and Dependency Review 43754312725. Backend/frontend/iOS jobs succeeded. One inline thread resolved; no human APPROVED review; reviewer tarlaci1984-sketch is requested.
+- PR #96, #97, #99, #106, #107 and #108 all have terminal exact-head Validation, CodeQL and Dependency Review SUCCESS. #99 remains draft pending independent security review. #106 remains stacked on #97.
+- PR #107 full npm audit reports 3 moderate / 0 high / 0 critical / 0 low. Keep all advisories visible; do not downgrade Expo or apply an untested major override.
+- PR #90 current HEAD 01940599717eed35374b03b8b8ab2018aae0da19 adds unified loading/empty StatePanel integration. Validation 43757720829 and CodeQL 43757720826 are in progress; Dependency Review 43757720835 succeeded. No further write to that branch until exact-head Validation and CodeQL terminate.
+
+### Release gates and operating constraints
+- Repository remains public; inventory 78 branches / 38 open PRs / 5 open non-PR issues. Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable/unverified, not empty.
+- Issue #74 body: 64 checklist boxes / ${boxes.filter(x=>/\[[xX]\]/.test(x)).length} checked. 25-point register: 2 Done / 15 In Progress / 8 Blocked.
+- External blockers: owner visibility/plan decision; physical iPhone App Attest; Play-installed physical Android Play Integrity; production backup/restore witness; representative benchmark/business acceptance; production monitoring/alert delivery; staged rollout/rollback; real-user pilot/business sign-off.
+- Release **NOT READY**; production/pilot acceptance **NOT GRANTED**. Do not use CI, emulator/simulator or documentation as a substitute for external acceptance.
+
 ## Latest verified operational release checkpoint — 2026-11-15 20:41 CET
 
 This checkpoint supersedes earlier status summaries. Historical checkpoints remain below for audit traceability; they are not current state.
