@@ -2484,3 +2484,17 @@ The 25-point register remains **2 Done / 15 In Progress / 8 Blocked**. Done: #1 
 - This is an **upstream-scoped assessment of Expo fingerprint's build-tooling use**, not a blanket claim that every minimatch 10 use is unaffected or that the npm audit is clean. Keep the three moderate findings visible. Do not force a global minimatch 11 override or downgrade Expo.
 - Experimental PR [#104](https://github.com/milanradics89-beep/POS-Doctor/pull/104) was closed without merge. The owner must still acknowledge the residual build-tooling advisory, and the complete Dependabot/security-alert inventory remains unavailable/unverified. No checklist or release-status promotion is justified by the upstream note alone.
 - This documentation checkpoint is based on PR #85 exact HEAD `877a9279a85ef0472ca9cde2609e43d9b9bc1a52`, whose Validation [43680162719](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43680162719), CodeQL [43680162746](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43680162746), and Dependency Review [43680162713](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43680162713) all completed successfully. This new child commit must pass its own exact-head checks.
+
+## Exact-head release reconciliation — 2026-11-15 09:23 CET
+
+### PR #85 current release-documentation head
+
+- Exact HEAD: 66dd30ef8cdc10702fa9d2ec3ff4062056c9d75d; base main at f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1.
+- Validation [43689326489](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43689326489): SUCCESS.
+- CodeQL [43689326486](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43689326486): SUCCESS.
+- Dependency Review [43689326524](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43689326524): SUCCESS.
+- Validation job logs: backend 450 passed, readiness 27 passed, production-security 78 passed; cryptography 50.0.2; pip-audit reported no known vulnerabilities found.
+- Frontend: 289/289 tests across 59/59 files; Expo Doctor 21/21; Android Release build and emulator install/launch smoke passed; iOS Release build and simulator install/launch smoke passed.
+- Runtime npm audit still reports 3 moderate minimatch findings (GHSA-g3hv-75wg-m249). The audit is not clean; the configured high-severity threshold explains the successful workflow exit and does not erase the moderate findings.
+- PR #85 remains open, ready for review and unmerged. Reviewer tarlaci1984-sketch is requested, but no human APPROVED review is recorded. The P2 status-tally thread is resolved.
+- The 25-point register remains 2 Done / 15 In Progress / 8 Blocked. Release remains NOT READY; production/pilot acceptance remains NOT GRANTED.

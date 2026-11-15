@@ -1060,3 +1060,23 @@ Automated CI and simulator/emulator results do **not** grant production or pilot
 
 **Release: NOT READY. Pilot/production acceptance: NOT GRANTED.**
 
+
+## Current exact-head evidence and acceptance decision — 2026-11-15 09:23 CET
+
+### Automated evidence
+
+- PR #85 exact HEAD 66dd30ef8cdc10702fa9d2ec3ff4062056c9d75d: Validation 43689326489, CodeQL 43689326486, Dependency Review 43689326524 all SUCCESS. Backend 450, readiness 27, production-security 78, frontend 289 across 59 files, Expo Doctor 21/21, Android Release/emulator smoke and iOS Release/simulator smoke passed. Cryptography 50.0.2; pip-audit clean. Three moderate minimatch advisories remain visible; npm audit is not clean.
+- PR #99 exact HEAD 0c66d9c3f0d6d3ba28db8020cd67eed04952c28f: Validation 43684598555, CodeQL 43684598557, Dependency Review 43684598448 all SUCCESS. Its actual HTTPX 0.28.1/httpcore 1.0.9 transport regression suite includes numeric-IP pinning, peer verification, original Host/TLS SNI preservation, redirect-hop DNS re-resolution and same-host rebinding rejection. Backend 509, readiness 27, production-security 78; frontend 289/289, Expo Doctor 21/21, Android and iOS simulator smoke passed. No independent human security review is submitted; issue #64 remains open.
+- PR #90: failed exact HEAD cb4e6029ba652d8f3ed4d673025283e93a81840e exposed a real empty accessibility-hint bug in StatePanel. The new fix 49e1cf958a25cf8399e40b2495c8d96a67bd4d02 trims optional hint text before applying an empty-string-safe fallback and adds a regression assertion. Its new exact-head Validation and CodeQL are in progress; Dependency Review succeeded. No result is claimed until Validation and CodeQL complete.
+
+### Acceptance decision
+
+Automated CI, CodeQL, Dependency Review, simulator and emulator results do not grant production or pilot acceptance. The following remain blocked until independently evidenced:
+- Apple production App Attest entitlement, signed build and physical iPhone assertion test.
+- Google Play production configuration and Play-installed physical Android Integrity test.
+- Production cloud deployment and witnessed backup/restore.
+- Production monitoring, verified alert delivery and named on-call ownership.
+- Approved staged rollout, tested rollback and named rollback owner.
+- Representative product-accuracy benchmark, real-user pilot and business sign-off.
+
+Release: NOT READY. Pilot/production acceptance: NOT GRANTED.
