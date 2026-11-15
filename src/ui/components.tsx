@@ -65,7 +65,7 @@ export function StatePanel({ kind, title, description, actionLabel, actionAccess
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={actionLabel}
-          accessibilityHint={actionAccessibilityHint ?? 'Activates the available recovery action.'}
+          accessibilityHint={actionAccessibilityHint?.trim() || 'Activates the available recovery action.'}
           onPress={onAction}
           style={({ pressed }) => [styles.stateAction, pressed && styles.pressed]}
         >

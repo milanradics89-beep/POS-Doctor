@@ -152,6 +152,7 @@ describe('USEIT screen-level accessibility contract', () => {
     expect(hasAccessibleExpression(parseExpression("condition ? 'Retry' : ''"))).toBe(false);
     expect(hasAccessibleExpression(parseExpression("condition ? '' : 'Retry'"))).toBe(false);
     expect(hasAccessibleExpression(parseExpression("'' ?? 'Fallback'"))).toBe(false);
+    expect(hasAccessibleExpression(parseExpression("'' || 'Fallback'"))).toBe(true);
   });
 
   it('accepts non-empty dynamic labels and expressions with a non-empty fallback', () => {
