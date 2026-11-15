@@ -79,5 +79,7 @@ describe("full npm audit report", () => {
     expect(workflow).toContain("npm audit --omit=dev --audit-level=high");
     expect(workflow).toContain('node scripts/npm-audit-report.mjs "$REPORT" "$audit_status"');
     expect(workflow).toContain("npm-full-audit-report");
+    expect(workflow).toContain("id: install-dependencies");
+    expect(workflow).toContain("if: ${{ always() && steps.install-dependencies.outcome == 'success' }}");
   });
 });

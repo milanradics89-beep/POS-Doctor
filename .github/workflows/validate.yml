@@ -27,6 +27,7 @@ jobs:
           node-version: 22
           cache: npm
       - name: Install dependencies reproducibly
+        id: install-dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Enforce USEIT source boundary
         run: npm run guard:useit
@@ -201,6 +202,7 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
       - name: Full dependency-tree npm audit
+        if: ${{ always() && steps.install-dependencies.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
