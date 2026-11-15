@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { createFingerprintAsync } from '@expo/fingerprint';
 import { Minimatch, minimatch } from 'minimatch';
 import { describe, expect, it } from 'vitest';
 
@@ -42,4 +43,15 @@ describe('minimatch 11 security override migration', () => {
     expect(reIncludedModule.match('packages/mobile/node_modules/keep/index.js')).toBe(false);
     expect(reIncludedModule.match('packages/mobile/node_modules/drop/index.js')).toBe(true);
   });
+  it('runs the SDK 57 Expo fingerprint pipeline with minimatch 11', async () => {
+    const fingerprint = await createFingerprintAsync(process.cwd(), {
+      ignorePaths: ['**/node_modules/**'],
+      platforms: ['android', 'ios'],
+      silent: true,
+    });
+
+    expect(fingerprint.hash).toMatch(/^[a-f0-9]+$/);
+    expect(fingerprint.sources.length).toBeGreaterThan(0);
+  }, 30_000);
+
 });
