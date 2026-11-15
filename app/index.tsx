@@ -18,6 +18,7 @@ import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
 import { ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
+import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
@@ -391,11 +392,15 @@ export default function Home() {
                   </>
                 ) : null}
 
-                {(result.intelligence?.rankedCandidates?.length ?? 0) === 0 ? (
+                {shouldShowEmptyProductPanel(
+                  result.unified?.intent.name,
+                  result.intelligence?.action?.type,
+                  result.intelligence?.rankedCandidates?.length
+                ) ? (
                   <StatePanel
                     kind="empty"
                     title="No matching products yet"
-                    description="The analysis is complete, but no safe product match was found. You can still use the next action above."
+                    description="The shopping search is complete, but no safe product match was found. You can still use the next action above."
                     actionLabel="TRY ANOTHER PHOTO"
                     actionAccessibilityHint="Returns to photo selection."
                     onAction={reset}
