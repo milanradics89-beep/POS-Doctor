@@ -56,4 +56,14 @@ describe('USEIT shared component accessibility', () => {
     expect(source).toContain("kind === 'offline' || kind === 'permission-denied'");
   });
 
+  it('announces dynamic state panels to VoiceOver without grouping recovery actions', () => {
+    expect(source).toContain("import { AccessibilityInfo, ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';");
+    expect(source).toContain("if (Platform.OS === 'ios')");
+    expect(source).toContain("AccessibilityInfo.announceForAccessibility(`${title}. ${description}`)");
+    expect(source).toContain('}, [kind, title, description]);');
+    expect(source).toContain('accessibilityRole="button"');
+    expect(source).toContain('accessibilityLabel={actionLabel}');
+    expect(source).not.toContain('accessible={true}');
+  });
+
 });

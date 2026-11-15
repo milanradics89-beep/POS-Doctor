@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from './theme';
 import { productCardAccessibilityLabel } from './productAccessibility';
 
@@ -58,6 +58,14 @@ export function StatePanel({ kind, title, description, actionLabel, actionAccess
   const isWarning = kind === 'offline' || kind === 'permission-denied';
   const accent = kind === 'error' ? theme.colors.danger : isWarning ? theme.colors.accentDark : theme.colors.ink;
   const symbol = kind === 'error' ? '!' : kind === 'offline' ? '⌁' : kind === 'permission-denied' ? '◈' : kind === 'empty' ? '＋' : '✳';
+
+  useEffect(() => {
+    // React Native's live-region announcement is not consistently exposed by iOS VoiceOver.
+    // Announce the status explicitly while leaving the nested recovery Pressable independently accessible.
+    if (Platform.OS === 'ios') {
+      AccessibilityInfo.announceForAccessibility(`${title}. ${description}`);
+    }
+  }, [kind, title, description]);
 
   return (
     <View
