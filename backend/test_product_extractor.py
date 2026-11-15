@@ -562,3 +562,33 @@ def test_validate_connected_peer_fails_closed_when_the_peer_is_unavailable():
         validate_connected_peer(response)
 
     assert exc.value.status_code == 502
+
+
+@pytest.mark.asyncio
+async def test_same_host_redirect_re_resolves_dns_and_blocks_rebinding_before_second_tcp_connect(monkeypatch):
+    resolutions: list[tuple[str, int]] = []
+
+    async def rebound_resolver(hostname: str, port: int):
+        resolutions.append((hostname, port))
+        return ["8.8.8.8"] if len(resolutions) == 1 else ["10.0.0.9"]
+
+    backend = _RedirectScriptBackend(
+        [
+            b"HTTP/1.1 302 Found\\r\\nLocation: /next\\r\\nContent-Length: 0\\r\\nConnection: close\\r\\n\\r\\n",
+            b"HTTP/1.1 200 OK\\r\\nContent-Type: text/html\\r\\nContent-Length: 15\\r\\nConnection: close\\r\\n\\r\\n<html>ok</html>",
+        ]
+    )
+    monkeypatch.setattr(
+        extractor,
+        "DNSPinnedAsyncHTTPTransport",
+        lambda: DNSPinnedAsyncHTTPTransport(resolver=rebound_resolver, network_backend=backend),
+    )
+
+    with pytest.raises(httpx.ConnectError):
+        await extractor._fetch_product_page("https://shop.example/product")
+
+    # A same-origin redirect must not reuse the first pooled connection: each
+    # hop resolves again, and a private second answer is rejected before TCP.
+    assert resolutions == [("shop.example", 443), ("shop.example", 443)]
+    assert backend.connected_hosts == [("8.8.8.8", 443)]
+    assert len(backend.streams) == 1
