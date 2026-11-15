@@ -44,7 +44,8 @@ describe('USEIT shared component accessibility', () => {
 
   it('does not announce unavailable product details as an actionable link', () => {
     expect(source).toContain("accessibilityRole={onPress ? 'link' : 'text'}");
-    expect(source).toContain("accessibilityLabel={onPress ? `Open product page for ${title}` : `${title} product details unavailable`}");
+    expect(source).toContain("import { productCardAccessibilityLabel } from './productAccessibility';");
+    expect(source).toContain('accessibilityLabel={productCardAccessibilityLabel({ title, category, source, price, actionable: Boolean(onPress) })}');
     expect(source).toContain("accessibilityHint={onPress ? 'Opens the product page in your browser.' : 'Product details are not available for this item.'}");
   });
   it('supports loading, empty, error, offline and permission-denied states with accessible announcements', () => {

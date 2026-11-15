@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from './theme';
+import { productCardAccessibilityLabel } from './productAccessibility';
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
@@ -26,7 +27,7 @@ export function ProductCard({ title, category, source, price, onPress }: {
   return (
     <Pressable
       accessibilityRole={onPress ? 'link' : 'text'}
-      accessibilityLabel={onPress ? `Open product page for ${title}` : `${title} product details unavailable`}
+      accessibilityLabel={productCardAccessibilityLabel({ title, category, source, price, actionable: Boolean(onPress) })}
       accessibilityHint={onPress ? 'Opens the product page in your browser.' : 'Product details are not available for this item.'}
       onPress={onPress}
       disabled={!onPress}
