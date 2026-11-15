@@ -85,21 +85,27 @@ def _is_public_address(address: str | ipaddress.IPv4Address | ipaddress.IPv6Addr
     """Reject non-global endpoints, including private IPv4 hidden by IPv6 translators."""
     ip = ipaddress.ip_address(address)
     if isinstance(ip, ipaddress.IPv6Address):
-        if not _is_public_unicast_address(ip):
-            return False
-
         try:
             prefixes = _configured_nat64_prefixes()
         except (TypeError, ValueError):
             return False
 
-        # Check every matching configured translator prefix. If prefixes overlap,
-        # accepting one public interpretation must not hide another private route.
+        # RFC 6052 translator addresses are checked by both their routed IPv6
+        # prefix and the embedded IPv4 endpoint. Python marks the well-known
+        # 64:ff9b::/96 range as reserved even when it is globally reachable, so
+        # do not apply the generic reserved-range predicate before extraction.
         matching_prefixes = [prefix for prefix in prefixes if ip in prefix]
-        for prefix in matching_prefixes:
-            embedded_ipv4 = _extract_rfc6052_embedded_ipv4(ip, prefix)
-            if embedded_ipv4 is None or not _is_public_unicast_address(embedded_ipv4):
+        if matching_prefixes:
+            if not ip.is_global or ip.is_multicast or ip.is_unspecified:
                 return False
+            for prefix in matching_prefixes:
+                embedded_ipv4 = _extract_rfc6052_embedded_ipv4(ip, prefix)
+                if embedded_ipv4 is None or not _is_public_unicast_address(embedded_ipv4):
+                    return False
+            return True
+
+        if not _is_public_unicast_address(ip):
+            return False
 
         # Older Python ipaddress versions classify some transition prefixes
         # as global based only on the outer IPv6 range. Validate their embedded

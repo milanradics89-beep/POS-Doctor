@@ -558,6 +558,46 @@ def test_connected_peer_accepts_nat64_address_embedding_global_ipv4():
     validate_connected_peer(_Response("64:ff9b::808:808"))
 
 
+def test_well_known_nat64_prefix_accepts_global_embedded_ipv4_for_url_and_peer():
+    address = "64:ff9b::808:808"
+    url = f"https://[{address}]/product"
+
+    assert _is_public_address(address)
+    assert validate_public_http_url(url, resolve_dns=False) == url
+    validate_connected_peer(_Response(address))
+
+
+def test_url_preflight_accepts_well_known_nat64_dns_answer_embedding_global_ipv4(monkeypatch):
+    address = "64:ff9b::808:808"
+
+    def getaddrinfo(hostname, port, family, type):
+        return [
+            (socket.AF_INET6, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (address, port, 0, 0))
+        ]
+
+    monkeypatch.setattr("backend.security.socket.getaddrinfo", getaddrinfo)
+    assert validate_public_http_url("https://shop.example/product") == "https://shop.example/product"
+
+
+@pytest.mark.asyncio
+async def test_transport_accepts_well_known_nat64_prefix_for_global_embedded_ipv4():
+    address = "64:ff9b::808:808"
+    backend = _RecordingBackend()
+
+    async def resolver(hostname: str, port: int):
+        return [address]
+
+    transport = DNSPinnedAsyncHTTPTransport(resolver=resolver, network_backend=backend)
+    async with httpx.AsyncClient(transport=transport, trust_env=False) as client:
+        response = await client.get("https://shop.example/product")
+        validate_connected_peer(response)
+
+    assert backend.connected_hosts == [(address, 443)]
+    assert backend.stream.sni_hostname == "shop.example"
+    request_bytes = b"".join(backend.stream.writes).lower()
+    assert b"host: shop.example\r\n" in request_bytes
+
+
 @pytest.mark.parametrize(
     "address",
     ["224.0.0.1", "239.255.255.250", "ff02::1", "ff0e::1", "64:ff9b::e000:1"],
