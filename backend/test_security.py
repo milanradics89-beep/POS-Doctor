@@ -11,9 +11,39 @@ from fastapi import HTTPException
 from backend.security import (
     DNSPinnedAsyncHTTPTransport,
     DNSPinnedNetworkBackend,
+    _is_public_address,
     validate_public_http_url,
     validate_connected_peer,
 )
+
+
+_RFC6052_NETWORK_PREFIXES = [
+    "2001:4860::/32",
+    "2001:4860::/40",
+    "2001:4860::/48",
+    "2001:4860::/56",
+    "2001:4860::/64",
+    "2001:4860::/96",
+]
+
+
+def _rfc6052_address(prefix_value: str, ipv4_value: str) -> ipaddress.IPv6Address:
+    prefix = ipaddress.ip_network(prefix_value, strict=True)
+    assert isinstance(prefix, ipaddress.IPv6Network)
+    value = int(prefix.network_address)
+    ipv4 = int(ipaddress.IPv4Address(ipv4_value))
+    if prefix.prefixlen == 96:
+        value |= ipv4
+    else:
+        first_bits = 64 - prefix.prefixlen
+        remaining_bits = 32 - first_bits
+        first = ipv4 >> remaining_bits if first_bits else 0
+        second = ipv4 & ((1 << remaining_bits) - 1) if remaining_bits else 0
+        if first_bits:
+            value |= first << 64
+        if remaining_bits:
+            value |= second << (128 - (72 + remaining_bits))
+    return ipaddress.IPv6Address(value)
 
 
 def test_rejects_localhost():
@@ -466,6 +496,62 @@ async def test_transport_rejects_nat64_dns_answer_embedding_private_ipv4_before_
 
     assert backend.connected_hosts == []
     assert backend.streams == []
+
+
+@pytest.mark.parametrize("prefix", _RFC6052_NETWORK_PREFIXES)
+def test_configured_rfc6052_prefix_rejects_private_embedded_ipv4(monkeypatch, prefix):
+    monkeypatch.setenv("USEIT_NAT64_PREFIXES", prefix)
+    address = _rfc6052_address(prefix, "10.0.0.9")
+    with pytest.raises(HTTPException) as exc:
+        validate_public_http_url(f"https://[{address}]/product", resolve_dns=False)
+    assert exc.value.status_code == 400
+    assert not _is_public_address(address)
+
+
+@pytest.mark.parametrize("prefix", _RFC6052_NETWORK_PREFIXES)
+def test_configured_rfc6052_prefix_accepts_global_embedded_ipv4(monkeypatch, prefix):
+    monkeypatch.setenv("USEIT_NAT64_PREFIXES", prefix)
+    address = _rfc6052_address(prefix, "8.8.8.8")
+    assert _is_public_address(address)
+
+
+@pytest.mark.parametrize("prefix", _RFC6052_NETWORK_PREFIXES)
+def test_connected_peer_rejects_private_ipv4_under_configured_rfc6052_prefix(monkeypatch, prefix):
+    monkeypatch.setenv("USEIT_NAT64_PREFIXES", prefix)
+    address = _rfc6052_address(prefix, "10.0.0.9")
+    with pytest.raises(HTTPException) as exc:
+        validate_connected_peer(_Response(str(address)))
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("prefix", _RFC6052_NETWORK_PREFIXES)
+async def test_transport_rejects_private_ipv4_under_configured_rfc6052_prefix_before_tcp_connect(monkeypatch, prefix):
+    monkeypatch.setenv("USEIT_NAT64_PREFIXES", prefix)
+    address = _rfc6052_address(prefix, "10.0.0.9")
+    backend = _RecordingBackend()
+
+    async def resolver(hostname: str, port: int):
+        return [str(address)]
+
+    transport = DNSPinnedAsyncHTTPTransport(resolver=resolver, network_backend=backend)
+    async with httpx.AsyncClient(transport=transport, trust_env=False) as client:
+        with pytest.raises(httpx.ConnectError):
+            await client.get("https://shop.example/product")
+
+    assert backend.connected_hosts == []
+    assert backend.streams == []
+
+
+@pytest.mark.parametrize(
+    "configured_prefix",
+    ["2001:4860::/60", "fc00::/32", "2001:4860:100:100:100::/96"],
+)
+def test_invalid_nat64_prefix_configuration_fails_closed_for_ipv6(monkeypatch, configured_prefix):
+    monkeypatch.setenv("USEIT_NAT64_PREFIXES", configured_prefix)
+    with pytest.raises(HTTPException) as exc:
+        validate_public_http_url("https://[2001:4860::1]/product", resolve_dns=False)
+    assert exc.value.status_code == 400
 
 
 def test_connected_peer_accepts_nat64_address_embedding_global_ipv4():

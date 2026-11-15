@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import ipaddress
+import os
 import socket
 from collections.abc import Awaitable, Callable, Iterable
 from typing import TypeVar, cast
@@ -16,6 +17,7 @@ AddressResolver = Callable[[str, int], Awaitable[Iterable[str]] | Iterable[str]]
 
 
 _NAT64_WELL_KNOWN_PREFIX = ipaddress.ip_network("64:ff9b::/96")
+_RFC6052_PREFIX_LENGTHS = frozenset({32, 40, 48, 56, 64, 96})
 
 
 def _is_public_unicast_address(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
@@ -23,16 +25,81 @@ def _is_public_unicast_address(ip: ipaddress.IPv4Address | ipaddress.IPv6Address
     return ip.is_global and not ip.is_multicast and not ip.is_reserved and not ip.is_unspecified
 
 
+def _rfc6052_u_octet_is_zero(address: ipaddress.IPv6Address) -> bool:
+    """RFC 6052 reserves IPv6 bits 64-71 as a zero-valued u octet."""
+    return ((int(address) >> 56) & 0xFF) == 0
+
+
+def _configured_nat64_prefixes() -> tuple[ipaddress.IPv6Network, ...]:
+    """Return the well-known prefix plus every deployment-specific RFC 6052 prefix.
+
+    Deployments using DNS64/NAT64 with a network-specific prefix must list every
+    translator prefix in USEIT_NAT64_PREFIXES. Invalid or non-global prefix
+    configuration is rejected so IPv6 validation fails closed.
+    """
+    prefixes = [_NAT64_WELL_KNOWN_PREFIX]
+    configured = os.environ.get("USEIT_NAT64_PREFIXES", "")
+    for value in configured.split(","):
+        value = value.strip()
+        if not value:
+            continue
+        network = ipaddress.ip_network(value, strict=True)
+        if not isinstance(network, ipaddress.IPv6Network):
+            raise ValueError("NAT64 prefixes must be IPv6 networks.")
+        if network.prefixlen not in _RFC6052_PREFIX_LENGTHS:
+            raise ValueError("NAT64 prefixes must use an RFC 6052 prefix length.")
+        if not _is_public_unicast_address(network.network_address):
+            raise ValueError("NAT64 prefixes must be globally reachable IPv6 networks.")
+        if not _rfc6052_u_octet_is_zero(network.network_address):
+            raise ValueError("RFC 6052 NAT64 prefixes must have a zero u octet.")
+        prefixes.append(network)
+    return tuple(prefixes)
+
+
+def _extract_rfc6052_embedded_ipv4(
+    address: ipaddress.IPv6Address,
+    prefix: ipaddress.IPv6Network,
+) -> ipaddress.IPv4Address | None:
+    """Extract the IPv4 endpoint for a matching RFC 6052 prefix.
+
+    The RFC permits /32, /40, /48, /56, /64 and /96 layouts. For prefixes
+    shorter than /96 the IPv4 bits are split around the reserved u octet.
+    Suffix bits are ignored as specified by RFC 6052.
+    """
+    if address not in prefix or not _rfc6052_u_octet_is_zero(address):
+        return None
+
+    value = int(address)
+    if prefix.prefixlen == 96:
+        return ipaddress.IPv4Address(value & 0xFFFFFFFF)
+
+    first_bits = 64 - prefix.prefixlen
+    remaining_bits = 32 - first_bits
+    first = (value >> 64) & ((1 << first_bits) - 1) if first_bits else 0
+    second_shift = 128 - (72 + remaining_bits)
+    second = (value >> second_shift) & ((1 << remaining_bits) - 1) if remaining_bits else 0
+    return ipaddress.IPv4Address((first << remaining_bits) | second)
+
+
 def _is_public_address(address: str | ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    """Reject non-global/non-unicast IPs, including IPv4 embedded in IPv6 transition formats."""
+    """Reject non-global endpoints, including private IPv4 hidden by IPv6 translators."""
     ip = ipaddress.ip_address(address)
     if isinstance(ip, ipaddress.IPv6Address):
-        if ip in _NAT64_WELL_KNOWN_PREFIX:
-            embedded_ipv4 = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
-            return ip.is_global and not ip.is_multicast and _is_public_unicast_address(embedded_ipv4)
-
         if not _is_public_unicast_address(ip):
             return False
+
+        try:
+            prefixes = _configured_nat64_prefixes()
+        except (TypeError, ValueError):
+            return False
+
+        # Check every matching configured translator prefix. If prefixes overlap,
+        # accepting one public interpretation must not hide another private route.
+        matching_prefixes = [prefix for prefix in prefixes if ip in prefix]
+        for prefix in matching_prefixes:
+            embedded_ipv4 = _extract_rfc6052_embedded_ipv4(ip, prefix)
+            if embedded_ipv4 is None or not _is_public_unicast_address(embedded_ipv4):
+                return False
 
         # Older Python ipaddress versions classify some transition prefixes
         # as global based only on the outer IPv6 range. Validate their embedded
