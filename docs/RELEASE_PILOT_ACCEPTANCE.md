@@ -1,3 +1,28 @@
+## Latest production and pilot acceptance checkpoint — 2026-11-15 22:07 CET
+
+**Acceptance decision: NOT GRANTED. Release decision: NOT READY.** This checkpoint supersedes the 21:14 CET snapshot below. It records the current GitHub evidence; this documentation child is based on validated PR #85 parent `2cd7198a111dc0937150d344bc7817418de0e227` and must pass its own exact-head checks.
+
+### Exact-head automated evidence
+- PR #41 is merged at reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; source branch ref matches. Its Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161) and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) all succeeded. Review: 52 conversation comments, 30 inline comments, 26 submissions including one human approval, and 22/22 threads resolved.
+- PR #85 validated parent `2cd7198a111dc0937150d344bc7817418de0e227`: Validation [43757893067](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43757893067), CodeQL [43757893059](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43757893059), Dependency Review [43757893072](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43757893072) all SUCCESS. Backend, frontend/Android and iOS jobs passed. Human approval remains absent.
+- PR #107 exact HEAD `431d96a31beb523be31c109d81c7009d49357318` passed Validation [43746773703](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773703), CodeQL [43746773650](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773650), Dependency Review [43746773667](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773667). Its full dependency-tree audit reports 3 moderate / 0 high / 0 critical / 0 low; advisories remain visible.
+- PR #90 current HEAD `05be357c1e46ecd134c4aaf5feaed05b2bad9878`: Validation [43760238641](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43760238641) is IN_PROGRESS; CodeQL [43760238628](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43760238628) and Dependency Review [43760238664](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43760238664) succeeded. The new loading/empty/offline/permission-denied StatePanel work is not accepted until its own Validation completes.
+- PR #99 exact HEAD `0c66d9c3f0d6d3ba28db8020cd67eed04952c28f` has all three workflows SUCCESS, but independent human security review of the custom HTTPX/httpcore transport remains outstanding; issue #64 is open with 32 comments.
+- PR #106, #108 and #96 each have terminal-success exact-head Validation, CodeQL and Dependency Review. PR #106 is Redis-py 8.1 client compatibility against Redis 7.4, not Redis server 8 production acceptance.
+
+### External acceptance gates — NOT SATISFIED
+- Production Apple App Attest entitlement/provider configuration and assertion verification on a supported physical iPhone.
+- Play-installed physical Android device with production Play Integrity identity and verification.
+- Owner-authorized production cloud configuration and secrets; witnessed production backup/restore with measured RPO/RTO.
+- Production monitoring, named on-call owner, verified alert delivery/acknowledgement, staged rollout and tested rollback.
+- Representative labelled product-recognition benchmark, agreed thresholds and business approval.
+- Real-user pilot with safeguards, measured outcomes and explicit business sign-off.
+- Owner's final repository visibility/plan decision.
+
+The Issue #74 checklist is 64 total / 31 checked / 33 open. The 25-point release register remains 2 Done / 15 In Progress / 8 Blocked. Code Scanning, Dependabot and Secret Scanning inventories remain unavailable/unverified, not empty.
+
+Simulator/emulator CI, backend tests, dependency scans, documentation or green security workflows do not satisfy these gates. **Release NOT READY; production/pilot acceptance NOT GRANTED.**
+
 ## Latest production and pilot acceptance checkpoint — 2026-11-15 21:14 CET
 
 **Acceptance decision: NOT GRANTED. Release decision: NOT READY.** This checkpoint supersedes the 20:41 CET snapshot below and is committed as a new child of validated PR #85 parent a964933d646338a4f80856ddc846735a1a63beaf. The documentation child must pass its own exact-head checks.

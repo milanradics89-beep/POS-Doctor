@@ -1,3 +1,24 @@
+## Latest verified operational release checkpoint — 2026-11-15 22:07 CET
+
+This checkpoint supersedes the 21:14 CET snapshot below. It records current operational evidence. The documentation correction is based on validated PR #85 parent `2cd7198a111dc0937150d344bc7817418de0e227`; this child must pass its own Validation, CodeQL and Dependency Review before further writes.
+
+### Current operational and CI state
+- Main HEAD: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Protect main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) is active with one approval, stale-review dismissal, last-push approval, resolved threads, six strict required checks, deletion/non-fast-forward protection and no bypass actors.
+- PR #41 is merged at reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; source ref `fix/release-blockers-2026-10` matches. Exact-head Validation 43492153234, CodeQL 43492153161 and Dependency Review 43492153021 succeeded. Review inventory: 52 conversation comments, 30 inline comments, 26 review submissions (one human APPROVED), 22/22 threads resolved. Three old runs remain queued with empty job lists on obsolete SHA `b46c5b8082ecbebd263a86cd53b1321a86e570d1`; they are not current-head checks.
+- PR #85 validated parent `2cd7198a111dc0937150d344bc7817418de0e227` passed Validation 43757893067, CodeQL 43757893059 and Dependency Review 43757893072. Backend, frontend/Android and iOS jobs succeeded; Android emulator and iOS simulator smoke passed. Runtime npm audit still reports 3 moderate minimatch findings; it is not clean. Human approval is pending.
+- The current PR #85 review has one unresolved P2 finding: literal JavaScript checklist-count text was printed instead of an evaluated count. This child replaces it in the backlog and runbook with the persisted Issue #74 count, 31/64 checked and 33/64 open. Do not resolve the thread until this child passes exact-head CI and the reviewer re-evaluates it.
+- PR #107 exact HEAD `431d96a31beb523be31c109d81c7009d49357318` passed all three workflows. Full dependency-tree npm audit artifact [14175052989](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773703/artifacts/14175052989) reports 3 moderate / 0 high / 0 critical / 0 low. Keep findings visible; no Expo downgrade, major override, audit suppression or threshold reduction.
+- PR #90 current HEAD `05be357c1e46ecd134c4aaf5feaed05b2bad9878`: Validation 43760238641 is running; CodeQL 43760238628 and Dependency Review 43760238664 succeeded. Backend passed; Android emulator smoke and iOS Release build/simulator were still running at last job read. No write to PR #90 until its exact-head Validation terminates.
+- PR #99 exact HEAD `0c66d9c3f0d6d3ba28db8020cd67eed04952c28f` passed all three workflows; independent HTTPX/httpcore transport security review remains pending, issue #64 is open with 32 comments. PR #106, #108 and #96 also have terminal-success exact-head required checks.
+
+### Release gates and operating constraints
+- Repository visibility is public. Published GitHub Releases API returned `[]` (zero published releases).
+- Issue #47 is closed (10 comments); current ruleset is active while the repository is public. The owner's long-term visibility/plan decision remains separate; keep backlog item #2 Blocked.
+- Issue #74 currently contains 64 checklist boxes: 31 checked / 33 open. The literal-count defect in the prior checkpoint is corrected above.
+- Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable/unverified, not empty.
+- External blockers remain: owner visibility/plan decision; physical iPhone App Attest; Play-installed physical Android Play Integrity; production cloud access; witnessed backup/restore; representative benchmark/business acceptance; production monitoring/alert delivery; staged rollout/rollback approval; real-user pilot/business sign-off.
+- The authoritative 25-point register remains 2 Done / 15 In Progress / 8 Blocked. Release **NOT READY**; production/pilot acceptance **NOT GRANTED**. Do not use CI, emulator/simulator or documentation as a substitute for external acceptance.
+
 ## Latest verified operational release checkpoint — 2026-11-15 21:14 CET
 
 This checkpoint supersedes the 20:41 CET snapshot below. It is a new documentation child of validated PR #85 parent a964933d646338a4f80856ddc846735a1a63beaf; run Validation, CodeQL and Dependency Review again on the new child before treating this documentation update as validated.
@@ -13,7 +34,7 @@ This checkpoint supersedes the 20:41 CET snapshot below. It is a new documentati
 
 ### Release gates and operating constraints
 - Repository remains public; inventory 78 branches / 38 open PRs / 5 open non-PR issues. Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable/unverified, not empty.
-- Issue #74 body: 64 checklist boxes / ${boxes.filter(x=>/\[[xX]\]/.test(x)).length} checked. 25-point register: 2 Done / 15 In Progress / 8 Blocked.
+- Issue #74 body: 64 checklist boxes / 31 checked / 33 open. 25-point register: 2 Done / 15 In Progress / 8 Blocked.
 - External blockers: owner visibility/plan decision; physical iPhone App Attest; Play-installed physical Android Play Integrity; production backup/restore witness; representative benchmark/business acceptance; production monitoring/alert delivery; staged rollout/rollback; real-user pilot/business sign-off.
 - Release **NOT READY**; production/pilot acceptance **NOT GRANTED**. Do not use CI, emulator/simulator or documentation as a substitute for external acceptance.
 
