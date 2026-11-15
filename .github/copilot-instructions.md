@@ -11,7 +11,7 @@ Make small, reviewable, production-safe changes. Prefer fixing the underlying ca
 
 ## Repository conventions
 - The mobile application is Expo / React Native with Expo Router, TypeScript, and Vitest.
-- Use the existing project scripts: `npm run typecheck`, `npm test -- --passWithNoTests`, and `npm run guard:useit`.
+- Use the existing project scripts: `npm run typecheck`, `npm test`, and `npm run guard:useit`.
 - Follow existing component, navigation, state-management, API, validation, and test patterns. Avoid introducing new dependencies for trivial functionality.
 - Keep UI changes consistent with the established USEIT design language: warm off-white, graphite, and lime; accessible contrast; clear loading, empty, error, and success states.
 - Keep platform-specific behavior explicit. Do not claim Android or iOS validation from TypeScript/unit tests alone.
