@@ -1,3 +1,25 @@
+## Latest production and pilot acceptance checkpoint — 2026-11-15 20:41 CET
+
+**Acceptance decision: NOT GRANTED. Release decision: NOT READY.**
+
+### Exact-head automated evidence
+- PR #41 is merged at reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) all succeeded. One human APPROVED review and 22/22 resolved threads.
+- PR #85 current HEAD `64f42129f167fc34bb01a62e2f8573e69f9e8fb8`: Validation [43747770438](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43747770438), CodeQL [43747770429](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43747770429), Dependency Review [43747770432](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43747770432) all SUCCESS. Backend 450, readiness 27, production-security 78; frontend 289 tests/59 files, Expo Doctor 21/21, Android Release/emulator smoke; iOS Release/simulator smoke. Human approval remains absent.
+- PR #107 current HEAD `431d96a31beb523be31c109d81c7009d49357318`: Validation [43746773703](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773703), CodeQL [43746773650](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773650), Dependency Review [43746773667](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773667) all SUCCESS. Full-tree audit artifact [14175052989](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773703/artifacts/14175052989) reports 3 moderate, 0 high, 0 critical. Fail-closed parser and run-after-runtime-failure workflow correction passed exact-head Validation. P2 thread resolved; human approval absent.
+- PR #90, #99, #106, #108 and #96 each passed their own current exact-head Validation, CodeQL and Dependency Review. PR #99 still awaits independent human security review; PR #90 awaits human accessibility/design review.
+- Main remains protected by active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589). Issue #47 is closed; issue #64 remains open with 31 comments for independent SSRF security review.
+
+### External acceptance gates — NOT SATISFIED
+- Production Apple App Attest entitlement/provider configuration and assertion verification on a supported physical iPhone.
+- Play-installed physical Android device with production Play Integrity identity and verification.
+- Owner-authorized production cloud configuration and secrets; witnessed production backup/restore with measured RPO/RTO.
+- Production monitoring, named on-call owner, alert delivery/acknowledgement, staged rollout and tested rollback.
+- Representative labelled product-recognition benchmark, agreed acceptance thresholds and business approval.
+- Real-user pilot with safeguards, measured outcomes and explicit business sign-off.
+- Final owner decision on repository visibility/plan and any required post-change ruleset verification.
+
+Simulator/emulator CI, backend tests, dependency scans, documentation, or green security workflows do not satisfy these gates. GitHub release inventory reports zero published releases; security alert inventories remain unavailable/unverified, not empty.
+
 ## Latest production and pilot acceptance checkpoint — 2026-11-15 19:42 CET
 
 **Acceptance decision: NOT GRANTED. Release decision: NOT READY.**
