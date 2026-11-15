@@ -50,6 +50,24 @@ describe("full npm audit report", () => {
     expect(result.shouldFail).toBe(true);
   });
 
+  it("fails closed when severity counts are incomplete or contradict package findings", () => {
+    const incomplete = report({ moderate: 1 }, {});
+    delete incomplete.metadata.vulnerabilities.high;
+    expect(() => summarizeNpmAudit(incomplete, 1)).toThrow(/incomplete or invalid severity counts/);
+
+    const inconsistent = report(
+      { high: 0, critical: 0 },
+      { vulnerable: { severity: "high", isDirect: true, range: "*", via: ["GHSA-test"] } },
+    );
+    expect(() => summarizeNpmAudit(inconsistent, 1)).toThrow(/conflict with zero high\/critical metadata counts/);
+  });
+
+  it("rejects malformed vulnerability entries", () => {
+    expect(() => summarizeNpmAudit(report({}, { broken: null }), 1)).toThrow(/invalid vulnerability entry/);
+    expect(() => summarizeNpmAudit(report({}, { broken: { severity: "unknown", via: [] } }), 1))
+      .toThrow(/invalid vulnerability entry/);
+  });
+
   it("rejects incomplete or failed network reports", () => {
     expect(() => summarizeNpmAudit({ error: { code: "ECONNRESET" } }, 1)).toThrow(/complete vulnerability report/);
     expect(() => summarizeNpmAudit({ vulnerabilities: {} }, 0)).toThrow(/complete vulnerability report/);

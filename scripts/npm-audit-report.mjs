@@ -16,32 +16,48 @@ export function summarizeNpmAudit(report, npmExitCode) {
     throw new Error("npm audit exit code must be a non-negative integer.");
   }
 
+  const severityLevels = ["info", "low", "moderate", "high", "critical"];
+  const counts = report.metadata.vulnerabilities;
+  for (const severity of severityLevels) {
+    if (!Number.isSafeInteger(counts[severity]) || counts[severity] < 0) {
+      throw new Error("npm audit returned incomplete or invalid severity counts.");
+    }
+  }
+
   const entries = Object.entries(report.vulnerabilities)
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([name, item]) => ({
-      package: name,
-      severity: item.severity,
-      direct: Boolean(item.isDirect),
-      range: item.range ?? null,
-      fixAvailable: item.fixAvailable ?? false,
-      via: (item.via ?? []).map((entry) =>
-        typeof entry === "string"
-          ? entry
-          : `${entry.name || "advisory"}: ${entry.title || entry.url || "details unavailable"}`,
-      ),
-    }));
+    .map(([name, item]) => {
+      if (!item || typeof item !== "object" || Array.isArray(item) ||
+          !severityLevels.includes(item.severity) || !Array.isArray(item.via)) {
+        throw new Error(`npm audit returned an invalid vulnerability entry for ${name}.`);
+      }
+      return {
+        package: name,
+        severity: item.severity,
+        direct: Boolean(item.isDirect),
+        range: item.range ?? null,
+        fixAvailable: item.fixAvailable ?? false,
+        via: item.via.map((entry) =>
+          typeof entry === "string"
+            ? entry
+            : `${entry.name || "advisory"}: ${entry.title || entry.url || "details unavailable"}`,
+        ),
+      };
+    });
 
-  const counts = report.metadata.vulnerabilities;
-  const high = Number(counts.high ?? 0);
-  const critical = Number(counts.critical ?? 0);
-  if (![high, critical].every(Number.isFinite)) {
-    throw new Error("npm audit returned invalid high/critical vulnerability counts.");
+  const high = counts.high;
+  const critical = counts.critical;
+  const blocking = high + critical;
+  const hasBlockingPackage = entries.some((entry) =>
+    entry.severity === "high" || entry.severity === "critical",
+  );
+  if (hasBlockingPackage && blocking === 0) {
+    throw new Error("npm audit package findings conflict with zero high/critical metadata counts.");
   }
   if (npmExitCode !== 0 && entries.length === 0) {
     throw new Error("npm audit exited non-zero without reporting advisories.");
   }
 
-  const blocking = high + critical;
   return { counts, entries, blocking, shouldFail: blocking > 0 };
 }
 
