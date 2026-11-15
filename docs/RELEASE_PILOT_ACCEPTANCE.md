@@ -1,6 +1,38 @@
-## Latest exact-head acceptance checkpoint — 2026-11-15 06:12 CET
+## Latest pilot and production acceptance checkpoint — 2026-11-15 08:11 CET
 
-## Exact-head release reconciliation — 2026-11-15 04:58 CET
+**Acceptance decision: NOT GRANTED. Release decision: NOT READY.** This checkpoint supersedes the earlier 06:12 CET snapshot; historical evidence remains below.
+
+### Automated evidence currently verified
+- PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is merged. Its reviewed branch HEAD `68b380e73ca3c870048035197beef8febbf90ef1` and merge/main commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1` are verified. Its own Validation, CodeQL, and Dependency Review all passed; 22/22 review threads are resolved and one human APPROVED review is recorded.
+- PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) remains open and unmerged. Current documentation HEAD `34c9040144344bdbf02cf1195c235df9b7038bdd` passed exact-head Validation [43684781571](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43684781571), CodeQL [43684781579](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43684781579), and Dependency Review [43684781546](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43684781546). Backend 450/450, readiness 27/27, security 78/78, frontend 289/289 across 59 files, Expo Doctor 21/21, Android Release/emulator smoke, and iOS Release/simulator smoke passed. Human release approval is still absent.
+- PR [#99](https://github.com/milanradics89-beep/POS-Doctor/pull/99) remains open and Draft at exact HEAD `0c66d9c3f0d6d3ba28db8020cd67eed04952c28f`. Its own Validation [43684598555](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43684598555), CodeQL [43684598557](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43684598557), and Dependency Review [43684598448](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43684598448) all passed. Backend 509/509, readiness 27/27, production-security 78/78, frontend 289/289, Expo Doctor 21/21, Android Release/emulator smoke, and iOS Release/simulator smoke passed. The same-host DNS-rebinding regression now verifies two DNS resolutions and rejection of the private second answer before a second TCP connection. Human security approval is still absent; issue #64 remains open.
+- The automated results above establish CI and simulator/emulator behavior only. They do not establish production deployment or external acceptance.
+
+### Acceptance evidence still missing
+- **Physical iPhone / Apple App Attest:** production App ID/capability, provisioning entitlement, signed production build, and provider-backed enrollment/assertion on a supported physical iPhone.
+- **Physical Android / Play Integrity:** Play internal-track distribution, Play App Signing identity, Google Cloud service-account/API permissions, and verification on a physical Android installed from Play.
+- **Production environment:** owner-authorized production cloud/console access, secrets and provider identity, ingress/CORS, live Redis TLS/ACL/sysctl, host hardening, and production configuration evidence.
+- **Backup and restore:** witnessed production datastore/Redis backup and recovery drill with measured RPO/RTO.
+- **Monitoring:** production monitoring workspace, alert destination, named on-call owner, thresholds, and witnessed alert delivery.
+- **Staged rollout and rollback:** explicit approval, TestFlight/Play track access, stop thresholds, named rollback owner, and tested rollback.
+- **Product/business acceptance:** representative labeled product-recognition benchmark, agreed metrics, human evaluation, and business sign-off.
+- **Real-user pilot:** named cohort and business owner, safeguards, success/stop thresholds, and explicit release approval.
+- **Human review:** PR #85 release approval and PR #99 independent security review of the custom HTTPX/httpcore transport remain outstanding.
+
+### Other release risks and inventory
+- Runtime npm audit still reports **3 moderate** minimatch findings (GHSA-g3hv-75wg-m249). The audit is not clean; the upstream Expo fingerprint compatibility assessment is scoped and does not remove the finding.
+- Code Scanning, Dependabot, and Secret Scanning alert inventories are unavailable/unverified through the connected integration, not zero.
+- The GitHub Releases API returned an empty array: no published release is evidenced.
+- Repository visibility is currently public; the permanent public/private decision remains with the owner. Main is protected by active ruleset 26370589 with six strict checks, one approval, last-push approval, resolved threads, deletion/non-fast-forward protection, and no bypass actors.
+- The 25-point register remains **2 Done / 15 In Progress / 8 Blocked**. Blocked items remain #2, #4, #5, #16, #18, #21, #22, and #25. No external acceptance item is promoted by CI, simulator, or emulator evidence.
+
+**Final acceptance status: NOT GRANTED.** No production release, staged rollout, or real-user pilot is authorized by this evidence checkpoint.
+
+---
+
+## Superseded checkpoint — 2026-11-15 06:12 CET
+
+## Superseded exact-head release checkpoint — 2026-11-15 04:58 CET
 
 **Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.** This checkpoint supersedes the 04:00 CET checkpoint below. Historical checkpoints are retained for traceability and are not current status.
 
