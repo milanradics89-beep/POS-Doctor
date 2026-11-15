@@ -4,6 +4,7 @@ import asyncio
 import os
 import uuid
 from collections import deque
+from importlib.metadata import version as distribution_version
 
 import pytest
 import redis.asyncio as redis_asyncio
@@ -20,6 +21,16 @@ from backend.rate_limit import (
     install_rate_limit,
 )
 
+
+
+
+def test_redis_py_8_1_migration_contract():
+    installed = distribution_version("redis")
+    version_parts = tuple(int(part) for part in installed.split(".")[:3])
+
+    assert (8, 1, 0) <= version_parts < (9, 0, 0)
+    assert callable(getattr(Redis, "from_url", None))
+    assert callable(getattr(Redis, "aclose", None))
 
 def test_rate_limit_returns_429_after_configured_limit(monkeypatch):
     monkeypatch.setenv("USEIT_RATE_LIMIT_PER_MINUTE", "2")
@@ -415,4 +426,35 @@ async def test_readiness_probe_keeps_both_real_redis_ttls_when_second_probe_fail
     finally:
         if probe_keys:
             await client.delete(*probe_keys)
+        await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_redis_py_8_shared_application_pool_survives_rate_limit_calls(monkeypatch):
+    url = _redis_integration_url()
+    namespace = f"test-redis-py-8-shared-pool-{uuid.uuid4().hex}"
+    host = "203.0.113.42"
+    request = _redis_test_request(host)
+    client = Redis.from_url(url, decode_responses=True, socket_connect_timeout=2.0, socket_timeout=5.0)
+    app = FastAPI()
+    app.state.redis_client = client
+    request.scope["app"] = app
+    monkeypatch.setenv("USEIT_REDIS_URL", url)
+    events_key = f"useit:{namespace}:{host}:events"
+    sequence_key = f"{events_key}:sequence"
+
+    try:
+        assert await client.ping() is True
+        first = await _redis_allowed(request, limit=1, namespace=namespace)
+        second = await _redis_allowed(request, limit=1, namespace=namespace)
+
+        assert first == (True, 0)
+        assert second[0] is False
+        assert 1 <= second[1] <= 60
+        assert await client.zcard(events_key) == 1
+        assert await client.get(sequence_key) == "1"
+        # _redis_allowed must not close the application-owned redis-py 8 pool.
+        assert await client.ping() is True
+    finally:
+        await client.delete(events_key, sequence_key)
         await client.aclose()
