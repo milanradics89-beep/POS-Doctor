@@ -47,4 +47,12 @@ describe('USEIT shared component accessibility', () => {
     expect(source).toContain("accessibilityLabel={onPress ? `Open product page for ${title}` : `${title} product details unavailable`}");
     expect(source).toContain("accessibilityHint={onPress ? 'Opens the product page in your browser.' : 'Product details are not available for this item.'}");
   });
+  it('supports loading, empty, error, offline and permission-denied states with accessible announcements', () => {
+    expect(source).toContain("kind: 'loading' | 'empty' | 'error' | 'offline' | 'permission-denied' | 'success'");
+    expect(source).toContain("accessibilityRole={kind === 'loading' ? 'progressbar' : isAlert ? 'alert' : 'summary'}");
+    expect(source).toContain("accessibilityLiveRegion={kind === 'loading' ? 'polite' : isAlert ? 'assertive' : 'none'}");
+    expect(source).toContain('<ActivityIndicator size="large" color={accent} />');
+    expect(source).toContain("kind === 'offline' || kind === 'permission-denied'");
+  });
+
 });

@@ -7,7 +7,6 @@ import {
   Pressable,
   Image,
   ScrollView,
-  ActivityIndicator,
   Alert,
   Linking,
 } from 'react-native';
@@ -18,7 +17,7 @@ import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
-import { ProductCard, SectionHeader } from '../src/ui/components';
+import { ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 import { theme } from '../src/ui/theme';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
@@ -300,15 +299,17 @@ export default function Home() {
             )}
 
             {busy ? (
-              <View style={s.loading}>
-                <ActivityIndicator size="large" />
-                <Text style={s.load}>Understanding what I see…</Text>
-              </View>
+              <StatePanel
+                kind="loading"
+                title="Understanding your photo"
+                description="USEIT is analyzing the image and preparing your next step."
+              />
             ) : rendering ? (
-              <View style={s.loading}>
-                <ActivityIndicator size="large" />
-                <Text style={s.load}>Creating your visual concept…</Text>
-              </View>
+              <StatePanel
+                kind="loading"
+                title="Creating your visual concept"
+                description="USEIT is preparing a visual version of the selected redesign."
+              />
             ) : result ? (
               <>
                 <Text style={s.kicker}>ONE IDEA</Text>
@@ -388,6 +389,17 @@ export default function Home() {
                         />
                       ))}
                   </>
+                ) : null}
+
+                {(result.intelligence?.rankedCandidates?.length ?? 0) === 0 ? (
+                  <StatePanel
+                    kind="empty"
+                    title="No matching products yet"
+                    description="The analysis is complete, but no safe product match was found. You can still use the next action above."
+                    actionLabel="TRY ANOTHER PHOTO"
+                    actionAccessibilityHint="Returns to photo selection."
+                    onAction={reset}
+                  />
                 ) : null}
 
                 {redesign ? (
@@ -571,14 +583,6 @@ const s = StyleSheet.create({
     width: '100%',
     height: 420,
     borderRadius: 26,
-  },
-  loading: {
-    alignItems: 'center',
-    paddingTop: 55,
-  },
-  load: {
-    marginTop: 14,
-    color: theme.colors.muted,
   },
   mode: {
     backgroundColor: theme.colors.surface,

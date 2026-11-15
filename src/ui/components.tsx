@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from './theme';
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
@@ -46,19 +46,40 @@ export function ProductCard({ title, category, source, price, onPress }: {
 }
 
 export function StatePanel({ kind, title, description, actionLabel, actionAccessibilityHint, onAction }: {
-  kind: 'empty' | 'error' | 'success';
+  kind: 'loading' | 'empty' | 'error' | 'offline' | 'permission-denied' | 'success';
   title: string;
   description: string;
   actionLabel?: string;
   actionAccessibilityHint?: string;
   onAction?: () => void;
 }) {
-  const accent = kind === 'error' ? theme.colors.danger : theme.colors.ink;
+  const isAlert = kind === 'error' || kind === 'offline' || kind === 'permission-denied';
+  const isWarning = kind === 'offline' || kind === 'permission-denied';
+  const accent = kind === 'error' ? theme.colors.danger : isWarning ? theme.colors.accentDark : theme.colors.ink;
+  const symbol = kind === 'error' ? '!' : kind === 'offline' ? '⌁' : kind === 'permission-denied' ? '◈' : kind === 'empty' ? '＋' : '✳';
+
   return (
-    <View accessibilityRole="summary" style={[styles.statePanel, kind === 'error' && styles.errorPanel]}>
-      <View style={[styles.stateIcon, kind === 'error' && styles.errorIcon]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Text style={[styles.stateSymbol, { color: accent }]}>{kind === 'error' ? '!' : kind === 'empty' ? '＋' : '✳'}</Text>
-      </View>
+    <View
+      accessibilityRole={kind === 'loading' ? 'progressbar' : isAlert ? 'alert' : 'summary'}
+      accessibilityLabel={`${title}. ${description}`}
+      accessibilityLiveRegion={kind === 'loading' ? 'polite' : isAlert ? 'assertive' : 'none'}
+      style={[
+        styles.statePanel,
+        kind === 'error' && styles.errorPanel,
+        isWarning && styles.warningPanel,
+      ]}
+    >
+      {kind === 'loading' ? (
+        <ActivityIndicator size="large" color={accent} />
+      ) : (
+        <View
+          style={[styles.stateIcon, kind === 'error' && styles.errorIcon, isWarning && styles.warningIcon]}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Text style={[styles.stateSymbol, { color: accent }]}>{symbol}</Text>
+        </View>
+      )}
       <Text style={styles.stateTitle}>{title}</Text>
       <Text style={styles.stateDescription}>{description}</Text>
       {actionLabel && onAction ? (
@@ -109,6 +130,8 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.76, transform: [{ scale: 0.99 }] },
   statePanel: { alignItems: 'center', padding: 24, borderRadius: 22, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line },
   errorPanel: { backgroundColor: theme.colors.errorSurface, borderColor: theme.colors.errorBorder },
+  warningPanel: { backgroundColor: theme.colors.surfaceMuted, borderColor: theme.colors.controlBorder },
+  warningIcon: { backgroundColor: theme.colors.peach },
   stateIcon: { width: 48, height: 48, borderRadius: 17, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' },
   errorIcon: { backgroundColor: theme.colors.errorIconSurface },
   stateSymbol: { fontSize: 23, fontWeight: '800' },
