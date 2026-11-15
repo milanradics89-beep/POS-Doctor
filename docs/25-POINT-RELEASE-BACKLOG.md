@@ -2498,3 +2498,16 @@ The 25-point register remains **2 Done / 15 In Progress / 8 Blocked**. Done: #1 
 - Runtime npm audit still reports 3 moderate minimatch findings (GHSA-g3hv-75wg-m249). The audit is not clean; the configured high-severity threshold explains the successful workflow exit and does not erase the moderate findings.
 - PR #85 remains open, ready for review and unmerged. Reviewer tarlaci1984-sketch is requested, but no human APPROVED review is recorded. The P2 status-tally thread is resolved.
 - The 25-point register remains 2 Done / 15 In Progress / 8 Blocked. Release remains NOT READY; production/pilot acceptance remains NOT GRANTED.
+
+
+## Exact-head release reconciliation — 2026-11-15 11:36 CET
+
+PR [#85](https://github.com/milanradics89-beep/POS-Doctor/pull/85) current exact HEAD: `ad26a2a1ab5019ba4e2924412cfc90bfa2677cfa`, base `main` at `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+
+- Validation [43701032092](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43701032092): **SUCCESS**. Backend job [132771997733](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43701032092/job/132771997733): 450 backend tests, 27 readiness checks and 78 production-security checks passed; cryptography 50.0.2; pip-audit reported no known vulnerabilities. Frontend job [132771997992](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43701032092/job/132771997992): 59/59 test files and 289/289 tests passed, Expo Doctor 21/21, Android Release build and emulator install/launch smoke passed. Runtime npm audit still reports **3 moderate minimatch findings**; the high-severity workflow threshold does not make the npm audit clean. iOS job [132771997918](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43701032092/job/132771997918): iOS Release build and simulator install/launch smoke passed.
+- CodeQL [43701032116](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43701032116): **SUCCESS**.
+- Dependency Review [43701032109](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43701032109): **SUCCESS**.
+- The exact-head review-thread inventory contains one P2 status-tally thread; it is resolved and outdated. The review submission inventory contains only an automated Codex COMMENTED review, no human APPROVED review. Reviewer `tarlaci1984-sketch` remains requested.
+- The 25-point register remains **2 Done / 15 In Progress / 8 Blocked**. Release remains **NOT READY** and pilot/production acceptance remains **NOT GRANTED**. No external acceptance gate is promoted by CI evidence.
+
+No application code, dependency policy, security check, or main branch protection was changed by this documentation checkpoint.
