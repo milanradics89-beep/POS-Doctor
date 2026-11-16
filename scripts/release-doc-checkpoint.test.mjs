@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-16 21:31 CET';
+const marker = '## Exact-head reconciliation — 2026-11-16 23:12 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   return start < 0 ? '' : document.slice(start);
@@ -29,7 +29,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(pair.validated).toBe(pair.parent);
     }
     expect(new Set(pairs.map((pair) => pair.parent)).size).toBe(1);
-    expect(pairs.every((pair) => pair.parent === '59a31c88fd95219030ae1d815b2bd58b8f555a68')).toBe(true);
+    expect(pairs.every((pair) => pair.parent === '41acf506e28fe974a3f208503ca829df081eaae4')).toBe(true);
     expect(new Set(latestSections).size).toBe(1);
     const childGate = 'The resulting documentation child must pass its own exact-head Validation, CodeQL, and Dependency Review; the pre-write runs do not validate the child.';
     for (const section of latestSections) expect(section).toContain(childGate);
@@ -44,14 +44,14 @@ describe('release documentation exact-head checkpoint', () => {
 
   it('keeps exact-head workflow IDs, checklist count, live inventory and release tally aligned', () => {
     for (const section of latestSections) {
-      expect(section).toContain('43938412640');
-      expect(section).toContain('43938412643');
-      expect(section).toContain('43938412633');
-      expect(section).toMatch(/Validation \[43938412640\](?:\([^)]+\))?: SUCCESS/);
-      expect(section).toMatch(/CodeQL \[43938412643\](?:\([^)]+\))?: SUCCESS/);
-      expect(section).toMatch(/Dependency Review \[43938412633\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toContain('43961856098');
+      expect(section).toContain('43961856163');
+      expect(section).toContain('43961856217');
+      expect(section).toMatch(/Validation \[43961856098\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toMatch(/CodeQL \[43961856163\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toMatch(/Dependency Review \[43961856217\](?:\([^)]+\))?: SUCCESS/);
       expect(section).toContain('Issue #74 persisted checklist: 64 items, 39 checked / 25 open');
-      expect(section).toMatch(/87 branches, 46 open PRs(?:,| and) 6 open non-PR issues/);
+      expect(section).toMatch(/88 branches, 42 open PRs(?:,| and) 5 open non-PR issues/);
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
     }
   });
@@ -78,7 +78,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('RELEASE NOT READY');
       expect(section).toContain('PRODUCTION/PILOT ACCEPTANCE NOT GRANTED');
       expect(section).toContain('0 human APPROVED reviews');
-      expect(section).toContain('9 inline threads (6 resolved, 3 unresolved)');
+      expect(section).toContain('9 inline threads (9 resolved, 0 unresolved)');
     }
   });
 });
