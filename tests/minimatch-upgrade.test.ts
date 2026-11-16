@@ -6,12 +6,17 @@ import { describe, expect, it } from 'vitest';
 const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
 const packageManifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const installedManifest = JSON.parse(readFileSync(new URL('../node_modules/minimatch/package.json', import.meta.url), 'utf8'));
+const resolvedMinimatchPackages = Object.entries(lock.packages)
+  .filter(([path]) => /(^|\\/)node_modules\\/minimatch$/.test(path))
+  .map(([path, pkg]) => ({ path, version: pkg.version }));
 
 describe('minimatch 11 security override migration', () => {
-  it('pins the patched release in both the manifest and lockfile', () => {
+  it('pins the patched release in the manifest and every lockfile resolution', () => {
     expect(packageManifest.overrides?.minimatch).toBe('11.0.5');
     expect(lock.packages['node_modules/minimatch']?.version).toBe('11.0.5');
     expect(installedManifest.version).toBe('11.0.5');
+    expect(resolvedMinimatchPackages.length).toBeGreaterThan(0);
+    expect(resolvedMinimatchPackages.every(({ version }) => version === '11.0.5')).toBe(true);
   });
 
   it('preserves globstar and brace expansion used by build tooling', () => {
