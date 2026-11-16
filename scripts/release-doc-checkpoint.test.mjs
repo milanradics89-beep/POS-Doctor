@@ -85,8 +85,16 @@ const currentStateSections = documents.map((document) => {
 const extractCurrentPr85Evidence = (section) => ({
   currentHead: section.match(/documentation-only commit `([0-9a-f]{40})` is the current PR HEAD/)?.[1],
   parentHead: section.match(/child of pre-write HEAD `([0-9a-f]{40})`/)?.[1],
-  parentRuns: [...section.matchAll(/Parent exact-head (?:Validation|CodeQL|Dependency Review) \[(\d+)\]/g)].map((match) => match[1]),
-  childRuns: [...section.matchAll(/Current documentation child exact-head (?:Validation|CodeQL|Dependency Review) \[(\d+)\]/g)].map((match) => match[1]),
+  parentRuns: (() => {
+    const start = section.indexOf('Parent exact-head Validation [');
+    const match = start < 0 ? null : section.slice(start).match(/Validation \\[(\\d+)\\], CodeQL \\[(\\d+)\\], and Dependency Review \\[(\\d+)\\]/);
+    return match ? match.slice(1) : [];
+  })(),
+  childRuns: (() => {
+    const start = section.indexOf('Current documentation child exact-head Validation [');
+    const match = start < 0 ? null : section.slice(start).match(/Validation \\[(\\d+)\\], CodeQL \\[(\\d+)\\], and Dependency Review \\[(\\d+)\\]/);
+    return match ? match.slice(1) : [];
+  })(),
 });
 
 describe('current PR #85 release checkpoint', () => {
