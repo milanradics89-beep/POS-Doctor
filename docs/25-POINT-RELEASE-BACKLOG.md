@@ -2940,3 +2940,32 @@ PR #85 exact documentation HEAD `10597c75f4c3d0dd360e5df400dcd631f03e5f0a` now h
 | 25 | Real-user pilot | Real-user evidence and business sign-off |
 
 The register remains exactly 25 workstreams: **2 Done / 15 In Progress / 8 Blocked**. No external acceptance gate is promoted by automated CI, documentation, emulator/simulator smoke, or resolved review threads. **Release NOT READY; production/pilot acceptance NOT GRANTED.**
+
+---
+
+## Exact-head reconciliation — 2026-11-16 04:44 CET
+
+This entry supersedes the 04:23 CET snapshot above. That snapshot described parent commit `10597c75f4c3d0dd360e5df400dcd631f03e5f0a`; the PR #85 source HEAD immediately before this documentation-only child is `796f3b1b3dfc054850dd7410bce6fa27aa0fd108`.
+
+### PR #85 exact parent-head evidence
+- Validation [43798173113](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43798173113): **SUCCESS**. Backend, frontend and iOS jobs all completed successfully; Android Release/emulator smoke and iOS Release/simulator smoke passed.
+- CodeQL [43798173142](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43798173142): **SUCCESS**.
+- Dependency Review [43798173099](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43798173099): **SUCCESS**.
+- These three runs validate parent HEAD `796f3b1` only. This documentation-only child must pass its own exact-head Validation, CodeQL and Dependency Review; parent checks are not inherited.
+- PR #85 remains OPEN and unmerged. Both documentation P2 review threads are resolved; Codex's no-major-issues review was for earlier HEAD `89757fdd`, and a fresh review was requested for the current parent. No human APPROVED review is recorded; `tarlaci1984-sketch` remains requested.
+
+### Current related exact-head evidence
+- **PR #90 USEIT design/accessibility:** HEAD `b85cbc7dd6b1d8109a22d2c6952a8d83ecf52367`; Validation `43788320357`, CodeQL `43788320223`, Dependency Review `43788320228` all **SUCCESS**. Backend 450 tests, frontend 321 tests / 70 files, Expo Doctor 21/21, readiness 27, production-security 78; Android Release/emulator and iOS Release/simulator smoke passed. Three review threads are resolved and Codex found no major issues. Human design/accessibility approval remains pending.
+- **PR #99 SSRF/NAT64:** HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139`; Validation `43772791089`, CodeQL `43772791064`, Dependency Review `43772791109` all **SUCCESS**. Backend 539, readiness 27, production-security 78 passed; actual HTTPX/httpcore transport tests cover redirect-hop DNS re-resolution, IP pinning, peer verification, Host/TLS SNI preservation and RFC 6052 embedded IPv4 checks. Both P2 threads are resolved. Issue #64 remains OPEN pending production NAT64 prefix inventory/configuration and independent human security approval.
+- **PR #41:** merged at reviewed source HEAD `68b380e73ca3c870048035197beef8febbf90ef1`, merge/main `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`; 22/22 review threads resolved and one human APPROVED review. Three obsolete runs on stale SHA `b46c5b8` remain QUEUED with zero jobs: Validation `43098210284`, CodeQL `43098210473`, Dependency Review `43098210255`; owner/admin cancellation is required.
+- **PR #96 Copilot guidance:** HEAD `15e9c9fbd0e605911d4618e2e9216ebf611ab33f`; Validation `43747514393`, CodeQL `43747514431`, Dependency Review `43747514474` all **SUCCESS**. No inline review threads; human review remains pending.
+- **PR #107 full npm audit:** HEAD `431d96a31beb523be31c109d81c7009d49357318`; all three required workflows **SUCCESS**. Full audit remains 3 moderate / 0 high / 0 critical / 0 low. The production-only `npm audit --omit=dev --audit-level=high` check returned 0 vulnerabilities. Do not apply the closed PR #98 global minimatch 11 override: it violates `@expo/fingerprint@0.20.16`'s declared `^10.2.6` range and Expo maintainers retain minimatch 10 for fingerprint due observable compatibility changes. Keep the moderate development-tooling findings visible and unsuppressed.
+- **PR #65/#67/#68/#69:** closed/unmerged historical candidates. SDK 57 package/lock alignment, Node 22 JS config-plugin/runtime TypeScript separation, Redis runbook fixes and the separate cryptography 50.0.2 / pip-audit clean result are verified in the main/release lineage.
+
+### Repository, checklist and release gates
+- Main HEAD: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`; repository inventory: 78 branches, 38 open PRs, 5 open non-PR issues. Repository visibility remains PUBLIC pending the owner's durable public/private decision.
+- Protect main ruleset `26370589` remains active and unchanged: six required checks, one approval, last-push approval, resolved review threads, deletion/non-fast-forward protection and no bypass actors.
+- Issue #74 persisted body remains **64 boxes / 31 checked / 33 open**. The targeted body update did not persist; completion evidence for the UX/design items is recorded in issue comments `6906735500` and `6906760130`. No checkbox is claimed as changed.
+- The 25-point register remains exactly **2 Done / 15 In Progress / 8 Blocked**. Physical App Attest / Play Integrity, production backup/restore, benchmark/business acceptance, monitoring/alert delivery, staged rollout/rollback, real-user pilot and owner visibility/plan decision remain external or human gates.
+
+**RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.**
