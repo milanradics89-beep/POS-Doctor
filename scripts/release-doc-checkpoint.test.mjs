@@ -47,7 +47,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('43868361501');
       expect(section).toContain('43868361365');
       expect(section).toContain('Persisted Issue #74 checklist: 64 items, 39 checked / 25 open');
-      expect(section).toContain('80 branches, 39 open PRs, 5 open non-PR issues');
+      expect(section).toMatch(/80 branches, 39 open PRs(?:,| and) 5 open non-PR issues/);
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
     }
   });
