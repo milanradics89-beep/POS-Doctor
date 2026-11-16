@@ -49,7 +49,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toMatch(/Validation \[43897662455\](?:\([^)]+\))?: FAILURE/);
       expect(section).toMatch(/CodeQL \[43897662490\](?:\([^)]+\))?: SUCCESS/);
       expect(section).toMatch(/Dependency Review \[43897662539\](?:\([^)]+\))?: SUCCESS/);
-      expect(section).toContain('Persisted Issue #74 checklist: 64 items, 39 checked / 25 open');
+      expect(section).toMatch(/Persisted Issue (?:\\[#74\\]\\([^)]+\\)|#74) checklist: 64 items, 39 checked \\/ 25 open/);
       expect(section).toMatch(/84 branches, 43 open PRs(?:,| and) 6 open non-PR issues/);
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
     }
