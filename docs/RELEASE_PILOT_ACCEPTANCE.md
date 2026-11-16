@@ -1539,7 +1539,7 @@ This entry supersedes the 04:23 CET snapshot above. That snapshot described pare
 - Validation [43798173113](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43798173113): **SUCCESS**. Backend, frontend and iOS jobs all completed successfully; Android Release/emulator smoke and iOS Release/simulator smoke passed.
 - CodeQL [43798173142](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43798173142): **SUCCESS**.
 - Dependency Review [43798173099](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43798173099): **SUCCESS**.
-- These three runs validate parent HEAD `796f3b1` only. This documentation-only child must pass its own exact-head Validation, CodeQL and Dependency Review; parent checks are not inherited.
+- These three runs validate parent HEAD `796f3b1b3dfc054850dd7410bce6fa27aa0fd108` only. This documentation-only child must pass its own exact-head Validation, CodeQL and Dependency Review; parent checks are not inherited.
 - PR #85 remains OPEN and unmerged. Both documentation P2 review threads are resolved; Codex's no-major-issues review was for earlier HEAD `89757fdd`, and a fresh review was requested for the current parent. No human APPROVED review is recorded; `tarlaci1984-sketch` remains requested.
 
 ### Current related exact-head evidence

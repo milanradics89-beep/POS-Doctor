@@ -13,11 +13,32 @@ const latestSections = documents.map((document) => {
   return start < 0 ? '' : document.slice(start);
 });
 
+const extractParentHeadPair = (section) => ({
+  source: section.match(/PR #85 source HEAD immediately before this documentation-only child is `([0-9a-f]{40})`/)?.[1],
+  validated: section.match(/These three runs validate parent HEAD `([0-9a-f]{40})` only/)?.[1],
+});
+
 describe('release documentation exact-head checkpoint', () => {
-  it('keeps the latest parent SHA and all three workflow run IDs aligned', () => {
+  it('compares the source and validated parent SHA labels in every document', () => {
     expect(latestSections.every(Boolean)).toBe(true);
+    const pairs = latestSections.map(extractParentHeadPair);
+    for (const pair of pairs) {
+      expect(pair.source).toMatch(/^[0-9a-f]{40}$/);
+      expect(pair.validated).toBe(pair.source);
+    }
+    expect(new Set(pairs.map((pair) => pair.source)).size).toBe(1);
+  });
+
+  it('detects a split-brain parent SHA pair', () => {
+    const mismatched = `PR #85 source HEAD immediately before this documentation-only child is \`796f3b1b3dfc054850dd7410bce6fa27aa0fd108\`.
+These three runs validate parent HEAD \`0000000000000000000000000000000000000000\` only.`;
+    const pair = extractParentHeadPair(mismatched);
+    expect(pair.source).toMatch(/^[0-9a-f]{40}$/);
+    expect(pair.validated).not.toBe(pair.source);
+  });
+
+  it('keeps all three workflow run IDs and the release tally aligned', () => {
     for (const section of latestSections) {
-      expect(section).toContain('796f3b1b3dfc054850dd7410bce6fa27aa0fd108');
       expect(section).toContain('43798173113');
       expect(section).toContain('43798173142');
       expect(section).toContain('43798173099');
