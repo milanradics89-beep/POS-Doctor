@@ -47,8 +47,9 @@ describe('App Attest config/runtime entrypoint separation', () => {
     })).toThrow(/Production builds cannot use the development App Attest environment/);
   });
 
-  it('runs both Expo validation and iOS prebuild on Node 22', () => {
+  it('runs Android and iOS Expo prebuild on Node 22', () => {
     expect(workflowJob('frontend')).toMatch(/node-version:\s*22/);
+    expect(workflowJob('frontend')).toContain('npx expo prebuild --platform android --no-install');
     expect(workflowJob('ios')).toMatch(/node-version:\s*22/);
     expect(workflowJob('ios')).toContain('npx expo prebuild --platform ios --no-install');
   });
