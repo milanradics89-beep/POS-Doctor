@@ -10,7 +10,7 @@ const packageManifest = JSON.parse(readFileSync(new URL('../package.json', impor
 const installedManifest = JSON.parse(readFileSync(new URL('../node_modules/minimatch/package.json', import.meta.url), 'utf8'));
 const lockPackages = lock.packages as Record<string, { version?: string }>;
 const resolvedMinimatchPackages = Object.entries(lockPackages)
-  .filter(([path]) => /(^|\\/)node_modules\\/minimatch$/.test(path))
+  .filter(([path]) => /(^|\/)node_modules\/minimatch$/.test(path))
   .map(([path, pkg]) => ({ path, version: pkg.version }));
 
 describe('minimatch 11 security override migration', () => {
