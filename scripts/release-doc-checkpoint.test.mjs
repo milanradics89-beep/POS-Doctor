@@ -46,10 +46,10 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('43917494857');
       expect(section).toContain('43917494516');
       expect(section).toContain('43917494739');
-      expect(section).toMatch(/Validation \\[43917494857\\](?:\\([^)]+\\))?: FAILURE/);
-      expect(section).toMatch(/CodeQL \\[43917494516\\](?:\\([^)]+\\))?: SUCCESS/);
-      expect(section).toMatch(/Dependency Review \\[43917494739\\](?:\\([^)]+\\))?: SUCCESS/);
-      expect(section).toContain('Persisted Issue #74 checklist: 64 items, 39 checked / 25 open');
+      expect(section).toMatch(/Validation \[43917494857\](?:\([^)]+\))?: FAILURE/);
+      expect(section).toMatch(/CodeQL \[43917494516\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toMatch(/Dependency Review \[43917494739\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toContain('Issue #74 persisted checklist: 64 items, 39 checked / 25 open');
       expect(section).toMatch(/84 branches, 43 open PRs(?:,| and) 6 open non-PR issues/);
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
     }
