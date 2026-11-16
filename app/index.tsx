@@ -20,8 +20,18 @@ import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
 import { ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
+import { requestFailureKind } from '../src/ui/requestFailure';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
+
+type ScreenNotice = {
+  kind: 'error' | 'offline' | 'permission-denied';
+  title: string;
+  description: string;
+  actionLabel?: string;
+  actionAccessibilityHint?: string;
+  onAction?: () => void;
+};
 
 const modes: [OpportunityKind, string][] = [
   ['create', 'Turn what you have into something new.'],
@@ -37,12 +47,14 @@ export default function Home() {
   const [rendering, setRendering] = useState(false);
   const [rendered, setRendered] = useState<string | null>(null);
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
+  const [notice, setNotice] = useState<ScreenNotice | null>(null);
   const redesign = result?.redesign ?? result?.phase3?.redesign;
 
   const reset = () => {
     setPhoto(null);
     setResult(null);
     setRendered(null);
+    setNotice(null);
   };
 
   async function openProductLink(url: string) {
@@ -60,10 +72,11 @@ export default function Home() {
 
   async function analyze(intent?: OpportunityKind) {
     if (!API_URL) {
-      Alert.alert(
-        'USEIT is not connected',
-        'Set EXPO_PUBLIC_USEIT_API_URL before running the real vision flow.'
-      );
+      setNotice({
+        kind: 'error',
+        title: 'USEIT is not connected',
+        description: 'The real vision flow needs EXPO_PUBLIC_USEIT_API_URL to be configured.',
+      });
       return;
     }
 
@@ -71,6 +84,7 @@ export default function Home() {
 
     setBusy(true);
     setRendered(null);
+    setNotice(null);
 
     try {
       const response = await analyzeForConsumer(
@@ -80,12 +94,19 @@ export default function Home() {
       );
       setResult(response);
     } catch (error) {
-      Alert.alert(
-        'Could not understand the image',
-        error instanceof Error
-          ? error.message
-          : 'Please try again with a clearer photo.'
-      );
+      const kind = requestFailureKind(error);
+      setNotice({
+        kind,
+        title: kind === 'offline' ? 'No connection' : 'Could not understand the image',
+        description: kind === 'offline'
+          ? 'Check your internet connection, then retry the analysis.'
+          : error instanceof Error
+            ? error.message
+            : 'Please try again with a clearer photo.',
+        actionLabel: 'TRY AGAIN',
+        actionAccessibilityHint: 'Retries image analysis for the selected photo.',
+        onAction: () => { void analyze(intent); },
+      });
     } finally {
       setBusy(false);
     }
@@ -95,6 +116,7 @@ export default function Home() {
     if (!photo || !redesign) return;
 
     setRendering(true);
+    setNotice(null);
 
     try {
       const api = new UseitApiProvider(API_URL);
@@ -115,10 +137,14 @@ export default function Home() {
 
       setRendered(renderedResult.imageDataUrl);
     } catch {
-      Alert.alert(
-        'Visual concept failed',
-        'The redesign could not be rendered. The selected solution is still available.'
-      );
+      setNotice({
+        kind: 'error',
+        title: 'Visual concept failed',
+        description: 'The redesign could not be rendered. The selected solution is still available.',
+        actionLabel: 'TRY AGAIN',
+        actionAccessibilityHint: 'Retries creating the visual concept.',
+        onAction: () => { void createVisualConcept(); },
+      });
     } finally {
       setRendering(false);
     }
@@ -128,28 +154,26 @@ export default function Home() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     const decision = permissionDecision(permission.granted, permission.canAskAgain);
     if (decision !== 'granted') {
-      if (decision === 'open_settings') {
-        Alert.alert(
-          'Photos access is disabled',
-          'Enable photo library access in Settings to choose an image.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => { void Linking.openSettings(); } },
-          ],
-        );
-      } else {
-        Alert.alert(
-          'Photos permission needed',
-          'USEIT needs access to a photo you want to explore.',
-          [
-            { text: 'Not now', style: 'cancel' },
-            { text: 'Try again', onPress: () => { void chooseGallery(); } },
-          ],
-        );
-      }
+      const openSettings = decision === 'open_settings';
+      setNotice({
+        kind: 'permission-denied',
+        title: openSettings ? 'Photos access is disabled' : 'Photos permission needed',
+        description: openSettings
+          ? 'Enable photo library access in Settings to choose an image.'
+          : 'USEIT needs access to a photo you want to explore.',
+        actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN',
+        actionAccessibilityHint: openSettings
+          ? 'Opens system settings so you can enable photo library access.'
+          : 'Requests photo library permission again.',
+        onAction: () => {
+          if (openSettings) void Linking.openSettings();
+          else void chooseGallery();
+        },
+      });
       return;
     }
 
+    setNotice(null);
     const r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.85,
@@ -162,13 +186,17 @@ export default function Home() {
     const a = r.assets[0];
 
     if (!a.base64) {
-      Alert.alert(
-        'Photo unavailable',
-        'USEIT could not read this image.'
-      );
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: 'USEIT could not read this image. Choose the photo again.',
+        actionLabel: 'CHOOSE AGAIN',
+        onAction: () => { void chooseGallery(); },
+      });
       return;
     }
 
+    setNotice(null);
     setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
     setResult(null);
     setRendered(null);
@@ -178,28 +206,26 @@ export default function Home() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     const decision = permissionDecision(permission.granted, permission.canAskAgain);
     if (decision !== 'granted') {
-      if (decision === 'open_settings') {
-        Alert.alert(
-          'Camera access is disabled',
-          'Enable camera access in Settings to take a photo.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => { void Linking.openSettings(); } },
-          ],
-        );
-      } else {
-        Alert.alert(
-          'Camera permission needed',
-          'USEIT needs camera access to photograph what you want to explore.',
-          [
-            { text: 'Not now', style: 'cancel' },
-            { text: 'Try again', onPress: () => { void capture(); } },
-          ],
-        );
-      }
+      const openSettings = decision === 'open_settings';
+      setNotice({
+        kind: 'permission-denied',
+        title: openSettings ? 'Camera access is disabled' : 'Camera permission needed',
+        description: openSettings
+          ? 'Enable camera access in Settings to take a photo.'
+          : 'USEIT needs camera access to photograph what you want to explore.',
+        actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN',
+        actionAccessibilityHint: openSettings
+          ? 'Opens system settings so you can enable camera access.'
+          : 'Requests camera permission again.',
+        onAction: () => {
+          if (openSettings) void Linking.openSettings();
+          else void capture();
+        },
+      });
       return;
     }
 
+    setNotice(null);
     const r = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.85,
@@ -211,17 +237,33 @@ export default function Home() {
     const a = r.assets[0];
 
     if (!a.base64) {
-      Alert.alert(
-        'Photo unavailable',
-        'USEIT could not read the captured image.'
-      );
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: 'USEIT could not read the captured image. Try taking it again.',
+        actionLabel: 'TAKE AGAIN',
+        onAction: () => { void capture(); },
+      });
       return;
     }
 
+    setNotice(null);
     setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
     setResult(null);
     setRendered(null);
+    setNotice(null);
   }
+
+  const noticePanel = notice ? (
+    <StatePanel
+      kind={notice.kind}
+      title={notice.title}
+      description={notice.description}
+      actionLabel={notice.actionLabel}
+      actionAccessibilityHint={notice.actionAccessibilityHint}
+      onAction={notice.onAction}
+    />
+  ) : null;
 
   return (
     <SafeAreaView style={s.safe}>
@@ -272,6 +314,7 @@ export default function Home() {
                 </Text>
               ))}
             </View>
+            {noticePanel}
           </>
         ) : (
           <>
@@ -313,6 +356,7 @@ export default function Home() {
               />
             ) : result ? (
               <>
+                {noticePanel}
                 <Text style={s.kicker}>ONE IDEA</Text>
 
                 <Text style={s.title}>
@@ -431,6 +475,7 @@ export default function Home() {
               </>
             ) : (
               <>
+                {noticePanel}
                 <Text style={s.title}>What should I do with this?</Text>
 
                 {modes.map(([a, b]) => (
