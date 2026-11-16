@@ -74,3 +74,32 @@ These runs validate parent HEAD \`0000000000000000000000000000000000000000\` onl
     }
   });
 });
+
+
+const currentStateSections = documents.map((document) => {
+  const start = document.indexOf('### Verified repository and PR state');
+  const end = document.indexOf('### Canonical Issue #74 checklist and 25-point release register', start);
+  return start < 0 || end <= start ? '' : document.slice(start, end);
+});
+
+const extractCurrentPr85Evidence = (section) => ({
+  currentHead: section.match(/documentation-only commit `([0-9a-f]{40})` is the current PR HEAD/)?.[1],
+  parentHead: section.match(/child of pre-write HEAD `([0-9a-f]{40})`/)?.[1],
+  parentRuns: [...section.matchAll(/Parent exact-head (?:Validation|CodeQL|Dependency Review) \[(\d+)\]/g)].map((match) => match[1]),
+  childRuns: [...section.matchAll(/Current documentation child exact-head (?:Validation|CodeQL|Dependency Review) \[(\d+)\]/g)].map((match) => match[1]),
+});
+
+describe('current PR #85 release checkpoint', () => {
+  it('records the validated parent and current documentation child across all three release documents', () => {
+    expect(currentStateSections.every(Boolean)).toBe(true);
+    const evidence = currentStateSections.map(extractCurrentPr85Evidence);
+    for (const item of evidence) {
+      expect(item.currentHead).toBe('0f0147abb181ab14e9bb52cbe219b6039d770d12');
+      expect(item.parentHead).toBe('bc60fc308b3ba7bffc123b80cc72b735f4375eeb');
+      expect(item.parentRuns).toEqual(["43818014565","43818014606","43818014583"]);
+      expect(item.childRuns).toEqual(["43829708185","43829708487","43829708758"]);
+    }
+    expect(new Set(evidence.map((item) => item.currentHead)).size).toBe(1);
+    expect(new Set(evidence.map((item) => item.parentHead)).size).toBe(1);
+  });
+});
