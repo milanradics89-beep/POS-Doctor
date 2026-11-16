@@ -52,7 +52,8 @@ These runs validate parent HEAD \`0000000000000000000000000000000000000000\` onl
       expect(section).toContain('3 moderate findings');
       expect(section).toContain('GHSA-g3hv-75wg-m249');
       expect(section).toContain('does not remove moderate findings');
-      expect(section).not.toContain('production-only');
+      expect(section).toContain('Do not describe this command as a zero-vulnerability or clean production-only audit.');
+      expect(section).not.toMatch(/npm audit[^.\\n]*(?:returned|reports?)\\s+(?:\\*\\*)?0 vulnerabilities/i);
     }
   });
 
