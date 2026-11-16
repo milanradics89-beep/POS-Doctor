@@ -14,8 +14,8 @@ const latestSections = documents.map((document) => {
 });
 
 const extractValidatedParentPair = (section) => ({
-  parent: section.match(/PR #85 pre-write HEAD is `([0-9a-f]{40})`/)?.[1],
-  validated: section.match(/These exact-head runs belong to PR #85 pre-write HEAD `([0-9a-f]{40})` only/)?.[1],
+  parent: section.match(/PR #85 pre-write (?:parent )?HEAD is `([0-9a-f]{40})`/)?.[1],
+  validated: section.match(/These exact-head runs (?:belong to|validate) PR #85 pre-write (?:parent )?HEAD `([0-9a-f]{40})` only/)?.[1],
 });
 
 const misleadingZeroAuditClaim = /npm audit\b[^.\n]*(?:returned|reported|reports?)\s+(?:\*\*)?0 vulnerabilities\b/i;
@@ -46,9 +46,9 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('43897662455');
       expect(section).toContain('43897662490');
       expect(section).toContain('43897662539');
-      expect(section).toContain('Validation [43897662455]: FAILURE');
-      expect(section).toContain('CodeQL [43897662490]: SUCCESS');
-      expect(section).toContain('Dependency Review [43897662539]: SUCCESS');
+      expect(section).toMatch(/Validation \[43897662455\](?:\([^)]+\))?: FAILURE/);
+      expect(section).toMatch(/CodeQL \[43897662490\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toMatch(/Dependency Review \[43897662539\](?:\([^)]+\))?: SUCCESS/);
       expect(section).toContain('Persisted Issue #74 checklist: 64 items, 39 checked / 25 open');
       expect(section).toMatch(/84 branches, 43 open PRs(?:,| and) 6 open non-PR issues/);
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
