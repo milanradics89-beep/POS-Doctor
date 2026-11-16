@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
 const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
 const packageManifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const installedManifest = JSON.parse(readFileSync(new URL('../node_modules/minimatch/package.json', import.meta.url), 'utf8'));
-const resolvedMinimatchPackages = Object.entries(lock.packages)
+const lockPackages = lock.packages as Record<string, { version?: string }>;
+const resolvedMinimatchPackages = Object.entries(lockPackages)
   .filter(([path]) => /(^|\/)node_modules\/minimatch$/.test(path))
   .map(([path, pkg]) => ({ path, version: pkg.version }));
 
