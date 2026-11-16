@@ -18,6 +18,8 @@ const extractParentHeadPair = (section) => ({
   validated: section.match(/These runs validate parent HEAD `([0-9a-f]{40})` only/)?.[1],
 });
 
+const misleadingZeroAuditClaim = /npm audit\b[^.\n]*(?:returned|reported|reports?)\s+(?:\*\*)?0 vulnerabilities\b/i;
+
 describe('release documentation exact-head checkpoint', () => {
   it('compares the source and validated parent SHA labels in every document', () => {
     expect(latestSections.every(Boolean)).toBe(true);
@@ -53,8 +55,15 @@ These runs validate parent HEAD \`0000000000000000000000000000000000000000\` onl
       expect(section).toContain('GHSA-g3hv-75wg-m249');
       expect(section).toContain('does not remove moderate findings');
       expect(section).toContain('Do not describe this command as a zero-vulnerability or clean production-only audit.');
-      expect(section).not.toMatch(/npm audit[^.\\n]*(?:returned|reports?)\\s+(?:\\*\\*)?0 vulnerabilities/i);
+      expect(section).not.toMatch(misleadingZeroAuditClaim);
     }
+  });
+
+  it('rejects a false zero-vulnerability claim without rejecting the accurate warning', () => {
+    const accurateWarning = 'Do not describe this command as a zero-vulnerability or clean production-only audit.';
+    const falseClaim = 'npm audit --omit=dev --audit-level=high returned 0 vulnerabilities.';
+    expect(accurateWarning).not.toMatch(misleadingZeroAuditClaim);
+    expect(falseClaim).toMatch(misleadingZeroAuditClaim);
   });
 
   it('keeps automated validation separate from human and production acceptance', () => {
