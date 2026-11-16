@@ -10,7 +10,9 @@ const documents = [
 const marker = '## Exact-head reconciliation — 2026-11-17 00:41 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
-  return start < 0 ? '' : document.slice(start);
+  if (start < 0) return '';
+  const end = document.indexOf('\n\n---\n\n', start);
+  return document.slice(start, end < 0 ? document.length : end);
 });
 
 const extractPreWritePair = (section) => ({
