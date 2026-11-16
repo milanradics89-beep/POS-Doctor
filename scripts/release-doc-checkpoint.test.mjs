@@ -7,15 +7,15 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-16 04:44 CET';
+const marker = '## Exact-head reconciliation — 2026-11-16 05:50 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   return start < 0 ? '' : document.slice(start);
 });
 
 const extractParentHeadPair = (section) => ({
-  source: section.match(/PR #85 source HEAD immediately before this documentation-only child is `([0-9a-f]{40})`/)?.[1],
-  validated: section.match(/These three runs validate parent HEAD `([0-9a-f]{40})` only/)?.[1],
+  source: section.match(/PR #85 source HEAD immediately before this documentation-and-regression-test child is `([0-9a-f]{40})`/)?.[1],
+  validated: section.match(/These runs validate parent HEAD `([0-9a-f]{40})` only/)?.[1],
 });
 
 describe('release documentation exact-head checkpoint', () => {
@@ -30,19 +30,29 @@ describe('release documentation exact-head checkpoint', () => {
   });
 
   it('detects a split-brain parent SHA pair', () => {
-    const mismatched = `PR #85 source HEAD immediately before this documentation-only child is \`796f3b1b3dfc054850dd7410bce6fa27aa0fd108\`.
-These three runs validate parent HEAD \`0000000000000000000000000000000000000000\` only.`;
+    const mismatched = `PR #85 source HEAD immediately before this documentation-and-regression-test child is \`796f3b1b3dfc054850dd7410bce6fa27aa0fd108\`.
+These runs validate parent HEAD \`0000000000000000000000000000000000000000\` only.`;
     const pair = extractParentHeadPair(mismatched);
     expect(pair.source).toMatch(/^[0-9a-f]{40}$/);
     expect(pair.validated).not.toBe(pair.source);
   });
 
-  it('keeps all three workflow run IDs and the release tally aligned', () => {
+  it('keeps exact-head workflow IDs, checklist count and release tally aligned', () => {
     for (const section of latestSections) {
-      expect(section).toContain('43798173113');
-      expect(section).toContain('43798173142');
-      expect(section).toContain('43798173099');
+      expect(section).toContain('43802599004');
+      expect(section).toContain('43802599033');
+      expect(section).toContain('43802599167');
+      expect(section).toContain('64 items / 35 checked / 29 open');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
+    }
+  });
+
+  it('reports the npm audit findings without misclassifying the threshold', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('3 moderate findings');
+      expect(section).toContain('GHSA-g3hv-75wg-m249');
+      expect(section).toContain('does not remove moderate findings');
+      expect(section).not.toContain('production-only');
     }
   });
 
@@ -50,7 +60,7 @@ These three runs validate parent HEAD \`0000000000000000000000000000000000000000
     for (const section of latestSections) {
       expect(section).toContain('RELEASE NOT READY');
       expect(section).toContain('PRODUCTION/PILOT ACCEPTANCE NOT GRANTED');
-      expect(section).toContain('human');
+      expect(section).toContain('human APPROVED review');
     }
   });
 });
