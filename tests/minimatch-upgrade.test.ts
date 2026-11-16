@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { join, relative, sep } from 'node:path';
 import { createFingerprintAsync } from '@expo/fingerprint';
 import { Minimatch, minimatch } from 'minimatch';
 import { describe, expect, it } from 'vitest';
@@ -48,6 +50,40 @@ describe('minimatch 11 security override migration', () => {
     expect(reIncludedModule.negate).toBe(true);
     expect(reIncludedModule.match('packages/mobile/node_modules/keep/index.js')).toBe(false);
     expect(reIncludedModule.match('packages/mobile/node_modules/drop/index.js')).toBe(true);
+  });
+
+  it('honors node_modules ignorePaths through the SDK 57 fingerprint consumer', async () => {
+    const tempRoot = await mkdtemp(join(process.cwd(), 'node_modules', '.useit-minimatch-ignore-'));
+    const absolutePath = join(tempRoot, 'fingerprint-sentinel.txt');
+    const filePath = relative(process.cwd(), absolutePath).split(sep).join('/');
+    const extraSources = [{
+      type: 'file' as const,
+      filePath,
+      reasons: ['minimatch 11 ignorePaths regression'],
+    }];
+
+    try {
+      await writeFile(absolutePath, 'first content');
+      const first = await createFingerprintAsync(process.cwd(), {
+        ignorePaths: ['**/node_modules/**'],
+        platforms: ['android', 'ios'],
+        silent: true,
+        extraSources,
+      });
+      const ignoredSource = first.sources.find((source) => source.filePath === filePath);
+      expect(ignoredSource?.hash).toBeNull();
+
+      await writeFile(absolutePath, 'changed content');
+      const second = await createFingerprintAsync(process.cwd(), {
+        ignorePaths: ['**/node_modules/**'],
+        platforms: ['android', 'ios'],
+        silent: true,
+        extraSources,
+      });
+      expect(second.hash).toBe(first.hash);
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true });
+    }
   });
 
   it('runs the SDK 57 Expo fingerprint pipeline with minimatch 11', async () => {
