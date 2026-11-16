@@ -7,7 +7,9 @@ describe('USEIT Home recovery-state integration', () => {
   it('routes network failures to the offline panel with a retry for the same intent', () => {
     expect(home).toContain("import { requestFailureKind } from '../src/ui/requestFailure';");
     expect(home).toContain('const kind = requestFailureKind(error);');
-    expect(home).toContain("kind: 'offline'");
+    expect(home).toContain('kind,');
+    expect(home).toContain("title: kind === 'offline' ? 'No connection' : 'Could not understand the image'");
+    expect(home).toContain("description: kind === 'offline'");
     expect(home).toContain('onAction: () => { void analyze(intent); }');
   });
 
