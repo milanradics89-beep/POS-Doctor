@@ -56,12 +56,12 @@ describe('release documentation exact-head checkpoint', () => {
     }
   });
 
-  it('reports npm audit findings without misclassifying the configured threshold', () => {
+  it('reports the observed moderate npm audit finding without claiming the audit is clean', () => {
     for (const section of latestSections) {
-      expect(section).toContain('3 moderate / 0 high / 0 critical');
+      expect(section).toContain('3 moderate findings for minimatch');
       expect(section).toContain('GHSA-g3hv-75wg-m249');
-      expect(section).toContain('does not remove moderate findings');
-      expect(section).toContain('Do not describe this command as a zero-vulnerability or clean production-only audit.');
+      expect(section).toContain('npm audit fix --force');
+      expect(section).toContain('no forced downgrade or override was applied');
       expect(section).not.toMatch(misleadingZeroAuditClaim);
     }
   });
