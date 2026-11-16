@@ -2831,3 +2831,53 @@ This follow-up closes the previous checkpoint's pending validation statement for
 - Code Scanning, Dependabot and Secret Scanning alert inventories remain unavailable/unverified, not empty.
 
 **Release NOT READY. Production/pilot acceptance NOT GRANTED.** CI and simulator/emulator evidence do not replace human approval or external production acceptance.
+
+
+## Authoritative release register — live checkpoint 2026-11-16 03:18 CET
+
+This checkpoint supersedes the earlier 2026-11-16 01:20 evidence snapshot. The numbered register remains exactly 25 workstreams. Do not promote an external acceptance gate from automated CI alone.
+
+### Exact-head evidence
+- **PR #41 merged baseline:** source branch `fix/release-blockers-2026-10` exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit/current main `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Validation 43492153234, CodeQL 43492153161, Dependency Review 43492153021 all SUCCESS. Review 52 conversation comments, 30 inline comments, 26 submissions (one human APPROVED), 22/22 threads resolved.
+- **PR #85 documentation parent:** HEAD `89757fdd0b549c96447edb874a64d39d6f22cbb4`; Validation 43784170026, CodeQL 43784170040, Dependency Review 43784169985 all SUCCESS; backend, frontend/Android, iOS, CodeQL Analyze and Dependency Review jobs passed. Review 2/2 threads resolved; no human APPROVED. The documentation child being created by this checkpoint must run its own three workflows.
+- **PR #90 design/accessibility:** HEAD `b85cbc7dd6b1d8109a22d2c6952a8d83ecf52367`; Validation 43788320357, CodeQL 43788320223, Dependency Review 43788320228 all SUCCESS; backend, frontend/Android, iOS, CodeQL Analyze and Dependency Review jobs passed. All 3/3 P2 threads resolved; human accessibility/design approval pending.
+- **PR #99 / Issue #64 SSRF/NAT64:** HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139`; Validation 43772791089, CodeQL 43772791064, Dependency Review 43772791109 all SUCCESS; backend, frontend/Android, iOS, CodeQL Analyze and Dependency Review jobs passed. NAT64 tests cover well-known `64:ff9b::/96`, configured RFC 6052 /32, /40, /48, /56, /64, /96, private embedded-IPv4 rejection, numeric-IP pinning, connected-peer verification, Host/TLS SNI and redirect-hop DNS re-resolution. Both P2 threads resolved; PR remains Draft; production prefix configuration and human security approval pending.
+- **PR #107 full dependency audit:** HEAD `431d96a31beb523be31c109d81c7009d49357318`; Validation 43746773703, CodeQL 43746773650, Dependency Review 43746773667 all SUCCESS. Full npm audit artifact 14175052989: 3 moderate / 0 high / 0 critical / 0 low; findings remain visible and unsuppressed.
+- PR #96 HEAD `15e9c9fbd0e605911d4618e2e9216ebf611ab33f`, PR #106 HEAD `8e7679de7dbf5bd68d6d0e5e38716fbe027f89c7`, and PR #108 HEAD `e565b9aa029072d88298d83de2c37f6c55f97f2e`: each has exact-head Validation, CodeQL and Dependency Review SUCCESS.
+
+### Current repository and governance
+- Public repository; 78 branches, 38 open PRs, 5 open non-PR issues (#74, #64, #25, #24, #23), 0 published releases.
+- Main HEAD `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`, protected=true. Active Protect main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589): one approval, stale-review dismissal, last-push approval, resolved review threads, six strict checks (CodeQL, backend, frontend, ios, analyze, dependency-review), deletion/non-fast-forward blocked, no bypass actors.
+- Issue #47 is closed (10 comments), while its body retains a historical instruction to keep it open pending the owner's long-term public/private and plan decision. Current public visibility and active ruleset are verified; durable owner decision remains unconfirmed, so item #2 stays Blocked.
+- Issue #64 is open (38 comments); production `USEIT_NAT64_PREFIXES` inventory/configuration and independent human security approval are required.
+- Issue #74 is open (86 comments); persisted checklist: 64 boxes, 31 checked / 33 open.
+- Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable through the integration; status is unavailable/unverified, not zero.
+
+### Authoritative 25-point status register
+
+**Done — 2**
+| # | Workstream | Evidence |
+|---:|---|---|
+| 1 | iOS simulator CI closure | Exact-head iOS Release build and simulator install/launch smoke evidence retained |
+| 6 | Redis multi-instance concurrency | Concurrency regression coverage and Redis-backed CI evidence retained |
+
+**In Progress — 15**
+#3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.
+
+**Blocked — 8**
+| # | Workstream | Required acceptance evidence |
+|---:|---|---|
+| 2 | Repository visibility / GitHub plan decision | Owner's explicit durable public/private and plan decision |
+| 4 | Apple App Attest | Production entitlement and witnessed physical iPhone validation |
+| 5 | Google Play Integrity | Play-installed physical Android validation |
+| 16 | Backup / restore | Witnessed production recovery |
+| 18 | Product recognition | Representative benchmark and business acceptance |
+| 21 | Monitoring | Production alert delivery and verified response |
+| 22 | Staged rollout | Authorized approval and tested rollback |
+| 25 | Real-user pilot | Real-user evidence and business sign-off |
+
+The register contains exactly 25 numbered workstreams: **2 Done / 15 In Progress / 8 Blocked**. No physical-device, production-cloud/configuration, witnessed backup/restore, monitoring, staged-rollout, pilot or business-approval item is promoted by simulator/emulator CI, code scans, dependency scans or resolved review threads.
+
+**Release NOT READY. Production/pilot acceptance NOT GRANTED.**
+
+This checkpoint is a documentation-only child of PR #85 parent HEAD `89757fdd0b549c96447edb874a64d39d6f22cbb4`. The new child SHA must pass its own exact-head Validation, CodeQL and Dependency Review; the parent's green checks are not inherited.

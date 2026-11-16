@@ -1423,3 +1423,49 @@ This follow-up closes the previous checkpoint's pending validation statement for
 - Code Scanning, Dependabot and Secret Scanning alert inventories remain unavailable/unverified, not empty.
 
 **Release NOT READY. Production/pilot acceptance NOT GRANTED.** CI and simulator/emulator evidence do not replace human approval or external production acceptance.
+
+
+## Live pilot-acceptance evidence — 2026-11-16 03:18 CET
+
+### Exact-head automated evidence (before this documentation child)
+| PR | Exact HEAD | Validation | CodeQL | Dependency Review | Human review |
+|---|---|---|---|---|---|
+| #41 merged application baseline | `68b380e73ca3c870048035197beef8febbf90ef1` | [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234) SUCCESS | [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161) SUCCESS | [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) SUCCESS | 1 human APPROVED; 22/22 threads resolved |
+| #85 release records (parent of this update) | `89757fdd0b549c96447edb874a64d39d6f22cbb4` | [43784170026](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43784170026) SUCCESS | [43784170040](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43784170040) SUCCESS | [43784169985](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43784169985) SUCCESS | Pending; no human APPROVED |
+| #90 design/accessibility | `b85cbc7dd6b1d8109a22d2c6952a8d83ecf52367` | [43788320357](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43788320357) SUCCESS | [43788320223](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43788320223) SUCCESS | [43788320228](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43788320228) SUCCESS | Pending; no human APPROVED |
+| #99 SSRF/NAT64 | `f91c70d2636948e538f8e3559afc39cd93eb5139` | [43772791089](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791089) SUCCESS | [43772791064](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791064) SUCCESS | [43772791109](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791109) SUCCESS | Pending; PR remains Draft |
+| #107 dependency audit | `431d96a31beb523be31c109d81c7009d49357318` | [43746773703](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773703) SUCCESS | [43746773650](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773650) SUCCESS | [43746773667](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773667) SUCCESS | Pending; no human APPROVED |
+
+PR #85's parent Validation passed backend, frontend/Android and iOS jobs; CodeQL Analyze and Dependency Review also passed. PR #90's current Validation passed backend, frontend/Android and iOS; CodeQL Analyze and Dependency Review passed. PR #99's current Validation passed backend, frontend/Android and iOS; CodeQL Analyze and Dependency Review passed. PR #107's current Validation passed backend, frontend/Android and iOS; CodeQL Analyze and Dependency Review passed. These are automated emulator/simulator results, not physical-device acceptance.
+
+### Security and dependency acceptance
+- PR #99's exact-head tests cover DNS answer validation, numeric-IP connection pinning, connected-peer verification before TLS/request transmission, original Host/TLS SNI preservation, redirect-hop DNS re-resolution and private DNS-rebinding rejection. NAT64 coverage includes well-known `64:ff9b::/96` and configured RFC 6052 /32, /40, /48, /56, /64 and /96 prefixes; private embedded IPv4 is rejected before TCP connect. Both P2 review threads are resolved.
+- Issue #64 remains OPEN (38 comments). Production egress owners must provide the authoritative DNS64/NAT64 translator prefix inventory and verified `USEIT_NAT64_PREFIXES` value. Independent human security review of the HTTPX/httpcore transport and production prefix configuration is still required. No production SSRF acceptance is granted.
+- PR #107's full npm audit artifact [14175052989](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773703/artifacts/14175052989) reports 3 moderate / 0 high / 0 critical / 0 low. The npm audit is not clean; findings remain unsuppressed. The backend pip-audit on PR #99 reported no known Python dependency vulnerabilities.
+- Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable through this integration; their status is unavailable/unverified, not zero.
+
+### Review and governance acceptance
+- PR #41: 108 timeline entries; 52 conversation comments, 30 inline comments, 26 review submissions (25 COMMENTED, one human APPROVED); 22/22 threads resolved.
+- PR #85: 37 timeline entries; 31 conversation comments, 3 inline comments, 3 COMMENTED submissions; 2/2 threads resolved; human approval pending.
+- PR #90: 25 timeline entries; 19 conversation comments, 3 inline comments, 3 COMMENTED submissions; 3/3 threads resolved; human accessibility/design approval pending.
+- PR #99: 18 timeline entries; 14 conversation comments, 2 inline comments, 2 COMMENTED submissions; 2/2 threads resolved; human security approval pending; PR remains Draft.
+- PR #107: 12 timeline entries; 8 conversation comments, 2 inline comments, 2 COMMENTED submissions; 1/1 thread resolved; human security approval pending.
+- Main HEAD `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`; repository public; main protected=true. Active ruleset [Protect main #26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires one approval, stale-review dismissal, last-push approval, resolved threads and six strict checks; deletion/non-fast-forward are blocked and no bypass actors exist.
+- Issue #47 is closed (10 comments), although its body retains a historical instruction to keep it open until the owner's long-term public/private and plan decision. The current public visibility and active ruleset are verified; the durable owner decision remains unconfirmed and workstream #2 stays Blocked.
+
+### External acceptance gates — unchanged
+- #2 owner public/private and GitHub plan decision.
+- #4 production App Attest entitlement and witnessed physical iPhone validation.
+- #5 Play-installed physical Android Play Integrity validation.
+- #16 witnessed production backup/restore.
+- #18 representative product-recognition benchmark and business acceptance.
+- #21 production monitoring and verified alert delivery.
+- #22 approved staged rollout and tested rollback.
+- #25 real-user pilot and business sign-off.
+
+Repository inventory: 78 branches, 38 open PRs, 5 open non-PR issues (#74, #64, #25, #24, #23), and 0 published releases. Issue #74's persisted checklist is 64 boxes, 31 checked / 33 open.
+
+### Release decision
+The 25-point register remains 2 Done / 15 In Progress / 8 Blocked. Automated CI, code scans, dependency scans, resolved review threads and simulator/emulator smoke do not satisfy outstanding human approval or external production/pilot evidence. **Release NOT READY; production/pilot acceptance NOT GRANTED.**
+
+This is a documentation-only child of PR #85 HEAD `89757fdd0b549c96447edb874a64d39d6f22cbb4`. Its own exact-head Validation, CodeQL and Dependency Review must complete before this child can be called validated; parent runs are not inherited.

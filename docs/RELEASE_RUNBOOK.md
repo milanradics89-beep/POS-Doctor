@@ -1554,3 +1554,42 @@ This follow-up closes the previous checkpoint's pending validation statement for
 - Code Scanning, Dependabot and Secret Scanning alert inventories remain unavailable/unverified, not empty.
 
 **Release NOT READY. Production/pilot acceptance NOT GRANTED.** CI and simulator/emulator evidence do not replace human approval or external production acceptance.
+
+
+## Live release-watch checkpoint — 2026-11-16 03:18 CET
+
+### PR #41 — merged baseline
+- PR is CLOSED/MERGED. Reviewed source branch `fix/release-blockers-2026-10` remains at exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; branch ref matches. Merge commit and current main HEAD: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+- PR diff: 517 commits from merge base, 100 files, +11,887 / -2,005. Compare main...source branch reports 517 ahead / 1 behind (merge-base `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0)); this is the historical source-branch comparison, not an open/unmerged PR state.
+- Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) all SUCCESS. Backend, frontend/Android, iOS, CodeQL Analyze and Dependency Review jobs and their steps passed.
+- Review inventory: 108 combined timeline entries (52 conversation comments, 30 inline comments, 26 review submissions); 25 COMMENTED and one human APPROVED; all 22/22 inline threads resolved. PR description retains stale historical open/unmerged text; live PR metadata is authoritative.
+
+### PR #85 — current release-record branch
+- Current HEAD `89757fdd0b549c96447edb874a64d39d6f22cbb4`, 66 commits, 3 files, +4,437 / -31; PR remains open and unmerged.
+- Exact-head Validation [43784170026](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43784170026), CodeQL [43784170040](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43784170040), Dependency Review [43784169985](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43784169985) all SUCCESS. Backend, frontend/Android, iOS, CodeQL Analyze and Dependency Review jobs passed.
+- Review inventory: 37 combined entries (31 conversation comments, 3 inline comments, 3 review submissions); all submissions COMMENTED; 2/2 inline threads resolved; no human APPROVED review. Reviewer `tarlaci1984-sketch` remains requested.
+
+### PR #90 — design/accessibility validation
+- Current HEAD `b85cbc7dd6b1d8109a22d2c6952a8d83ecf52367`, 20 commits, 20 files, +1,061 / -158; open and unmerged.
+- Exact-head Validation [43788320357](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43788320357), CodeQL [43788320223](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43788320223), Dependency Review [43788320228](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43788320228) all SUCCESS. Backend, frontend/Android, iOS, CodeQL Analyze and Dependency Review jobs passed. Latest change pins the Android validation runner and adds a workflow-contract regression.
+- Review inventory: 25 combined entries (19 conversation comments, 3 inline comments, 3 COMMENTED submissions); 3/3 threads resolved; no human APPROVED review. Human design/accessibility approval remains pending.
+
+### PR #99 / Issue #64 — SSRF and NAT64
+- Current PR HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139`, 17 commits, 7 files, +1,417 / -34; open and Draft.
+- Exact-head Validation [43772791089](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791089), CodeQL [43772791064](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791064), Dependency Review [43772791109](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791109) all SUCCESS; backend, frontend/Android and iOS jobs passed.
+- The well-known `64:ff9b::/96` and configured RFC 6052 /32, /40, /48, /56, /64 and /96 paths validate embedded IPv4 destinations; private embedded IPv4 is rejected before TCP connect. HTTPX/httpcore transport tests cover numeric-IP pinning, connected-peer verification, original Host/TLS SNI, redirect-hop DNS re-resolution and rebinding rejection.
+- Review inventory: 18 combined entries (14 conversation comments, 2 inline comments, 2 COMMENTED submissions); both P2 threads resolved; no human APPROVED review. Issue #64 remains OPEN with 38 comments. Production `USEIT_NAT64_PREFIXES` inventory/configuration and independent human security approval remain outstanding.
+
+### PR #107 and supporting branches
+- PR #107 HEAD `431d96a31beb523be31c109d81c7009d49357318`: Validation [43746773703](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773703), CodeQL [43746773650](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773650), Dependency Review [43746773667](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773667) all SUCCESS; backend, frontend/Android, iOS, analyze and dependency-review jobs passed. Full npm audit artifact [14175052989](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43746773703/artifacts/14175052989) reports 3 moderate / 0 high / 0 critical / 0 low; findings remain visible and unsuppressed.
+- PR #96 HEAD `15e9c9fbd0e605911d4618e2e9216ebf611ab33f`, PR #106 HEAD `8e7679de7dbf5bd68d6d0e5e38716fbe027f89c7`, and PR #108 HEAD `e565b9aa029072d88298d83de2c37f6c55f97f2e` each retain exact-head Validation, CodeQL and Dependency Review SUCCESS.
+
+### Governance, inventory and acceptance
+- Repository visibility is public; main HEAD is `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Main reports protected=true. Active ruleset [Protect main #26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) targets the default branch, requires six strict checks (CodeQL, backend, frontend, ios, analyze, dependency-review), one approval, stale-review dismissal, last-push approval and resolved threads; deletion/non-fast-forward are blocked; no bypass actors.
+- Issue #47 is closed (10 comments), but its body still contains a prior instruction to keep it open pending the owner's long-term public/private and plan decision. Current public visibility and active ruleset are verified; the durable owner decision remains unconfirmed, so workstream #2 stays Blocked.
+- Issue #74 remains open with 86 comments; its persisted checklist is 64 items: 31 checked / 33 open. Issue #64 remains open with 38 comments.
+- Repository inventory: 78 branches, 38 open PRs, 5 open non-PR issues (#74, #64, #25, #24, #23), and 0 published releases.
+- Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable through this integration; they remain unavailable/unverified, not empty.
+- The 25-point register remains 2 Done (#1, #6), 15 In Progress (#3, #7–#15, #17, #19, #20, #23, #24), and 8 Blocked (#2, #4, #5, #16, #18, #21, #22, #25). Physical devices, production configuration/cloud access, witnessed backup/restore, monitoring, staged rollout, real-user pilot and business approval remain external gates.
+
+This checkpoint is being appended as a documentation-only child of PR #85 HEAD `89757fdd0b549c96447edb874a64d39d6f22cbb4`. The child commit's own Validation, CodeQL and Dependency Review must run and pass; the parent's successful checks are not inherited. Release remains NOT READY; production/pilot acceptance remains NOT GRANTED.
