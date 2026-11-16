@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { theme } from './theme';
+
+const homeSource = readFileSync(new URL('../../app/index.tsx', import.meta.url), 'utf8');
 
 function luminance(hex: string): number {
   const channels = [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255);
@@ -13,6 +16,13 @@ function contrast(foreground: string, background: string): number {
 }
 
 describe('USEIT design token contrast', () => {
+  it('uses an AA-safe token for the mode-card arrow on its light surface', () => {
+    const arrowStyle = homeSource.match(/arrow:\s*\{([^}]+)\}/)?.[1] ?? '';
+    expect(arrowStyle).toContain('theme.colors.subtle');
+    expect(arrowStyle).not.toContain('theme.colors.captureTextMuted');
+    expect(contrast(theme.colors.subtle, theme.colors.surface)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it('keeps secondary text and links at WCAG AA contrast on light surfaces', () => {
     for (const foreground of [theme.colors.muted, theme.colors.subtle, theme.colors.accentDark, theme.colors.productLink]) {
       for (const background of [theme.colors.canvas, theme.colors.surface]) {

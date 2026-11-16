@@ -657,7 +657,7 @@ const s = StyleSheet.create({
     right: 18,
     top: 17,
     fontSize: 28,
-    color: theme.colors.captureTextMuted,
+    color: theme.colors.subtle,
   },
   section: {
     fontSize: 11,
