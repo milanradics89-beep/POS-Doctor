@@ -1,3 +1,18 @@
+## Live operational checkpoint — 2026-11-16 01:59 CET
+
+This section supersedes older operational snapshots below. It is a documentation-only child of PR #85 pre-write HEAD `49201852ba2b179cf6c19ad03da9e33cac26b49f`; its own exact-head checks are required.
+
+- Main HEAD `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`; Protect main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) remains active and unchanged.
+- PR #41 is merged and human-approved; 22/22 review threads resolved. Three obsolete queued Actions runs have empty job lists on stale SHA `b46c5b8`; owner/admin cleanup is required.
+- PR #85 pre-write HEAD `49201852ba2b179cf6c19ad03da9e33cac26b49f` passed Validation 43780032663, CodeQL 43780032586 and Dependency Review 43780032572. Both P2 threads are resolved/outdated; human approval remains pending. This documentation child needs a fresh check set.
+- PR #90 HEAD `12024e1d3948d04c664888c72510e9949a6164e3`: Validation 43783060018 is running (backend passed, Android/iOS Release jobs running); CodeQL 43783060010 and Dependency Review 43783060119 passed. Issue #110 tracks the failed predecessor's test assertion and remains open until current-head Validation succeeds.
+- PR #99 HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139` passed all three required workflows. Actual HTTPX/httpcore transport and NAT64 regressions passed; both P2 threads are resolved. Keep issue #64 open for independent human security review and production NAT64 prefix configuration.
+- PR #96/#97/#106/#107/#108 retain terminal-success exact-head checks. npm audit still has 3 moderate findings; keep them visible. PR #106 does not prove Redis server 8 production compatibility.
+- Issue #74 remains 64 checklist boxes / 31 checked / 33 open; the 25-point register remains 2 Done / 15 In Progress / 8 Blocked. Do not treat CI, simulator/emulator or documentation as external acceptance.
+- **Release NOT READY; production/pilot acceptance NOT GRANTED.** Physical provider/device tests, production backup/restore, monitoring, staged rollout/rollback, benchmark/business acceptance and pilot remain blocked pending direct evidence and approval.
+
+---
+
 ## Latest verified operational release checkpoint — 2026-11-15 22:07 CET
 
 This checkpoint supersedes the 21:14 CET snapshot below. It records current operational evidence. The documentation correction is based on validated PR #85 parent `2cd7198a111dc0937150d344bc7817418de0e227`; this child must pass its own Validation, CodeQL and Dependency Review before further writes.

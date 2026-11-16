@@ -1,3 +1,27 @@
+## Current production and pilot acceptance checkpoint — 2026-11-16 01:59 CET
+
+**Acceptance decision: NOT GRANTED. Release decision: NOT READY.** This snapshot supersedes older acceptance summaries below. It is a documentation-only child of PR #85 pre-write HEAD `49201852ba2b179cf6c19ad03da9e33cac26b49f`; it requires its own exact-head checks.
+
+### Automated evidence
+- PR #41 is merged at reviewed HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; exact-head CI passed, 22/22 inline threads resolved, one human APPROVED review.
+- PR #85 pre-write HEAD `49201852ba2b179cf6c19ad03da9e33cac26b49f`: Validation [43780032663](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43780032663), CodeQL [43780032586](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43780032586), Dependency Review [43780032572](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43780032572) all SUCCESS. Both P2 threads resolved/outdated; no human APPROVED review; `tarlaci1984-sketch` remains requested.
+- PR #90 HEAD `12024e1d3948d04c664888c72510e9949a6164e3`: Validation [43783060018](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43783060018) IN_PROGRESS (backend passed; Android/iOS Release running); CodeQL [43783060010](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43783060010) and Dependency Review [43783060119](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43783060119) SUCCESS. Issue #110 remains open pending current-head Validation.
+- PR #99 / Issue #64 HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139`: Validation 43772791089, CodeQL 43772791064 and Dependency Review 43772791109 all SUCCESS. Backend 539, readiness 27, production-security 78; cryptography 50.0.2; pip-audit clean. Actual HTTPX/httpcore transport tests cover DNS-per-hop, numeric IP pinning, peer verification, Host/TLS SNI, rebinding rejection and RFC 6052 NAT64. Both NAT64 P2 threads resolved; independent human security review and production NAT64 configuration remain outstanding.
+- PR #96/#97/#106/#107/#108 retain terminal-success exact-head checks. PR #106 tests redis-py 8.1 against Redis 7.4.12, not Redis server 8 production. PR #107 npm audit reports 3 moderate / 0 high / 0 critical; findings remain visible.
+
+### External acceptance gates — NOT SATISFIED
+- Production Apple App Attest entitlement/provider configuration and assertion verification on a supported physical iPhone.
+- Play-installed physical Android device with production Play Integrity identity and verification.
+- Owner-authorized production cloud configuration and secrets; witnessed production backup/restore with measured RPO/RTO.
+- Production monitoring, named on-call owner, verified alert delivery/acknowledgement, staged rollout and tested rollback.
+- Representative labelled product-recognition benchmark, agreed thresholds and business approval.
+- Real-user pilot with safeguards, measured outcomes and explicit business sign-off.
+- Owner's final repository visibility/plan decision.
+
+Issue #74 remains 64 total / 31 checked / 33 open. The 25-point register remains 2 Done / 15 In Progress / 8 Blocked. Code Scanning, Dependabot and Secret Scanning inventories remain unavailable/unverified, not empty. **Release NOT READY; production/pilot acceptance NOT GRANTED.**
+
+---
+
 ## Latest production and pilot acceptance checkpoint — 2026-11-15 22:07 CET
 
 **Acceptance decision: NOT GRANTED. Release decision: NOT READY.** This checkpoint supersedes the 21:14 CET snapshot below. It records the current GitHub evidence; this documentation child is based on validated PR #85 parent `2cd7198a111dc0937150d344bc7817418de0e227` and must pass its own exact-head checks.
