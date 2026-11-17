@@ -35,7 +35,7 @@ describe('release documentation exact-head checkpoint', () => {
     expect(new Set(latestSections).size).toBe(1);
 
     for (const section of latestSections) {
-      expect(section).toContain('The resulting documentation child must pass its own exact-head Validation, CodeQL and Dependency Review.');
+      expect(section).toContain('Parent runs are not presented as validation of the documentation commit created by this checkpoint.');
       expect(section).toMatch(/Validation \[44090801232\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
       expect(section).toMatch(/CodeQL \[44090801233\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
       expect(section).toMatch(/Dependency Review \[44090801161\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
@@ -72,6 +72,12 @@ describe('release documentation exact-head checkpoint', () => {
     }
   });
 
+  it('keeps the child-branch validation gate in the release record', () => {
+    for (const document of documents) {
+      expect(document).toContain('The resulting documentation child must pass its own exact-head Validation, CodeQL and Dependency Review.');
+    }
+  });
+
   it('detects a split-brain parent/evidence pair', () => {
     const mismatched = "PR #85 pre-write parent HEAD is \x60796f3b1b3dfc054850dd7410bce6fa27aa0fd108\x60.\nThese exact-head runs belong to PR #85 pre-write parent HEAD \x6000000000000000000000000000000000000000\x60 only.";
     const pair = extractPreWritePair(mismatched);
@@ -85,7 +91,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('GHSA-g3hv-75wg-m249');
       expect(section).toContain('npm audit fix --force');
       expect(section).not.toMatch(misleadingZeroAuditClaim);
-      expect(section).toContain('no forced Expo downgrade or audit suppression was applied');
+      expect(section).toMatch(/no forced Expo downgrade or audit suppression was applied/i);
     }
   });
 
