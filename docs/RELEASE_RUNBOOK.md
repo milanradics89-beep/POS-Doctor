@@ -24,6 +24,14 @@ This checkpoint supersedes the 07:36 CET snapshot. It records live repository me
 - The previous Validation failure on superseded SHA `0dd49b837e4b8794c11a22b58b29100a8ded953e` was caused by an over-escaped Markdown visibility assertion in `scripts/release-doc-checkpoint.test.mjs`. PR #135 corrected the assertion; exact-head Validation on `c7f67f3` now passes. Issue #136 remains OPEN until the validated PR #85 branch is integrated into `main`; do not describe the old failure as a current-head failure.
 - The resulting documentation child must pass its own exact-head Validation, CodeQL and Dependency Review. Parent results above do not validate that child.
 
+### PR #132 — camera photo replacement request invalidation
+
+- PR #132 remains OPEN/DRAFT on branch `fix/home-camera-request-invalidation-20261117`, based on `fix/home-stale-request-guards-20261117` at `dd0407406bc3ad675f8ad68fb6041357bdc38d8d`; exact HEAD is `d463f924500b0b070f50c9c328b4078b83f6df08`. This is a stacked UI change, not a mainline integration or release-acceptance claim.
+- Exact-head Validation [44028244600](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44028244600), CodeQL [44028244408](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44028244408), and Dependency Review [44028244391](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44028244391) are terminal SUCCESS on the exact HEAD above.
+- Validation logs confirm backend tests, 27 production-readiness checks and 78 production-security checks passed; frontend **331/331 tests across 72 files**, Expo Doctor **21/21**, Android Release build and emulator smoke, and iOS Release build and simulator smoke all passed.
+- The camera-capture path now calls `invalidatePendingRequests()` after confirming a usable base64 image and before replacing the selected photo. The targeted regression test asserts this ordering, so an older analysis/render response cannot overwrite the newly captured image.
+- Review inventory: **0 review submissions and 0 inline review threads**. Reviewer `tarlaci1984-sketch` is requested; human review and integration remain pending. These CI results do not imply physical-device acceptance or production rollout.
+
 ### Release documents and regression test
 
 - `docs/RELEASE_RUNBOOK.md`, `docs/RELEASE_PILOT_ACCEPTANCE.md`, and `docs/25-POINT-RELEASE-BACKLOG.md` currently share an identical 07:36 CET checkpoint prefix. This new 09:46 CET checkpoint is being added identically to all three files.
