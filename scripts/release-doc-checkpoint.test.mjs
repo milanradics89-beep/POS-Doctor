@@ -42,7 +42,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('CodeQL [44028244408]');
       expect(section).toContain('64 items, 42 checked / 22 open');
       expect(section).toContain('139 comments');
-      expect(section).toContain('97 branches, 41 open PRs and 6 open non-PR issues');
+      expect(section).toMatch(/97 branches(?: \(pagination exhausted\))?, 41 open PRs and 6 open non-PR issues/);
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
       expect(section).toContain('PR #41 is CLOSED/MERGED');
       expect(section).toContain('61 conversation comments, 16 inline review comments, 16 review submissions');
