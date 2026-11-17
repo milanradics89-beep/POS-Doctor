@@ -36,9 +36,9 @@ describe('release documentation exact-head checkpoint', () => {
 
     for (const section of latestSections) {
       expect(section).toContain('Parent runs are not presented as validation of the documentation commit created by this checkpoint.');
-      expect(section).toMatch(/Validation \[44090801232\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
-      expect(section).toMatch(/CodeQL \[44090801233\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
-      expect(section).toMatch(/Dependency Review \[44090801161\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
+      expect(section).toMatch(/Validation \[44090801232\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
+      expect(section).toMatch(/CodeQL \[44090801233\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
+      expect(section).toMatch(/Dependency Review \[44090801161\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
       expect(section).toContain('PR #140 is OPEN/DRAFT, exact HEAD');
       expect(section).toContain('Validation [44077737637]');
       expect(section).toContain('CodeQL [44077737700]');
