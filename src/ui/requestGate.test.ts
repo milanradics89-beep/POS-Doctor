@@ -50,7 +50,7 @@ describe('Home asynchronous request lifecycle', () => {
   });
   it('invalidates pending work in the camera path before replacing a usable photo', () => {
     const captureStart = source.indexOf('async function capture() {');
-    const captureEnd = source.indexOf('\\n  const noticePanel', captureStart);
+    const captureEnd = source.indexOf('\n  const noticePanel', captureStart);
     expect(captureStart).toBeGreaterThanOrEqual(0);
     expect(captureEnd).toBeGreaterThan(captureStart);
 
