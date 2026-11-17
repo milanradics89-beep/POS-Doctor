@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-17 00:41 CET';
+const marker = '## Exact-head reconciliation — 2026-11-17 02:30 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -31,17 +31,17 @@ describe('release documentation exact-head checkpoint', () => {
       expect(pair.evidenced).toBe(pair.parent);
     }
     expect(new Set(pairs.map((pair) => pair.parent)).size).toBe(1);
-    expect(pairs.every((pair) => pair.parent === '1b70ab892c0ea83d5d8bf0189b8c7892b618a43f')).toBe(true);
+    expect(pairs.every((pair) => pair.parent === '2e46b240837cb842cdc8dfffcc5f7f4e64a122f0')).toBe(true);
     expect(new Set(latestSections).size).toBe(1);
     for (const section of latestSections) {
       expect(section).toContain('The resulting documentation child must pass its own exact-head Validation, CodeQL and Dependency Review.');
-      expect(section).toMatch(/Validation \[43978290948\](?:\([^)]+\))?: IN PROGRESS/);
-      expect(section).toMatch(/CodeQL \[43978290845\](?:\([^)]+\))?: SUCCESS/);
-      expect(section).toMatch(/Dependency Review \[43978290600\](?:\([^)]+\))?: SUCCESS/);
-      expect(section).toContain('Validation [43981564972]');
+      expect(section).toMatch(/Validation \[43989350014\](?:\([^)]+\))?: IN PROGRESS/);
+      expect(section).toMatch(/CodeQL \[43989350164\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toMatch(/Dependency Review \[43989349991\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toContain('Validation [43989350463]');
       expect(section).toContain('Validation [43981707087]');
       expect(section).toContain('64 items, 42 checked / 22 open');
-      expect(section).toContain('89 branches, 40 open PRs and 5 open non-PR issues');
+      expect(section).toContain('92 branches, 39 open PRs and 5 open non-PR issues');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
     }
   });
