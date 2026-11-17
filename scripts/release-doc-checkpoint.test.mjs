@@ -35,7 +35,7 @@ describe('release documentation exact-head checkpoint', () => {
     expect(new Set(latestSections).size).toBe(1);
     for (const section of latestSections) {
       expect(section).toContain('The resulting documentation child must pass its own exact-head Validation, CodeQL and Dependency Review.');
-      expect(section).toMatch(/Validation \[43989350014\](?:\([^)]+\))?: IN PROGRESS/);
+      expect(section).toMatch(/Validation \[43989350014\](?:\([^)]+\))?: SUCCESS/);
       expect(section).toMatch(/CodeQL \[43989350164\](?:\([^)]+\))?: SUCCESS/);
       expect(section).toMatch(/Dependency Review \[43989349991\](?:\([^)]+\))?: SUCCESS/);
       expect(section).toContain('Validation [43989350463]');
