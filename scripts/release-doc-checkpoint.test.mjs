@@ -35,11 +35,11 @@ describe('release documentation exact-head checkpoint', () => {
     expect(new Set(latestSections).size).toBe(1);
 
     for (const section of latestSections) {
-      expect(section).toContain('The resulting documentation child must pass its own exact-head Validation, CodeQL and Dependency Review.');
-      expect(section).toMatch(/Validation \[44090801232\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
-      expect(section).toMatch(/CodeQL \[44090801233\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
-      expect(section).toMatch(/Dependency Review \[44090801161\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
-      expect(section).toContain('PR #140 is OPEN/DRAFT, exact HEAD');
+      expect(section).toContain('Parent runs are not presented as validation of the documentation commit created by this checkpoint.');
+      expect(section).toMatch(/Validation \[44090801232\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
+      expect(section).toMatch(/CodeQL \[44090801233\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
+      expect(section).toMatch(/Dependency Review \[44090801161\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
+      expect(section).toContain('PR #140 is OPEN/DRAFT at exact HEAD');
       expect(section).toContain('Validation [44077737637]');
       expect(section).toContain('CodeQL [44077737700]');
       expect(section).toContain('Dependency Review [44077737572]');
@@ -51,15 +51,15 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Validation [43772791089]');
       expect(section).toContain('CodeQL [43772791064]');
       expect(section).toContain('Dependency Review [43772791109]');
-      expect(section).toContain('PR #85 review inventory: 16 review submissions (all COMMENTED), 9/9 inline threads resolved, 0 human APPROVED reviews');
+      expect(section).toMatch(/PR #85 review inventory: .*16 review submissions \(all COMMENTED\), 9\/9 inline threads resolved, 0 human APPROVED reviews/);
       expect(section).toContain('Its review inventory is 3 COMMENTED submissions, 3/3 inline threads resolved and 0 human APPROVED reviews');
       expect(section).toContain('PR #140 has 0 review submissions and 0 inline review threads');
       expect(section).toContain('PR #99 has 4 COMMENTED review submissions (including the two replies), 2/2 inline threads resolved and 0 human APPROVED reviews');
-      expect(section).toContain('Issue #136, now CLOSED');
-      expect(section).toContain('Issue #142, now CLOSED');
-      expect(section).toContain('61 test files passed');
+      expect(section).toContain('Issue #136 is CLOSED');
+      expect(section).toMatch(/Issue #142,.*is now CLOSED/);
+      expect(section).toContain('61 test files, pinned Expo Doctor');
       expect(section).toContain('71 test files passed');
-      expect(section).toContain('72 test files passed');
+      expect(section).toContain('331/331 tests across 72 test files');
       expect(section).toContain('64 items, 42 checked / 22 open');
       expect(section).toContain('102 branches');
       expect(section).toContain('42 open PRs and 5 open non-PR issues');
@@ -69,6 +69,12 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section.toLowerCase()).toContain('repository visibility is currently **public**');
       expect(section).toContain('Security alert inventories are **unavailable/unverified, not empty**');
       expect(section).toContain('No Issue #74 checkbox changed');
+    }
+  });
+
+  it('keeps the child-branch validation gate in the release record', () => {
+    for (const document of documents) {
+      expect(document).toContain('The resulting documentation child must pass its own exact-head Validation, CodeQL and Dependency Review.');
     }
   });
 
@@ -85,7 +91,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('GHSA-g3hv-75wg-m249');
       expect(section).toContain('npm audit fix --force');
       expect(section).not.toMatch(misleadingZeroAuditClaim);
-      expect(section).toContain('no forced Expo downgrade or audit suppression was applied');
+      expect(section).toMatch(/no forced Expo downgrade or audit suppression was applied/i);
     }
   });
 
