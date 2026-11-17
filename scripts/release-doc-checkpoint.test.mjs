@@ -49,7 +49,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('293 tests passed across 60 files');
       expect(section).toContain('450 tests, 27 production-readiness checks and 78 production-security checks passed');
       expect(section).toContain('Protect main ruleset #26370589 is ACTIVE');
-      expect(section).toMatch(/repository visibility is currently \\*\\*public\\*\\*/i);
+      expect(section.toLowerCase()).toContain('repository visibility is currently **public**');
       expect(section).toContain('0 published releases');
       expect(section).toContain('Security alert inventories are **unavailable/unverified, not empty**');
     }
