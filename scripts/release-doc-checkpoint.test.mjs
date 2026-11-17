@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-17 06:36 CET';
+const marker = '## Exact-head reconciliation — 2026-11-17 07:36 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -31,17 +31,18 @@ describe('release documentation exact-head checkpoint', () => {
       expect(pair.evidenced).toBe(pair.parent);
     }
     expect(new Set(pairs.map((pair) => pair.parent)).size).toBe(1);
-    expect(pairs.every((pair) => pair.parent === '315314f2ffce2297e6139862c6fa797945487dc7')).toBe(true);
+    expect(pairs.every((pair) => pair.parent === 'c81491ebfa005d477eb6ee1006e2266a87a23ee3')).toBe(true);
     expect(new Set(latestSections).size).toBe(1);
     for (const section of latestSections) {
       expect(section).toContain('The resulting documentation child must pass its own exact-head Validation, CodeQL and Dependency Review.');
-      expect(section).toMatch(/Validation \[44018085508\](?:\([^)]+\))?: SUCCESS/);
-      expect(section).toMatch(/CodeQL \[44018085504\](?:\([^)]+\))?: SUCCESS/);
-      expect(section).toMatch(/Dependency Review \[44018085666\](?:\([^)]+\))?: SUCCESS/);
-      expect(section).toContain('Validation [43989350463]');
-      expect(section).toContain('Validation [43981707087]');
+      expect(section).toMatch(/Validation \[44025706066\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toMatch(/CodeQL \[44025706097\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toMatch(/Dependency Review \[44025706080\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toContain('Validation [44028244600]');
+      expect(section).toContain('CodeQL [44028244408]');
       expect(section).toContain('64 items, 42 checked / 22 open');
-      expect(section).toContain('96 branches, 41 open PRs and 5 open non-PR issues');
+      expect(section).toContain('134 comments');
+      expect(section).toContain('96 branches, 41 open PRs and 6 open non-PR issues');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
       expect(section).toContain('PR #41 is CLOSED/MERGED');
       expect(section).toContain('PR #85 pre-write parent HEAD is');
@@ -77,6 +78,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('PRODUCTION/PILOT ACCEPTANCE NOT GRANTED');
       expect(section).toContain('0 human APPROVED reviews');
       expect(section).toContain('9/9 inline threads resolved');
+      expect(section).toContain('Issue #134 remains OPEN');
       expect(section).toContain('Issue #64 remains OPEN');
     }
   });
