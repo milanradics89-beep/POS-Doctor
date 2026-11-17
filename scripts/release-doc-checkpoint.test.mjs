@@ -39,7 +39,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toMatch(/Validation \[44073847674\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
       expect(section).toMatch(/CodeQL \[44073847774\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
       expect(section).toMatch(/Dependency Review \[44073847717\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
-      expect(section).toContain('PR #140 exact HEAD');
+      expect(section).toContain('PR #140 is OPEN/DRAFT, exact HEAD');
       expect(section).toContain('Validation [44077737637]');
       expect(section).toContain('CodeQL [44077737700]');
       expect(section).toContain('Dependency Review [44077737572]');
@@ -51,8 +51,8 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Validation [43772791089]');
       expect(section).toContain('CodeQL [43772791064]');
       expect(section).toContain('Dependency Review [43772791109]');
-      expect(section).toContain('PR #85 review inventory: 16 review submissions (all COMMENTED), 9 unresolved inline threads, 0 human APPROVED reviews');
-      expect(section).toContain('PR #90 review inventory is 3 COMMENTED submissions, 3 unresolved inline threads and 0 human APPROVED reviews');
+      expect(section).toContain('PR #85 review inventory: 16 review submissions (all COMMENTED), 9/9 inline threads resolved, 0 human APPROVED reviews');
+      expect(section).toContain('Its review inventory is 3 COMMENTED submissions, 3/3 inline threads resolved and 0 human APPROVED reviews');
       expect(section).toContain('PR #140 has 0 review submissions and 0 inline review threads');
       expect(section).toContain('PR #99 has 4 COMMENTED review submissions (including the two replies), 2/2 inline threads resolved and 0 human APPROVED reviews');
       expect(section).toContain('Issue #136, now CLOSED');
