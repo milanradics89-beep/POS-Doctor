@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from './theme';
 import { productCardAccessibilityLabel } from './productAccessibility';
@@ -109,12 +109,48 @@ export function StatePanel({ kind, title, description, actionLabel, actionAccess
 export function FadeIn({ children, delay = 0 }: React.PropsWithChildren<{ delay?: number }>) {
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(12)).current;
+  const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
+
   useEffect(() => {
-    Animated.parallel([
+    let active = true;
+    let receivedLivePreference = false;
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
+      receivedLivePreference = true;
+      setReduceMotion(enabled);
+    });
+
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (active && !receivedLivePreference) setReduceMotion(enabled);
+      })
+      .catch(() => {
+        if (active && !receivedLivePreference) setReduceMotion(false);
+      });
+
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion === null) return;
+    if (reduceMotion) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    opacity.setValue(0);
+    translateY.setValue(12);
+    const animation = Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 360, delay, useNativeDriver: true }),
       Animated.timing(translateY, { toValue: 0, duration: 360, delay, useNativeDriver: true }),
-    ]).start();
-  }, [delay, opacity, translateY]);
+    ]);
+    animation.start();
+    return () => animation.stop();
+  }, [delay, opacity, reduceMotion, translateY]);
+
   return <Animated.View style={{ opacity, transform: [{ translateY }] }}>{children}</Animated.View>;
 }
 
