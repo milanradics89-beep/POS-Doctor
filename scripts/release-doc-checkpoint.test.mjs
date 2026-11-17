@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-17 13:22 CET';
+const marker = '## Exact-head reconciliation — 2026-11-17 15:06 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -31,14 +31,14 @@ describe('release documentation exact-head checkpoint', () => {
       expect(pair.evidenced).toBe(pair.parent);
     }
     expect(new Set(pairs.map((pair) => pair.parent)).size).toBe(1);
-    expect(pairs.every((pair) => pair.parent === 'f3aa1905e8f496f4be4d142e159e2faca182efd3')).toBe(true);
+    expect(pairs.every((pair) => pair.parent === 'fea211fdbd086a07e51bd5d7491d96e64375d8a4')).toBe(true);
     expect(new Set(latestSections).size).toBe(1);
 
     for (const section of latestSections) {
       expect(section).toContain('The resulting documentation child must pass its own exact-head Validation, CodeQL and Dependency Review.');
-      expect(section).toMatch(/Validation \[44073847674\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
-      expect(section).toMatch(/CodeQL \[44073847774\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
-      expect(section).toMatch(/Dependency Review \[44073847717\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
+      expect(section).toMatch(/Validation \[44090801232\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
+      expect(section).toMatch(/CodeQL \[44090801233\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
+      expect(section).toMatch(/Dependency Review \[44090801161\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
       expect(section).toContain('PR #140 is OPEN/DRAFT, exact HEAD');
       expect(section).toContain('Validation [44077737637]');
       expect(section).toContain('CodeQL [44077737700]');
@@ -56,11 +56,12 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('PR #140 has 0 review submissions and 0 inline review threads');
       expect(section).toContain('PR #99 has 4 COMMENTED review submissions (including the two replies), 2/2 inline threads resolved and 0 human APPROVED reviews');
       expect(section).toContain('Issue #136, now CLOSED');
+      expect(section).toContain('Issue #142, now CLOSED');
       expect(section).toContain('61 test files passed');
       expect(section).toContain('71 test files passed');
       expect(section).toContain('72 test files passed');
       expect(section).toContain('64 items, 42 checked / 22 open');
-      expect(section).toContain('101 branches');
+      expect(section).toContain('102 branches');
       expect(section).toContain('42 open PRs and 5 open non-PR issues');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
       expect(section).toContain('PR #41 is CLOSED/MERGED');
