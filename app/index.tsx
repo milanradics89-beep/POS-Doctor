@@ -272,6 +272,7 @@ export default function Home() {
       return;
     }
 
+    invalidatePendingRequests();
     setNotice(null);
     setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
     setResult(null);
