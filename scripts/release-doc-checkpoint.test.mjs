@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-17 09:46 CET';
+const marker = '## Exact-head reconciliation — 2026-11-17 13:22 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -31,30 +31,43 @@ describe('release documentation exact-head checkpoint', () => {
       expect(pair.evidenced).toBe(pair.parent);
     }
     expect(new Set(pairs.map((pair) => pair.parent)).size).toBe(1);
-    expect(pairs.every((pair) => pair.parent === 'c7f67f35913d52633368129880b1ae6a8111a9a9')).toBe(true);
+    expect(pairs.every((pair) => pair.parent === 'f3aa1905e8f496f4be4d142e159e2faca182efd3')).toBe(true);
     expect(new Set(latestSections).size).toBe(1);
+
     for (const section of latestSections) {
       expect(section).toContain('The resulting documentation child must pass its own exact-head Validation, CodeQL and Dependency Review.');
-      expect(section).toMatch(/Validation \[44041386344\](?:\([^)]+\))?: SUCCESS/);
-      expect(section).toMatch(/CodeQL \[44041386347\](?:\([^)]+\))?: SUCCESS/);
-      expect(section).toMatch(/Dependency Review \[44041386361\](?:\([^)]+\))?: SUCCESS/);
+      expect(section).toMatch(/Validation \[44073847674\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
+      expect(section).toMatch(/CodeQL \[44073847774\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
+      expect(section).toMatch(/Dependency Review \[44073847717\](?:\([^)]+\))?: \*\*SUCCESS\*\*/);
+      expect(section).toContain('PR #140 exact HEAD');
+      expect(section).toContain('Validation [44077737637]');
+      expect(section).toContain('CodeQL [44077737700]');
+      expect(section).toContain('Dependency Review [44077737572]');
+      expect(section).toContain('PR #132 remains OPEN/DRAFT');
       expect(section).toContain('Validation [44028244600]');
       expect(section).toContain('CodeQL [44028244408]');
+      expect(section).toContain('Dependency Review [44028244391]');
+      expect(section).toContain('PR #99 remains OPEN/DRAFT');
+      expect(section).toContain('Validation [43772791089]');
+      expect(section).toContain('CodeQL [43772791064]');
+      expect(section).toContain('Dependency Review [43772791109]');
+      expect(section).toContain('PR #85 review inventory: 16 review submissions (all COMMENTED), 9 unresolved inline threads, 0 human APPROVED reviews');
+      expect(section).toContain('PR #90 review inventory is 3 COMMENTED submissions, 3 unresolved inline threads and 0 human APPROVED reviews');
+      expect(section).toContain('PR #140 has 0 review submissions and 0 inline review threads');
+      expect(section).toContain('PR #99 has 4 COMMENTED review submissions (including the two replies), 2/2 inline threads resolved and 0 human APPROVED reviews');
+      expect(section).toContain('Issue #136, now CLOSED');
+      expect(section).toContain('61 test files passed');
+      expect(section).toContain('71 test files passed');
+      expect(section).toContain('72 test files passed');
       expect(section).toContain('64 items, 42 checked / 22 open');
-      expect(section).toContain('139 comments');
-      expect(section).toMatch(/97 branches(?: \(pagination exhausted\))?, 41 open PRs and 6 open non-PR issues/);
+      expect(section).toContain('101 branches');
+      expect(section).toContain('42 open PRs and 5 open non-PR issues');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
       expect(section).toContain('PR #41 is CLOSED/MERGED');
-      expect(section).toContain('61 conversation comments, 16 inline review comments, 16 review submissions');
-      expect(section).toContain('52 conversation comments, 30 inline review comments, 26 review submissions');
-      expect(section).toContain('PR #99 has 2 COMMENTED review submissions, 2/2 inline security threads resolved');
-      expect(section).toContain('PR #85 pre-write parent HEAD is');
-      expect(section).toContain('293 tests passed across 60 files');
-      expect(section).toContain('450 tests, 27 production-readiness checks and 78 production-security checks passed');
       expect(section).toContain('Protect main ruleset #26370589 is ACTIVE');
       expect(section.toLowerCase()).toContain('repository visibility is currently **public**');
-      expect(section).toContain('0 published releases');
       expect(section).toContain('Security alert inventories are **unavailable/unverified, not empty**');
+      expect(section).toContain('No Issue #74 checkbox changed');
     }
   });
 
@@ -71,7 +84,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('GHSA-g3hv-75wg-m249');
       expect(section).toContain('npm audit fix --force');
       expect(section).not.toMatch(misleadingZeroAuditClaim);
-      expect(section).toContain('no forced downgrade, global suppression or security-check weakening was applied');
+      expect(section).toContain('no forced Expo downgrade or audit suppression was applied');
     }
   });
 
@@ -80,9 +93,8 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('RELEASE NOT READY');
       expect(section).toContain('PRODUCTION/PILOT ACCEPTANCE NOT GRANTED');
       expect(section).toContain('0 human APPROVED reviews');
-      expect(section).toContain('9/9 inline threads resolved');
-      expect(section).toContain('Issue #136 remains OPEN');
-      expect(section).toContain('Issue #64 remains OPEN');
+      expect(section).toContain('Issue #64 remains OPEN / production acceptance BLOCKED');
+      expect(section).toContain('No main-branch write');
     }
   });
 });
