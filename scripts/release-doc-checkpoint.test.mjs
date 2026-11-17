@@ -65,7 +65,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('45 open PRs and 5 open non-PR issues');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
       expect(section).toContain('PR #41 is CLOSED/MERGED');
-      expect(section).toMatch(/Protect main ruleset (?:\\[#26370589\\](?:\\([^)]+\\))?|#26370589) is ACTIVE/);
+      expect(section).toMatch(/Protect main ruleset (?:\[#26370589\](?:\([^)]+\))?|#26370589) is ACTIVE/);
       expect(section.toLowerCase()).toContain('repository visibility is currently **public**');
       expect(section).toContain('Security alert inventories are **unavailable/unverified, not empty**');
       expect(section).toContain('No Issue #74 checkbox changed');
