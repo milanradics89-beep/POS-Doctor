@@ -72,4 +72,19 @@ describe('mobile bundle dependency reachability', () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+  it('matches package names as literal path segments, not regular expressions', () => {
+    const map = {
+      sources: [
+        'node_modules/picomatch+/index.js',
+        'node_modules/picomatch/index.js',
+      ],
+    };
+    expect(findPackageSourcesInMap(map, 'picomatch+')).toEqual(['node_modules/picomatch+/index.js']);
+  });
+
+  it('rejects empty and traversal package path segments', () => {
+    expect(() => findPackageSourcesInMap({ sources: [] }, '../picomatch')).toThrow('traversal path segments');
+    expect(() => findPackageSourcesInMap({ sources: [] }, 'picomatch//nested')).toThrow('traversal path segments');
+  });
+
 });

@@ -2,19 +2,31 @@ import { readdir, readFile } from 'node:fs/promises';
 import { resolve, relative, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-function escapeRegExp(value) {
-  return value.split('').map((character) => {
-    return '\\^$.*+?()[]{}|'.includes(character) ? '\\' + character : character;
-  }).join('');
+function packageNameSegments(packageName) {
+  if (typeof packageName !== 'string' || !packageName.trim()) {
+    throw new TypeError('packageName must be a non-empty package path.');
+  }
+  const segments = packageName.trim().split('/');
+  if (segments.some((segment) => !segment || segment === '.' || segment === '..')) {
+    throw new TypeError('packageName must not contain empty or traversal path segments.');
+  }
+  return segments;
 }
 
-function packageSourceMatcher(packageName) {
-  if (typeof packageName !== 'string' || !packageName.trim()) {
-    throw new TypeError('packageName must be a non-empty string.');
+function sourceContainsPackage(source, packageSegments) {
+  const pathSegments = String(source).replaceAll('\\', '/').split('/');
+  for (let index = 0; index < pathSegments.length; index += 1) {
+    if (pathSegments[index] !== 'node_modules') continue;
+    let matches = true;
+    for (let offset = 0; offset < packageSegments.length; offset += 1) {
+      if (pathSegments[index + 1 + offset] !== packageSegments[offset]) {
+        matches = false;
+        break;
+      }
+    }
+    if (matches) return true;
   }
-  const packagePath = packageName.trim().replace(/^\/+|\/+$/g, '');
-  const escaped = packagePath.split('/').map(escapeRegExp).join('/');
-  return new RegExp('(?:^|/)node_modules/' + escaped + '(?:/|$)');
+  return false;
 }
 
 function flattenSources(sourceMap) {
@@ -33,8 +45,8 @@ function flattenSources(sourceMap) {
 }
 
 export function findPackageSourcesInMap(sourceMap, packageName = 'picomatch') {
-  const matcher = packageSourceMatcher(packageName);
-  return flattenSources(sourceMap).filter((source) => matcher.test(source.replaceAll('\\', '/')));
+  const segments = packageNameSegments(packageName);
+  return flattenSources(sourceMap).filter((source) => sourceContainsPackage(source, segments));
 }
 
 async function collectSourceMapFiles(directory) {
@@ -58,7 +70,7 @@ export async function scanBundleSourceMaps(rootDirectory, packageName = 'picomat
     throw new Error('No source maps found under ' + root + '; bundle reachability was not verified.');
   }
 
-  const matcher = packageSourceMatcher(packageName);
+  const segments = packageNameSegments(packageName);
   const matches = [];
   let sourceCount = 0;
 
@@ -67,7 +79,7 @@ export async function scanBundleSourceMaps(rootDirectory, packageName = 'picomat
     const sources = flattenSources(sourceMap);
     sourceCount += sources.length;
     for (const source of sources) {
-      if (matcher.test(source.replaceAll('\\', '/'))) {
+      if (sourceContainsPackage(source, segments)) {
         matches.push({ file: relative(root, file), source });
       }
     }
