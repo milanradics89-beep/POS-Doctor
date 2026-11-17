@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-17 15:06 CET';
+const marker = '## Exact-head reconciliation — 2026-11-17 17:21 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -31,18 +31,18 @@ describe('release documentation exact-head checkpoint', () => {
       expect(pair.evidenced).toBe(pair.parent);
     }
     expect(new Set(pairs.map((pair) => pair.parent)).size).toBe(1);
-    expect(pairs.every((pair) => pair.parent === 'fea211fdbd086a07e51bd5d7491d96e64375d8a4')).toBe(true);
+    expect(pairs.every((pair) => pair.parent === 'dcc6310694028c6eba21110a18b3d2b5fac11a2f')).toBe(true);
     expect(new Set(latestSections).size).toBe(1);
 
     for (const section of latestSections) {
       expect(section).toContain('Parent runs are not presented as validation of the documentation commit created by this checkpoint.');
-      expect(section).toMatch(/Validation \[44090801232\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
-      expect(section).toMatch(/CodeQL \[44090801233\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
-      expect(section).toMatch(/Dependency Review \[44090801161\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
+      expect(section).toMatch(/Validation \[44119805074\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
+      expect(section).toMatch(/CodeQL \[44119805115\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
+      expect(section).toMatch(/Dependency Review \[44119805108\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
       expect(section).toContain('PR #140 is OPEN/DRAFT at exact HEAD');
-      expect(section).toContain('Validation [44077737637]');
-      expect(section).toContain('CodeQL [44077737700]');
-      expect(section).toContain('Dependency Review [44077737572]');
+      expect(section).toContain('Validation [44106927809]');
+      expect(section).toContain('CodeQL [44106927918]');
+      expect(section).toContain('Dependency Review [44106927790]');
       expect(section).toContain('PR #132 remains OPEN/DRAFT');
       expect(section).toContain('Validation [44028244600]');
       expect(section).toContain('CodeQL [44028244408]');
@@ -61,8 +61,8 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('71 test files passed');
       expect(section).toContain('331/331 tests across 72 test files');
       expect(section).toContain('64 items, 42 checked / 22 open');
-      expect(section).toContain('102 branches');
-      expect(section).toContain('42 open PRs and 5 open non-PR issues');
+      expect(section).toContain('105 branches');
+      expect(section).toContain('45 open PRs and 6 open non-PR issues');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
       expect(section).toContain('PR #41 is CLOSED/MERGED');
       expect(section).toContain('Protect main ruleset #26370589 is ACTIVE');
