@@ -48,4 +48,20 @@ describe('Home asynchronous request lifecycle', () => {
     expect(source).toContain('analysisRequests.current.invalidate();');
     expect(source).toContain('renderRequests.current.invalidate();');
   });
+  it('invalidates pending work in the camera path before replacing a usable photo', () => {
+    const captureStart = source.indexOf('async function capture() {');
+    const captureEnd = source.indexOf('\\n  const noticePanel', captureStart);
+    expect(captureStart).toBeGreaterThanOrEqual(0);
+    expect(captureEnd).toBeGreaterThan(captureStart);
+
+    const captureSource = source.slice(captureStart, captureEnd);
+    const readableImageGuard = captureSource.indexOf('if (!a.base64) {');
+    const invalidation = captureSource.indexOf('invalidatePendingRequests();');
+    const replacePhoto = captureSource.indexOf('setPhoto(`data:');
+
+    expect(readableImageGuard).toBeGreaterThanOrEqual(0);
+    expect(invalidation).toBeGreaterThan(readableImageGuard);
+    expect(replacePhoto).toBeGreaterThan(invalidation);
+  });
+
 });
