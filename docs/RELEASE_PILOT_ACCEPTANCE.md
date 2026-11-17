@@ -2449,6 +2449,8 @@ This checkpoint supersedes the 2026-11-17 15:06 CET snapshot. The PR #85 pre-wri
 
 This checkpoint supersedes the 17:21 CET snapshot. All PR, workflow, review, repository-inventory and release-gate facts below were refreshed from GitHub. The current parent evidence is explicitly separated from the new documentation child created by this checkpoint.
 
+- Issue #136 is CLOSED (verified at https://github.com/milanradics89-beep/POS-Doctor/issues/136). Issue #142, verified at https://github.com/milanradics89-beep/POS-Doctor/issues/142, is now CLOSED.
+
 ### PR #85 — current parent and Validation failure
 
 - PR #85 is OPEN/non-draft, based on main at f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1. Branch docs/post-merge-release-evidence-20261113; PR #85 pre-write parent HEAD is 7f71bd957d3455b7649605099c466dd4d7a4e712. The parent has 109 commits and the PR changes 6 files.
