@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -21,6 +21,7 @@ import { ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
 import { requestFailureKind } from '../src/ui/requestFailure';
+import { createRequestGate } from '../src/ui/requestGate';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -48,9 +49,24 @@ export default function Home() {
   const [rendered, setRendered] = useState<string | null>(null);
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
   const [notice, setNotice] = useState<ScreenNotice | null>(null);
+  const analysisRequests = useRef(createRequestGate());
+  const renderRequests = useRef(createRequestGate());
   const redesign = result?.redesign ?? result?.phase3?.redesign;
 
+  const invalidatePendingRequests = () => {
+    analysisRequests.current.invalidate();
+    renderRequests.current.invalidate();
+    setBusy(false);
+    setRendering(false);
+  };
+
+  useEffect(() => () => {
+    analysisRequests.current.invalidate();
+    renderRequests.current.invalidate();
+  }, []);
+
   const reset = () => {
+    invalidatePendingRequests();
     setPhoto(null);
     setResult(null);
     setRendered(null);
@@ -82,6 +98,9 @@ export default function Home() {
 
     if (!photo) return;
 
+    const requestToken = analysisRequests.current.begin();
+    renderRequests.current.invalidate();
+    setRendering(false);
     setBusy(true);
     setRendered(null);
     setNotice(null);
@@ -92,8 +111,10 @@ export default function Home() {
         photo,
         intent
       );
+      if (!analysisRequests.current.isCurrent(requestToken)) return;
       setResult(response);
     } catch (error) {
+      if (!analysisRequests.current.isCurrent(requestToken)) return;
       const kind = requestFailureKind(error);
       setNotice({
         kind,
@@ -108,13 +129,14 @@ export default function Home() {
         onAction: () => { void analyze(intent); },
       });
     } finally {
-      setBusy(false);
+      if (analysisRequests.current.isCurrent(requestToken)) setBusy(false);
     }
   }
 
   async function createVisualConcept() {
     if (!photo || !redesign) return;
 
+    const requestToken = renderRequests.current.begin();
     setRendering(true);
     setNotice(null);
 
@@ -135,8 +157,10 @@ export default function Home() {
         products
       );
 
+      if (!renderRequests.current.isCurrent(requestToken)) return;
       setRendered(renderedResult.imageDataUrl);
     } catch {
+      if (!renderRequests.current.isCurrent(requestToken)) return;
       setNotice({
         kind: 'error',
         title: 'Visual concept failed',
@@ -146,7 +170,7 @@ export default function Home() {
         onAction: () => { void createVisualConcept(); },
       });
     } finally {
-      setRendering(false);
+      if (renderRequests.current.isCurrent(requestToken)) setRendering(false);
     }
   }
 
@@ -196,6 +220,7 @@ export default function Home() {
       return;
     }
 
+    invalidatePendingRequests();
     setNotice(null);
     setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
     setResult(null);
