@@ -60,7 +60,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('61 test files, pinned Expo Doctor');
       expect(section).toContain('71 test files passed');
       expect(section).toContain('331/331 tests across 72 test files');
-      expect(section).toContain('64 items, 42 checked / 22 open');
+      expect(section).toMatch(/64 items(?:,|\s*\/)\s*42 checked \/ 22 open/);
       expect(section).toContain('105 branches');
       expect(section).toContain('45 open PRs and 5 open non-PR issues');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
