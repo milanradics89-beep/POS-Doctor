@@ -101,6 +101,13 @@ describe('release documentation exact-head checkpoint', () => {
   it('keeps the audit finding visible and rejects a false clean-audit claim', () => {
     for (const section of latestSections) {
       expect(section).toContain('3 moderate minimatch findings');
+      expect(section).toContain('28 vulnerabilities (2 moderate, 26 high)');
+      expect(section).toContain('GHSA-fc5q-39xc-vjpf');
+      expect(section).toContain('CVE-2026-112366');
+      expect(section).toContain('package-lock blob is identical on main and PR #152');
+      expect(section).toContain('does not prove that Metro/Expo tooling is shipped in the production application bundle');
+      expect(section).toContain('The current picomatch advisory affects versions through 4.0.7 and states no fixed npm version');
+      expect(section).toContain('Issue #155');
       expect(section).toContain('GHSA-g3hv-75wg-m249');
       expect(section).toContain('npm audit fix --force');
       expect(section).not.toMatch(misleadingZeroAuditClaim);
