@@ -1,3 +1,44 @@
+## Current audit checkpoint — 2026-11-18 05:40 CET
+
+This checkpoint supersedes earlier inventory and scanner-chain snapshots below. It is based on fresh GitHub PR, branch, issue, workflow/job, review, and file reads. No release or production/pilot acceptance is implied.
+
+### PR #41 — merged baseline and exact-head evidence
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is CLOSED/MERGED. Source branch fix/release-blockers-2026-10 points to exact HEAD 68b380e73ca3c870048035197beef8febbf90ef1; PR metadata agrees. Main and merge commit are f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1. The PR records 517 commits, 100 changed files, 11,887 additions and 2,005 deletions. Latest five branch commits: 68b380e, f2c4b45, b793a47, e74a69a and b46c5b8.
+
+Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) are terminal SUCCESS. All five jobs passed. Review inventory: 52 conversation comments, 30 inline comments, 26 review submissions (25 COMMENTED, one human APPROVED by tarlaci1984-sketch), and 22/22 inline threads resolved. Three historical workflows remain QUEUED with zero jobs on obsolete SHA b46c5b8; they are not current-head evidence and require administrator cancellation.
+
+### Picomatch scanner remediation chain
+
+Current PR metadata supersedes earlier comments that recorded PR #160 at e7f2fa1.
+
+- PR #160 exact HEAD 9ea8c9e7bc52772f46559c54204c7e981f69ad5a. Validation [44232195628](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232195628) failed in frontend Unit tests; backend and iOS passed. CodeQL [44232195627](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232195627) and Dependency Review [44232195674](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232195674) passed.
+- PR #161 exact HEAD d22605eb5d3d570ce1304c02f4d035621295006e. Validation [44232288125](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232288125) failed one assertion: expected “Source map sources must contain only strings.” but received “Source map sources must contain only non-empty strings.” Backend and iOS passed. CodeQL [44232288069](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232288069) and Dependency Review [44232288099](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232288099) passed.
+- PR #162 exact HEAD 2b3414a954741e3149a96e37dc965fee84f575d0. Validation [44232687433](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687433) failed only at unchanged npm audit --omit=dev --audit-level=high. Backend passed. Frontend passed 303/303 tests, typecheck, Expo Doctor, Android/iOS exports, Android Release and emulator smoke. iOS Release and simulator smoke passed. The fail-closed SourceRoot-aware scan completed: 2 source maps / 2,634 entries / no picomatch package-source path found. CodeQL [44232687360](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687360) and Dependency Review [44232687432](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687432) passed.
+
+PR #162 npm audit still reports 28 vulnerability instances (2 moderate, 26 high): minimatch GHSA-g3hv-75wg-m249 and picomatch GHSA-fc5q-39xc-vjpf / CVE-2026-112366. The bundle scan is evidence that no picomatch package-source path was found in these exports; it does not clear the dependency graph, waive npm audit or replace security acceptance. No audit threshold, lockfile, dependency version or test was weakened.
+
+PR #119 minimatch 11.0.5 is a historical candidate, but picomatch 4.0.7 remains under Expo/Metro/tinyglobby and the green audit predates the current advisory. Upstream picomatch PR #264/#265 remain open/unmerged; #264 currently has no executed GitHub jobs and no compatible patched npm release is verified.
+
+### Governance, Issue #64 and inventory
+
+Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is CLOSED. Main is f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1; repository is PUBLIC. Active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires one approval, stale-review dismissal, last-push approval, resolved threads, six strict checks, deletion/non-fast-forward protection and no bypass actors.
+
+Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains OPEN. PR [#99](https://github.com/milanradics89-beep/POS-Doctor/pull/99) is OPEN/DRAFT at exact HEAD f91c70d2636948e538f8e3559afc39cd93eb5139; Validation [43772791089](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791089), CodeQL [43772791064](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791064), and Dependency Review [43772791109](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791109) passed. Two inline threads are resolved; four review submissions are COMMENTED and no human APPROVED review exists. Independent security approval, production DNS64/NAT64 prefix inventory, deployed USEIT_NAT64_PREFIXES verification and staging/production egress evidence remain missing.
+
+Current inventory: 119 branches (pagination exhausted: 100 + 19 + 0), 59 open PRs and 7 open non-PR issues (#155, #149, #74, #64, #25, #24, #23). Issue #74 has 168 comments; its live checklist is 64 items / 41 checked / 23 open. Earlier 42/64 references are stale; no checkbox changed. GitHub Releases API returns 0 published releases. Code Scanning, Dependabot and Secret Scanning alert endpoints are unavailable through this integration: unverified, not empty.
+
+### Authoritative 25-point register — unchanged
+
+2 Done / 15 In Progress / 8 Blocked.
+
+- Done: #1, #6.
+- In Progress: #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.
+- Blocked: #2 repository visibility/plan owner decision; #4 Apple App Attest production entitlement and physical iPhone; #5 Play Integrity on Play-installed physical Android; #16 witnessed production backup/restore; #18 representative product-recognition benchmark and business acceptance; #21 production monitoring and alert delivery; #22 staged rollout approval and tested rollback; #25 real-user pilot/business sign-off.
+
+External console setup, physical-device tests, production cloud access, witnessed backup/restore, production monitoring, staged rollout approvals and real-user pilot/business approval remain BLOCKED until direct evidence exists. No external acceptance gate is promoted to Done. RELEASE NOT READY; PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.
+
+---
 ## Release checkpoint — 2026-11-18 01:22 CET
 
 ### PR #41 — merged baseline and review evidence

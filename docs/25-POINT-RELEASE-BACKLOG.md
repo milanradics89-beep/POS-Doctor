@@ -1,3 +1,45 @@
+## Authoritative release backlog checkpoint — 2026-11-18 05:40 CET
+
+This checkpoint supersedes prior checklist counts and repository inventories below. The 25-point register is unchanged and evidence-based.
+
+### 25-point Done / In Progress / Blocked register
+
+**Done (2):** #1, #6.
+
+**In Progress (15):** #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.
+
+**Blocked (8):**
+- #2 — repository visibility/plan owner decision.
+- #4 — Apple App Attest production entitlement and physical iPhone.
+- #5 — Google Play Integrity on Play-installed physical Android.
+- #16 — witnessed production backup/restore.
+- #18 — representative product-recognition benchmark and business acceptance.
+- #21 — production monitoring and alert delivery.
+- #22 — staged rollout approval and tested rollback.
+- #25 — real-user pilot and business sign-off.
+
+No external console, physical-device, production-cloud, witnessed backup/restore, monitoring, staged rollout or real-user acceptance item is promoted to Done without direct evidence.
+
+### Current release and security evidence
+
+- PR #41 is CLOSED/MERGED. Source branch exact HEAD 68b380e73ca3c870048035197beef8febbf90ef1; main/merge commit f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1. Exact-head Validation, CodeQL and Dependency Review passed; review inventory is 52 conversation comments, 30 inline comments, 26 submissions (25 COMMENTED, one human APPROVED), and 22/22 threads resolved. Three obsolete runs remain queued with zero jobs on stale SHA b46c5b8; administrator cancellation required.
+- PR #162 exact HEAD 2b3414a954741e3149a96e37dc965fee84f575d0: Validation [44232687433](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687433) failed only at unchanged runtime npm audit; CodeQL [44232687360](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687360) and Dependency Review [44232687432](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687432) passed. Backend passed; frontend 303/303 tests, Android Release/emulator smoke, iOS Release/simulator smoke and SourceRoot-aware bundle scan passed. Scan: 2 source maps / 2,634 entries / no picomatch package-source path found. npm audit remains 28 findings (2 moderate, 26 high), including minimatch GHSA-g3hv-75wg-m249 and picomatch GHSA-fc5q-39xc-vjpf. No audit suppression or dependency downgrade.
+- PR #160 current HEAD 9ea8c9e7bc52772f46559c54204c7e981f69ad5a: Validation failed in frontend unit tests; CodeQL and Dependency Review passed.
+- PR #161 HEAD d22605eb5d3d570ce1304c02f4d035621295006e: Validation failed one assertion mismatch; CodeQL and Dependency Review passed.
+- PR #119 minimatch 11.0.5 is a historical migration candidate with exact-head CI success, but picomatch 4.0.7 remains under Expo/Metro/tinyglobby and the prior green audit predates the current advisory. Upstream picomatch PR #264/#265 remain unmerged; no patched npm release verified.
+- Issue #64 remains OPEN. PR #99 exact HEAD f91c70d2636948e538f8e3559afc39cd93eb5139 has 3/3 exact-head workflows passed, 2/2 inline threads resolved, four COMMENTED submissions and no human approval. Production DNS64/NAT64 prefix inventory, verified USEIT_NAT64_PREFIXES, staging/production egress and independent security approval remain outstanding.
+
+### Canonical checklist and repository inventory
+
+Issue #74 live checklist: **64 items / 41 checked / 23 open** (168 comments). Earlier 42/64 references in this documentation set are superseded by this live count. No checkbox changed as part of this checkpoint.
+
+Repository is PUBLIC; main is f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1. Branch pagination exhausted at 119 branches (100 + 19 + 0). Open inventory: 59 PRs and 7 non-PR issues (#155, #149, #74, #64, #25, #24, #23). Issue #47 is CLOSED; active ruleset #26370589 requires one approval, last-push approval, resolved threads, six strict checks, deletion/non-fast-forward protection and no bypass actors.
+
+Published GitHub releases: 0. Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable through the current integration: unverified, not empty.
+
+**RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.**
+
+---
 ## Release checkpoint — 2026-11-18 01:22 CET
 
 ### PR #41 — merged baseline and review evidence

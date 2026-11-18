@@ -1,3 +1,47 @@
+## Current production and pilot acceptance checkpoint — 2026-11-18 05:40 CET
+
+**Decision: NOT ACCEPTED. Production release and real-user pilot remain blocked.** No source-level CI result is treated as production acceptance.
+
+### Verified automated baseline
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is CLOSED/MERGED. Source branch exact HEAD 68b380e73ca3c870048035197beef8febbf90ef1; main/merge commit f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1. Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) passed. Review inventory: 52 conversation comments, 30 inline comments, 26 submissions (25 COMMENTED, one human APPROVED), 22/22 threads resolved. Three obsolete workflows remain queued with zero jobs on stale SHA b46c5b8; administrator cancellation remains outstanding.
+
+### Current mobile dependency and bundle evidence
+
+PR #162 exact HEAD 2b3414a954741e3149a96e37dc965fee84f575d0 passed backend, 303/303 frontend tests, typecheck, Expo Doctor, Android/iOS export, Android Release/emulator smoke and iOS Release/simulator smoke. Its fail-closed SourceRoot-aware scanner inspected 2 production source maps and 2,634 entries and found no picomatch package-source path. Exact-head CodeQL [44232687360](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687360) and Dependency Review [44232687432](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687432) passed.
+
+However, exact-head Validation [44232687433](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687433) failed at the unchanged required npm audit --omit=dev --audit-level=high: 28 vulnerability instances (2 moderate, 26 high), including minimatch GHSA-g3hv-75wg-m249 and picomatch GHSA-fc5q-39xc-vjpf. The source-map scan does not clear the dependency graph, waive the audit or constitute independent risk acceptance. Upstream picomatch candidates remain unmerged and no compatible patched npm release is established.
+
+PR #160 (9ea8c9e) and PR #161 (d22605e) have their own exact-head frontend unit-test failures; CodeQL and Dependency Review passed on each. PR #162 is the latest child with 303/303 tests and the corrected assertion. Parent CI is not borrowed for child acceptance.
+
+### SSRF security acceptance — Issue #64
+
+Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains OPEN. PR [#99](https://github.com/milanradics89-beep/POS-Doctor/pull/99), exact HEAD f91c70d2636948e538f8e3559afc39cd93eb5139, has Validation [43772791089](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791089), CodeQL [43772791064](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791064), and Dependency Review [43772791109](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791109) all SUCCESS. Two inline threads are resolved; four reviews are COMMENTED; no human APPROVED review exists. Still required: independent human security approval, production DNS64/NAT64 prefix inventory, verified deployed USEIT_NAT64_PREFIXES, and staging/production egress verification.
+
+### External release/pilot evidence still required
+
+- Production console configuration and credentials/entitlements.
+- Physical iPhone App Attest and Play-installed physical Android Play Integrity tests.
+- Production cloud access and configuration verification.
+- Witnessed production backup and restore.
+- Production monitoring and alert-delivery evidence.
+- Staged rollout approval and tested rollback.
+- Real-user pilot results and business sign-off.
+
+### 25-point register
+
+2 Done / 15 In Progress / 8 Blocked.
+- Done: #1, #6.
+- In Progress: #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.
+- Blocked: #2, #4, #5, #16, #18, #21, #22, #25.
+
+Issue #74 live checklist: 64 items / 41 checked / 23 open (168 comments); older 42/64 figures are stale. No checkbox changed. Inventory: 119 branches, 59 open PRs, 7 open non-PR issues. Published releases: 0. Code Scanning, Dependabot and Secret Scanning inventories are unavailable through the integration, unverified rather than empty.
+
+Issue #47 is CLOSED; active main ruleset #26370589 enforces one approval, last-push approval, resolved threads, six strict checks, deletion/non-fast-forward protection and no bypass.
+
+**RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.**
+
+---
 ## Release checkpoint — 2026-11-18 01:22 CET
 
 ### PR #41 — merged baseline and review evidence
