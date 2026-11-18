@@ -15,6 +15,14 @@ const latestSections = documents.map((document) => {
   return document.slice(start, end < 0 ? document.length : end);
 });
 
+const currentAuditMarker = "## Exact-head audit — 2026-11-18 08:13 CET";
+const currentAuditSections = documents.map((document) => {
+  const start = document.lastIndexOf(currentAuditMarker);
+  if (start < 0) return '';
+  const end = document.indexOf('\n\n---\n\n', start);
+  return document.slice(start, end < 0 ? document.length : end);
+});
+
 const extractPreWritePair = (section) => ({
   parent: section.match(/PR #85 pre-write parent HEAD is \x60?([0-9a-f]{40})\x60?/)?.[1],
   evidenced: section.match(/These exact-head runs belong to PR #85 pre-write parent HEAD \x60?([0-9a-f]{40})\x60? only/)?.[1],
@@ -82,6 +90,29 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section.toLowerCase()).toContain('repository visibility is currently **public**');
       expect(section).toContain('Security alert inventories are **unavailable/unverified, not empty**');
       expect(section).toContain('No Issue #74 checkbox changed');
+    }
+  });
+
+  it('keeps the latest 2026-11-18 audit evidence synchronized across all three release records', () => {
+    expect(currentAuditSections.every(Boolean)).toBe(true);
+    expect(new Set(currentAuditSections).size).toBe(1);
+    for (const section of currentAuditSections) {
+      expect(section).toContain('PR #41 is CLOSED/MERGED');
+      expect(section).toContain('68b380e73ca3c870048035197beef8febbf90ef1');
+      expect(section).toContain('53 conversation comments, 30 inline review comments, 26 review submissions');
+      expect(section).toContain('22/22 threads resolved');
+      expect(section).toContain('Validation [44245329306]');
+      expect(section).toContain('CodeQL [44245329322]');
+      expect(section).toContain('Dependency Review [44245329425]');
+      expect(section).toContain('28 instances (2 moderate, 26 high dependency paths)');
+      expect(section).toContain('2 production maps / 2,634 entries');
+      expect(section).toContain('64 checklist items / 41 checked / 23 open');
+      expect(section).toContain('Branches 124 (100+24), 64 open PRs, 7 open issues');
+      expect(section).toContain('releases 0');
+      expect(section).toContain('UNVERIFIED, NOT EMPTY');
+      expect(section).toContain('Tally: 2 Done / 15 In Progress / 8 Blocked');
+      expect(section).toContain('RELEASE NOT READY');
+      expect(section).toContain('PRODUCTION/PILOT ACCEPTANCE NOT GRANTED');
     }
   });
 

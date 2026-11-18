@@ -1,3 +1,30 @@
+## Exact-head audit — 2026-11-18 08:13 CET
+
+Supersedes the 06:32 CET snapshot for current evidence. Historical checkpoints are retained; no production or pilot acceptance is implied.
+
+### PR #41 merged baseline
+PR #41 is CLOSED/MERGED on `fix/release-blockers-2026-10`, exact branch/PR HEAD `68b380e73ca3c870048035197beef8febbf90ef1`. Main and merge commit are `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`; 517 commits, 100 files, +11,887/-2,005. Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021): all SUCCESS, all five jobs passed. Reviews: 53 conversation comments, 30 inline comments, 26 submissions (25 COMMENTED, one human APPROVED), 22/22 threads resolved, 109 normalized timeline entries. Cleanup request: comment [6971306372](https://github.com/milanradics89-beep/POS-Doctor/pull/41#issuecomment-6971306372). Three obsolete runs remain QUEUED with zero jobs on SHA `b46c5b8`: Validation [43098210284](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210284), CodeQL [43098210473](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210473), Dependency Review [43098210255](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210255). Admin cancellation required; not current-head checks.
+
+### Picomatch release blocker
+PR #157 OPEN at exact HEAD `14bda1965468cd459d76dfed488f9e2fe7f8478c`. Validation [44245329306](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44245329306) failed at mandatory `npm audit --omit=dev --audit-level=high`; backend/iOS and frontend tests, typecheck, Expo Doctor, Android export/Release/emulator smoke passed before audit failure. CodeQL [44245329322](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44245329322) and Dependency Review [44245329425](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44245329425) succeeded. PR #157 has zero review submissions/threads and one Dependency Review bot comment.
+
+PR #160 HEAD `9ea8c9e`: Validation 44232195628 failed; CodeQL 44232195627 and Dependency Review 44232195674 passed. PR #161 HEAD `d22605e`: Validation 44232288125 failed; CodeQL 44232288069 and Dependency Review 44232288099 passed. The failures were regex parsing and an assertion mismatch. PR #162 HEAD `2b3414a954741e3149a96e37dc965fee84f575d0`: Validation [44232687433](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687433) failed at the same audit; CodeQL [44232687360](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687360) and Dependency Review [44232687432](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687432) passed. Frontend 303/303, Android Release/emulator, iOS Release/simulator and scanner passed. SourceRoot-aware scanner: 2 production maps / 2,634 entries / no picomatch package-source path. Main and #162 package-lock SHA both `2bccc4107db8e2b4ac638215328677761d34374a`. Audit: 28 instances (2 moderate, 26 high dependency paths), minimatch `GHSA-g3hv-75wg-m249`, picomatch `GHSA-fc5q-39xc-vjpf`. No suppression, forced Expo downgrade or unverified pin. Issue #155 OPEN (21 comments); tracker reports upstream PRs #238/#246 unmerged and no accepted fix.
+
+### Issues #47, #64 and #74
+#47 CLOSED: repo PUBLIC, main `f03d2390`, protected=true. Ruleset [#26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) ACTIVE: one approval, stale dismissal, last-push approval, resolved threads, six strict checks, deletion/non-fast-forward protection, no bypass. Stale issue text corrected in comment [6971917444](https://github.com/milanradics89-beep/POS-Doctor/issues/47#issuecomment-6971917444); no settings changed.
+
+#64 OPEN (53 comments). PR #99 exact HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139`, base main: Validation [43772791089](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791089), CodeQL [43772791064](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791064), Dependency Review [43772791109](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791109) all SUCCESS. 4 COMMENTED reviews, 2/2 threads resolved, 0 human APPROVED. Stale PR-head reference corrected in comment [6971924289](https://github.com/milanradics89-beep/POS-Doctor/issues/64#issuecomment-6971924289). Production prefix inventory, deployed `USEIT_NAT64_PREFIXES`, staging/production egress and independent security approval remain required.
+
+#74 OPEN, 176 comments: 64 checklist items / 41 checked / 23 open, updated 06:59:55 CET. No checkbox changed.
+
+### Inventory and release register
+Repo PUBLIC; main `f03d2390`. Branches 124 (100+24), 64 open PRs, 7 open issues (#155, #149, #74, #64, #25, #24, #23), releases 0. Code Scanning, Dependabot and Secret Scanning inventories unavailable: UNVERIFIED, NOT EMPTY.
+
+**Tally: 2 Done / 15 In Progress / 8 Blocked.** Done #1,#6. In Progress #3,#7,#8,#9,#10,#11,#12,#13,#14,#15,#17,#19,#20,#23,#24. Blocked #2 (visibility/plan decision), #4 (production Apple entitlement/physical iPhone), #5 (Play Integrity on Play-installed Android), #16 (witnessed backup/restore), #18 (benchmark/business acceptance), #21 (production monitoring), #22 (staged rollout/rollback), #25 (real-user pilot/business sign-off).
+
+External console setup, physical devices, production cloud access, witnessed backup/restore, monitoring, rollout and real-user/business acceptance remain BLOCKED. No main write or automatic merge. **RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.**
+
+---
 ## Current production and pilot acceptance checkpoint - 2026-11-18 06:32 CET
 
 **Decision: NOT ACCEPTED. Production release and real-user pilot remain blocked.** Simulator/emulator CI, source-map scans, documentation and source-level transport tests do not replace production configuration, physical-device evidence, witnessed recovery, staged rollout approval or business sign-off.
