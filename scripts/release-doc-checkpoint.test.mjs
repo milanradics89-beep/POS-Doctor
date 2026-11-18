@@ -15,14 +15,34 @@ const latestSections = documents.map((document) => {
   return document.slice(start, end < 0 ? document.length : end);
 });
 
+const captureSha = (match) => match?.[1] ?? match?.[2];
+
 const extractPreWritePair = (section) => ({
-  parent: section.match(/PR #85 pre-write parent HEAD is \x60([0-9a-f]{40})\x60/)?.[1],
-  evidenced: section.match(/These exact-head runs belong to PR #85 pre-write parent HEAD \x60([0-9a-f]{40})\x60 only/)?.[1],
+  parent: captureSha(section.match(/PR #85 pre-write parent HEAD is (?:\x60([0-9a-f]{40})\x60|([0-9a-f]{40})\b)/)),
+  evidenced: captureSha(section.match(/These exact-head runs belong to PR #85 pre-write parent HEAD (?:\x60([0-9a-f]{40})\x60|([0-9a-f]{40})\b) only/)),
 });
 
 const misleadingZeroAuditClaim = /npm audit\b[^.\n]*(?:returned|reported|reports?)\s+(?:\*\*)?0 vulnerabilities\b/i;
 
 describe('release documentation exact-head checkpoint', () => {
+  it('parses plain and code-formatted SHA labels but rejects unbalanced backticks', () => {
+    const sha = '7f71bd957d3455b7649605099c466dd4d7a4e712';
+    const plain = [
+      'PR #85 pre-write parent HEAD is ' + sha + '.',
+      'These exact-head runs belong to PR #85 pre-write parent HEAD ' + sha + ' only.',
+    ].join('\n');
+    const code = [
+      'PR #85 pre-write parent HEAD is \x60' + sha + '\x60.',
+      'These exact-head runs belong to PR #85 pre-write parent HEAD \x60' + sha + '\x60 only.',
+    ].join('\n');
+    const malformed = 'PR #85 pre-write parent HEAD is \x60' + sha + '.\n'
+      + 'These exact-head runs belong to PR #85 pre-write parent HEAD ' + sha + ' only.';
+
+    expect(extractPreWritePair(plain)).toEqual({ parent: sha, evidenced: sha });
+    expect(extractPreWritePair(code)).toEqual({ parent: sha, evidenced: sha });
+    expect(extractPreWritePair(malformed)).toEqual({ parent: undefined, evidenced: sha });
+  });
+
   it('labels the exact pre-write parent and binds all listed runs to that SHA only', () => {
     expect(latestSections.every(Boolean)).toBe(true);
     const pairs = latestSections.map(extractPreWritePair);
@@ -38,7 +58,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Parent runs are not presented as validation of the documentation commit created by this checkpoint.');
       expect(section).toContain('293 passed / 3 failed across 61 test files');
       expect(section).toContain('The frontend job stopped at Unit tests');
-      expect(section).toContain('Android Release, Android emulator smoke and runtime npm audit were skipped');
+      expect(section).toContain('Android emulator smoke and the runtime npm audit were skipped');
       expect(section).toMatch(/Validation \[44125620536\](?:\([^)]+\))?: (?:\*\*FAILURE\*\*|FAILURE)/);
       expect(section).toMatch(/CodeQL \[44125620555\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
       expect(section).toMatch(/Dependency Review \[44125620669\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
@@ -58,8 +78,8 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Its review inventory is 3 COMMENTED submissions, 3/3 inline threads resolved and 0 human APPROVED reviews');
       expect(section).toContain('PR #140 has 0 review submissions and 0 inline review threads');
       expect(section).toContain('PR #99 has 4 COMMENTED review submissions (including the two replies), 2/2 inline threads resolved and 0 human APPROVED reviews');
-      expect(section).toContain('Issue #136 is CLOSED');
-      expect(section).toMatch(/Issue #142,.*is now CLOSED/);
+      expect(documents.every((document) => document.includes('Issue #136 is CLOSED'))).toBe(true);
+      expect(documents.every((document) => /Issue #142,.*is now CLOSED/.test(document))).toBe(true);
       expect(section).toContain('61 test files, pinned Expo Doctor');
       expect(section).toContain('71 test files passed');
       expect(section).toContain('331/331 tests across 72 test files');
