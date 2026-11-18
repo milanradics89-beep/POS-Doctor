@@ -18,7 +18,7 @@ const latestSections = documents.map((document) => {
 const captureSha = (match) => match?.[1] ?? match?.[2];
 
 const extractPreWritePair = (section) => ({
-  parent: captureSha(section.match(/PR #85 pre-write parent HEAD is (?:\x60([0-9a-f]{40})\x60|([0-9a-f]{40})\b)/)),
+  parent: captureSha(section.match(/(?:PR #85 )?(?:The exact )?pre-write parent HEAD is (?:\x60([0-9a-f]{40})\x60|([0-9a-f]{40})\b)/)),
   evidenced: captureSha(section.match(/These exact-head runs belong to PR #85 pre-write parent HEAD (?:\x60([0-9a-f]{40})\x60|([0-9a-f]{40})\b) only/)),
 });
 
@@ -35,11 +35,25 @@ describe('release documentation exact-head checkpoint', () => {
       'PR #85 pre-write parent HEAD is \x60' + sha + '\x60.',
       'These exact-head runs belong to PR #85 pre-write parent HEAD \x60' + sha + '\x60 only.',
     ].join('\n');
-    const malformed = 'PR #85 pre-write parent HEAD is \x60' + sha + '.\n'
+    const code = [
+      'PR #85 pre-write parent HEAD is \x60' + sha + '\x60.',
+      'These exact-head runs belong to PR #85 pre-write parent HEAD ' + sha + ' only.',
+    ].join('\n');
+    const documentWording = [
+      'The exact pre-write parent HEAD is ' + sha + '.',
+      'These exact-head runs belong to PR #85 pre-write parent HEAD ' + sha + ' only.',
+    ].join('\n');
+    const documentCode = [
+      'The exact pre-write parent HEAD is \x60' + sha + '\x60.',
+      'These exact-head runs belong to PR #85 pre-write parent HEAD ' + sha + ' only.',
+    ].join('\n');
+    const malformed = 'The exact pre-write parent HEAD is \x60' + sha + '.\n'
       + 'These exact-head runs belong to PR #85 pre-write parent HEAD ' + sha + ' only.';
 
     expect(extractPreWritePair(plain)).toEqual({ parent: sha, evidenced: sha });
     expect(extractPreWritePair(code)).toEqual({ parent: sha, evidenced: sha });
+    expect(extractPreWritePair(documentWording)).toEqual({ parent: sha, evidenced: sha });
+    expect(extractPreWritePair(documentCode)).toEqual({ parent: sha, evidenced: sha });
     expect(extractPreWritePair(malformed)).toEqual({ parent: undefined, evidenced: sha });
   });
 
