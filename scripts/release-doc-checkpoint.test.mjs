@@ -35,7 +35,7 @@ describe('release documentation exact-head checkpoint', () => {
       'PR #85 pre-write parent HEAD is \x60' + sha + '\x60.',
       'These exact-head runs belong to PR #85 pre-write parent HEAD \x60' + sha + '\x60 only.',
     ].join('\n');
-    const code = [
+    const mixedCode = [
       'PR #85 pre-write parent HEAD is \x60' + sha + '\x60.',
       'These exact-head runs belong to PR #85 pre-write parent HEAD ' + sha + ' only.',
     ].join('\n');
@@ -52,6 +52,7 @@ describe('release documentation exact-head checkpoint', () => {
 
     expect(extractPreWritePair(plain)).toEqual({ parent: sha, evidenced: sha });
     expect(extractPreWritePair(code)).toEqual({ parent: sha, evidenced: sha });
+    expect(extractPreWritePair(mixedCode)).toEqual({ parent: sha, evidenced: sha });
     expect(extractPreWritePair(documentWording)).toEqual({ parent: sha, evidenced: sha });
     expect(extractPreWritePair(documentCode)).toEqual({ parent: sha, evidenced: sha });
     expect(extractPreWritePair(malformed)).toEqual({ parent: undefined, evidenced: sha });
