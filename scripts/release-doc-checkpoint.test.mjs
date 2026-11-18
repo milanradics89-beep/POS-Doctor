@@ -35,7 +35,7 @@ describe('release documentation exact-head checkpoint', () => {
       'PR #85 pre-write parent HEAD is \x60' + sha + '\x60.',
       'These exact-head runs belong to PR #85 pre-write parent HEAD \x60' + sha + '\x60 only.',
     ].join('\n');
-    const code = [
+    const mixedCode = [
       'PR #85 pre-write parent HEAD is \x60' + sha + '\x60.',
       'These exact-head runs belong to PR #85 pre-write parent HEAD ' + sha + ' only.',
     ].join('\n');
@@ -52,6 +52,7 @@ describe('release documentation exact-head checkpoint', () => {
 
     expect(extractPreWritePair(plain)).toEqual({ parent: sha, evidenced: sha });
     expect(extractPreWritePair(code)).toEqual({ parent: sha, evidenced: sha });
+    expect(extractPreWritePair(mixedCode)).toEqual({ parent: sha, evidenced: sha });
     expect(extractPreWritePair(documentWording)).toEqual({ parent: sha, evidenced: sha });
     expect(extractPreWritePair(documentCode)).toEqual({ parent: sha, evidenced: sha });
     expect(extractPreWritePair(malformed)).toEqual({ parent: undefined, evidenced: sha });
@@ -75,8 +76,8 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toMatch(/Dependency Review \[44313933991\].*terminal SUCCESS/);
       expect(section).toContain('Frontend TypeScript typecheck, unit tests, Expo Doctor, Android export, Android Release build and Android emulator smoke all passed.');
       expect(section).toContain('The mandatory command npm audit --omit=dev --audit-level=high reports 28 vulnerability instances (2 moderate, 26 high dependency paths).');
-      expect(section).toContain('minimatch GHSA-g3hv-75wg-m249 is moderate; picomatch GHSA-fc5q-39xc-vjpf is high.');
-      expect(section).toContain('no forced Expo downgrade, unverified dependency pin, npm audit fix --force, or audit suppression was applied.');
+      expect(section).toMatch(/minimatch GHSA-g3hv-75wg-m249 is moderate; picomatch GHSA-fc5q-39xc-vjpf is high\./i);
+      expect(section).toMatch(/no forced Expo downgrade, unverified dependency pin, npm audit fix --force, or audit suppression was applied\./i);
       expect(section).toContain('PR #85 review inventory: 64 conversation comments, 16 inline review comments, 16 review submissions (all COMMENTED), 9/9 inline threads resolved, 0 human APPROVED reviews.');
       expect(section).not.toMatch(misleadingZeroAuditClaim);
     }
