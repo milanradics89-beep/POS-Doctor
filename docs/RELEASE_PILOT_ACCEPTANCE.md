@@ -1,3 +1,37 @@
+## Current production and pilot acceptance checkpoint - 2026-11-18 06:32 CET
+
+**Decision: NOT ACCEPTED. Production release and real-user pilot remain blocked.** Simulator/emulator CI, source-map scans, documentation and source-level transport tests do not replace production configuration, physical-device evidence, witnessed recovery, staged rollout approval or business sign-off.
+
+### Verified automated baseline
+
+PR [#41](https://github.com/milanradics89-beep/POS-Doctor/pull/41) is CLOSED/MERGED. Source branch exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; main/merge commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161) and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) are terminal SUCCESS. Review inventory: 52 conversation comments, 30 inline comments, 26 review submissions (25 COMMENTED, one human APPROVED), 22/22 threads resolved. Three obsolete workflows remain queued with zero jobs on SHA `b46c5b8`; administrator cancellation is outstanding.
+
+### Current documentation CI
+
+PR [#157](https://github.com/milanradics89-beep/POS-Doctor/pull/157) exact HEAD `737a018f5783b612980dd1d5c95a0550339c8473` has Validation [44239258442](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44239258442) terminal FAILURE at the mandatory runtime npm audit. CodeQL [44239258398](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44239258398) and Dependency Review [44239258433](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44239258433) passed on this exact HEAD. Backend and iOS jobs passed; frontend unit tests, typecheck, Expo Doctor, Android export, Android Release and emulator smoke passed before step 14 runtime audit failed. This is not a green Validation result.
+
+### Current mobile dependency and bundle evidence
+
+PR [#162](https://github.com/milanradics89-beep/POS-Doctor/pull/162) exact HEAD `2b3414a954741e3149a96e37dc965fee84f575d0` completed backend, 303/303 frontend tests, typecheck, Expo Doctor, Android/iOS export, Android Release/emulator smoke and iOS Release/simulator smoke. The SourceRoot-aware, fail-closed scanner inspected 2 production source maps / 2,634 entries and found no picomatch package-source path. Exact-head CodeQL [44232687360](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687360) and Dependency Review [44232687432](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687432) passed. Validation [44232687433](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687433) failed at the unchanged runtime audit.
+
+The audit reports 28 instances (2 moderate, 26 high), including minimatch `GHSA-g3hv-75wg-m249` and picomatch `GHSA-fc5q-39xc-vjpf`. Main and PR #162 share the same package-lock blob `2bccc4107db8e2b4ac638215328677761d34374a`; the dependency blocker is not introduced by the scanner PR. The bundle scan narrows evidence of mobile bundle reachability but does not clear the installed dependency graph or waive the runtime audit. No forced Expo/React Native downgrade, audit suppression or unverified dependency pin is accepted.
+
+### SSRF production acceptance - Issue #64
+
+Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains OPEN. PR [#99](https://github.com/milanradics89-beep/POS-Doctor/pull/99) is OPEN/DRAFT at exact HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139`, base main. Its recorded exact-head Validation [43772791089](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791089), CodeQL [43772791064](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791064) and Dependency Review [43772791109](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791109) are SUCCESS. Both inline security threads are resolved; four review submissions are COMMENTED and there is no human APPROVED review. Transport tests cover per-hop DNS re-resolution, public/global answer validation, numeric-IP pinning, peer verification before TLS/request bytes, original Host/TLS SNI and redirect isolation. Production acceptance still requires independent human security approval, production DNS64/NAT64 translator-prefix inventory, verified deployed `USEIT_NAT64_PREFIXES`, and staging/production egress verification.
+
+### Governance and external acceptance
+
+Issue #47 is CLOSED. Repository metadata reports PUBLIC; main is protected and active ruleset #26370589 enforces one approval, last-push approval, resolved threads, six strict checks, deletion/non-fast-forward protection and no bypass actors. The owner's durable visibility/plan decision remains unconfirmed.
+
+Issue #74's separate development checklist is 64 items / 41 checked / 23 open (171 comments). The release register remains 25 workstreams: 2 Done / 15 In Progress / 8 Blocked. External console setup, physical Apple/Android device tests, production cloud configuration, witnessed backup/restore, production monitoring, staged rollout/rollback approval and real-user/business pilot acceptance remain Blocked.
+
+Published releases: 0. Code Scanning, Dependabot and Secret Scanning inventories are unavailable through the integration: unverified, not empty.
+
+**PRODUCTION RELEASE NOT ACCEPTED. REAL-USER PILOT NOT ACCEPTED.**
+
+---
+
 ## Current production and pilot acceptance checkpoint — 2026-11-18 05:40 CET
 
 **Decision: NOT ACCEPTED. Production release and real-user pilot remain blocked.** No source-level CI result is treated as production acceptance.

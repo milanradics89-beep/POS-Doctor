@@ -1,3 +1,46 @@
+## Authoritative release backlog checkpoint - 2026-11-18 06:32 CET
+
+This checkpoint supersedes the 05:40 CET inventory and current-CI snapshot. The evidence-based 25-point register remains unchanged.
+
+### 25-point Done / In Progress / Blocked register
+
+**Done (2):** #1, #6.
+
+**In Progress (15):** #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.
+
+**Blocked (8):**
+- #2 - repository visibility / plan owner decision.
+- #4 - production Apple App Attest entitlement and physical iPhone.
+- #5 - Google Play Integrity on Play-installed physical Android.
+- #16 - witnessed production backup/restore.
+- #18 - representative product-recognition benchmark and business acceptance.
+- #21 - production monitoring and alert delivery.
+- #22 - approved staged rollout and tested rollback.
+- #25 - real-user pilot and business sign-off.
+
+The register contains exactly 25 numbered workstreams. External console setup, physical-device testing, production cloud access, witnessed recovery, production monitoring, staged rollout approval and real-user/business acceptance remain Blocked until direct evidence exists.
+
+### Current exact-head release evidence
+
+- PR #41 is CLOSED/MERGED. Source branch exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; main/merge commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021): all SUCCESS. Review inventory 52 conversation comments, 30 inline comments, 26 submissions (25 COMMENTED, one human APPROVED), 22/22 threads resolved. Three obsolete workflows remain queued with zero jobs on stale SHA `b46c5b8`; administrator cancellation required.
+- PR #157 exact HEAD `737a018f5783b612980dd1d5c95a0550339c8473`: Validation [44239258442](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44239258442) terminal FAILURE at `npm audit --omit=dev --audit-level=high`; CodeQL [44239258398](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44239258398) and Dependency Review [44239258433](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44239258433) terminal SUCCESS. Backend and iOS passed. Frontend unit tests, typecheck, Expo Doctor, Android export, Android Release and emulator smoke passed before runtime audit failed.
+- PR #162 exact HEAD `2b3414a954741e3149a96e37dc965fee84f575d0`: Validation [44232687433](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687433) failed at the same runtime audit; CodeQL [44232687360](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687360) and Dependency Review [44232687432](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44232687432) passed. Backend passed; frontend 303/303, Android Release/emulator, iOS Release/simulator and SourceRoot-aware bundle scan passed. Scan: 2 source maps / 2,634 entries / no picomatch package-source path found.
+- Runtime audit remains 28 vulnerability instances (2 moderate, 26 high): minimatch `GHSA-g3hv-75wg-m249` and picomatch `GHSA-fc5q-39xc-vjpf` / `CVE-2026-112366`. Main and #162 share lockfile blob `2bccc4107db8e2b4ac638215328677761d34374a`; the affected dependency graph is present on main. Do not suppress the audit or force-downgrade Expo/React Native.
+- Upstream picomatch PR #264/#265 remain unmerged; no compatible patched npm release is verified. PR #119 minimatch 11.0.5 remains a separate candidate and does not resolve picomatch 4.0.7 under Expo/Metro/tinyglobby. Issue #155 remains OPEN.
+- PR #99 exact HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139`, base main: recorded Validation [43772791089](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791089), CodeQL [43772791064](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791064), Dependency Review [43772791109](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791109) all SUCCESS. Issue #64 remains OPEN; 2/2 inline threads resolved, four COMMENTED submissions, zero human APPROVED. Production DNS64/NAT64 inventory, deployed `USEIT_NAT64_PREFIXES`, staging/production egress and independent security approval remain outstanding.
+
+### Canonical development checklist and repository inventory
+
+Issue #74 remains OPEN with 171 comments and 64 checklist boxes: **41 checked / 23 open**. This is a separate development checklist; no checkbox changed in this checkpoint.
+
+Repository is PUBLIC. Main HEAD `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`, protected=true. Active ruleset [Protect main #26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires PRs, one approval, stale-review dismissal, last-push approval, resolved threads, six strict checks (CodeQL, backend, frontend, ios, analyze, dependency-review), deletion/non-fast-forward protection and no bypass actors. Issue #47 is CLOSED; durable owner decision on long-term visibility/plan remains outstanding, so #2 stays Blocked.
+
+Fresh inventory: **119 branches**, **60 open PRs**, **7 open non-PR issues** (#149, #74, #155, #64, #25, #24, #23). Published GitHub releases: **0**. Dependabot, Code Scanning and Secret Scanning alert endpoints are not exposed by the available integration: **unverified, not empty**.
+
+**RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.**
+
+---
+
 ## Authoritative release backlog checkpoint — 2026-11-18 05:40 CET
 
 This checkpoint supersedes prior checklist counts and repository inventories below. The 25-point register is unchanged and evidence-based.
