@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-17 18:13 CET';
+const marker = '## Exact-head reconciliation — 2026-11-18 15:34 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -26,7 +26,7 @@ const misleadingZeroAuditClaim = /npm audit\b[^.\n]*(?:returned|reported|reports
 
 describe('release documentation exact-head checkpoint', () => {
   it('parses plain and code-formatted SHA labels but rejects unbalanced backticks', () => {
-    const sha = '7f71bd957d3455b7649605099c466dd4d7a4e712';
+    const sha = 'fd08077d7967c2f415853cb1e194c3983d1bff20';
     const plain = [
       'PR #85 pre-write parent HEAD is ' + sha + '.',
       'These exact-head runs belong to PR #85 pre-write parent HEAD ' + sha + ' only.',
@@ -43,7 +43,7 @@ describe('release documentation exact-head checkpoint', () => {
     expect(extractPreWritePair(malformed)).toEqual({ parent: undefined, evidenced: sha });
   });
 
-  it('labels the exact pre-write parent and binds all listed runs to that SHA only', () => {
+  it('binds every PR #85 workflow result to the exact pre-write parent', () => {
     expect(latestSections.every(Boolean)).toBe(true);
     const pairs = latestSections.map(extractPreWritePair);
     for (const pair of pairs) {
@@ -51,80 +51,86 @@ describe('release documentation exact-head checkpoint', () => {
       expect(pair.evidenced).toBe(pair.parent);
     }
     expect(new Set(pairs.map((pair) => pair.parent)).size).toBe(1);
-    expect(pairs.every((pair) => pair.parent === '7f71bd957d3455b7649605099c466dd4d7a4e712')).toBe(true);
+    expect(pairs.every((pair) => pair.parent === 'fd08077d7967c2f415853cb1e194c3983d1bff20')).toBe(true);
     expect(new Set(latestSections).size).toBe(1);
 
     for (const section of latestSections) {
       expect(section).toContain('Parent runs are not presented as validation of the documentation commit created by this checkpoint.');
-      expect(section).toContain('293 passed / 3 failed across 61 test files');
-      expect(section).toContain('The frontend job stopped at Unit tests');
-      expect(section).toContain('Android emulator smoke and the runtime npm audit were skipped');
-      expect(section).toMatch(/Validation \[44125620536\](?:\([^)]+\))?: (?:\*\*FAILURE\*\*|FAILURE)/);
-      expect(section).toMatch(/CodeQL \[44125620555\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
-      expect(section).toMatch(/Dependency Review \[44125620669\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
-      expect(section).toContain('PR #140 is OPEN/DRAFT at exact HEAD');
-      expect(section).toContain('Validation [44106927809]');
-      expect(section).toContain('CodeQL [44106927918]');
-      expect(section).toContain('Dependency Review [44106927790]');
-      expect(section).toContain('PR #132 remains OPEN/DRAFT');
-      expect(section).toContain('Validation [44028244600]');
-      expect(section).toContain('CodeQL [44028244408]');
-      expect(section).toContain('Dependency Review [44028244391]');
-      expect(section).toContain('PR #99 remains OPEN/DRAFT');
+      expect(section).toMatch(/Validation \[44313934098\].*terminal FAILURE/);
+      expect(section).toMatch(/CodeQL \[44313933984\].*terminal SUCCESS/);
+      expect(section).toMatch(/Dependency Review \[44313933991\].*terminal SUCCESS/);
+      expect(section).toContain('Frontend TypeScript typecheck, unit tests, Expo Doctor, Android export, Android Release build and Android emulator smoke all passed.');
+      expect(section).toContain('The mandatory command npm audit --omit=dev --audit-level=high reports 28 vulnerability instances (2 moderate, 26 high dependency paths).');
+      expect(section).toContain('minimatch GHSA-g3hv-75wg-m249 is moderate; picomatch GHSA-fc5q-39xc-vjpf is high.');
+      expect(section).toContain('no forced Expo downgrade, unverified dependency pin, npm audit fix --force, or audit suppression was applied.');
+      expect(section).toContain('PR #85 review inventory: 64 conversation comments, 16 inline review comments, 16 review submissions (all COMMENTED), 9/9 inline threads resolved, 0 human APPROVED reviews.');
+      expect(section).not.toMatch(misleadingZeroAuditClaim);
+    }
+  });
+
+  it('records PR #41 exact-head CI, branch and review inventory', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #41 is CLOSED/MERGED on fix/release-blockers-2026-10.');
+      expect(section).toContain('68b380e73ca3c870048035197beef8febbf90ef1');
+      expect(section).toContain('517 commits, 100 changed files, +11,887 additions and -2,005 deletions');
+      expect(section).toContain('Validation [43492153234]');
+      expect(section).toContain('CodeQL [43492153161]');
+      expect(section).toContain('Dependency Review [43492153021]');
+      expect(section).toContain('53 conversation comments, 30 inline review comments, 26 review submissions (25 COMMENTED, 1 human APPROVED), 22/22 inline threads resolved');
+      expect(section).toContain('43098210284');
+      expect(section).toContain('43098210473');
+      expect(section).toContain('43098210255');
+      expect(section).toContain('QUEUED with zero jobs');
+    }
+  });
+
+  it('records current governance and repository inventory without overstating security alerts', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('Repository visibility is public');
+      expect(section).toContain('Protect main #26370589');
+      expect(section).toContain('six strict required checks');
+      expect(section).toContain('127 branches (100 + 27 + 0)');
+      expect(section).toContain('67 open PRs and 7 open non-PR issues');
+      expect(section).toContain('0 published releases');
+      expect(section).toContain('unverified, not empty');
+    }
+  });
+
+  it('keeps Issue #64 production acceptance separate from CI success', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('Issue #64 remains OPEN with 56 comments');
+      expect(section).toContain('f91c70d2636948e538f8e3559afc39cd93eb5139');
       expect(section).toContain('Validation [43772791089]');
       expect(section).toContain('CodeQL [43772791064]');
       expect(section).toContain('Dependency Review [43772791109]');
-      expect(section).toMatch(/PR #85 review inventory: .*16 review submissions \(all COMMENTED\), 9\/9 inline threads resolved, 0 human APPROVED reviews/);
-      expect(section).toContain('Its review inventory is 3 COMMENTED submissions, 3/3 inline threads resolved and 0 human APPROVED reviews');
-      expect(section).toContain('PR #140 has 0 review submissions and 0 inline review threads');
-      expect(section).toContain('PR #99 has 4 COMMENTED review submissions (including the two replies), 2/2 inline threads resolved and 0 human APPROVED reviews');
-      expect(documents.every((document) => document.includes('Issue #136 is CLOSED'))).toBe(true);
-      expect(documents.every((document) => /Issue #142,.*is now CLOSED/.test(document))).toBe(true);
-      expect(section).toContain('61 test files, pinned Expo Doctor');
-      expect(section).toContain('71 test files passed');
-      expect(section).toContain('331/331 tests across 72 test files');
-      expect(section).toContain('64 items, 42 checked / 22 open');
-      expect(section).toContain('110 branches');
-      expect(section).toContain('50 open PRs and 6 open non-PR issues');
-      expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
-      expect(section).toContain('PR #41 is CLOSED/MERGED');
-      expect(section).toContain('Protect main ruleset #26370589 is ACTIVE');
-      expect(section.toLowerCase()).toContain('repository visibility is currently **public**');
-      expect(section).toContain('Security alert inventories are **unavailable/unverified, not empty**');
-      expect(section).toContain('No Issue #74 checkbox changed');
+      expect(section).toContain('4 COMMENTED submissions, 2/2 inline threads resolved, 0 human APPROVED');
+      expect(section).toContain('production DNS64/NAT64 translator-prefix inventory');
+      expect(section).toContain('verified deployed USEIT_NAT64_PREFIXES');
     }
   });
 
-  it('keeps the child-branch validation gate in the release record', () => {
-    for (const document of documents) {
-      expect(document).toContain('The resulting documentation child must pass its own exact-head Validation, CodeQL and Dependency Review.');
-    }
-  });
-
-  it('detects a split-brain parent/evidence pair', () => {
-    const mismatched = "PR #85 pre-write parent HEAD is \x60796f3b1b3dfc054850dd7410bce6fa27aa0fd108\x60.\nThese exact-head runs belong to PR #85 pre-write parent HEAD \x6000000000000000000000000000000000000000\x60 only.";
-    const pair = extractPreWritePair(mismatched);
-    expect(pair.parent).toMatch(/^[0-9a-f]{40}$/);
-    expect(pair.evidenced).not.toBe(pair.parent);
-  });
-
-  it('keeps the audit finding visible and rejects a false clean-audit claim', () => {
+  it('keeps Issue #74 separate from the 25-point release register', () => {
     for (const section of latestSections) {
-      expect(section).toContain('3 moderate minimatch findings');
-      expect(section).toContain('GHSA-g3hv-75wg-m249');
-      expect(section).toContain('npm audit fix --force');
-      expect(section).not.toMatch(misleadingZeroAuditClaim);
-      expect(section).toMatch(/no forced Expo downgrade or audit suppression was applied/i);
+      expect(section).toContain('64 items / 41 checked / 23 open (186 comments)');
+      expect(section).toContain('separate from the 25-point release register');
     }
   });
 
-  it('keeps automated checks separate from human and production acceptance', () => {
+  it('preserves the evidence-based 25-point register and all external blockers', () => {
     for (const section of latestSections) {
-      expect(section).toContain('RELEASE NOT READY');
-      expect(section).toContain('PRODUCTION/PILOT ACCEPTANCE NOT GRANTED');
-      expect(section).toContain('0 human APPROVED reviews');
-      expect(section).toContain('Issue #64 remains OPEN / production acceptance BLOCKED');
-      expect(section).toContain('No main-branch write');
+      expect(section).toContain('exactly 2 Done / 15 In Progress / 8 Blocked');
+      expect(section).toContain('Done (2): #1, #6.');
+      expect(section).toContain('In Progress (15): #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.');
+      expect(section).toContain('Blocked (8): #2');
+      expect(section).toContain('#4 (production Apple App Attest entitlement and physical iPhone)');
+      expect(section).toContain('#5 (Play Integrity on Play-installed physical Android)');
+      expect(section).toContain('#16 (witnessed production backup/restore)');
+      expect(section).toContain('#18 (representative product-recognition benchmark and business acceptance)');
+      expect(section).toContain('#21 (production monitoring and alert delivery)');
+      expect(section).toContain('#22 (approved staged rollout and tested rollback)');
+      expect(section).toContain('#25 (real-user pilot and business sign-off)');
+      expect(section).toContain('RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.');
+      expect(section).toContain('No main-branch write occurred.');
     }
   });
 });
