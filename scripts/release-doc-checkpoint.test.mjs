@@ -15,14 +15,34 @@ const latestSections = documents.map((document) => {
   return document.slice(start, end < 0 ? document.length : end);
 });
 
+const captureSha = (match) => match?.[1] ?? match?.[2];
+
 const extractPreWritePair = (section) => ({
-  parent: section.match(/PR #85 pre-write parent HEAD is \x60([0-9a-f]{40})\x60/)?.[1],
-  evidenced: section.match(/These exact-head runs belong to PR #85 pre-write parent HEAD \x60([0-9a-f]{40})\x60 only/)?.[1],
+  parent: captureSha(section.match(/PR #85 pre-write parent HEAD is (?:\x60([0-9a-f]{40})\x60|([0-9a-f]{40})\b)/)),
+  evidenced: captureSha(section.match(/These exact-head runs belong to PR #85 pre-write parent HEAD (?:\x60([0-9a-f]{40})\x60|([0-9a-f]{40})\b) only/)),
 });
 
 const misleadingZeroAuditClaim = /npm audit\b[^.\n]*(?:returned|reported|reports?)\s+(?:\*\*)?0 vulnerabilities\b/i;
 
 describe('release documentation exact-head checkpoint', () => {
+  it('parses plain and code-formatted SHA labels but rejects unbalanced backticks', () => {
+    const sha = '7f71bd957d3455b7649605099c466dd4d7a4e712';
+    const plain = [
+      'PR #85 pre-write parent HEAD is ' + sha + '.',
+      'These exact-head runs belong to PR #85 pre-write parent HEAD ' + sha + ' only.',
+    ].join('\n');
+    const code = [
+      'PR #85 pre-write parent HEAD is \x60' + sha + '\x60.',
+      'These exact-head runs belong to PR #85 pre-write parent HEAD \x60' + sha + '\x60 only.',
+    ].join('\n');
+    const malformed = 'PR #85 pre-write parent HEAD is \x60' + sha + '.\n'
+      + 'These exact-head runs belong to PR #85 pre-write parent HEAD ' + sha + ' only.';
+
+    expect(extractPreWritePair(plain)).toEqual({ parent: sha, evidenced: sha });
+    expect(extractPreWritePair(code)).toEqual({ parent: sha, evidenced: sha });
+    expect(extractPreWritePair(malformed)).toEqual({ parent: undefined, evidenced: sha });
+  });
+
   it('labels the exact pre-write parent and binds all listed runs to that SHA only', () => {
     expect(latestSections.every(Boolean)).toBe(true);
     const pairs = latestSections.map(extractPreWritePair);
