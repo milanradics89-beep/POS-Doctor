@@ -77,6 +77,29 @@ describe('mobile bundle dependency reachability', () => {
     }
   });
 
+  it('fails closed when a source map has no source entries or indexed sections', () => {
+    expect(() => findPackageSourcesInMap({ sources: [] }, 'picomatch'))
+      .toThrow('sources must be a non-empty array');
+    expect(() => findPackageSourcesInMap({ sections: [] }, 'picomatch'))
+      .toThrow('sections must be a non-empty array');
+    expect(() => findPackageSourcesInMap({ sources: [''] }, 'picomatch'))
+      .toThrow('non-empty strings');
+  });
+
+  it('fails closed when a map mixes basic and indexed source-map fields', () => {
+    expect(() => findPackageSourcesInMap({
+      sources: [],
+      sections: [{ offset: { line: 0, column: 0 }, map: { sources: ['node_modules/picomatch/index.js'] } }],
+    }, 'picomatch')).toThrow('exactly one of sources or sections');
+  });
+
+  it('fails closed when indexed maps declare a top-level sourceRoot', () => {
+    expect(() => findPackageSourcesInMap({
+      sourceRoot: '../node_modules/picomatch',
+      sections: [{ offset: { line: 0, column: 0 }, map: { sources: ['index.js'] } }],
+    }, 'picomatch')).toThrow('Indexed source maps must not declare sourceRoot');
+  });
+
   it('supports indexed source maps', () => {
     const map = {
       sections: [

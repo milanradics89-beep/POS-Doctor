@@ -30,33 +30,51 @@ function sourceContainsPackage(source, packageSegments) {
 }
 
 function flattenSources(sourceMap) {
-  if (Array.isArray(sourceMap.sources)) {
+  if (!sourceMap || typeof sourceMap !== 'object' || Array.isArray(sourceMap)) {
+    throw new Error('Source map must be an object.');
+  }
+
+  const hasSources = Object.hasOwn(sourceMap, 'sources');
+  const hasSections = Object.hasOwn(sourceMap, 'sections');
+  if (hasSources === hasSections) {
+    throw new Error('Source map must contain exactly one of sources or sections.');
+  }
+
+  if (hasSources) {
+    if (!Array.isArray(sourceMap.sources) || sourceMap.sources.length === 0) {
+      throw new Error('Source map sources must be a non-empty array.');
+    }
     const sourceRoot = sourceMap.sourceRoot;
-    if (sourceRoot !== undefined && sourceRoot !== null && typeof sourceRoot !== 'string') {
+    if (Object.hasOwn(sourceMap, 'sourceRoot') && typeof sourceRoot !== 'string') {
       throw new Error('Source map sourceRoot must be a string when present.');
     }
     const normalizedRoot = typeof sourceRoot === 'string'
-      ? sourceRoot.replaceAll('\\', '/').replace(/\/+$/, '')
+      ? sourceRoot.replaceAll('\\', '/').replace(/\\/+$/, '')
       : '';
-    if (!sourceMap.sources.every((source) => typeof source === 'string')) {
-      throw new Error('Source map sources must contain only strings.');
+    if (!sourceMap.sources.every((source) => typeof source === 'string' && source.trim().length > 0)) {
+      throw new Error('Source map sources must contain only non-empty strings.');
     }
     return sourceMap.sources.map((source) => {
       const sourcePath = source.replaceAll('\\', '/');
       return normalizedRoot
-        ? normalizedRoot + '/' + sourcePath.replace(/^\/+/, '')
+        ? normalizedRoot + '/' + sourcePath.replace(/^\\/+/, '')
         : sourcePath;
     });
   }
-  if (Array.isArray(sourceMap.sections)) {
-    return sourceMap.sections.flatMap((section) => {
-      if (!section || !section.map || typeof section.map !== 'object') {
-        throw new Error('Indexed source map contains a section without a map.');
-      }
-      return flattenSources(section.map);
-    });
+
+  if (!Array.isArray(sourceMap.sections) || sourceMap.sections.length === 0) {
+    throw new Error('Indexed source map sections must be a non-empty array.');
   }
-  throw new Error('Source map does not contain a sources array or indexed sections.');
+  if (Object.hasOwn(sourceMap, 'sourceRoot')) {
+    throw new Error('Indexed source maps must not declare sourceRoot; each section map owns its sourceRoot.');
+  }
+  return sourceMap.sections.flatMap((section) => {
+    if (!section || typeof section !== 'object' || Array.isArray(section)
+      || !section.map || typeof section.map !== 'object' || Array.isArray(section.map)) {
+      throw new Error('Indexed source map contains a section without a valid map.');
+    }
+    return flattenSources(section.map);
+  });
 }
 
 export function findPackageSourcesInMap(sourceMap, packageName = 'picomatch') {
