@@ -22,8 +22,48 @@ describe('mobile bundle dependency reachability', () => {
   });
 
   it('normalizes Windows separators before matching', () => {
-    const map = { sources: ['..\\node_modules\\picomatch\\index.js'] };
-    expect(findPackageSourcesInMap(map, 'picomatch')).toEqual(map.sources);
+    const map = { sources: ['..\\\\node_modules\\\\picomatch\\\\index.js'] };
+    expect(findPackageSourcesInMap(map, 'picomatch')).toEqual(map.sources.map((source) => source.replaceAll('\\\\', '/')));
+  });
+
+  it('applies sourceRoot before matching source paths', () => {
+    const map = {
+      sourceRoot: '../../node_modules/picomatch/',
+      sources: ['index.js', 'lib/parse.js'],
+    };
+    expect(findPackageSourcesInMap(map, 'picomatch')).toEqual([
+      '../../node_modules/picomatch/index.js',
+      '../../node_modules/picomatch/lib/parse.js',
+    ]);
+  });
+
+  it('applies sourceRoot independently inside indexed source-map sections', () => {
+    const map = {
+      sections: [
+        {
+          offset: { line: 0, column: 0 },
+          map: {
+            sourceRoot: '../node_modules/picomatch',
+            sources: ['index.js'],
+          },
+        },
+        {
+          offset: { line: 10, column: 0 },
+          map: {
+            sourceRoot: '../src',
+            sources: ['app.ts'],
+          },
+        },
+      ],
+    };
+    expect(findPackageSourcesInMap(map, 'picomatch')).toEqual([
+      '../node_modules/picomatch/index.js',
+    ]);
+  });
+
+  it('fails closed when sourceRoot has an invalid type', () => {
+    expect(() => findPackageSourcesInMap({ sourceRoot: 42, sources: ['index.js'] }, 'picomatch'))
+      .toThrow('sourceRoot must be a string');
   });
 
   it('supports indexed source maps', () => {
@@ -72,6 +112,7 @@ describe('mobile bundle dependency reachability', () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
   it('matches package names as literal path segments, not regular expressions', () => {
     const map = {
       sources: [
@@ -86,5 +127,4 @@ describe('mobile bundle dependency reachability', () => {
     expect(() => findPackageSourcesInMap({ sources: [] }, '../picomatch')).toThrow('traversal path segments');
     expect(() => findPackageSourcesInMap({ sources: [] }, 'picomatch//nested')).toThrow('traversal path segments');
   });
-
 });

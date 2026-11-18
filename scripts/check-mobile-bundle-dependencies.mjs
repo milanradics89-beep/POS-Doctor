@@ -14,7 +14,7 @@ function packageNameSegments(packageName) {
 }
 
 function sourceContainsPackage(source, packageSegments) {
-  const pathSegments = String(source).replaceAll('\\', '/').split('/');
+  const pathSegments = String(source).replaceAll('\\\\', '/').split('/');
   for (let index = 0; index < pathSegments.length; index += 1) {
     if (pathSegments[index] !== 'node_modules') continue;
     let matches = true;
@@ -31,7 +31,19 @@ function sourceContainsPackage(source, packageSegments) {
 
 function flattenSources(sourceMap) {
   if (Array.isArray(sourceMap.sources)) {
-    return sourceMap.sources.map((source) => String(source));
+    const sourceRoot = sourceMap.sourceRoot;
+    if (sourceRoot !== undefined && sourceRoot !== null && typeof sourceRoot !== 'string') {
+      throw new Error('Source map sourceRoot must be a string when present.');
+    }
+    const normalizedRoot = typeof sourceRoot === 'string'
+      ? sourceRoot.replaceAll('\\\\', '/').replace(/\\/+$/, '')
+      : '';
+    return sourceMap.sources.map((source) => {
+      const sourcePath = String(source).replaceAll('\\\\', '/');
+      return normalizedRoot
+        ? normalizedRoot + '/' + sourcePath.replace(/^\\/+/, '')
+        : sourcePath;
+    });
   }
   if (Array.isArray(sourceMap.sections)) {
     return sourceMap.sections.flatMap((section) => {
