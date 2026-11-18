@@ -22,8 +22,8 @@ describe('mobile bundle dependency reachability', () => {
   });
 
   it('normalizes Windows separators before matching', () => {
-    const map = { sources: ['..\\\\node_modules\\\\picomatch\\\\index.js'] };
-    expect(findPackageSourcesInMap(map, 'picomatch')).toEqual(map.sources.map((source) => source.replaceAll('\\\\', '/')));
+    const map = { sources: ['..\\node_modules\\picomatch\\index.js'] };
+    expect(findPackageSourcesInMap(map, 'picomatch')).toEqual(['../node_modules/picomatch/index.js']);
   });
 
   it('applies sourceRoot before matching source paths', () => {
