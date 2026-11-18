@@ -79,7 +79,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('PR #140 has 0 review submissions and 0 inline review threads');
       expect(section).toContain('PR #99 has 4 COMMENTED review submissions (including the two replies), 2/2 inline threads resolved and 0 human APPROVED reviews');
       expect(documents.every((document) => document.includes('Issue #136 is CLOSED'))).toBe(true);
-      expect(section).toMatch(/Issue #142,.*is now CLOSED/);
+      expect(documents.every((document) => /Issue #142,.*is now CLOSED/.test(document))).toBe(true);
       expect(section).toContain('61 test files, pinned Expo Doctor');
       expect(section).toContain('71 test files passed');
       expect(section).toContain('331/331 tests across 72 test files');
