@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-18 15:34 CET';
+const marker = '## Exact-head reconciliation — 2026-11-18 21:35 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -66,19 +66,19 @@ describe('release documentation exact-head checkpoint', () => {
       expect(pair.evidenced).toBe(pair.parent);
     }
     expect(new Set(pairs.map((pair) => pair.parent)).size).toBe(1);
-    expect(pairs.every((pair) => pair.parent === 'fd08077d7967c2f415853cb1e194c3983d1bff20')).toBe(true);
+    expect(pairs.every((pair) => pair.parent === '563db2b558206b5bab0700432a055bc13e7b2478')).toBe(true);
     expect(new Set(latestSections).size).toBe(1);
 
     for (const section of latestSections) {
       expect(section).toContain('Parent runs are not presented as validation of the documentation commit created by this checkpoint.');
-      expect(section).toMatch(/Validation \[44313934098\].*terminal FAILURE/);
-      expect(section).toMatch(/CodeQL \[44313933984\].*terminal SUCCESS/);
-      expect(section).toMatch(/Dependency Review \[44313933991\].*terminal SUCCESS/);
-      expect(section).toContain('Frontend TypeScript typecheck, unit tests, Expo Doctor, Android export, Android Release build and Android emulator smoke all passed.');
-      expect(section).toContain('The mandatory command npm audit --omit=dev --audit-level=high reports 28 vulnerability instances (2 moderate, 26 high dependency paths).');
-      expect(section).toMatch(/minimatch GHSA-g3hv-75wg-m249 is moderate; picomatch GHSA-fc5q-39xc-vjpf is high\./i);
+      expect(section).toMatch(/Validation \[44376829457\].*terminal SUCCESS/);
+      expect(section).toMatch(/CodeQL \[44376829436\].*terminal SUCCESS/);
+      expect(section).toMatch(/Dependency Review \[44376829434\].*terminal SUCCESS/);
+      expect(section).toContain('Frontend TypeScript typecheck, 298 tests across 61 test files, Expo Doctor 21/21, Android export, native Android Release build and Android emulator smoke all passed.');
+      expect(section).toContain('npm audit --omit=dev --audit-level=high completed successfully at the configured high threshold and reported 3 moderate minimatch findings; no picomatch finding was reported.');
+      expect(section).toContain('minimatch GHSA-g3hv-75wg-m249 remains moderate; picomatch GHSA-fc5q-39xc-vjpf is WITHDRAWN by GitHub and revoked by Snyk.');
       expect(section).toMatch(/no forced Expo downgrade, unverified dependency pin, npm audit fix --force, or audit suppression was applied\./i);
-      expect(section).toContain('PR #85 review inventory: 64 conversation comments, 16 inline review comments, 16 review submissions (all COMMENTED), 9/9 inline threads resolved, 0 human APPROVED reviews.');
+      expect(section).toContain('PR #85 review inventory: 65 conversation comments, 16 inline review comments, 16 formal review submissions (all COMMENTED), 9/9 inline threads resolved, 0 human APPROVED.');
       expect(section).not.toMatch(misleadingZeroAuditClaim);
     }
   });
@@ -104,8 +104,8 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Repository visibility is public');
       expect(section).toContain('Protect main #26370589');
       expect(section).toContain('six strict required checks');
-      expect(section).toContain('127 branches (100 + 27 + 0)');
-      expect(section).toContain('67 open PRs and 7 open non-PR issues');
+      expect(section).toContain('129 branches (100 + 29 + 0)');
+      expect(section).toContain('69 open PRs, 7 open non-PR issues');
       expect(section).toContain('0 published releases');
       expect(section).toContain('unverified, not empty');
     }
@@ -113,7 +113,7 @@ describe('release documentation exact-head checkpoint', () => {
 
   it('keeps Issue #64 production acceptance separate from CI success', () => {
     for (const section of latestSections) {
-      expect(section).toContain('Issue #64 remains OPEN with 56 comments');
+      expect(section).toContain('Issue #64 remains OPEN with 59 comments');
       expect(section).toContain('f91c70d2636948e538f8e3559afc39cd93eb5139');
       expect(section).toContain('Validation [43772791089]');
       expect(section).toContain('CodeQL [43772791064]');
@@ -126,7 +126,7 @@ describe('release documentation exact-head checkpoint', () => {
 
   it('keeps Issue #74 separate from the 25-point release register', () => {
     for (const section of latestSections) {
-      expect(section).toContain('64 items / 41 checked / 23 open (186 comments)');
+      expect(section).toContain('64 items / 41 checked / 23 open (192 comments)');
       expect(section).toContain('separate from the 25-point release register');
     }
   });
@@ -148,4 +148,38 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('No main-branch write occurred.');
     }
   });
+
+  it('records the current PR #85 Validation evidence and separates historical release-chain failures', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('Backend: 450 tests passed, production readiness 27 passed, production-security 78 passed, cryptography 50.0.2, pip-audit clean.');
+      expect(section).toContain('PR #171 is OPEN/DRAFT');
+      expect(section).toContain('PR #172 is OPEN/DRAFT');
+      expect(section).toContain('identical Git tree');
+      expect(section).toContain('PR #163');
+      expect(section).toContain('PR #170');
+      expect(section).toContain('Unit tests');
+      expect(section).toContain('Runtime dependency audit: 28 findings');
+      expect(section).toContain('0 formal review submissions and 0 inline review threads');
+      expect(section).toContain('+(*)');
+      expect(section).toContain('*(*)');
+      expect(section).toContain('+(a*)');
+      expect(section).toContain('+(*a)');
+      expect(section).toContain('*(a*|b)');
+      expect(section).toContain('+(ab|abab)');
+    }
+  });
+
+  it('records the withdrawn picomatch advisory without claiming a patched npm release', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('WITHDRAWN on 2026-11-18');
+      expect(section).toContain('OSV record still shows HIGH and Modified 2026-11-17');
+      expect(section).toContain('4.0.7 as latest');
+      expect(section).toContain('no 4.0.8 or patched release');
+      expect(section).toContain('23/23 successful check-runs');
+      expect(section).toContain('release commit');
+      expect(section).toContain('unsigned');
+      expect(section).toContain('npm registry provenance/integrity has not been verified');
+    }
+  });
+
 });
