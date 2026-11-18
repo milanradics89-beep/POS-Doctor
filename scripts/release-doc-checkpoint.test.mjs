@@ -58,7 +58,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Parent runs are not presented as validation of the documentation commit created by this checkpoint.');
       expect(section).toContain('293 passed / 3 failed across 61 test files');
       expect(section).toContain('The frontend job stopped at Unit tests');
-      expect(section).toContain('Android Release, Android emulator smoke and runtime npm audit were skipped');
+      expect(section).toContain('Expo Doctor, Android export, native Android Release, Android emulator smoke and runtime npm audit were skipped');
       expect(section).toMatch(/Validation \[44125620536\](?:\([^)]+\))?: (?:\*\*FAILURE\*\*|FAILURE)/);
       expect(section).toMatch(/CodeQL \[44125620555\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
       expect(section).toMatch(/Dependency Review \[44125620669\](?:\([^)]+\))?: (?:\*\*SUCCESS\*\*|SUCCESS)/);
