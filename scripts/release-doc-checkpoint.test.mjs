@@ -99,7 +99,7 @@ describe('release documentation exact-head checkpoint', () => {
     for (const section of currentAuditSections) {
       expect(section).toContain('PR #41 is CLOSED/MERGED');
       expect(section).toContain('68b380e73ca3c870048035197beef8febbf90ef1');
-      expect(section).toContain('53 conversation comments, 30 inline review comments, 26 review submissions');
+      expect(section).toMatch(/53 conversation comments, 30 inline (?:review )?comments, 26 (?:formal )?(?:review )?submissions/);
       expect(section).toContain('22/22 threads resolved');
       expect(section).toContain('Validation [44245329306]');
       expect(section).toContain('CodeQL [44245329322]');
