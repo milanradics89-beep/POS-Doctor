@@ -66,6 +66,17 @@ describe('mobile bundle dependency reachability', () => {
       .toThrow('sourceRoot must be a string');
   });
 
+  it('fails closed when source entries are not strings, including indexed maps', () => {
+    const malformedMaps = [
+      { sources: ['node_modules/picomatch/index.js', null] },
+      { sections: [{ offset: { line: 0, column: 0 }, map: { sources: [42] } }] },
+    ];
+    for (const map of malformedMaps) {
+      expect(() => findPackageSourcesInMap(map, 'picomatch'))
+        .toThrow('Source map sources must contain only strings.');
+    }
+  });
+
   it('supports indexed source maps', () => {
     const map = {
       sections: [

@@ -38,8 +38,11 @@ function flattenSources(sourceMap) {
     const normalizedRoot = typeof sourceRoot === 'string'
       ? sourceRoot.replaceAll('\\', '/').replace(/\/+$/, '')
       : '';
+    if (!sourceMap.sources.every((source) => typeof source === 'string')) {
+      throw new Error('Source map sources must contain only strings.');
+    }
     return sourceMap.sources.map((source) => {
-      const sourcePath = String(source).replaceAll('\\', '/');
+      const sourcePath = source.replaceAll('\\', '/');
       return normalizedRoot
         ? normalizedRoot + '/' + sourcePath.replace(/^\/+/, '')
         : sourcePath;
