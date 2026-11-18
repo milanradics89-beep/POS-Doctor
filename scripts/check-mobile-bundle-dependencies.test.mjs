@@ -73,7 +73,7 @@ describe('mobile bundle dependency reachability', () => {
     ];
     for (const map of malformedMaps) {
       expect(() => findPackageSourcesInMap(map, 'picomatch'))
-        .toThrow('Source map sources must contain only strings.');
+        .toThrow('Source map sources must contain only non-empty strings.');
     }
   });
 
