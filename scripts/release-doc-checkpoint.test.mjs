@@ -65,7 +65,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Dependency Review [44519056935]');
       expect(section).toContain('accepts either formatting while retaining the exact command');
       expect(section.toLowerCase()).toContain('its own exact-head validation, codeql and dependency review must each reach terminal success before another write or merge.');
-      expect(section).toContain('300 passed across 61 test files (300 total);');
+      expect(section).toContain('That ancestor had 300 passed across 61 test files (300 total),');
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('native Android Release build and Android emulator smoke all passed.');
       expect(section).toContain('iOS native Release build and simulator smoke passed.');
@@ -77,7 +77,7 @@ describe('release documentation exact-head checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #41 is CLOSED/MERGED on');
       expect(section).toContain('68b380e73ca3c870048035197beef8febbf90ef1');
-      expect(section).toContain('517 commits and 100 changed files');
+      expect(section).toContain('517 commits, 100 changed files');
       expect(section).toContain('Validation [43492153234]');
       expect(section).toContain('CodeQL [43492153161]');
       expect(section).toContain('Dependency Review [43492153021]');
@@ -95,7 +95,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('cd3cd0e01f8dab9c1ac8e47c923a05134857d47d');
       expect(section).toContain('PR #172 is OPEN/DRAFT');
       expect(section).toContain('5e0f0c000a3a3707e5565c32804e4d221a886caa');
-      expect(section).toContain('Both #171 and #172 have parent `c5faf4ca3ec9228dcde2b17ef5704d6199856792` and identical Git tree `cf955182d98cae2e19f10c0e08f8e12621cb5242`; they are sibling commits, not a parent/child pair.');
+      expect(section).toContain('Both commits have parent `c5faf4ca3ec9228dcde2b17ef5704d6199856792` and identical Git tree `cf955182d98cae2e19f10c0e08f8e12621cb5242`; they are sibling commits, not a parent/child pair.');
       expect(section).toContain('44358862088');
       expect(section).toContain('44358862249');
       expect(section).toContain('44358862085');
