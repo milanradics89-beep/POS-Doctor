@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-19 00:26 CET';
+const marker = '## Exact-head reconciliation — 2026-11-19 01:38 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -15,10 +15,14 @@ const latestSections = documents.map((document) => {
   return document.slice(start, end < 0 ? document.length : end);
 });
 
-const extractPreWritePair = (section) => ({
-  parent: section.match(/The exact pre-write parent HEAD is (?:\x60)?([0-9a-f]{40})(?:\x60)?/)?.[1],
-  evidenced: section.match(/These exact-head runs belong to PR #85 pre-write parent HEAD (?:\x60)?([0-9a-f]{40})(?:\x60)? only/)?.[1],
-});
+const extractPreWritePair = (section) => {
+  const parent = section.match(/The exact pre-write parent HEAD is (`([0-9a-f]{40})`|([0-9a-f]{40}))(?:[.\s]|$)/);
+  const evidenced = section.match(/These exact-head runs belong to PR #85 pre-write parent HEAD (`([0-9a-f]{40})`|([0-9a-f]{40})) only/);
+  return {
+    parent: parent?.[2] ?? parent?.[3],
+    evidenced: evidenced?.[2] ?? evidenced?.[3],
+  };
+};
 
 describe('release documentation exact-head checkpoint', () => {
   it('parses plain and code-formatted SHA labels and rejects malformed backticks', () => {
@@ -47,15 +51,15 @@ describe('release documentation exact-head checkpoint', () => {
 
   it('binds PR #85 workflow evidence to the exact pre-write parent, not the new child', () => {
     const pairs = latestSections.map(extractPreWritePair);
-    expect(pairs.every((pair) => pair.parent === '4d530754caf327dd21d44b2838fd0bb9bb1400a4')).toBe(true);
+    expect(pairs.every((pair) => pair.parent === '18dadee73775c12e4d6ead8584c9dac4baa517cf')).toBe(true);
     expect(pairs.every((pair) => pair.evidenced === pair.parent)).toBe(true);
     for (const section of latestSections) {
-      expect(section).toContain('Validation [44411470648]: terminal SUCCESS');
-      expect(section).toContain('CodeQL [44411470376]: terminal SUCCESS');
-      expect(section).toContain('Dependency Review [44411470406]: terminal SUCCESS');
+      expect(section).toMatch(/Validation \\[44421412298\\]\\([^)]*\\): terminal FAILURE/);
+      expect(section).toMatch(/CodeQL \\[44421412174\\]\\([^)]*\\): terminal SUCCESS/);
+      expect(section).toMatch(/Dependency Review \\[44421412180\\]\\([^)]*\\): terminal SUCCESS/);
       expect(section).toContain('The parent runs above do not validate that child.');
       expect(section).toContain('Its own exact-head Validation, CodeQL and Dependency Review must each reach terminal SUCCESS before another write or merge.');
-      expect(section).toContain('298 tests across 61 test files');
+      expect(section).toContain('297 passed and 3 failed across 61 test files (300 total)');
       expect(section).toContain('3 moderate minimatch findings');
     }
   });
@@ -110,7 +114,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('4 COMMENTED submissions, 2/2 inline threads resolved, 0 human APPROVED.');
       expect(section).toContain('production DNS64/NAT64 prefix inventory');
       expect(section).toContain('verified deployed');
-      expect(section).toContain('Production acceptance remains BLOCKED');
+      expect(section).toMatch(/production acceptance remains BLOCKED/i);
     }
   });
 
