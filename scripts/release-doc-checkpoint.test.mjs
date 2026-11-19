@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-19 21:42 CET';
+const marker = '## Exact-head reconciliation — 2026-11-19 21:45 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -60,6 +60,7 @@ describe('release documentation exact-head checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('Validation [44515665309](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665309): terminal FAILURE; frontend job FAILURE, backend job SUCCESS, iOS job SUCCESS.');
       expect(section).toContain('CodeQL [44515665215](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665215): terminal SUCCESS; analyze job SUCCESS.');
+      expect(section).toContain('Dependency Review [44515665613](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665613): terminal SUCCESS; dependency-review job SUCCESS.');
       expect(section).toContain('Dependency Review [44515665613](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665613): terminal SUCCESS; dependency-review job SUCCESS.');
       expect(section).toContain('The parent runs above do not validate that child.');
       expect(section).toContain('PR #177 is OPEN/DRAFT');
@@ -135,6 +136,11 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Protect main ruleset [26370589]');
       expect(section).toContain('six strict checks');
       expect(section).toContain('Issue #64 remains OPEN with 67 comments.');
+      expect(section).toContain('PR #184 is OPEN/DRAFT');
+      expect(section).toContain('Current exact HEAD: `050f8aa068018c1f91236c7199bfd2478e605b59`');
+      expect(section).toContain('Validation [44611797615](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611797615): IN_PROGRESS overall; backend SUCCESS, frontend FAILURE (297/300; 3 checkpoint assertions), iOS IN_PROGRESS.');
+      expect(section).toContain('CodeQL [44611797570](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611797570): IN_PROGRESS.');
+      expect(section).toContain('Dependency Review [44611797505](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611797505): SUCCESS.');
       expect(section).toContain('production DNS64/NAT64 prefix inventory');
       expect(section).toContain('f91c70d2636948e538f8e3559afc39cd93eb5139');
       expect(section).toContain('4 COMMENTED submissions, 2/2 inline threads resolved, 0 human APPROVED.');
