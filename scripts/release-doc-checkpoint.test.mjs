@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-19 21:02 CET';
+const marker = '## Exact-head reconciliation — 2026-11-19 21:45 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -16,8 +16,8 @@ const latestSections = documents.map((document) => {
 });
 
 const extractPreWritePair = (section) => {
-  const parent = section.match(/The exact pre-write parent HEAD is (`([0-9a-f]{40})`|([0-9a-f]{40}))(?:[.\s]|$)/);
-  const evidenced = section.match(/These exact-head runs belong to PR #85 pre-write parent HEAD (`([0-9a-f]{40})`|([0-9a-f]{40})) only/);
+  const parent = section.match(/The exact pre-write parent HEAD is (\x60([0-9a-f]{40})\x60|([0-9a-f]{40}))(?:[.\s]|$)/);
+  const evidenced = section.match(/These exact-head runs belong to PR #85 pre-write parent HEAD (\x60([0-9a-f]{40})\x60|([0-9a-f]{40})) only/);
   return {
     parent: parent?.[2] ?? parent?.[3],
     evidenced: evidenced?.[2] ?? evidenced?.[3],
@@ -54,28 +54,18 @@ describe('release documentation exact-head checkpoint', () => {
     expect(pairs.every((pair) => pair.parent === 'b3ac5f20994997c3ebc6dbd771013ed3f20be0b5')).toBe(true);
     expect(pairs.every((pair) => pair.evidenced === pair.parent)).toBe(true);
     for (const section of latestSections) {
-      expect(section).toContain('Validation [44515665309](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665309): terminal FAILURE; frontend job FAILURE, backend job SUCCESS, iOS job SUCCESS.');
+      expect(section).toContain('Validation [44515665309](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665309): terminal FAILURE; frontend job FAILURE, backend job SUCCESS and iOS job SUCCESS.');
       expect(section).toContain('CodeQL [44515665215](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665215): terminal SUCCESS; analyze job SUCCESS.');
       expect(section).toContain('Dependency Review [44515665613](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665613): terminal SUCCESS; dependency-review job SUCCESS.');
-      expect(section).toContain('The parent runs above do not validate that child.');
-      expect(section).toContain('PR #177 is OPEN/DRAFT');
-      expect(section).toContain('PR #177 is OPEN/DRAFT on `fix/release-doc-checkpoint-case-assertion-20261119-run11`, based on PR #85');
-      expect(section).toContain('PR #177 current HEAD is `a50274efa73011b03d0e1b289f6fa89e776e41ff`');
-      expect(section).toContain('Validation [44593381492](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44593381492): terminal SUCCESS; backend, frontend and iOS jobs all SUCCESS.');
-      expect(section).toContain('CodeQL [44593381604](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44593381604): terminal SUCCESS; analyze job SUCCESS.');
-      expect(section).toContain('Dependency Review [44593381621](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44593381621): terminal SUCCESS; dependency-review job SUCCESS.');
-      expect(section).toContain('PR #177 review inventory: 2 conversation comments, 0 inline review threads and 0 formal review submissions.');
-      expect(section).toContain('a50274efa73011b03d0e1b289f6fa89e776e41ff');
-      expect(section).toContain('Validation [44593381492]');
-      expect(section).toContain('CodeQL [44593381604]');
-      expect(section).toContain('Dependency Review [44593381621]');
-      expect(section).toContain('accepts either formatting while retaining the exact command');
-      expect(section.toLowerCase()).toContain('its own exact-head validation, codeql and dependency review all reached terminal success on exact head `a50274e`.');
-      expect(section).toContain('That ancestor had 300 passed across 61 test files (300 total),');
-      expect(section).toContain('3 moderate minimatch findings');
-      expect(section).toContain('native Android Release and Android emulator smoke, iOS Release/simulator smoke');
-      expect(section).toContain('iOS native Release and simulator smoke passed.');
-      expect(section).toMatch(/runtime `?npm audit --omit=dev --audit-level=high`? completed with 3 moderate minimatch findings/i);
+      expect(section).toContain('PR #177 is OPEN/DRAFT on \x60fix/release-doc-checkpoint-case-assertion-20261119-run11\x60, based on PR #85');
+      expect(section).toContain('PR #177 current exact HEAD is \x60d81d926630ab3a5777cb79ef6e6d4cc9ea610f31\x60');
+      expect(section).toContain('Validation [44605504749](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504749): terminal FAILURE; frontend job FAILURE, backend job SUCCESS and iOS job SUCCESS.');
+      expect(section).toContain('CodeQL [44605504714](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504714): terminal SUCCESS; analyze job SUCCESS.');
+      expect(section).toContain('Dependency Review [44605504933](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504933): terminal SUCCESS; dependency-review job SUCCESS.');
+      expect(section).toContain('two stale checkpoint assertions');
+      expect(section).toContain('No runtime npm audit ran on this exact HEAD;');
+      expect(section).toContain('PR #177 review inventory: 3 conversation comments, 0 inline review threads and 0 formal review submissions.');
+      expect(section).toContain('The parent runs above do not validate this child.');
     }
   });
 
@@ -87,21 +77,25 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Validation [43492153234]');
       expect(section).toContain('CodeQL [43492153161]');
       expect(section).toContain('Dependency Review [43492153021]');
-      expect(section).toContain('53 top-level conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED), and 22/22 inline threads resolved.');
+      expect(section).toContain('Temporary Expo SDK 57 lockfile refresh [43492142700]');
+      expect(section).toContain('53 top-level conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED), and 22/22 inline threads resolved');
       expect(section).toContain('43098210284');
       expect(section).toContain('43098210473');
       expect(section).toContain('43098210255');
-      expect(section).toContain('each with zero jobs');
+      expect(section).toContain('zero jobs');
     }
   });
 
-  it('records PR #171 and PR #172 as sibling commits with identical trees', () => {
+  it('records PR #171 and PR #172 as stacked branches with a one-commit stale base', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #171 is OPEN/DRAFT');
+      expect(section).toContain('PR #171 is OPEN/DRAFT on \x60fix/release-doc-parser-test-declaration-20261118\x60');
       expect(section).toContain('cd3cd0e01f8dab9c1ac8e47c923a05134857d47d');
-      expect(section).toContain('PR #172 is OPEN/DRAFT');
+      expect(section).toContain('PR #172 is OPEN/DRAFT on \x60fix/release-doc-parser-assertion-case-20261118\x60');
       expect(section).toContain('5e0f0c000a3a3707e5565c32804e4d221a886caa');
-      expect(section).toContain('Both commits have parent `c5faf4ca3ec9228dcde2b17ef5704d6199856792` and identical Git tree `cf955182d98cae2e19f10c0e08f8e12621cb5242`; they are sibling commits, not a parent/child pair.');
+      expect(section).toContain('PR #172 targets PR #171 branch');
+      expect(section).toContain('c5faf4ca3ec9228dcde2b17ef5704d6199856792');
+      expect(section).toContain('ahead_by=1, behind_by=0');
+      expect(section).toContain('not sibling commits and do not have identical trees');
       expect(section).toContain('44358862088');
       expect(section).toContain('44358862249');
       expect(section).toContain('44358862085');
@@ -122,7 +116,7 @@ describe('release documentation exact-head checkpoint', () => {
   it('keeps Issues #47 and #64 evidence separate from production acceptance', () => {
     for (const section of latestSections) {
       expect(section).toContain('Issue #47 is CLOSED with 11 comments.');
-      expect(section).toContain('Protect main ruleset [26370589]');
+      expect(section).toContain('Protect main ruleset 26370589');
       expect(section).toContain('six strict checks');
       expect(section).toContain('Issue #64 remains OPEN with 67 comments.');
       expect(section).toContain('f91c70d2636948e538f8e3559afc39cd93eb5139');
@@ -135,6 +129,7 @@ describe('release documentation exact-head checkpoint', () => {
 
   it('does not overstate dependency security or unavailable alert inventories', () => {
     for (const section of latestSections) {
+      expect(section).toContain('Issue #155 remains OPEN with 58 comments.');
       expect(section).toContain('GHSA-fc5q-39xc-vjpf');
       expect(section).toContain('WITHDRAWN on 2026-11-18');
       expect(section).toContain('3 moderate minimatch findings');
@@ -146,9 +141,9 @@ describe('release documentation exact-head checkpoint', () => {
 
   it('preserves the canonical 25-point register and all external blockers', () => {
     for (const section of latestSections) {
-      expect(section).toContain('139 branches (100 + 39; pagination exhausted), 78 open PRs, 7 open non-PR issues');
+      expect(section).toContain('142 branches (100 + 42; pagination exhausted), 80 open PRs, 7 open non-PR issues');
       expect(section).toContain('64 items / 41 checked / 23 open');
-      expect(section).toContain('Issue #74 has 242 comments');
+      expect(section).toContain('Issue #74 has 243 comments.');
       expect(section).toContain('No checkbox changed.');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
       expect(section).toContain('Done (2): #1, #6.');
