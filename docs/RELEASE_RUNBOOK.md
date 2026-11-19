@@ -1,3 +1,88 @@
+## Exact-head reconciliation — 2026-11-19 13:30 CET
+
+This checkpoint supersedes the 11:49 CET snapshot. It records exact GitHub heads, terminal workflow results, review state, security evidence and the canonical release register. Historical checkpoints remain below.
+
+### PR #41 — merged release-blocker baseline
+
+PR #41 is CLOSED/MERGED on `fix/release-blockers-2026-10`. Exact source HEAD: `68b380e73ca3c870048035197beef8febbf90ef1`; the live branch ref matches. Main and merge commit: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. PR metadata records 517 commits, 100 changed files, +11,887 additions and -2,005 deletions.
+
+- Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234): terminal SUCCESS; frontend, backend and iOS jobs SUCCESS.
+- CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161): terminal SUCCESS; analyze job SUCCESS.
+- Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021): terminal SUCCESS; dependency-review job SUCCESS.
+- Review inventory: 53 top-level conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED), and 22/22 inline threads resolved.
+- Historical runs [43098210284](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210284), [43098210473](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210473), and [43098210255](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210255) remain QUEUED on obsolete SHA `b46c5b8082ecbebd263a86cd53b1321a86e570d1`, each with zero jobs. They are not current-head checks; repository-administrator cancellation remains required.
+
+### PR #85 — current exact head and parent/child CI provenance
+
+PR #85 remains OPEN and non-draft on `docs/post-merge-release-evidence-20261113`, targeting `main`. The exact pre-write parent HEAD is `b3ac5f20994997c3ebc6dbd771013ed3f20be0b5`. It has 134 commits, 6 changed files, +11,080 additions and -947 deletions; the live branch ref and PR metadata agree.
+
+These exact-head runs belong to PR #85 pre-write parent HEAD `b3ac5f20994997c3ebc6dbd771013ed3f20be0b5` only:
+
+- Validation [44515665309](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665309): terminal FAILURE; frontend job FAILURE, backend job SUCCESS, iOS job SUCCESS.
+- CodeQL [44515665215](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665215): terminal SUCCESS; analyze job SUCCESS.
+- Dependency Review [44515665613](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665613): terminal SUCCESS; dependency-review job SUCCESS.
+- Frontend: TypeScript typecheck passed; 299 tests passed and 1 failed across 61 files (300 total). The single failure in `scripts/release-doc-checkpoint.test.mjs` line 61 was a case-sensitive `Its` versus `its` wording mismatch. Expo Doctor, Android export, Android Release, emulator smoke and runtime npm audit were skipped after the unit-test failure.
+- Backend: 450 tests, 27 production-readiness checks and 78 production-security checks passed. iOS native Release and simulator smoke passed.
+- The immediate predecessor `33722540d31fa6e636280de0af4e9c59a4721881` had its own Validation [44510066412](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44510066412) terminal FAILURE on a stale workflow-link assertion; CodeQL [44510066369](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44510066369) and Dependency Review [44510066502](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44510066502) were terminal SUCCESS. The current `b3ac5f2` child corrected those run links but exposed the capitalization mismatch above.
+- The last fully validated ancestor `cc9095d5bfa8edd71d1adc1575c8e265e778c1a3` passed its own exact-head Validation [44500678293](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44500678293), CodeQL [44500678319](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44500678319), and Dependency Review [44500678286](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44500678286). That ancestor had 300 passed across 61 test files (300 total), Expo Doctor 21/21, Android export, native Android Release and Android emulator smoke, iOS Release/simulator smoke, and backend 450/27/78 checks. Its runtime `npm audit --omit=dev --audit-level=high` completed with 3 moderate minimatch findings; the HIGH threshold passed, but this was not a zero-finding audit. These ancestor results do not validate `b3ac5f2`.
+- The parent runs above do not validate that child. Its own exact-head Validation, CodeQL and Dependency Review must each reach terminal SUCCESS before another write or merge. No parent or sibling result may be substituted.
+
+PR #85 review inventory: 66 conversation comments, 16 inline review comments, 16 formal submissions (all COMMENTED), 9/9 inline threads resolved, 0 human APPROVED. Reviewer `tarlaci1984-sketch` remains requested; human approval is still required.
+
+### PR #177 — isolated correction branch
+
+PR #177 is OPEN/DRAFT on `fix/release-doc-checkpoint-case-assertion-20261119-run11`, based on PR #85 at exact base SHA `b3ac5f20994997c3ebc6dbd771013ed3f20be0b5`. Its exact pre-write HEAD is `e47797ba43acf5b39e633d92089f5c1da0aa98a0`; it contains one commit and changes only `scripts/release-doc-checkpoint.test.mjs`.
+
+These exact-head runs belong to PR #177 pre-write HEAD `e47797ba43acf5b39e633d92089f5c1da0aa98a0` only:
+
+- Validation [44519056940](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44519056940): terminal FAILURE; frontend job FAILURE (299/300), backend job SUCCESS and iOS job SUCCESS.
+- CodeQL [44519056936](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44519056936): terminal SUCCESS; analyze job SUCCESS.
+- Dependency Review [44519056935](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44519056935): terminal SUCCESS; dependency-review job SUCCESS.
+- The case-insensitive assertion in `e47797b` fixes the preceding `Its`/`its` mismatch. The remaining failure is the runtime-audit wording assertion: the test requires backticks around `npm audit --omit=dev --audit-level=high`, while the checkpoint records the same command without backticks. The targeted correction accepts either formatting while retaining the exact command and the 3-moderate-finding requirement.
+- This documentation/test update creates a child of `e47797b`. Its own exact-head Validation, CodeQL and Dependency Review must each reach terminal SUCCESS before another write. No result from PR #85, PR #176 or another sibling branch is reused.
+
+PR #176 remains a separate OPEN/DRAFT child based on the earlier PR #85 SHA `11407f7966e85f0e54337c9614e53ab06c13c7c3`; its own Validation [44484505093](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44484505093), CodeQL [44484505145](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44484505145), and Dependency Review [44484505086](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44484505086) passed on its own exact head. It is not evidence for PR #85 or PR #177 current heads.
+
+### Parallel parser-test branches
+
+PR #171 is OPEN/DRAFT at `cd3cd0e01f8dab9c1ac8e47c923a05134857d47d`; PR #172 is OPEN/DRAFT at `5e0f0c000a3a3707e5565c32804e4d221a886caa`. Both commits have parent `c5faf4ca3ec9228dcde2b17ef5704d6199856792` and identical Git tree `cf955182d98cae2e19f10c0e08f8e12621cb5242`; they are sibling commits, not a parent/child pair. PR #171 exact-head Validation [44358862088](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44358862088), CodeQL [44358862249](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44358862249), and Dependency Review [44358862085](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44358862085) passed. PR #172 exact-head Validation [44350568289](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44350568289), CodeQL [44350568525](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44350568525), and Dependency Review [44350568368](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44350568368) passed. Neither was merged.
+
+### Issues #47 and #64
+
+Issue #47 is CLOSED with 11 comments. Main is protected; Protect main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) is active and requires six strict checks, one approval, last-push approval, resolved review threads, deletion/non-fast-forward protection and no bypass actors.
+
+Issue #64 remains OPEN with 64 comments. PR #99 remains OPEN/DRAFT on `main` at exact HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139` with 17 commits and 7 changed files. Its Validation [43772791089](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791089), CodeQL [43772791064](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791064), and Dependency Review [43772791109](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43772791109) are terminal SUCCESS. Review inventory: 4 COMMENTED submissions, 2/2 inline threads resolved, 0 human APPROVED. Production acceptance remains BLOCKED pending independent human security approval, production DNS64/NAT64 prefix inventory, verified deployed `USEIT_NAT64_PREFIXES`, and staging/production egress evidence.
+
+### Dependency and security evidence
+
+GitHub Advisory `GHSA-fc5q-39xc-vjpf` was WITHDRAWN on 2026-11-18; OSV records withdrawal and Snyk marks it revoked. Issue #155 remains OPEN with 48 comments. The main lockfile contains six picomatch entries; product-level runtime reachability review remains incomplete. No patched 4.0.8 release was verified. Withdrawal is not package remediation.
+
+The last successful runtime audit on validated ancestor `cc9095d5` reported 3 moderate minimatch findings (`GHSA-g3hv-75wg-m249`). The configured HIGH threshold passed, but this is not a zero-finding audit. The current PR #85 and PR #177 heads did not reach runtime npm audit because their frontend unit-test steps failed. `npm audit fix --force` was not run; no forced Expo downgrade, unverified override, or audit suppression was introduced.
+
+Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable through the connected GitHub integration and remain **unverified, not empty**. CodeQL workflow success is not an alert-inventory result.
+
+### Repository inventory and canonical release register
+
+Repository visibility is public. Fresh inventory: 134 branches (100 + 34), 74 open PRs, 7 open non-PR issues, and 0 published GitHub releases. Main HEAD remains `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+
+Issue #74 has 228 comments. Its persisted checklist remains 64 items / 41 checked / 23 open. No checkbox changed.
+
+The evidence-based 25-point release register remains 2 Done / 15 In Progress / 8 Blocked.
+
+Done (2): #1, #6.
+
+In Progress (15): #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.
+
+Blocked (8): #2 (durable repository visibility/plan decision), #4 (production Apple App Attest entitlement and physical iPhone), #5 (Play Integrity on Play-installed physical Android), #16 (witnessed production backup/restore), #18 (representative product-recognition benchmark and business acceptance), #21 (production monitoring and alert delivery), #22 (approved staged rollout and tested rollback), #25 (real-user pilot and business sign-off).
+
+External console setup, physical-device tests, production cloud access, witnessed backup/restore, staged rollout approvals and real-user pilot/business approval remain BLOCKED until direct evidence exists. No external acceptance item is promoted to Done.
+
+No main-branch write, merge, force-push, test deletion, skip/xfail, security-gate weakening, or production acceptance claim occurred.
+
+**RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.**
+
+---
+
 ## Exact-head reconciliation — 2026-11-19 11:49 CET
 
 This checkpoint supersedes the 2026-11-19 10:50 CET snapshot. Every automated result below is tied to the exact commit SHA stated. Historical checkpoints remain below this section.
