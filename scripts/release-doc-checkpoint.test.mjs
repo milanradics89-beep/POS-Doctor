@@ -68,7 +68,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('That ancestor had 300 passed across 61 test files (300 total),');
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('native Android Release and Android emulator smoke, iOS Release/simulator smoke');
-      expect(section).toContain('iOS native Release build and simulator smoke passed.');
+      expect(section).toContain('iOS native Release and simulator smoke passed.');
       expect(section).toMatch(/Runtime `?npm audit --omit=dev --audit-level=high`? completed with 3 moderate minimatch findings/);
     }
   });
