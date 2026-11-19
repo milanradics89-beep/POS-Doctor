@@ -59,7 +59,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Dependency Review [44474382485](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44474382485): terminal SUCCESS; dependency-review job SUCCESS.');
       expect(section).toContain('The parent runs above do not validate that child.');
       expect(section).toContain('Its own exact-head Validation, CodeQL and Dependency Review must each reach terminal SUCCESS before another write or merge.');
-      expect(section).toContain('300 passed across 61 test files (300 total).');
+      expect(section).toContain('300 passed across 61 test files (300 total);');
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('Android native Release build and Android emulator smoke all passed.');
       expect(section).toContain('iOS native Release build and simulator smoke passed.');
@@ -71,7 +71,7 @@ describe('release documentation exact-head checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #41 is CLOSED/MERGED on');
       expect(section).toContain('68b380e73ca3c870048035197beef8febbf90ef1');
-      expect(section).toContain('517 commits, 100 changed files');
+      expect(section).toContain('517 commits and 100 changed files');
       expect(section).toContain('Validation [43492153234]');
       expect(section).toContain('CodeQL [43492153161]');
       expect(section).toContain('Dependency Review [43492153021]');
@@ -101,7 +101,7 @@ describe('release documentation exact-head checkpoint', () => {
 
   it('preserves PR #85 review inventory and the human-approval gate', () => {
     for (const section of latestSections) {
-      expect(section).toContain('66 conversation comments, 16 inline review comments, 16 formal review submissions (all COMMENTED), 9/9 inline threads resolved, 0 human APPROVED.');
+      expect(section).toContain('66 conversation comments, 16 inline review comments, 16 formal submissions (all COMMENTED), 9/9 inline threads resolved, 0 human APPROVED.');
       expect(section).toContain('tarlaci1984-sketch');
       expect(section.toLowerCase()).toContain('human approval is still required.');
     }
