@@ -29,7 +29,7 @@ describe('mobile bundle dependency reachability', () => {
   it('applies sourceRoot before matching source paths', () => {
     const map = {
       sourceRoot: '../../node_modules/picomatch/',
-      sources: ['index.js', 'lib/parse.js'],
+      sources: ['/index.js', 'lib/parse.js'],
     };
     expect(findPackageSourcesInMap(map, 'picomatch')).toEqual([
       '../../node_modules/picomatch/index.js',

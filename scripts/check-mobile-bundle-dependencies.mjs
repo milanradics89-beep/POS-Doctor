@@ -49,7 +49,7 @@ function flattenSources(sourceMap) {
       throw new Error('Source map sourceRoot must be a string when present.');
     }
     const normalizedRoot = typeof sourceRoot === 'string'
-      ? sourceRoot.replaceAll('\\', '/').replace(/\\/+$/, '')
+      ? sourceRoot.replaceAll('\\', '/').replace(/\/+$/, '')
       : '';
     if (!sourceMap.sources.every((source) => typeof source === 'string' && source.trim().length > 0)) {
       throw new Error('Source map sources must contain only non-empty strings.');
@@ -57,7 +57,7 @@ function flattenSources(sourceMap) {
     return sourceMap.sources.map((source) => {
       const sourcePath = source.replaceAll('\\', '/');
       return normalizedRoot
-        ? normalizedRoot + '/' + sourcePath.replace(/^\\/+/, '')
+        ? normalizedRoot + '/' + sourcePath.replace(/^\/+/, '')
         : sourcePath;
     });
   }
