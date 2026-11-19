@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-19 21:02 CET';
+const marker = '## Exact-head reconciliation — 2026-11-19 21:35 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -60,15 +60,15 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('The parent runs above do not validate that child.');
       expect(section).toContain('PR #177 is OPEN/DRAFT');
       expect(section).toContain('PR #177 is OPEN/DRAFT on `fix/release-doc-checkpoint-case-assertion-20261119-run11`, based on PR #85');
-      expect(section).toContain('PR #177 current HEAD is `a50274efa73011b03d0e1b289f6fa89e776e41ff`');
-      expect(section).toContain('Validation [44593381492](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44593381492): terminal SUCCESS; backend, frontend and iOS jobs all SUCCESS.');
-      expect(section).toContain('CodeQL [44593381604](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44593381604): terminal SUCCESS; analyze job SUCCESS.');
-      expect(section).toContain('Dependency Review [44593381621](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44593381621): terminal SUCCESS; dependency-review job SUCCESS.');
+      expect(section).toContain('PR #177 current HEAD is `d81d926630ab3a5777cb79ef6e6d4cc9ea610f31`');
+      expect(section).toContain('Validation [44605504749](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504749): overall IN_PROGRESS; backend job SUCCESS, frontend job FAILURE, iOS job IN_PROGRESS.');
+      expect(section).toContain('CodeQL [44605504714](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504714): terminal SUCCESS; analyze job SUCCESS.');
+      expect(section).toContain('Dependency Review [44605504933](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504933): terminal SUCCESS; dependency-review job SUCCESS.');
       expect(section).toContain('PR #177 review inventory: 2 conversation comments, 0 inline review threads and 0 formal review submissions.');
-      expect(section).toContain('a50274efa73011b03d0e1b289f6fa89e776e41ff');
-      expect(section).toContain('Validation [44593381492]');
-      expect(section).toContain('CodeQL [44593381604]');
-      expect(section).toContain('Dependency Review [44593381621]');
+      expect(section).toContain('d81d926630ab3a5777cb79ef6e6d4cc9ea610f31');
+      expect(section).toContain('Validation [44605504749]');
+      expect(section).toContain('CodeQL [44605504714]');
+      expect(section).toContain('Dependency Review [44605504933]');
       expect(section).toContain('accepts either formatting while retaining the exact command');
       expect(section.toLowerCase()).toContain('its own exact-head validation, codeql and dependency review all reached terminal success on exact head `a50274e`.');
       expect(section).toContain('That ancestor had 300 passed across 61 test files (300 total),');
