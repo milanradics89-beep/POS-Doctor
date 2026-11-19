@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-19 21:35 CET';
+const marker = '## Exact-head reconciliation — 2026-11-19 21:42 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -54,6 +54,10 @@ describe('release documentation exact-head checkpoint', () => {
     expect(pairs.every((pair) => pair.parent === 'b3ac5f20994997c3ebc6dbd771013ed3f20be0b5')).toBe(true);
     expect(pairs.every((pair) => pair.evidenced === pair.parent)).toBe(true);
     for (const section of latestSections) {
+      expect(section).toContain('The exact pre-write parent HEAD is `b3ac5f20994997c3ebc6dbd771013ed3f20be0b5`.');
+      expect(section).toContain('These exact-head runs belong to PR #85 pre-write parent HEAD `b3ac5f20994997c3ebc6dbd771013ed3f20be0b5` only.');
+    }
+    for (const section of latestSections) {
       expect(section).toContain('Validation [44515665309](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665309): terminal FAILURE; frontend job FAILURE, backend job SUCCESS, iOS job SUCCESS.');
       expect(section).toContain('CodeQL [44515665215](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665215): terminal SUCCESS; analyze job SUCCESS.');
       expect(section).toContain('Dependency Review [44515665613](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665613): terminal SUCCESS; dependency-review job SUCCESS.');
@@ -61,10 +65,15 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('PR #177 is OPEN/DRAFT');
       expect(section).toContain('PR #177 is OPEN/DRAFT on `fix/release-doc-checkpoint-case-assertion-20261119-run11`, based on PR #85');
       expect(section).toContain('PR #177 current HEAD is `d81d926630ab3a5777cb79ef6e6d4cc9ea610f31`');
-      expect(section).toContain('Validation [44605504749](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504749): overall IN_PROGRESS; backend job SUCCESS, frontend job FAILURE, iOS job IN_PROGRESS.');
+      expect(section).toContain('Validation [44605504749](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504749): terminal FAILURE. Backend job SUCCESS; frontend job FAILURE; iOS job SUCCESS.');
       expect(section).toContain('CodeQL [44605504714](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504714): terminal SUCCESS; analyze job SUCCESS.');
       expect(section).toContain('Dependency Review [44605504933](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504933): terminal SUCCESS; dependency-review job SUCCESS.');
-      expect(section).toContain('PR #177 review inventory: 2 conversation comments, 0 inline review threads and 0 formal review submissions.');
+      expect(section).toContain('PR #177 review inventory: 3 conversation comments, 0 inline review threads and 0 formal review submissions.');
+      expect(section).toContain('PR #183 is OPEN/DRAFT');
+      expect(section).toContain('Exact HEAD: `ab65ea23171e84b7f7cb07967b5b34a0cc28b8bc`');
+      expect(section).toContain('Validation [44611108095](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611108095): overall IN_PROGRESS. Backend job SUCCESS; frontend job FAILURE; iOS job IN_PROGRESS.');
+      expect(section).toContain('CodeQL [44611108110](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611108110): IN_PROGRESS.');
+      expect(section).toContain('Dependency Review [44611108264](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611108264): terminal SUCCESS.');
       expect(section).toContain('d81d926630ab3a5777cb79ef6e6d4cc9ea610f31');
       expect(section).toContain('Validation [44605504749]');
       expect(section).toContain('CodeQL [44605504714]');
@@ -83,6 +92,7 @@ describe('release documentation exact-head checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #41 is CLOSED/MERGED on');
       expect(section).toContain('68b380e73ca3c870048035197beef8febbf90ef1');
+      expect(section).toContain('517 commits, 100 changed files');
       expect(section).toContain('517 commits, 100 changed files');
       expect(section).toContain('Validation [43492153234]');
       expect(section).toContain('CodeQL [43492153161]');
@@ -125,6 +135,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Protect main ruleset [26370589]');
       expect(section).toContain('six strict checks');
       expect(section).toContain('Issue #64 remains OPEN with 67 comments.');
+      expect(section).toContain('production DNS64/NAT64 prefix inventory');
       expect(section).toContain('f91c70d2636948e538f8e3559afc39cd93eb5139');
       expect(section).toContain('4 COMMENTED submissions, 2/2 inline threads resolved, 0 human APPROVED.');
       expect(section).toContain('production DNS64/NAT64 prefix inventory');
@@ -137,6 +148,7 @@ describe('release documentation exact-head checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('GHSA-fc5q-39xc-vjpf');
       expect(section).toContain('WITHDRAWN on 2026-11-18');
+      expect(section).toContain('WITHDRAWN on 2026-11-18');
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('npm audit fix --force');
       expect(section).toContain('unverified, not empty');
@@ -148,7 +160,7 @@ describe('release documentation exact-head checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('139 branches (100 + 39; pagination exhausted), 78 open PRs, 7 open non-PR issues');
       expect(section).toContain('64 items / 41 checked / 23 open');
-      expect(section).toContain('Issue #74 has 242 comments');
+      expect(section).toContain('Issue #74 has 243 comments');
       expect(section).toContain('No checkbox changed.');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
       expect(section).toContain('Done (2): #1, #6.');
