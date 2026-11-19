@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-19 21:45 CET';
+const marker = '## Exact-head reconciliation — 2026-11-19 22:40 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -16,8 +16,9 @@ const latestSections = documents.map((document) => {
 });
 
 const extractPreWritePair = (section) => {
-  const parent = section.match(/The exact pre-write parent HEAD is (`([0-9a-f]{40})`|([0-9a-f]{40}))(?:[.\s]|$)/);
-  const evidenced = section.match(/These exact-head runs belong to PR #85 pre-write parent HEAD (`([0-9a-f]{40})`|([0-9a-f]{40})) only/);
+  const tick = String.fromCharCode(96);
+  const parent = section.match(new RegExp('The exact pre-write parent HEAD is (' + tick + '([0-9a-f]{40})' + tick + '|([0-9a-f]{40}))(?:[.\\s]|$)'));
+  const evidenced = section.match(new RegExp('These exact-head runs belong to PR #85 pre-write parent HEAD (' + tick + '([0-9a-f]{40})' + tick + '|([0-9a-f]{40})) only'));
   return {
     parent: parent?.[2] ?? parent?.[3],
     evidenced: evidenced?.[2] ?? evidenced?.[3],
@@ -49,70 +50,60 @@ describe('release documentation exact-head checkpoint', () => {
     expect(new Set(latestSections).size).toBe(1);
   });
 
-  it('binds PR #85 workflow evidence to the exact pre-write parent, not the new child', () => {
+  it('binds PR #85 and PRs #177-#185 to their own exact-head evidence', () => {
     const pairs = latestSections.map(extractPreWritePair);
     expect(pairs.every((pair) => pair.parent === 'b3ac5f20994997c3ebc6dbd771013ed3f20be0b5')).toBe(true);
     expect(pairs.every((pair) => pair.evidenced === pair.parent)).toBe(true);
+
     for (const section of latestSections) {
-      expect(section).toContain('The exact pre-write parent HEAD is `b3ac5f20994997c3ebc6dbd771013ed3f20be0b5`.');
-      expect(section).toContain('These exact-head runs belong to PR #85 pre-write parent HEAD `b3ac5f20994997c3ebc6dbd771013ed3f20be0b5` only.');
-    }
-    for (const section of latestSections) {
-      expect(section).toContain('Validation [44515665309](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665309): terminal FAILURE; frontend job FAILURE, backend job SUCCESS, iOS job SUCCESS.');
-      expect(section).toContain('CodeQL [44515665215](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665215): terminal SUCCESS; analyze job SUCCESS.');
-      expect(section).toContain('Dependency Review [44515665613](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665613): terminal SUCCESS; dependency-review job SUCCESS.');
-      expect(section).toContain('Dependency Review [44515665613](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665613): terminal SUCCESS; dependency-review job SUCCESS.');
-      expect(section).toContain('The parent runs above do not validate that child.');
-      expect(section).toContain('PR #177 is OPEN/DRAFT');
-      expect(section).toContain('PR #177 is OPEN/DRAFT on `fix/release-doc-checkpoint-case-assertion-20261119-run11`, based on PR #85');
-      expect(section).toContain('PR #177 current HEAD is `d81d926630ab3a5777cb79ef6e6d4cc9ea610f31`');
-      expect(section).toContain('Validation [44605504749](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504749): terminal FAILURE. Backend job SUCCESS; frontend job FAILURE; iOS job SUCCESS.');
-      expect(section).toContain('CodeQL [44605504714](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504714): terminal SUCCESS; analyze job SUCCESS.');
-      expect(section).toContain('Dependency Review [44605504933](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44605504933): terminal SUCCESS; dependency-review job SUCCESS.');
-      expect(section).toContain('PR #177 review inventory: 3 conversation comments, 0 inline review threads and 0 formal review submissions.');
-      expect(section).toContain('PR #183 is OPEN/DRAFT');
-      expect(section).toContain('Exact HEAD: `ab65ea23171e84b7f7cb07967b5b34a0cc28b8bc`');
-      expect(section).toContain('Validation [44611108095](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611108095): overall IN_PROGRESS. Backend job SUCCESS; frontend job FAILURE; iOS job IN_PROGRESS.');
-      expect(section).toContain('CodeQL [44611108110](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611108110): IN_PROGRESS.');
-      expect(section).toContain('Dependency Review [44611108264](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611108264): terminal SUCCESS.');
-      expect(section).toContain('d81d926630ab3a5777cb79ef6e6d4cc9ea610f31');
-      expect(section).toContain('Validation [44605504749]');
-      expect(section).toContain('CodeQL [44605504714]');
-      expect(section).toContain('Dependency Review [44605504933]');
-      expect(section).toContain('accepts either formatting while retaining the exact command');
-      expect(section.toLowerCase()).toContain('its own exact-head validation, codeql and dependency review all reached terminal success on exact head `a50274e`.');
-      expect(section).toContain('That ancestor had 300 passed across 61 test files (300 total),');
-      expect(section).toContain('3 moderate minimatch findings');
-      expect(section).toContain('native Android Release and Android emulator smoke, iOS Release/simulator smoke');
-      expect(section).toContain('iOS native Release and simulator smoke passed.');
-      expect(section).toMatch(/runtime `?npm audit --omit=dev --audit-level=high`? completed with 3 moderate minimatch findings/i);
+      expect(section).toContain('The exact pre-write parent HEAD is b3ac5f20994997c3ebc6dbd771013ed3f20be0b5.');
+      expect(section).toContain('These exact-head runs belong to PR #85 pre-write parent HEAD b3ac5f20994997c3ebc6dbd771013ed3f20be0b5 only.');
+      expect(section).toContain('Validation 44515665309: terminal FAILURE; frontend Unit tests failed at 299/300, backend SUCCESS and iOS SUCCESS.');
+      expect(section).toContain('CodeQL 44515665215: terminal SUCCESS; analyze job SUCCESS.');
+      expect(section).toContain('Dependency Review 44515665613: terminal SUCCESS; dependency-review job SUCCESS.');
+      expect(section).toContain('PR #177 current HEAD is d46b6c1e0e3f945a93fc8afb0050ca653e5f17c1.');
+      expect(section).toContain('Validation 44613423701: terminal FAILURE; frontend Unit tests 299/300, backend SUCCESS and iOS SUCCESS.');
+      expect(section).toContain('CodeQL 44613423896: terminal SUCCESS.');
+      expect(section).toContain('Dependency Review 44613423653: terminal SUCCESS.');
+      expect(section).toContain('PR #183 is OPEN/DRAFT at HEAD ab65ea23171e84b7f7cb07967b5b34a0cc28b8bc');
+      expect(section).toContain('Validation 44611108095: terminal FAILURE; frontend 296/300 with 4 checkpoint assertions failing, backend SUCCESS and iOS SUCCESS.');
+      expect(section).toContain('CodeQL 44611108110: terminal SUCCESS.');
+      expect(section).toContain('Dependency Review 44611108264: terminal SUCCESS.');
+      expect(section).toContain('PR #184 is OPEN/DRAFT at HEAD 050f8aa068018c1f91236c7199bfd2478e605b59');
+      expect(section).toContain('Validation 44611797615: terminal FAILURE; frontend 297/300 with 3 checkpoint assertions failing, backend SUCCESS and iOS SUCCESS.');
+      expect(section).toContain('CodeQL 44611797570: terminal SUCCESS.');
+      expect(section).toContain('Dependency Review 44611797505: terminal SUCCESS.');
+      expect(section).toContain('PR #185 is OPEN/DRAFT at HEAD 0ad3bdc82c9e654c84f25dc08884ac8bc3f6d0d2');
+      expect(section).toContain('Validation 44612165463: terminal FAILURE; frontend 299/300 with one stale checkpoint assertion, backend SUCCESS and iOS SUCCESS.');
+      expect(section).toContain('CodeQL 44612165430: terminal SUCCESS.');
+      expect(section).toContain('Dependency Review 44612165558: terminal SUCCESS.');
+      expect(section).toContain('old PR #177 CodeQL run 44605504714');
+      expect(section).toContain('Runtime npm audit did not run on those failed exact heads because Unit tests failed first.');
     }
   });
 
   it('records PR #41 merged exact-head CI, branch comparison and review resolution', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #41 is CLOSED/MERGED on');
+      expect(section).toContain('PR #41 is CLOSED/MERGED');
       expect(section).toContain('68b380e73ca3c870048035197beef8febbf90ef1');
-      expect(section).toContain('517 commits, 100 changed files');
-      expect(section).toContain('517 commits, 100 changed files');
-      expect(section).toContain('Validation [43492153234]');
-      expect(section).toContain('CodeQL [43492153161]');
-      expect(section).toContain('Dependency Review [43492153021]');
-      expect(section).toContain('53 top-level conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED), and 22/22 inline threads resolved.');
+      expect(section).toContain('f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1');
+      expect(section).toContain('Validation 43492153234');
+      expect(section).toContain('CodeQL 43492153161');
+      expect(section).toContain('Dependency Review 43492153021');
+      expect(section).toContain('26 formal submissions (25 COMMENTED, 1 APPROVED), 22/22 inline threads resolved.');
       expect(section).toContain('43098210284');
       expect(section).toContain('43098210473');
       expect(section).toContain('43098210255');
-      expect(section).toContain('each with zero jobs');
+      expect(section).toContain('Each has zero jobs.');
     }
   });
 
-  it('records PR #171 and PR #172 as sibling commits with identical trees', () => {
+  it('records PR #171 and PR #172 branch relationship separately from their Git parent graph', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #171 is OPEN/DRAFT');
-      expect(section).toContain('cd3cd0e01f8dab9c1ac8e47c923a05134857d47d');
-      expect(section).toContain('PR #172 is OPEN/DRAFT');
-      expect(section).toContain('5e0f0c000a3a3707e5565c32804e4d221a886caa');
-      expect(section).toContain('Both commits have parent `c5faf4ca3ec9228dcde2b17ef5704d6199856792` and identical Git tree `cf955182d98cae2e19f10c0e08f8e12621cb5242`; they are sibling commits, not a parent/child pair.');
+      expect(section).toContain('PR #171 is OPEN/DRAFT at HEAD cd3cd0e01f8dab9c1ac8e47c923a05134857d47d');
+      expect(section).toContain('PR #172 is OPEN/DRAFT at HEAD 5e0f0c000a3a3707e5565c32804e4d221a886caa');
+      expect(section).toContain('PR #172 targets the PR #171 branch');
+      expect(section).toContain('Both current head commits have that same parent and identical tree cf955182d98cae2e19f10c0e08f8e12621cb5242');
       expect(section).toContain('44358862088');
       expect(section).toContain('44358862249');
       expect(section).toContain('44358862085');
@@ -124,51 +115,45 @@ describe('release documentation exact-head checkpoint', () => {
 
   it('preserves PR #85 review inventory and the human-approval gate', () => {
     for (const section of latestSections) {
-      expect(section).toContain('66 conversation comments, 16 inline review comments, 16 formal submissions (all COMMENTED), 9/9 inline threads resolved, 0 human APPROVED.');
-      expect(section).toContain('tarlaci1984-sketch');
-      expect(section.toLowerCase()).toContain('human approval is still required.');
+      expect(section).toContain('16 COMMENTED submissions, 9/9 inline threads resolved, 0 human APPROVED.');
+      expect(section).toContain('tarlaci1984-sketch remains requested.');
     }
   });
 
-  it('keeps Issues #47 and #64 evidence separate from production acceptance', () => {
+  it('keeps Issue #64 SSRF implementation evidence separate from production acceptance', () => {
     for (const section of latestSections) {
-      expect(section).toContain('Issue #47 is CLOSED with 11 comments.');
-      expect(section).toContain('Protect main ruleset [26370589]');
-      expect(section).toContain('six strict checks');
       expect(section).toContain('Issue #64 remains OPEN with 67 comments.');
-      expect(section).toContain('PR #184 is OPEN/DRAFT');
-      expect(section).toContain('Current exact HEAD: `050f8aa068018c1f91236c7199bfd2478e605b59`');
-      expect(section).toContain('Validation [44611797615](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611797615): IN_PROGRESS overall; backend SUCCESS, frontend FAILURE (297/300; 3 checkpoint assertions), iOS IN_PROGRESS.');
-      expect(section).toContain('CodeQL [44611797570](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611797570): IN_PROGRESS.');
-      expect(section).toContain('Dependency Review [44611797505](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44611797505): SUCCESS.');
-      expect(section).toContain('production DNS64/NAT64 prefix inventory');
-      expect(section).toContain('f91c70d2636948e538f8e3559afc39cd93eb5139');
+      expect(section).toContain('PR #99 is OPEN/DRAFT at HEAD f91c70d2636948e538f8e3559afc39cd93eb5139.');
+      expect(section).toContain('Validation 43772791089, CodeQL 43772791064 and Dependency Review 43772791109 all succeeded.');
       expect(section).toContain('4 COMMENTED submissions, 2/2 inline threads resolved, 0 human APPROVED.');
+      expect(section).toMatch(/Production acceptance remains BLOCKED/i);
       expect(section).toContain('production DNS64/NAT64 prefix inventory');
-      expect(section).toContain('verified deployed');
-      expect(section).toMatch(/production acceptance remains BLOCKED/i);
+      expect(section).toContain('verified deployed USEIT_NAT64_PREFIXES');
+      expect(section).toContain('staging/production egress evidence');
     }
   });
 
-  it('does not overstate dependency security or unavailable alert inventories', () => {
+  it('does not overstate picomatch advisory or dependency remediation', () => {
     for (const section of latestSections) {
       expect(section).toContain('GHSA-fc5q-39xc-vjpf');
       expect(section).toContain('WITHDRAWN on 2026-11-18');
-      expect(section).toContain('WITHDRAWN on 2026-11-18');
+      expect(section).toContain('Snyk marks its JavaScript advisory revoked');
+      expect(section).toContain('OSV page still shows HIGH and Modified 2026-11-17T16:00:03Z');
+      expect(section).toContain('picomatch 4.0.7 as latest');
+      expect(section).toContain('There is no 4.0.8 and no patched npm release.');
       expect(section).toContain('3 moderate minimatch findings');
-      expect(section).toContain('npm audit fix --force');
+      expect(section).toContain('Do not use npm audit fix --force');
       expect(section).toContain('unverified, not empty');
-      expect(section).toContain('0 published GitHub releases');
+      expect(section).toContain('Exact six-pattern matrix (no spaces inside any pattern): +(*), *(*), +(a*), +(*a), *(a*|b), +(ab|abab).');
     }
   });
 
   it('preserves the canonical 25-point register and all external blockers', () => {
     for (const section of latestSections) {
-      expect(section).toContain('139 branches (100 + 39; pagination exhausted), 78 open PRs, 7 open non-PR issues');
-      expect(section).toContain('64 items / 41 checked / 23 open');
-      expect(section).toContain('Issue #74 has 243 comments');
+      expect(section).toContain('143 branches, 82 open PRs, 7 open non-PR issues and 0 published GitHub releases.');
+      expect(section).toContain('64 items / 41 checked / 23 open.');
       expect(section).toContain('No checkbox changed.');
-      expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
+      expect(section).toContain('2 Done / 15 In Progress / 8 Blocked.');
       expect(section).toContain('Done (2): #1, #6.');
       expect(section).toContain('In Progress (15): #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.');
       expect(section).toContain('Blocked (8): #2');

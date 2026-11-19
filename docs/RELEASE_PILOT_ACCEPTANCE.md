@@ -1,3 +1,149 @@
+## Exact-head reconciliation — 2026-11-19 22:40 CET
+
+This checkpoint is based on fresh repository, branch, PR, issue, review, thread, exact-HEAD workflow, job and job-log reads. The four release-documentation PRs below have terminal exact-head workflows. No parent or sibling run is substituted for another SHA.
+
+### PR #41 — merged release-blocker baseline
+
+PR #41 is CLOSED/MERGED. Its source HEAD is 68b380e73ca3c870048035197beef8febbf90ef1; merge commit and current main HEAD are f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1.
+
+- Validation 43492153234, CodeQL 43492153161 and Dependency Review 43492153021: all terminal SUCCESS on the exact source HEAD.
+- Review inventory: 26 formal submissions (25 COMMENTED, 1 APPROVED), 22/22 inline threads resolved.
+- The two Redis P2 runbook corrections are part of the merged baseline.
+- Historical runs 43098210284, 43098210473 and 43098210255 remain QUEUED on obsolete SHA b46c5b8082ecbebd263a86cd53b1321a86e570d1. Each has zero jobs. They are stale historical queue records and require repository-admin cancellation; they are not current main checks.
+
+### PR #85 — current parent and human review gate
+
+PR #85 is OPEN/non-draft on docs/post-merge-release-evidence-20261113, targeting main at f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1. Its current and pre-write parent HEAD is b3ac5f20994997c3ebc6dbd771013ed3f20be0b5.
+
+The exact-head runs below belong to PR #85 HEAD b3ac5f20994997c3ebc6dbd771013ed3f20be0b5 only:
+
+- Validation 44515665309: terminal FAILURE; frontend Unit tests failed at 299/300, backend SUCCESS and iOS SUCCESS. Runtime dependency audit was SKIPPED after the Unit-test failure.
+- CodeQL 44515665215: terminal SUCCESS; analyze job SUCCESS.
+- Dependency Review 44515665613: terminal SUCCESS; dependency-review job SUCCESS.
+- Review inventory: 16 COMMENTED submissions, 9/9 inline threads resolved, 0 human APPROVED. tarlaci1984-sketch remains requested.
+
+The exact pre-write parent HEAD is b3ac5f20994997c3ebc6dbd771013ed3f20be0b5.
+These exact-head runs belong to PR #85 pre-write parent HEAD b3ac5f20994997c3ebc6dbd771013ed3f20be0b5 only.
+
+### PR #177 — current exact HEAD, not its earlier predecessor
+
+PR #177 is OPEN/DRAFT on fix/release-doc-checkpoint-case-assertion-20261119-run11, based on PR #85 at b3ac5f20994997c3ebc6dbd771013ed3f20be0b5. Its current HEAD is d46b6c1e0e3f945a93fc8afb0050ca653e5f17c1.
+
+- Validation 44613423701: terminal FAILURE; frontend Unit tests 299/300, backend SUCCESS and iOS SUCCESS. The single failing assertion expects the checkpoint to state that PR #172 targets the PR #171 branch. Runtime dependency audit was SKIPPED after the Unit-test failure.
+- CodeQL 44613423896: terminal SUCCESS.
+- Dependency Review 44613423653: terminal SUCCESS.
+- Review inventory: 0 formal review submissions and 0 inline threads; 3 conversation comments. No human approval is recorded.
+
+### PR #183 — terminal exact-head result
+
+PR #183 is OPEN/DRAFT at HEAD ab65ea23171e84b7f7cb07967b5b34a0cc28b8bc, based on the earlier PR #177 HEAD d81d926630ab3a5777cb79ef6e6d4cc9ea610f31. It does not inherit the newer PR #177 HEAD d46b6c1e0e3f945a93fc8afb0050ca653e5f17c1.
+
+- Validation 44611108095: terminal FAILURE; frontend 296/300 with 4 checkpoint assertions failing, backend SUCCESS and iOS SUCCESS.
+- CodeQL 44611108110: terminal SUCCESS.
+- Dependency Review 44611108264: terminal SUCCESS.
+- Review inventory: 0 formal submissions and 0 inline threads; 1 conversation comment.
+
+### PR #184 — terminal exact-head result
+
+PR #184 is OPEN/DRAFT at HEAD 050f8aa068018c1f91236c7199bfd2478e605b59, based on PR #183 HEAD ab65ea23171e84b7f7cb07967b5b34a0cc28b8bc.
+
+- Validation 44611797615: terminal FAILURE; frontend 297/300 with 3 checkpoint assertions failing, backend SUCCESS and iOS SUCCESS.
+- CodeQL 44611797570: terminal SUCCESS.
+- Dependency Review 44611797505: terminal SUCCESS.
+- Review inventory: 0 formal submissions and 0 inline threads; 1 conversation comment.
+
+### PR #185 — terminal exact-head result and safe correction parent
+
+PR #185 is OPEN/DRAFT at HEAD 0ad3bdc82c9e654c84f25dc08884ac8bc3f6d0d2, based on PR #184 HEAD 050f8aa068018c1f91236c7199bfd2478e605b59. All three required workflows on this exact HEAD are terminal.
+
+- Validation 44612165463: terminal FAILURE; frontend 299/300 with one stale checkpoint assertion, backend SUCCESS and iOS SUCCESS. The failing assertion still expects the old PR #177 CodeQL run 44605504714.
+- CodeQL 44612165430: terminal SUCCESS.
+- Dependency Review 44612165558: terminal SUCCESS.
+- Review inventory: 0 formal submissions and 0 inline threads; 1 conversation comment.
+
+The #177–#185 failures described above are frontend documentation/Unit-test assertions. Runtime npm audit did not run on those failed exact heads because Unit tests failed first. Do not classify them as npm-audit failures or borrow an ancestor's audit result.
+
+### PR #171 and PR #172 — branch target versus Git commit graph
+
+PR #171 is OPEN/DRAFT at HEAD cd3cd0e01f8dab9c1ac8e47c923a05134857d47d on fix/release-doc-parser-test-declaration-20261118. PR #172 is OPEN/DRAFT at HEAD 5e0f0c000a3a3707e5565c32804e4d221a886caa.
+
+PR #172 targets the PR #171 branch: its base.ref is fix/release-doc-parser-test-declaration-20261118. Its recorded base SHA is c5faf4ca3ec9228dcde2b17ef5704d6199856792. Both current head commits have that same parent and identical tree cf955182d98cae2e19f10c0e08f8e12621cb5242; therefore their Git commit objects are siblings off that parent, even though PR #172 targets the PR #171 branch. Do not describe the PR branch relationship as a direct commit-parent relationship.
+
+- #171 Validation 44358862088, CodeQL 44358862249 and Dependency Review 44358862085: all SUCCESS.
+- #172 Validation 44350568289, CodeQL 44350568525 and Dependency Review 44350568368: all SUCCESS.
+- Each has 0 review submissions and 0 inline threads; tarlaci1984-sketch remains requested. Neither PR is merged.
+- Their latest runtime audit reports 3 moderate minimatch findings and no picomatch finding. This is not dependency remediation.
+
+### PRs #163–#170 — refreshed exact-head failure classification
+
+All eight PRs remain OPEN/DRAFT, with 0 formal review submissions and 0 inline threads each. CodeQL and Dependency Review succeeded on every listed exact HEAD.
+
+| PR | Exact HEAD | Validation run | Failure classification | CodeQL / Dependency Review |
+|---|---|---:|---|---|
+| #163 | 879a6392b3bcd248deca40916e15fd69a467df7b | 44241274884 | frontend Unit-test assertion | 44241274855 / 44241274910 SUCCESS |
+| #164 | f7dcfcf6ee85e3ee77e627f8d34776fd03b91cfe | 44253605974 | frontend Unit-test assertion | 44253605853 / 44253605842 SUCCESS |
+| #165 | 84de0838284b50dc38bf8107aee15b046dd4cc6a | 44253962999 | frontend Unit-test assertion | 44253963066 / 44253963144 SUCCESS |
+| #166 | 205d39742a8c98e94453df44106ec83d5dba0ea0 | 44254136344 | frontend Unit-test assertion | 44254136396 / 44254136318 SUCCESS |
+| #167 | 3177cfba1cbaee43a9feed2dd8b2010249a7d12f | 44255156916 | runtime npm audit: 28 findings (2 moderate, 26 high) | 44255156921 / 44255156940 SUCCESS |
+| #168 | a935803ac1c0b614fd3b49180da29b6bcd3f7b1e | 44272119611 | frontend Unit-test assertion | 44272119580 / 44272119594 SUCCESS |
+| #169 | 0b6d97be460cabc24013b15d180cdf6d4180d42b | 44272942930 | frontend Unit-test assertion | 44272943096 / 44272943019 SUCCESS |
+| #170 | 6de7cedc9b1214f7bf819e8b76fd1d8986d8d085 | 44273476324 | runtime npm audit: 28 findings (2 moderate, 26 high) | 44273476308 / 44273476354 SUCCESS |
+
+The #167 and #170 frontend job logs show the runtime npm audit step itself failed with 28 findings. The other six Validation failures occurred at Unit tests before runtime audit. These are separate failure classes.
+
+### Historical successors and technical baselines
+
+- PR #65 is CLOSED/unmerged at HEAD 678fe7fde32f4dc785288d5a8ac939f1ac6478f0. Its exact-head Validation 43452488602, CodeQL 43452493289 and Dependency Review 43452488754 succeeded. package.json and package-lock.json blob SHAs match main byte-for-byte. The full docs/RELEASE_RUNBOOK.md does not match main byte-for-byte. Do not claim PR #65 itself was merged.
+- PR #67 is CLOSED/unmerged at HEAD 0b4a0e2a31e2a690db5fdeda3ba4716663607727; its historical Validation 43423727535 failed while CodeQL 43423727559 and Dependency Review 43423727485 succeeded. Mainline successor PR #96 is OPEN at HEAD e06a3c3513244289169b705fa7b1e9ee381945e0; Validation 43800887062, CodeQL 43800886964 and Dependency Review 43800887028 all succeeded.
+- PR #68 is CLOSED/unmerged at HEAD a4324896a95aca621885ba89daa44f96bdcb636f; Validation 43436750104, CodeQL 43436750094 and Dependency Review 43436750108 all succeeded. Backend installed cryptography 50.0.2, passed 177 + 13 + 15 tests and pip-audit reported no known vulnerabilities. This is backend pip-audit evidence, not frontend npm audit.
+- PR #69 is CLOSED/unmerged at HEAD a84fdf39792da4ce6c663d88b976861fa3c968be. Validation 43432490009 failed; CodeQL 43432489904 and Dependency Review 43432489915 succeeded. Backend installed cryptography 46.0.7 and failed two tests: EC X-coordinate integer len() TypeError and unsupported key_id constructor argument. Backend pip-audit was skipped after pytest failed. Separately, frontend passed 166/166 Unit tests and then runtime npm audit failed with 18 findings (1 low, 8 moderate, 8 high, 1 critical). Do not conflate the frontend npm audit with backend pip-audit.
+- PR #116 is OPEN/DRAFT at HEAD 27fafece2783b11677bdd90e896a1c0e8551aa86. Validation 43938664477, CodeQL 43938664451 and Dependency Review 43938664475 all succeeded. Node 22.23.4 Android/iOS prebuild and native smoke checks succeeded. app.plugin.js is the CommonJS config plugin entry point, index.ts remains the runtime entry point, app.json references the plugin and expo-module.config.json supplies iOS autolinking. This is successor evidence, not a green result for original PR #69.
+- PR #99 is OPEN/DRAFT at HEAD f91c70d2636948e538f8e3559afc39cd93eb5139. Validation 43772791089, CodeQL 43772791064 and Dependency Review 43772791109 all succeeded. Review inventory: 4 COMMENTED submissions, 2/2 inline threads resolved, 0 human APPROVED. Issue #64 remains OPEN with 67 comments. Production acceptance remains BLOCKED pending independent human security approval, production DNS64/NAT64 prefix inventory, verified deployed USEIT_NAT64_PREFIXES and staging/production egress evidence.
+
+### Picomatch / Issue #155 — withdrawal is not a package release
+
+Issue #155 remains OPEN for product-level reachability and security-owner acceptance.
+
+- GitHub Advisory GHSA-fc5q-39xc-vjpf / CVE-2026-112366 is WITHDRAWN on 2026-11-18. Snyk marks its JavaScript advisory revoked and says it does not affect any picomatch version.
+- The current OSV page still shows HIGH and Modified 2026-11-17T16:00:03Z. That snapshot predates the GitHub withdrawal and is stale relative to the later GitHub/Snyk status; do not report OSV as withdrawn or use its old HIGH snapshot as current GitHub-reviewed status.
+- Official npm still lists picomatch 4.0.7 as latest. There is no 4.0.8 and no patched npm release. Advisory withdrawal and package remediation are separate.
+- Upstream picomatch PR #264 HEAD 8144a1a22a8fa1766951411f220cc8c6228cb041 is OPEN/unmerged; Tests run 44202778983 is action_required; 0 reviews and 0 inline threads.
+- PR #265 HEAD dda1c43a8e9cae36ffb0407127ee64e17fbc1c2c is OPEN/unmerged; Tests 44202787490 and CodeQL 44202787411 are action_required; 0 reviews and 0 inline threads.
+- PR #254 HEAD c63a5bf4e61dbdb81bc41e97dc2616c30acce337 is OPEN/unmerged; Tests 44148748026 is action_required; 0 reviews and 0 inline threads.
+- PR #257 HEAD 4e4892e0ac6c374ec3d9e4dc430101da9a20a37b is OPEN/unmerged; Tests 44170126549 is action_required; 1 APPROVED review and 0 inline threads.
+- PR #238 HEAD 44f192261f312ddf236cb7bdc05d8f22663f98f9 is OPEN/unmerged; Tests 39833229778 is action_required; 3 COMMENTED and 3 APPROVED reviews, 0 inline threads.
+- PR #246 HEAD f03bec2c02e46f063fbfdc161aae1d0f854b2565 is OPEN/unmerged; Tests 41234593564 and CodeQL 41234593582 are action_required; 0 reviews and 0 inline threads. action_required is not a passing CI result.
+- Exact six-pattern matrix (no spaces inside any pattern): +(*), *(*), +(a*), +(*a), *(a*|b), +(ab|abab). PR #238's current patch/test includes +(*), +(a*) and +(*a), but not *(*), *(a*|b) or +(ab|abab). The included +(a*) is only a positive-match case; +(*a) is literalized and changes glob semantics. No upstream candidate has demonstrated a successful complete six-pattern adversarial matrix.
+- PR #238 reviewers report slow/exponential behavior for +(*) and *(*) and slow behavior for +(a*) under short near-miss inputs. The upstream patch does not establish full remediation.
+- Upstream PR #235 is CLOSED/unmerged. The maintainer disputes the CVE and advises against those patterns and against allowing untrusted users to define regex/glob patterns.
+- POS-Doctor main lockfile contains six picomatch resolutions; the root package has no direct picomatch dependency. The #160 scan inspected 2 mobile source maps / 2,634 entries and found no picomatch source in the exported bundle. No inspected product path demonstrates untrusted user-defined glob input, but this is preliminary reachability evidence, not product-level acceptance or remediation.
+- The ryotsu-kankichi/secured-picomatch fork remains unapproved. PR #1 is merged at release commit f9822e9514d490f3e3bc17f50a4d3cacff2056c2; current master is 3ab5a7627d480259e3d9ca67fbc14c125d374f0e and that commit is unsigned. PR #1 has 0 formal reviews. The current branch-protection endpoint returned 403, so current protection status could not be independently verified. npm listings identify @ryotsu/picomatch 4.0.7-a, but direct registry integrity/provenance verification remains unavailable. The patch changes capture-group semantics; maxExtglobRecursion:false disables the safeguard. Do not import, pin or override it.
+- Do not use npm audit fix --force, downgrade Expo/React Native, suppress audit or weaken a security gate. The withdrawn advisory is not an active GitHub-reviewed HIGH release blocker, but Issue #155 remains OPEN pending product-level reachability/acceptance review.
+
+### Minimatch candidate and audit findings
+
+- PR #117 exact HEAD 980c3f8a84615097432cd73af73ecb1c78f5fe2f: Validation 43898737672, CodeQL 43898737938 and Dependency Review 43898737797 all SUCCESS.
+- PR #119 exact HEAD f38a6f1025428beac023a79bb8b89091a4ce7969: Validation 43989350463, CodeQL 43989350470 and Dependency Review 43989350456 all SUCCESS. Its exact-head runtime npm audit log reports found 0 vulnerabilities.
+- Both candidates remain OPEN/DRAFT, unmerged, with 0 formal review submissions and 0 inline threads. Main and PRs #171/#172 still report 3 moderate minimatch findings. These candidate results do not remediate main until integrated and revalidated.
+
+### Main governance and canonical inventory
+
+Protect main ruleset 26370589 is ACTIVE and unchanged. It requires one approving review, stale-approval dismissal, last-push approval, resolved review threads and six strict checks (CodeQL, backend, frontend, ios, analyze, dependency-review); deletion and non-fast-forward updates are blocked; bypass actors: 0.
+
+- Main HEAD: f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1.
+- Repository inventory after this follow-up branch/PR is created: 143 branches, 82 open PRs, 7 open non-PR issues and 0 published GitHub releases.
+- Issue #74 checklist remains 64 items / 41 checked / 23 open. No checkbox changed.
+- The separate canonical 25-point release register remains 2 Done / 15 In Progress / 8 Blocked.
+- Done (2): #1, #6.
+- In Progress (15): #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.
+- Blocked (8): #2 (durable repository visibility/plan decision), #4 (production Apple App Attest entitlement and physical iPhone), #5 (Play Integrity on Play-installed physical Android), #16 (witnessed production backup/restore), #18 (representative product-recognition benchmark and business acceptance), #21 (production monitoring and alert delivery), #22 (approved staged rollout and tested rollback), #25 (real-user pilot and business sign-off).
+- Code Scanning, Dependabot and Secret Scanning alert inventories are not exposed by the connected integration; they remain unverified, not empty.
+- External console setup, physical-device tests, production cloud access, witnessed backup/restore, monitoring, staged rollout approval and real-user pilot/business sign-off remain BLOCKED until direct evidence exists. No external acceptance item is promoted to Done.
+
+RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.
+
+---
+
 ## Exact-head reconciliation — 2026-11-19 21:45 CET
 
 This checkpoint supersedes the 21:42 CET snapshot. Every workflow result below is tied to its exact source SHA. PR #177 is terminal FAILURE; PR #183 and PR #184 remain isolated children with their own exact-head Validation still running. No result from a parent or sibling is substituted.
