@@ -59,7 +59,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Dependency Review [44462126205](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44462126205): terminal SUCCESS; dependency-review job SUCCESS.');
       expect(section).toContain('The parent runs above do not validate that child.');
       expect(section).toContain('Its own exact-head Validation, CodeQL and Dependency Review must each reach terminal SUCCESS before another write or merge.');
-      expect(section).toContain('296 passed and 4 failed across 61 test files (300 total).');
+      expect(section).toContain('296 passed and 4 failed across 61 test files (300 total); 60 files passed and one failed.');
       expect(section).toContain('3 moderate minimatch findings');
     }
   });
@@ -72,7 +72,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Validation [43492153234]');
       expect(section).toContain('CodeQL [43492153161]');
       expect(section).toContain('Dependency Review [43492153021]');
-      expect(section).toContain('53 conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED), and 22/22 inline threads resolved.');
+      expect(section).toContain('53 conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED), 22/22 inline threads resolved.');
       expect(section).toContain('43098210284');
       expect(section).toContain('43098210473');
       expect(section).toContain('43098210255');
