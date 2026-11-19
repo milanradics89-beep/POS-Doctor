@@ -23,7 +23,81 @@ describe('mobile bundle dependency reachability', () => {
 
   it('normalizes Windows separators before matching', () => {
     const map = { sources: ['..\\node_modules\\picomatch\\index.js'] };
-    expect(findPackageSourcesInMap(map, 'picomatch')).toEqual(map.sources);
+    expect(findPackageSourcesInMap(map, 'picomatch')).toEqual(['../node_modules/picomatch/index.js']);
+  });
+
+  it('applies sourceRoot before matching source paths', () => {
+    const map = {
+      sourceRoot: '../../node_modules/picomatch/',
+      sources: ['/index.js', 'lib/parse.js'],
+    };
+    expect(findPackageSourcesInMap(map, 'picomatch')).toEqual([
+      '../../node_modules/picomatch/index.js',
+      '../../node_modules/picomatch/lib/parse.js',
+    ]);
+  });
+
+  it('applies sourceRoot independently inside indexed source-map sections', () => {
+    const map = {
+      sections: [
+        {
+          offset: { line: 0, column: 0 },
+          map: {
+            sourceRoot: '../node_modules/picomatch',
+            sources: ['index.js'],
+          },
+        },
+        {
+          offset: { line: 10, column: 0 },
+          map: {
+            sourceRoot: '../src',
+            sources: ['app.ts'],
+          },
+        },
+      ],
+    };
+    expect(findPackageSourcesInMap(map, 'picomatch')).toEqual([
+      '../node_modules/picomatch/index.js',
+    ]);
+  });
+
+  it('fails closed when sourceRoot has an invalid type', () => {
+    expect(() => findPackageSourcesInMap({ sourceRoot: 42, sources: ['index.js'] }, 'picomatch'))
+      .toThrow('sourceRoot must be a string');
+  });
+
+  it('fails closed when source entries are not strings, including indexed maps', () => {
+    const malformedMaps = [
+      { sources: ['node_modules/picomatch/index.js', null] },
+      { sections: [{ offset: { line: 0, column: 0 }, map: { sources: [42] } }] },
+    ];
+    for (const map of malformedMaps) {
+      expect(() => findPackageSourcesInMap(map, 'picomatch'))
+        .toThrow('Source map sources must contain only non-empty strings.');
+    }
+  });
+
+  it('fails closed when a source map has no source entries or indexed sections', () => {
+    expect(() => findPackageSourcesInMap({ sources: [] }, 'picomatch'))
+      .toThrow('sources must be a non-empty array');
+    expect(() => findPackageSourcesInMap({ sections: [] }, 'picomatch'))
+      .toThrow('sections must be a non-empty array');
+    expect(() => findPackageSourcesInMap({ sources: [''] }, 'picomatch'))
+      .toThrow('non-empty strings');
+  });
+
+  it('fails closed when a map mixes basic and indexed source-map fields', () => {
+    expect(() => findPackageSourcesInMap({
+      sources: [],
+      sections: [{ offset: { line: 0, column: 0 }, map: { sources: ['node_modules/picomatch/index.js'] } }],
+    }, 'picomatch')).toThrow('exactly one of sources or sections');
+  });
+
+  it('fails closed when indexed maps declare a top-level sourceRoot', () => {
+    expect(() => findPackageSourcesInMap({
+      sourceRoot: '../node_modules/picomatch',
+      sections: [{ offset: { line: 0, column: 0 }, map: { sources: ['index.js'] } }],
+    }, 'picomatch')).toThrow('Indexed source maps must not declare sourceRoot');
   });
 
   it('supports indexed source maps', () => {
@@ -72,6 +146,7 @@ describe('mobile bundle dependency reachability', () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
   it('matches package names as literal path segments, not regular expressions', () => {
     const map = {
       sources: [
@@ -86,5 +161,4 @@ describe('mobile bundle dependency reachability', () => {
     expect(() => findPackageSourcesInMap({ sources: [] }, '../picomatch')).toThrow('traversal path segments');
     expect(() => findPackageSourcesInMap({ sources: [] }, 'picomatch//nested')).toThrow('traversal path segments');
   });
-
 });
