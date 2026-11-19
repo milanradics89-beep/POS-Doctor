@@ -58,7 +58,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('CodeQL [44500678319](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44500678319): terminal SUCCESS; analyze job SUCCESS.');
       expect(section).toContain('Dependency Review [44500678286](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44500678286): terminal SUCCESS; dependency-review job SUCCESS.');
       expect(section).toContain('The parent runs above do not validate that child.');
-      expect(section).toContain('Its own exact-head Validation, CodeQL and Dependency Review must each reach terminal SUCCESS before another write or merge.');
+      expect(section.toLowerCase()).toContain('its own exact-head validation, codeql and dependency review must each reach terminal success before another write or merge.');
       expect(section).toContain('300 passed across 61 test files (300 total);');
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('native Android Release build and Android emulator smoke all passed.');
