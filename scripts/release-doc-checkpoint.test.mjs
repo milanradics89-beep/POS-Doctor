@@ -61,7 +61,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Its own exact-head Validation, CodeQL and Dependency Review must each reach terminal SUCCESS before another write or merge.');
       expect(section).toContain('300 passed across 61 test files (300 total);');
       expect(section).toContain('3 moderate minimatch findings');
-      expect(section).toContain('Android native Release build and Android emulator smoke all passed.');
+      expect(section).toContain('native Android Release build and Android emulator smoke all passed.');
       expect(section).toContain('iOS native Release build and simulator smoke passed.');
       expect(section).toContain('Runtime `npm audit --omit=dev --audit-level=high` completed with 3 moderate minimatch findings');
     }
