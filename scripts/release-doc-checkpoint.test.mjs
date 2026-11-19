@@ -59,7 +59,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toMatch(/Dependency Review \[44421412180\]\([^)]*\): terminal SUCCESS/);
       expect(section).toContain('The parent runs above do not validate that child.');
       expect(section).toContain('Its own exact-head Validation, CodeQL and Dependency Review must each reach terminal SUCCESS before another write or merge.');
-      expect(section).toContain('297 passed and 3 failed across 61 test files (300 total)');
+      expect(section).toMatch(/297 passed and 3 failed across 61 test files \(300 total\b/);
       expect(section).toContain('3 moderate minimatch findings');
     }
   });
