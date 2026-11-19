@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Exact-head reconciliation — 2026-11-19 05:52 CET';
+const marker = '## Exact-head reconciliation — 2026-11-19 06:52 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -51,15 +51,15 @@ describe('release documentation exact-head checkpoint', () => {
 
   it('binds PR #85 workflow evidence to the exact pre-write parent, not the new child', () => {
     const pairs = latestSections.map(extractPreWritePair);
-    expect(pairs.every((pair) => pair.parent === '99f5046b9439d5b8c697a24fa2bc663579ebc137')).toBe(true);
+    expect(pairs.every((pair) => pair.parent === 'c2cb1ec5b1ca4e8d84abc76a0d49d3e26caaade2')).toBe(true);
     expect(pairs.every((pair) => pair.evidenced === pair.parent)).toBe(true);
     for (const section of latestSections) {
-      expect(section).toContain('Validation [44458944846](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44458944846): terminal SUCCESS; frontend job');
-      expect(section).toContain('CodeQL [44458944509](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44458944509): terminal SUCCESS.');
-      expect(section).toContain('Dependency Review [44458944545](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44458944545): terminal SUCCESS.');
+      expect(section).toContain('Validation [44462126461](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44462126461): terminal FAILURE; frontend job FAILURE; backend job SUCCESS and iOS job SUCCESS.');
+      expect(section).toContain('CodeQL [44462126463](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44462126463): terminal SUCCESS; analyze job SUCCESS.');
+      expect(section).toContain('Dependency Review [44462126205](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44462126205): terminal SUCCESS; dependency-review job SUCCESS.');
       expect(section).toContain('The parent runs above do not validate that child.');
       expect(section).toContain('Its own exact-head Validation, CodeQL and Dependency Review must each reach terminal SUCCESS before another write or merge.');
-      expect(section).toContain('300/300 tests across 61/61 files passed.');
+      expect(section).toContain('296 passed and 4 failed across 61 test files (300 total).');
       expect(section).toContain('3 moderate minimatch findings');
     }
   });
@@ -133,7 +133,7 @@ describe('release documentation exact-head checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('132 branches (100 + 32), 72 open PRs, 7 open non-PR issues');
       expect(section).toContain('64 items / 41 checked / 23 open');
-      expect(section).toContain('Issue #74 has 218 comments');
+      expect(section).toContain('Issue #74 has 219 comments');
       expect(section).toContain('No checkbox changed.');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
       expect(section).toContain('Done (2): #1, #6.');
