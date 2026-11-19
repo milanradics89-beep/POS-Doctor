@@ -69,7 +69,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('native Android Release and Android emulator smoke, iOS Release/simulator smoke');
       expect(section).toContain('iOS native Release and simulator smoke passed.');
-      expect(section).toMatch(/Runtime `?npm audit --omit=dev --audit-level=high`? completed with 3 moderate minimatch findings/);
+      expect(section).toMatch(/runtime `?npm audit --omit=dev --audit-level=high`? completed with 3 moderate minimatch findings/i);
     }
   });
 
