@@ -54,9 +54,9 @@ describe('release documentation exact-head checkpoint', () => {
     expect(pairs.every((pair) => pair.parent === '18dadee73775c12e4d6ead8584c9dac4baa517cf')).toBe(true);
     expect(pairs.every((pair) => pair.evidenced === pair.parent)).toBe(true);
     for (const section of latestSections) {
-      expect(section).toMatch(/Validation \\[44421412298\\]\\([^)]*\\): terminal FAILURE/);
-      expect(section).toMatch(/CodeQL \\[44421412174\\]\\([^)]*\\): terminal SUCCESS/);
-      expect(section).toMatch(/Dependency Review \\[44421412180\\]\\([^)]*\\): terminal SUCCESS/);
+      expect(section).toMatch(/Validation \[44421412298\]\([^)]*\): terminal FAILURE/);
+      expect(section).toMatch(/CodeQL \[44421412174\]\([^)]*\): terminal SUCCESS/);
+      expect(section).toMatch(/Dependency Review \[44421412180\]\([^)]*\): terminal SUCCESS/);
       expect(section).toContain('The parent runs above do not validate that child.');
       expect(section).toContain('Its own exact-head Validation, CodeQL and Dependency Review must each reach terminal SUCCESS before another write or merge.');
       expect(section).toContain('297 passed and 3 failed across 61 test files (300 total)');
@@ -100,7 +100,7 @@ describe('release documentation exact-head checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('66 conversation comments, 16 inline review comments, 16 formal review submissions (all COMMENTED), 9/9 inline threads resolved, 0 human APPROVED.');
       expect(section).toContain('tarlaci1984-sketch');
-      expect(section).toContain('Human approval is still required.');
+      expect(section).toMatch(/human approval is still required\./i);
     }
   });
 
