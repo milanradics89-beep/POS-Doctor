@@ -67,7 +67,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section.toLowerCase()).toContain('its own exact-head validation, codeql and dependency review must each reach terminal success before another write or merge.');
       expect(section).toContain('That ancestor had 300 passed across 61 test files (300 total),');
       expect(section).toContain('3 moderate minimatch findings');
-      expect(section).toContain('native Android Release build and Android emulator smoke all passed.');
+      expect(section).toContain('native Android Release and Android emulator smoke, iOS Release/simulator smoke');
       expect(section).toContain('iOS native Release build and simulator smoke passed.');
       expect(section).toMatch(/Runtime `?npm audit --omit=dev --audit-level=high`? completed with 3 moderate minimatch findings/);
     }
@@ -81,7 +81,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Validation [43492153234]');
       expect(section).toContain('CodeQL [43492153161]');
       expect(section).toContain('Dependency Review [43492153021]');
-      expect(section).toContain('53 conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED), 22/22 inline threads resolved.');
+      expect(section).toContain('53 top-level conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED), and 22/22 inline threads resolved.');
       expect(section).toContain('43098210284');
       expect(section).toContain('43098210473');
       expect(section).toContain('43098210255');
