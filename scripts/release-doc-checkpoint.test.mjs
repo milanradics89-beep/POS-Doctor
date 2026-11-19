@@ -92,7 +92,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('cd3cd0e01f8dab9c1ac8e47c923a05134857d47d');
       expect(section).toContain('PR #172 is OPEN/DRAFT on \x60fix/release-doc-parser-assertion-case-20261118\x60');
       expect(section).toContain('5e0f0c000a3a3707e5565c32804e4d221a886caa');
-      expect(section).toContain('PR #172 targets PR #171 branch');
+      expect(section).toContain('targeting PR #171 branch');
       expect(section).toContain('c5faf4ca3ec9228dcde2b17ef5704d6199856792');
       expect(section).toContain('ahead_by=1, behind_by=0');
       expect(section).toContain('not sibling commits and do not have identical trees');
