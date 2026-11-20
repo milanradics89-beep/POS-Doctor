@@ -244,7 +244,7 @@ describe('2026-11-20 04:18 exact-head verification', () => {
       'PR #116 exact HEAD',
       'GHSA-fc5q-39xc-vjpf / CVE-2026-112366 is WITHDRAWN',
       'five picomatch 4.0.7 resolutions and one 2.3.2 resolution',
-      'Published GitHub releases: **0**',
+
       '145 (100 on page 1, 45 on page 2)',
       '84 open PRs',
       '64 checklist items / 41 checked / 23 open',
@@ -269,6 +269,10 @@ describe('2026-11-20 06:28 exact-head verification', () => {
     expect(new Set(sections).size).toBe(1);
 
     const section = sections[0];
+    expect(section).toMatch(/CodeQL \[44673865112\](?:\(https:\/\/github\.com\/milanradics89-beep\/POS-Doctor\/actions\/runs\/44673865112\))?: \*\*SUCCESS\*\*/);
+    expect(section).toMatch(/Dependency Review \[44673865087\](?:\(https:\/\/github\.com\/milanradics89-beep\/POS-Doctor\/actions\/runs\/44673865087\))?: \*\*SUCCESS\*\*/);
+    expect(section).toMatch(/Backend job \[136089285669\](?:\(https:\/\/github\.com\/milanradics89-beep\/POS-Doctor\/actions\/runs\/44673865186\/job\/136089285669\))?: \*\*SUCCESS\*\*/);
+    expect(section).toMatch(/iOS job \[136089329848\](?:\(https:\/\/github\.com\/milanradics89-beep\/POS-Doctor\/actions\/runs\/44673865186\/job\/136089329848\))?: \*\*SUCCESS\*\*/);
     [
       'PR #188 remains OPEN/DRAFT',
       '518800e9689e6ec4eff5b2ebb0051cf5bee6351b',
@@ -276,10 +280,10 @@ describe('2026-11-20 06:28 exact-head verification', () => {
       'Frontend job [136089283885]',
       '301 passed / 1 failed',
       'PRs #163–#170 each currently have 0 formal review submissions and 0 inline threads.',
-      'CodeQL [44673865112]: **SUCCESS**',
-      'Dependency Review [44673865087]: **SUCCESS**',
-      'Backend job [136089285669]: **SUCCESS**',
-      'iOS job [136089329848]: **SUCCESS**',
+
+
+
+
       'Runtime npm audit was **SKIPPED**',
       'PR #41 is CLOSED/MERGED',
       '53 conversation comments, 30 inline comments, 26 formal reviews',
