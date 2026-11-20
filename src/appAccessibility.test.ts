@@ -51,4 +51,25 @@ describe('USEIT screen accessibility semantics', () => {
 
     expect(total).toBeGreaterThan(0);
   });
+
+  it('uses the shared brand and motion components in the Home flow', () => {
+    const source = readFileSync(new URL('../app/index.tsx', import.meta.url), 'utf8');
+    const file = ts.createSourceFile('app/index.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const componentNames = new Set<string>();
+
+    function visit(node: ts.Node) {
+      if (
+        (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node))
+        && ts.isIdentifier(node.tagName)
+      ) {
+        componentNames.add(node.tagName.text);
+      }
+      ts.forEachChild(node, visit);
+    }
+
+    visit(file);
+    expect([...componentNames]).toEqual(expect.arrayContaining(['BrandMark', 'FadeIn', 'StatePanel']));
+    expect(source).toContain('<BrandMark compact />');
+    expect(source).toContain('<FadeIn delay={40}>');
+  });
 });
