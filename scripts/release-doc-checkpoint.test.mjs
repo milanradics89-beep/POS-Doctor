@@ -354,3 +354,49 @@ describe('2026-11-20 07:40 exact-head verification', () => {
     ].forEach((evidence) => expect(section).toContain(evidence));
   });
 });
+
+
+describe('2026-11-20 10:55 exact-head verification', () => {
+  it('keeps PR #193 exact-head evidence identical across all three release records', () => {
+    const marker = '## Exact-head verification — 2026-11-20 10:55 CET';
+    const sections = documents.map((document) => {
+      const start = document.indexOf(marker);
+      if (start < 0) return '';
+      const end = document.indexOf('\n\n---\n\n', start);
+      return document.slice(start, end < 0 ? undefined : end).trim();
+    });
+
+    expect(sections.every(Boolean)).toBe(true);
+    expect(new Set(sections).size).toBe(1);
+
+    const section = sections[0];
+    [
+      'PR #193 remains OPEN/DRAFT',
+      '58c3b0c48e396abb924b33e6396ddae59305f85f',
+      'Validation [44710467673]',
+      'CodeQL [44710467975]',
+      'Dependency Review [44710467812]',
+      '304 tests across 61 test files passed',
+      'Expo Doctor 1.20.5 passed',
+      'Android emulator smoke passed for com.useit.app',
+      'iOS native Release build and simulator smoke test passed',
+      '3 moderate minimatch findings',
+      'GHSA-g3hv-75wg-m249',
+      'No known vulnerabilities found',
+      'PR #41 is CLOSED/MERGED',
+      '68b380e73ca3c870048035197beef8febbf90ef1',
+      '53 conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED)',
+      '22/22 inline threads resolved',
+      'Issue #47 is CLOSED with 11 comments',
+      'Issue #64 remains OPEN with 72 comments',
+      'f91c70d2636948e538f8e3559afc39cd93eb5139',
+      '151 branches (100 on page 1, 51 on page 2)',
+      '90 open pull requests',
+      '7 open non-PR issues',
+      '0 published releases',
+      'unverified, not empty',
+      '2 Done / 15 In Progress / 8 Blocked',
+      'RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.',
+    ].forEach((evidence) => expect(section).toContain(evidence));
+  });
+});
