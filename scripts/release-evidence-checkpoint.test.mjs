@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-20 15:07 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-20 17:18 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -43,6 +43,16 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('67eafbebd5f45724f2c97430fee4bc1a6d153746');
       expect(section).toContain('found 0 vulnerabilities');
       expect(section).toContain('3 moderate minimatch findings');
+      expect(section).toContain('b375c6608cbdd3436fa1893d2d118b2cab9f3d73');
+      expect(section).toContain('44754308331');
+      expect(section).toContain('44754308313');
+      expect(section).toContain('44754308298');
+      expect(section).toContain('a006fdb882bfb6989487e3faea77db23f183839f');
+      expect(section).toContain('160 branches');
+      expect(section).toContain('96 open pull requests');
+      expect(section).toContain('8 open non-PR issues');
+      expect(section).toContain('332 tests across 72 files');
+      expect(section).toContain('450 pytest');
     }
   });
 
