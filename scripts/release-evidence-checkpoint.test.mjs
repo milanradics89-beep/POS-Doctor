@@ -51,7 +51,8 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Paginated branches: 161 (100 + 61 + 0)');
       expect(section).toContain('Open pull requests: 97');
       expect(section).toContain('Open non-PR issues: 8');
-      expect(section).toContain('72 test files passed');
+      expect(section).toContain('71 other test files passed');
+      expect(section).toContain('331 passed and 1 failed');
       expect(section).toContain('450 pytest');
       expect(section).toContain('PR #204 current exact-head Validation [44810024178]');
       expect(section).toContain('2182ef09fb32f061780552df20a52aadae6770e5');
@@ -87,7 +88,7 @@ describe('current-main release evidence checkpoint', () => {
   it('does not promote external acceptance or unavailable security inventories', () => {
     for (const section of latestSections) {
       expect(section).toContain('unverified, not empty');
-      expect(section).toMatch(/published GitHub releases\s+0/);
+      expect(section).toMatch(/published GitHub releases\s+0/i);
       expect(section).toContain('does not grant production or pilot acceptance');
       for (const item of ['#2', '#4', '#5', '#16', '#18', '#21', '#22', '#25']) {
         expect(section).toContain(item);
