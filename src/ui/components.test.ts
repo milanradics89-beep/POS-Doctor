@@ -66,4 +66,15 @@ describe('USEIT shared component accessibility', () => {
     expect(source).not.toContain('accessible={true}');
   });
 
+  it('respects the system reduced-motion preference and live preference changes', () => {
+    expect(source).toContain("useState<boolean | null>(null)");
+    expect(source).toContain("AccessibilityInfo.isReduceMotionEnabled()");
+    expect(source).toContain("AccessibilityInfo.addEventListener('reduceMotionChanged'");
+    expect(source).toContain('if (reduceMotion === null) return;');
+    expect(source).toContain('if (reduceMotion) {');
+    expect(source).toContain('opacity.setValue(1);');
+    expect(source).toContain('translateY.setValue(0);');
+    expect(source).toContain('return () => animation.stop();');
+  });
+
 });
