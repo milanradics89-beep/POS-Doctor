@@ -128,7 +128,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('npm audit fix --force');
       expect(section).toContain('unverified, not empty');
-      expect(section).toContain('Published GitHub releases: **0**');
+      expect(section).toContain('0 published GitHub releases');
     }
   });
 
@@ -244,7 +244,7 @@ describe('2026-11-20 04:18 exact-head verification', () => {
       'PR #116 exact HEAD',
       'GHSA-fc5q-39xc-vjpf / CVE-2026-112366 is WITHDRAWN',
       'five picomatch 4.0.7 resolutions and one 2.3.2 resolution',
-      '0 published GitHub releases',
+      'Published GitHub releases: **0**',
       '145 (100 on page 1, 45 on page 2)',
       '84 open PRs',
       '64 checklist items / 41 checked / 23 open',
@@ -272,7 +272,7 @@ describe('2026-11-20 06:28 exact-head verification', () => {
     [
       'PR #188 remains OPEN/DRAFT',
       '518800e9689e6ec4eff5b2ebb0051cf5bee6351b',
-      'Validation [44673865186]: **FAILURE**',
+      'Validation [44673865186](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44673865186): **FAILURE**, latest attempt 2',
       'Frontend job [136089283885]',
       '301 passed / 1 failed',
       'PRs #163–#170 each currently have 0 formal review submissions and 0 inline threads.',
