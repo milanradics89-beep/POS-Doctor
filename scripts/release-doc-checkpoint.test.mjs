@@ -390,7 +390,7 @@ describe('2026-11-20 10:55 exact-head verification', () => {
       'Issue #47 is CLOSED with 11 comments',
       'Issue #64 remains OPEN with 72 comments',
       'f91c70d2636948e538f8e3559afc39cd93eb5139',
-      'Branches: **151** (100 + 51; pagination exhausted)',
+      '151 branches (100 on page 1, 51 on page 2, 0 on page 3)',
       '90 open pull requests',
       '7 open non-PR issues',
       '0 published releases',
