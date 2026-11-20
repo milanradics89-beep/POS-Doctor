@@ -154,3 +154,43 @@ describe('release documentation exact-head checkpoint', () => {
     }
   });
 });
+
+
+describe('2026-11-20 exact-head release checkpoint', () => {
+  it('keeps the current exact-head evidence identical across all three release records', () => {
+    const marker = '## Exact-head reconciliation — 2026-11-20 03:27 CET';
+    const sections = documents.map((document) => {
+      const start = document.indexOf(marker);
+      if (start < 0) return '';
+      const end = document.indexOf('\n## ', start + marker.length);
+      return document.slice(start, end < 0 ? undefined : end).trim();
+    });
+
+    expect(sections.every(Boolean)).toBe(true);
+    expect(new Set(sections).size).toBe(1);
+
+    const section = sections[0];
+    [
+      'PR #41 is CLOSED/MERGED on fix/release-blockers-2026-10.',
+      '68b380e73ca3c870048035197beef8febbf90ef1',
+      'Validation [43492153234]',
+      'PR #85 remains OPEN/non-draft',
+      'ea1bf815d90d91026b24c46ec1869b8218211d80',
+      'Validation [44645305669]',
+      'PR #187 remains OPEN/DRAFT',
+      '706534dce3cbb24db48c4d3aa1ecafab39549c6a',
+      'Validation [44648592979]',
+      'PR #188 remains OPEN/DRAFT',
+      '3c804340d53de54f7acc351db8431d1cd3b6af21',
+      'Validation [44646927059]',
+      'Issue #64 remains OPEN with 70 comments.',
+      'Protect main ruleset 26370589',
+      'Code Scanning, Dependabot and Secret Scanning alert inventories',
+      'unverified, not empty',
+      '0 published releases',
+      '64 items / 41 checked / 23 open',
+      '2 Done / 15 In Progress / 8 Blocked',
+      'RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.',
+    ].forEach((evidence) => expect(section).toContain(evidence));
+  });
+});
