@@ -210,7 +210,7 @@ describe('2026-11-20 04:18 exact-head verification', () => {
     expect(new Set(sections).size).toBe(1);
 
     const section = sections[0];
-    expect(section).toMatch(/(?:84 open PRs|Open PRs:\s*\*{0,2}84\*{0,2})/);
+    expect(section).toMatch(/(?:84 open PRs|Open PRs:\s*\*{0,2}84\*{0,2})/i);
     [
       'PR #188 remains OPEN/DRAFT',
       'd3ab60420c1296b7feada52b1cb04f37ff3a2e33',
