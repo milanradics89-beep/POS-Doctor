@@ -221,7 +221,7 @@ describe('2026-11-20 04:18 exact-head verification', () => {
       'Android emulator smoke test passed for com.useit.app',
       '3 moderate minimatch findings',
       'cryptography 50.0.2',
-      '450 passed, 1 warning',
+      'pytest 450 passed with 1 warning',
       '27 passed with 1 warning',
       '78 passed',
       'No known vulnerabilities found',
