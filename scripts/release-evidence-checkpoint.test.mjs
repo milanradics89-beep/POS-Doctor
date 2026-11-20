@@ -44,7 +44,8 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('a006fdb882bfb6989487e3faea77db23f183839f');
       expect(section).toContain('found 0 vulnerabilities');
       expect(section).toContain('3 moderate minimatch findings');
-      expect(section).toContain('PR #204 current exact HEAD is `cbdb625f775acb0267069b2405972b4d2ea380f8`');
+      expect(section).toContain('PR #204 is OPEN/DRAFT on `docs/release-evidence-current-main-20261120-run11`');
+      expect(section).toContain('Current exact HEAD is `cbdb625f775acb0267069b2405972b4d2ea380f8`');
       expect(section).toContain('44821276883');
       expect(section).toContain('44821276876');
       expect(section).toContain('44821276864');
