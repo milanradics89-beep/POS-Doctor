@@ -390,12 +390,64 @@ describe('2026-11-20 10:55 exact-head verification', () => {
       'Issue #47 is CLOSED with 11 comments',
       'Issue #64 remains OPEN with 72 comments',
       'f91c70d2636948e538f8e3559afc39cd93eb5139',
-      '151 branches (100 on page 1, 51 on page 2)',
+      'Fresh paginated inventory: 151 branches (100 on page 1, 51 on page 2, 0 on page 3), 90 open pull requests, and 7 open non-PR issues.',
       '90 open pull requests',
       '7 open non-PR issues',
       '0 published releases',
       'unverified, not empty',
       '2 Done / 15 In Progress / 8 Blocked',
+      'RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.',
+    ].forEach((evidence) => expect(section).toContain(evidence));
+  });
+});
+
+
+describe('2026-11-20 12:05 exact-head verification', () => {
+  it('keeps the current PR #193 failure evidence identical across all three release records', () => {
+    const marker = '## Exact-head verification — 2026-11-20 12:05 CET';
+    const sections = documents.map((document) => {
+      const start = document.indexOf(marker);
+      if (start < 0) return '';
+      const end = document.indexOf('\n\n---\n\n', start);
+      return document.slice(start, end < 0 ? undefined : end).trim();
+    });
+
+    expect(sections.every(Boolean)).toBe(true);
+    expect(new Set(sections).size).toBe(1);
+
+    const section = sections[0];
+    [
+      'PR #193 remains OPEN/DRAFT',
+      '469a4658d35358e7945e5dceea4f58e1a9d9aaec',
+      'Validation [44715915316](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44715915316): terminal FAILURE',
+      'Frontend job [136229478754]',
+      '304 tests passed and 1 failed across 61 test files (305 tests total)',
+      'scripts/release-doc-checkpoint.test.mjs',
+      'Backend job [136229482396]',
+      'Pytest 450 passed with 1 warning',
+      'production-readiness 27 passed with 1 warning',
+      'production-security 78 passed',
+      'no known vulnerabilities',
+      'iOS job [136229480944]',
+      'Native iOS Release build and simulator smoke test passed',
+      'CodeQL [44715915341]',
+      'Dependency Review [44715915464]',
+      'PR #41 is CLOSED/MERGED',
+      '68b380e73ca3c870048035197beef8febbf90ef1',
+      '53 conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED)',
+      '22/22 inline threads resolved',
+      'Issue #47 is CLOSED with 11 comments',
+      'Issue #64 remains OPEN with 73 comments',
+      'f91c70d2636948e538f8e3559afc39cd93eb5139',
+      'Fresh paginated inventory: 153 branches (100 on page 1, 53 on page 2, 0 on page 3), 92 open pull requests, and 7 open non-PR issues.',
+      '0 published releases',
+      'Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable',
+      'unverified, not empty',
+      '2 Done / 15 In Progress / 8 Blocked',
+      'Done (2): #1, #6.',
+      'In Progress (15): #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.',
+      'Blocked (8): #2',
+      'remain BLOCKED until direct evidence exists.',
       'RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.',
     ].forEach((evidence) => expect(section).toContain(evidence));
   });
