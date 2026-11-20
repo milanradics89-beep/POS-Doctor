@@ -231,7 +231,7 @@ describe('2026-11-20 04:18 exact-head verification', () => {
       'Runtime npm audit was SKIPPED',
       '16 formal submissions, all COMMENTED',
       '9/9 inline threads resolved',
-      'PR #163–#170',
+      'PRs #163–#170 each currently have 0 formal review submissions and 0 inline threads.',
       '44255156916',
       '44273476324',
       'PR #171 exact HEAD',
@@ -248,6 +248,49 @@ describe('2026-11-20 04:18 exact-head verification', () => {
       '145 (100 on page 1, 45 on page 2)',
       '84 open PRs',
       '64 checklist items / 41 checked / 23 open',
+      '2 Done / 15 In Progress / 8 Blocked',
+      'RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.',
+    ].forEach((evidence) => expect(section).toContain(evidence));
+  });
+});
+
+
+describe('2026-11-20 06:28 exact-head verification', () => {
+  it('keeps the current PR #188 failure evidence identical across all three release records', () => {
+    const marker = '## Exact-head verification — 2026-11-20 06:28 CET';
+    const sections = documents.map((document) => {
+      const start = document.indexOf(marker);
+      if (start < 0) return '';
+      const end = document.indexOf('\\n\\n---\\n\\n', start);
+      return document.slice(start, end < 0 ? undefined : end).trim();
+    });
+
+    expect(sections.every(Boolean)).toBe(true);
+    expect(new Set(sections).size).toBe(1);
+
+    const section = sections[0];
+    [
+      'PR #188 remains OPEN/DRAFT',
+      '518800e9689e6ec4eff5b2ebb0051cf5bee6351b',
+      'Validation [44673865186]: **FAILURE**',
+      'Frontend job [136089283885]',
+      '301 passed / 1 failed',
+      'PRs #163–#170 each currently have 0 formal review submissions and 0 inline threads.',
+      'CodeQL [44673865112]: **SUCCESS**',
+      'Dependency Review [44673865087]: **SUCCESS**',
+      'Backend job [136089285669]: **SUCCESS**',
+      'iOS job [136089329848]: **SUCCESS**',
+      'Runtime npm audit was **SKIPPED**',
+      'PR #41 is CLOSED/MERGED',
+      '53 conversation comments, 30 inline comments, 26 formal reviews',
+      '22/22 inline threads resolved',
+      'Issue #47 is CLOSED with 11 comments',
+      'Issue #64 remains OPEN with 71 comments',
+      'Code Scanning, Dependabot and Secret Scanning alert inventories are **unverified, not empty**',
+      'Branches: **145** (100 on page 1, 45 on page 2)',
+      'Open PRs: **84**',
+      'Open non-PR issues: **7**',
+      'Published GitHub releases: **0**',
       '2 Done / 15 In Progress / 8 Blocked',
       'RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.',
     ].forEach((evidence) => expect(section).toContain(evidence));
