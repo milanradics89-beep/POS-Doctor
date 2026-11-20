@@ -194,3 +194,62 @@ describe('2026-11-20 exact-head release checkpoint', () => {
     ].forEach((evidence) => expect(section).toContain(evidence));
   });
 });
+
+
+describe('2026-11-20 04:18 exact-head verification', () => {
+  it('keeps the terminal PR #188 evidence identical across all three release records', () => {
+    const marker = '## Exact-head verification — 2026-11-20 04:18 CET';
+    const sections = documents.map((document) => {
+      const start = document.indexOf(marker);
+      if (start < 0) return '';
+      const end = document.indexOf('\\n\\n---\\n\\n', start);
+      return document.slice(start, end < 0 ? undefined : end).trim();
+    });
+
+    expect(sections.every(Boolean)).toBe(true);
+    expect(new Set(sections).size).toBe(1);
+
+    const section = sections[0];
+    [
+      'PR #188 remains OPEN/DRAFT',
+      'd3ab60420c1296b7feada52b1cb04f37ff3a2e33',
+      'Validation [44661575287]',
+      'CodeQL [44661575351]',
+      'Dependency Review [44661576412]',
+      '301/301 tests across 61/61 test files',
+      'Expo Doctor: 21/21 checks passed',
+      'Android emulator smoke test passed for com.useit.app',
+      '3 moderate minimatch findings',
+      'cryptography 50.0.2',
+      '450 passed, 1 warning',
+      '27 passed with 1 warning',
+      '78 passed',
+      'No known vulnerabilities found',
+      'PR #85 remains OPEN/non-draft',
+      'Validation [44645305669]',
+      '299 passed / 1 failed',
+      'Runtime npm audit was SKIPPED',
+      '16 formal submissions, all COMMENTED',
+      '9/9 inline threads resolved',
+      'PR #163–#170',
+      '44255156916',
+      '44273476324',
+      'PR #171 exact HEAD',
+      'PR #172 exact HEAD',
+      'PR #41 is CLOSED/MERGED',
+      'PR #65 remains CLOSED/unmerged',
+      'cryptography 46.0.7',
+      '18 findings (1 low, 8 moderate, 8 high, 1 critical)',
+      'PR #99 exact HEAD',
+      'PR #116 exact HEAD',
+      'GHSA-fc5q-39xc-vjpf / CVE-2026-112366 is WITHDRAWN',
+      'five picomatch 4.0.7 resolutions and one 2.3.2 resolution',
+      '0 published GitHub releases',
+      '145 (100 on page 1, 45 on page 2)',
+      '84 open PRs',
+      '64 checklist items / 41 checked / 23 open',
+      '2 Done / 15 In Progress / 8 Blocked',
+      'RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.',
+    ].forEach((evidence) => expect(section).toContain(evidence));
+  });
+});
