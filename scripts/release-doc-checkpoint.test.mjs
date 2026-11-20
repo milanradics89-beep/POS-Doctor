@@ -128,7 +128,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('npm audit fix --force');
       expect(section).toContain('unverified, not empty');
-      expect(section).toContain('0 published GitHub releases');
+      expect(section).toContain('Published GitHub releases: **0**');
     }
   });
 
@@ -261,7 +261,7 @@ describe('2026-11-20 06:28 exact-head verification', () => {
     const sections = documents.map((document) => {
       const start = document.indexOf(marker);
       if (start < 0) return '';
-      const end = document.indexOf('\\n\\n---\\n\\n', start);
+      const end = document.indexOf('\n\n---\n\n', start);
       return document.slice(start, end < 0 ? undefined : end).trim();
     });
 
@@ -291,6 +291,57 @@ describe('2026-11-20 06:28 exact-head verification', () => {
       'Open PRs: **84**',
       'Open non-PR issues: **7**',
       'Published GitHub releases: **0**',
+      '2 Done / 15 In Progress / 8 Blocked',
+      'RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.',
+    ].forEach((evidence) => expect(section).toContain(evidence));
+  });
+});
+
+
+describe('2026-11-20 07:40 exact-head verification', () => {
+  it('keeps the current exact-head evidence identical across all three release records', () => {
+    const marker = '## Exact-head verification — 2026-11-20 07:40 CET';
+    const sections = documents.map((document) => {
+      const start = document.indexOf(marker);
+      if (start < 0) return '';
+      const end = document.indexOf('\n\n---\n\n', start);
+      return document.slice(start, end < 0 ? undefined : end).trim();
+    });
+
+    expect(sections.every(Boolean)).toBe(true);
+    expect(new Set(sections).size).toBe(1);
+
+    const section = sections[0];
+    [
+      'PR #188 remains OPEN/DRAFT',
+      'ba1eda56b860e81c95c0ee3dcf04515bd1989813',
+      'Validation [44681632150](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44681632150): FAILURE',
+      'Frontend job [136117227091]',
+      '301 passed / 2 failed across 61 test files (303 tests total)',
+      'literal-backslash separator instead of an actual newline separator',
+      'CodeQL [44681632160](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44681632160): SUCCESS',
+      'Dependency Review [44681632200](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44681632200): SUCCESS',
+      'Backend job [136117228018]',
+      'Pytest 450 passed with 1 warning',
+      'production-readiness 27 passed with 1 warning',
+      'production-security 78 passed',
+      'No known vulnerabilities found',
+      'iOS job [136117228433]',
+      'Native iOS Release build and simulator smoke test passed',
+      'runtime npm audit were SKIPPED',
+      'PR #85 remains OPEN/non-draft',
+      'Validation [44645305669]',
+      'PR #41 is CLOSED/MERGED',
+      '53 conversation comments, 30 inline review comments, 26 formal submissions',
+      '22/22 inline threads resolved',
+      'Issue #47 is CLOSED with 11 comments',
+      'Issue #64 remains OPEN with 71 comments',
+      '4 COMMENTED submissions, 2/2 inline threads resolved and 0 human APPROVED',
+      'alert inventories are unverified, not empty',
+      'Branches: 145 (100 on page 1, 45 on page 2)',
+      'Open PRs: 84',
+      'Open non-PR issues: 7',
+      'Published GitHub releases: 0',
       '2 Done / 15 In Progress / 8 Blocked',
       'RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.',
     ].forEach((evidence) => expect(section).toContain(evidence));
