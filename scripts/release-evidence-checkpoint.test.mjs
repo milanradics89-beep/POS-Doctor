@@ -48,7 +48,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('44754308313');
       expect(section).toContain('44754308298');
       expect(section).toContain('a006fdb882bfb6989487e3faea77db23f183839f');
-      expect(section).toContain('160 branches');
+      expect(section).toContain('Paginated branches: 160 (100 + 60 + 0)');
       expect(section).toContain('96 open pull requests');
       expect(section).toContain('8 open non-PR issues');
       expect(section).toContain('332 tests across 72 files');
@@ -77,7 +77,7 @@ describe('current-main release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('unverified, not empty');
       expect(section).toMatch(/published GitHub releases\s+0/);
-      expect(section).toContain('Production/pilot acceptance: NOT GRANTED');
+      expect(section).toContain('does not grant production or pilot acceptance');
       for (const item of ['#2', '#4', '#5', '#16', '#18', '#21', '#22', '#25']) {
         expect(section).toContain(item);
       }
