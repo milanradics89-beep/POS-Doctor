@@ -26,6 +26,27 @@ describe('mobile bundle dependency reachability', () => {
     expect(findPackageSourcesInMap(map, 'picomatch')).toEqual(map.sources);
   });
 
+  it('treats package names as literal path segments, including scoped names', () => {
+    const map = {
+      sources: [
+        'node_modules/picomatch/index.js',
+        'node_modules/evil/index.js',
+        'node_modules/picomatch|evil/index.js',
+        'node_modules/@scope/pkg/index.js',
+        '../../node_modules/@scope/pkg/lib/index.js',
+        'node_modules/@scope/pkg-extra/index.js',
+      ],
+    };
+
+    expect(findPackageSourcesInMap(map, 'picomatch|evil')).toEqual([
+      'node_modules/picomatch|evil/index.js',
+    ]);
+    expect(findPackageSourcesInMap(map, '@scope/pkg')).toEqual([
+      'node_modules/@scope/pkg/index.js',
+      '../../node_modules/@scope/pkg/lib/index.js',
+    ]);
+  });
+
   it('supports indexed source maps', () => {
     const map = {
       sections: [

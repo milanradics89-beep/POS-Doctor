@@ -2,21 +2,27 @@ import { readdir, readFile } from 'node:fs/promises';
 import { resolve, relative, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-function escapeRegExp(value) {
-  return value.split('').map((character) => {
-    return '\\^$.*+?()[]{}|'.includes(character) ? '\\' + character : character;
-  }).join('');
-}
-
 function packageSourceMatcher(packageName) {
   if (typeof packageName !== 'string' || !packageName.trim()) {
     throw new TypeError('packageName must be a non-empty string.');
   }
   const packagePath = packageName.trim().replace(/^\/+|\/+$/g, '');
-  const escaped = packagePath.split('/').map(escapeRegExp).join('/');
-  return new RegExp('(?:^|/)node_modules/' + escaped + '(?:/|$)');
-}
+  const packageSegments = packagePath.split('/');
+  if (packageSegments.some((segment) => !segment || segment === '.' || segment === '..')) {
+    throw new TypeError('packageName must contain valid package path segments.');
+  }
 
+  return (source) => {
+    const sourceSegments = source.replaceAll('\\', '/').split('/');
+    for (let index = 0; index < sourceSegments.length; index++) {
+      if (sourceSegments[index] !== 'node_modules') continue;
+      if (packageSegments.every((segment, offset) => sourceSegments[index + 1 + offset] === segment)) {
+        return true;
+      }
+    }
+    return false;
+  };
+}
 function flattenSources(sourceMap) {
   if (Array.isArray(sourceMap.sources)) {
     return sourceMap.sources.map((source) => String(source));
@@ -34,7 +40,7 @@ function flattenSources(sourceMap) {
 
 export function findPackageSourcesInMap(sourceMap, packageName = 'picomatch') {
   const matcher = packageSourceMatcher(packageName);
-  return flattenSources(sourceMap).filter((source) => matcher.test(source.replaceAll('\\', '/')));
+  return flattenSources(sourceMap).filter((source) => matcher(source));
 }
 
 async function collectSourceMapFiles(directory) {
@@ -67,7 +73,7 @@ export async function scanBundleSourceMaps(rootDirectory, packageName = 'picomat
     const sources = flattenSources(sourceMap);
     sourceCount += sources.length;
     for (const source of sources) {
-      if (matcher.test(source.replaceAll('\\', '/'))) {
+      if (matcher(source)) {
         matches.push({ file: relative(root, file), source });
       }
     }
