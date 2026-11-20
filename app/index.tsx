@@ -17,7 +17,7 @@ import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
-import { ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
+import { BrandMark, FadeIn, ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
 import { requestFailureKind } from '../src/ui/requestFailure';
@@ -269,8 +269,12 @@ export default function Home() {
     <SafeAreaView style={s.safe}>
       <ScrollView contentContainerStyle={s.page}>
         {!photo ? (
+          <FadeIn delay={40}>
           <>
-            <Text style={s.logo}>USEIT</Text>
+            <View style={s.brandRow}>
+              <BrandMark />
+              <Text style={s.logo}>USEIT</Text>
+            </View>
 
             <Text style={s.kicker}>SEE WHAT’S POSSIBLE</Text>
 
@@ -316,10 +320,14 @@ export default function Home() {
             </View>
             {noticePanel}
           </>
+          </FadeIn>
         ) : (
           <>
             <View style={s.top}>
-              <Text style={s.small}>USEIT</Text>
+              <View style={s.brandRow}>
+                <BrandMark compact />
+                <Text style={s.small}>USEIT</Text>
+              </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Choose another photo"
@@ -343,17 +351,21 @@ export default function Home() {
             )}
 
             {busy ? (
+              <FadeIn>
               <StatePanel
                 kind="loading"
                 title="Understanding your photo"
                 description="USEIT is analyzing the image and preparing your next step."
               />
+              </FadeIn>
             ) : rendering ? (
+              <FadeIn>
               <StatePanel
                 kind="loading"
                 title="Creating your visual concept"
                 description="USEIT is preparing a visual version of the selected redesign."
               />
+              </FadeIn>
             ) : result ? (
               <>
                 {noticePanel}
@@ -504,6 +516,11 @@ export default function Home() {
 }
 
 const s = StyleSheet.create({
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   safe: {
     flex: 1,
     backgroundColor: theme.colors.canvas,
