@@ -49,7 +49,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('44754308298');
       expect(section).toContain('a006fdb882bfb6989487e3faea77db23f183839f');
       expect(section).toContain('Paginated branches: 160 (100 + 60 + 0)');
-      expect(section).toContain('96 open pull requests');
+      expect(section).toContain('Open pull requests: 96');
       expect(section).toContain('8 open non-PR issues');
       expect(section).toContain('332 tests across 72 files');
       expect(section).toContain('450 pytest');
