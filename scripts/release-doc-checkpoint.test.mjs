@@ -58,7 +58,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Validation [44515665309](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665309) is terminal FAILURE: frontend failed at 299/300 tests; backend and iOS jobs succeeded.');
       expect(section).toContain('CodeQL [44515665215](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665215) and Dependency Review [44515665613](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44515665613) are terminal SUCCESS');
       expect(section).toContain('PR #177 is OPEN/DRAFT on `fix/release-doc-checkpoint-case-assertion-20261119-run11`, based on PR #85 exact HEAD `b3ac5f20994997c3ebc6dbd771013ed3f20be0b5`, current exact HEAD `d46b6c1e0e3f945a93fc8afb0050ca653e5f17c1`.');
-      expect(section).toContain('Validation [44613423701](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44613423701): terminal FAILURE; frontend job FAILURE, backend job SUCCESS and iOS job SUCCESS.');
+      expect(section).toContain('Validation [44613423701](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44613423701) is terminal FAILURE; frontend job FAILURE, backend job SUCCESS and iOS job SUCCESS.');
       expect(section).toContain('CodeQL [44613423896](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44613423896) and Dependency Review [44613423653](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44613423653) are terminal SUCCESS');
       expect(section).toContain('No runtime npm audit ran on this exact HEAD');
       expect(section).toContain('PR #177 review inventory: 3 conversation comments, 0 inline review threads and 0 formal review submissions.');
@@ -82,7 +82,7 @@ describe('release documentation exact-head checkpoint', () => {
       expect(section).toContain('Validation [43492153234]');
       expect(section).toContain('CodeQL [43492153161]');
       expect(section).toContain('Dependency Review [43492153021]');
-      expect(section).toContain('Auxiliary Temporary Expo SDK 57 lockfile refresh [43492142700]');
+      expect(section).toContain('additional temporary Expo SDK 57 lockfile refresh [43492142700]');
       expect(section).toContain('53 top-level conversation comments, 30 inline review comments, 26 formal review submissions (25 COMMENTED, 1 human APPROVED), and 22/22 inline review threads resolved (20 outdated).');
       expect(section).toContain('43098210284');
       expect(section).toContain('43098210473');
