@@ -11,7 +11,7 @@ const marker = '## Current release evidence checkpoint — 2026-11-20 15:07 CET'
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
-  const end = document.indexOf('\\n\\n---\\n\\n', start);
+  const end = document.indexOf('\n\n---\n\n', start);
   return document.slice(start, end < 0 ? document.length : end);
 });
 
@@ -50,13 +50,13 @@ describe('current-main release evidence checkpoint', () => {
     const backlog = documents[0];
     const tableStart = backlog.indexOf('| # | Workstream | Status | Current evidence / remaining acceptance |');
     expect(tableStart).toBeGreaterThanOrEqual(0);
-    const rows = backlog.slice(tableStart).split('\\n')
-      .filter((line) => /^\\|\\s*\\d+\\s*\\|/.test(line))
+    const rows = backlog.slice(tableStart).split('\n')
+      .filter((line) => /^\|\s*\d+\s*\|/.test(line))
       .slice(0, 25);
     expect(rows).toHaveLength(25);
     const counts = { Done: 0, 'In Progress': 0, Blocked: 0 };
     for (const row of rows) {
-      const status = row.match(/\\*\\*(Done|In Progress|Blocked)\\*\\*/)?.[1];
+      const status = row.match(/\*\*(Done|In Progress|Blocked)\*\*/)?.[1];
       expect(status).toBeTruthy();
       counts[status]++;
     }
@@ -66,7 +66,7 @@ describe('current-main release evidence checkpoint', () => {
   it('does not promote external acceptance or unavailable security inventories', () => {
     for (const section of latestSections) {
       expect(section).toContain('unverified, not empty');
-      expect(section).toContain('0 published GitHub releases');
+      expect(section).toMatch(/published GitHub releases\s+0/);
       expect(section).toContain('Production/pilot acceptance: NOT GRANTED');
       for (const item of ['#2', '#4', '#5', '#16', '#18', '#21', '#22', '#25']) {
         expect(section).toContain(item);
