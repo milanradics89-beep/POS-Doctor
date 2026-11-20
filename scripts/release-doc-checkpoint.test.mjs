@@ -210,6 +210,7 @@ describe('2026-11-20 04:18 exact-head verification', () => {
     expect(new Set(sections).size).toBe(1);
 
     const section = sections[0];
+    expect(section).toMatch(/(?:84 open PRs|Open PRs:\s*\*{0,2}84\*{0,2})/);
     [
       'PR #188 remains OPEN/DRAFT',
       'd3ab60420c1296b7feada52b1cb04f37ff3a2e33',
@@ -246,7 +247,7 @@ describe('2026-11-20 04:18 exact-head verification', () => {
       'five picomatch 4.0.7 resolutions and one 2.3.2 resolution',
 
       '145 (100 on page 1, 45 on page 2)',
-      '84 open PRs',
+
       '64 checklist items / 41 checked / 23 open',
       '2 Done / 15 In Progress / 8 Blocked',
       'RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.',
@@ -269,6 +270,7 @@ describe('2026-11-20 06:28 exact-head verification', () => {
     expect(new Set(sections).size).toBe(1);
 
     const section = sections[0];
+    expect(section).toMatch(/Runtime npm audit was \*{0,2}SKIPPED\*{0,2}/);
     expect(section).toMatch(/CodeQL \[44673865112\](?:\(https:\/\/github\.com\/milanradics89-beep\/POS-Doctor\/actions\/runs\/44673865112\))?: \*\*SUCCESS\*\*/);
     expect(section).toMatch(/Dependency Review \[44673865087\](?:\(https:\/\/github\.com\/milanradics89-beep\/POS-Doctor\/actions\/runs\/44673865087\))?: \*\*SUCCESS\*\*/);
     expect(section).toMatch(/Backend job \[136089285669\](?:\(https:\/\/github\.com\/milanradics89-beep\/POS-Doctor\/actions\/runs\/44673865186\/job\/136089285669\))?: \*\*SUCCESS\*\*/);
@@ -284,7 +286,7 @@ describe('2026-11-20 06:28 exact-head verification', () => {
 
 
 
-      'Runtime npm audit was **SKIPPED**',
+
       'PR #41 is CLOSED/MERGED',
       '53 conversation comments, 30 inline comments, 26 formal reviews',
       '22/22 inline threads resolved',
