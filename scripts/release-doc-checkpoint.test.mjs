@@ -471,7 +471,7 @@ describe('2026-11-20 13:09 exact-head verification', () => {
       'Validation [44725614569]', 'CodeQL [44725614562]', 'Dependency Review [44725614717]',
       'all 61 test files passed', '3 moderate minimatch findings', 'GHSA-g3hv-75wg-m249',
       'pytest 450 passed with 1 warning', 'production-readiness 27 passed with 1 warning',
-      'production-security 78 passed', 'No known vulnerabilities found',
+      'production-security 78 passed', 'no known Python dependency vulnerabilities',
       'PR #41 is CLOSED/MERGED', '68b380e73ca3c870048035197beef8febbf90ef1',
       'f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1', 'e12d6daca4cdb19c7c4bd0b0a1610e96e851b266',
       '53 conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED)',
