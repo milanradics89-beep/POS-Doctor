@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-20 21:13 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-20 21:41 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -53,7 +53,12 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Open non-PR issues: 8');
       expect(section).toContain('72 test files passed');
       expect(section).toContain('450 pytest');
-      expect(section).toContain('PR #204 exact-head Validation');
+      expect(section).toContain('PR #204 current exact-head Validation [44810024178]');
+      expect(section).toContain('2182ef09fb32f061780552df20a52aadae6770e5');
+      expect(section).toContain('44810024440');
+      expect(section).toContain('44810024188');
+      expect(section).toContain('terminal FAILURE');
+      expect(section).toContain('331 passed and 1 failed');
       expect(section).toContain('PR #205');
       expect(section).toContain('9f275e853429de173975f87bf1bd3ea476e7b9ce');
       expect(section).toContain('44799071611');
