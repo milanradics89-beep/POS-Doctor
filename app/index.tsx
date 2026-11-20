@@ -7,7 +7,6 @@ import {
   Pressable,
   Image,
   ScrollView,
-  ActivityIndicator,
   Alert,
   Linking,
 } from 'react-native';
@@ -18,8 +17,21 @@ import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
+import { ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
+import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
+import { theme } from '../src/ui/theme';
+import { requestFailureKind } from '../src/ui/requestFailure';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
+
+type ScreenNotice = {
+  kind: 'error' | 'offline' | 'permission-denied';
+  title: string;
+  description: string;
+  actionLabel?: string;
+  actionAccessibilityHint?: string;
+  onAction?: () => void;
+};
 
 const modes: [OpportunityKind, string][] = [
   ['create', 'Turn what you have into something new.'],
@@ -35,12 +47,14 @@ export default function Home() {
   const [rendering, setRendering] = useState(false);
   const [rendered, setRendered] = useState<string | null>(null);
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
+  const [notice, setNotice] = useState<ScreenNotice | null>(null);
   const redesign = result?.redesign ?? result?.phase3?.redesign;
 
   const reset = () => {
     setPhoto(null);
     setResult(null);
     setRendered(null);
+    setNotice(null);
   };
 
   async function openProductLink(url: string) {
@@ -58,10 +72,11 @@ export default function Home() {
 
   async function analyze(intent?: OpportunityKind) {
     if (!API_URL) {
-      Alert.alert(
-        'USEIT is not connected',
-        'Set EXPO_PUBLIC_USEIT_API_URL before running the real vision flow.'
-      );
+      setNotice({
+        kind: 'error',
+        title: 'USEIT is not connected',
+        description: 'The real vision flow needs EXPO_PUBLIC_USEIT_API_URL to be configured.',
+      });
       return;
     }
 
@@ -69,6 +84,7 @@ export default function Home() {
 
     setBusy(true);
     setRendered(null);
+    setNotice(null);
 
     try {
       const response = await analyzeForConsumer(
@@ -78,12 +94,19 @@ export default function Home() {
       );
       setResult(response);
     } catch (error) {
-      Alert.alert(
-        'Could not understand the image',
-        error instanceof Error
-          ? error.message
-          : 'Please try again with a clearer photo.'
-      );
+      const kind = requestFailureKind(error);
+      setNotice({
+        kind,
+        title: kind === 'offline' ? 'No connection' : 'Could not understand the image',
+        description: kind === 'offline'
+          ? 'Check your internet connection, then retry the analysis.'
+          : error instanceof Error
+            ? error.message
+            : 'Please try again with a clearer photo.',
+        actionLabel: 'TRY AGAIN',
+        actionAccessibilityHint: 'Retries image analysis for the selected photo.',
+        onAction: () => { void analyze(intent); },
+      });
     } finally {
       setBusy(false);
     }
@@ -93,6 +116,7 @@ export default function Home() {
     if (!photo || !redesign) return;
 
     setRendering(true);
+    setNotice(null);
 
     try {
       const api = new UseitApiProvider(API_URL);
@@ -113,10 +137,14 @@ export default function Home() {
 
       setRendered(renderedResult.imageDataUrl);
     } catch {
-      Alert.alert(
-        'Visual concept failed',
-        'The redesign could not be rendered. The selected solution is still available.'
-      );
+      setNotice({
+        kind: 'error',
+        title: 'Visual concept failed',
+        description: 'The redesign could not be rendered. The selected solution is still available.',
+        actionLabel: 'TRY AGAIN',
+        actionAccessibilityHint: 'Retries creating the visual concept.',
+        onAction: () => { void createVisualConcept(); },
+      });
     } finally {
       setRendering(false);
     }
@@ -126,28 +154,26 @@ export default function Home() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     const decision = permissionDecision(permission.granted, permission.canAskAgain);
     if (decision !== 'granted') {
-      if (decision === 'open_settings') {
-        Alert.alert(
-          'Photos access is disabled',
-          'Enable photo library access in Settings to choose an image.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => { void Linking.openSettings(); } },
-          ],
-        );
-      } else {
-        Alert.alert(
-          'Photos permission needed',
-          'USEIT needs access to a photo you want to explore.',
-          [
-            { text: 'Not now', style: 'cancel' },
-            { text: 'Try again', onPress: () => { void chooseGallery(); } },
-          ],
-        );
-      }
+      const openSettings = decision === 'open_settings';
+      setNotice({
+        kind: 'permission-denied',
+        title: openSettings ? 'Photos access is disabled' : 'Photos permission needed',
+        description: openSettings
+          ? 'Enable photo library access in Settings to choose an image.'
+          : 'USEIT needs access to a photo you want to explore.',
+        actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN',
+        actionAccessibilityHint: openSettings
+          ? 'Opens system settings so you can enable photo library access.'
+          : 'Requests photo library permission again.',
+        onAction: () => {
+          if (openSettings) void Linking.openSettings();
+          else void chooseGallery();
+        },
+      });
       return;
     }
 
+    setNotice(null);
     const r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.85,
@@ -160,13 +186,17 @@ export default function Home() {
     const a = r.assets[0];
 
     if (!a.base64) {
-      Alert.alert(
-        'Photo unavailable',
-        'USEIT could not read this image.'
-      );
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: 'USEIT could not read this image. Choose the photo again.',
+        actionLabel: 'CHOOSE AGAIN',
+        onAction: () => { void chooseGallery(); },
+      });
       return;
     }
 
+    setNotice(null);
     setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
     setResult(null);
     setRendered(null);
@@ -176,28 +206,26 @@ export default function Home() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     const decision = permissionDecision(permission.granted, permission.canAskAgain);
     if (decision !== 'granted') {
-      if (decision === 'open_settings') {
-        Alert.alert(
-          'Camera access is disabled',
-          'Enable camera access in Settings to take a photo.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => { void Linking.openSettings(); } },
-          ],
-        );
-      } else {
-        Alert.alert(
-          'Camera permission needed',
-          'USEIT needs camera access to photograph what you want to explore.',
-          [
-            { text: 'Not now', style: 'cancel' },
-            { text: 'Try again', onPress: () => { void capture(); } },
-          ],
-        );
-      }
+      const openSettings = decision === 'open_settings';
+      setNotice({
+        kind: 'permission-denied',
+        title: openSettings ? 'Camera access is disabled' : 'Camera permission needed',
+        description: openSettings
+          ? 'Enable camera access in Settings to take a photo.'
+          : 'USEIT needs camera access to photograph what you want to explore.',
+        actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN',
+        actionAccessibilityHint: openSettings
+          ? 'Opens system settings so you can enable camera access.'
+          : 'Requests camera permission again.',
+        onAction: () => {
+          if (openSettings) void Linking.openSettings();
+          else void capture();
+        },
+      });
       return;
     }
 
+    setNotice(null);
     const r = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.85,
@@ -209,17 +237,33 @@ export default function Home() {
     const a = r.assets[0];
 
     if (!a.base64) {
-      Alert.alert(
-        'Photo unavailable',
-        'USEIT could not read the captured image.'
-      );
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: 'USEIT could not read the captured image. Try taking it again.',
+        actionLabel: 'TAKE AGAIN',
+        onAction: () => { void capture(); },
+      });
       return;
     }
 
+    setNotice(null);
     setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
     setResult(null);
     setRendered(null);
+    setNotice(null);
   }
+
+  const noticePanel = notice ? (
+    <StatePanel
+      kind={notice.kind}
+      title={notice.title}
+      description={notice.description}
+      actionLabel={notice.actionLabel}
+      actionAccessibilityHint={notice.actionAccessibilityHint}
+      onAction={notice.onAction}
+    />
+  ) : null;
 
   return (
     <SafeAreaView style={s.safe}>
@@ -238,15 +282,27 @@ export default function Home() {
               Point your camera at almost anything. USEIT helps you discover what you can do with it.
             </Text>
 
-            <Pressable onPress={capture} style={s.capture}>
-              <LinearGradient colors={['#111', '#3b3b3b']} style={s.grad}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Take a photo"
+              accessibilityHint="Opens the camera to take a photo for analysis."
+              onPress={capture}
+              style={s.capture}
+            >
+              <LinearGradient colors={[theme.colors.ink, theme.colors.captureEnd]} style={s.grad}>
                 <Text style={s.cam}>⌾</Text>
                 <Text style={s.cta}>SHOW ME</Text>
                 <Text style={s.hint}>Take a photo</Text>
               </LinearGradient>
             </Pressable>
 
-            <Pressable onPress={chooseGallery} style={s.gallery}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Choose a photo from your gallery"
+              accessibilityHint="Opens your photo library."
+              onPress={chooseGallery}
+              style={s.gallery}
+            >
               <Text style={s.galleryTitle}>▣  CHOOSE FROM GALLERY</Text>
               <Text style={s.galleryHint}>Use a photo you already have</Text>
             </Pressable>
@@ -258,12 +314,18 @@ export default function Home() {
                 </Text>
               ))}
             </View>
+            {noticePanel}
           </>
         ) : (
           <>
             <View style={s.top}>
               <Text style={s.small}>USEIT</Text>
-              <Pressable onPress={reset}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose another photo"
+                accessibilityHint="Returns to photo selection."
+                onPress={reset}
+              >
                 <Text style={s.close}>✕</Text>
               </Pressable>
             </View>
@@ -281,17 +343,20 @@ export default function Home() {
             )}
 
             {busy ? (
-              <View style={s.loading}>
-                <ActivityIndicator size="large" />
-                <Text style={s.load}>Understanding what I see…</Text>
-              </View>
+              <StatePanel
+                kind="loading"
+                title="Understanding your photo"
+                description="USEIT is analyzing the image and preparing your next step."
+              />
             ) : rendering ? (
-              <View style={s.loading}>
-                <ActivityIndicator size="large" />
-                <Text style={s.load}>Creating your visual concept…</Text>
-              </View>
+              <StatePanel
+                kind="loading"
+                title="Creating your visual concept"
+                description="USEIT is preparing a visual version of the selected redesign."
+              />
             ) : result ? (
               <>
+                {noticePanel}
                 <Text style={s.kicker}>ONE IDEA</Text>
 
                 <Text style={s.title}>
@@ -334,7 +399,7 @@ export default function Home() {
 
                 {redesign ? (
                   <>
-                    <Text style={s.section}>REDESIGN SOLUTION</Text>
+                    <SectionHeader eyebrow="REDESIGN SOLUTION" />
 
                     <View style={s.solution}>
                       <Text style={s.solutionTitle}>
@@ -354,33 +419,43 @@ export default function Home() {
 
                 {(result.intelligence?.rankedCandidates?.length ?? 0) > 0 ? (
                   <>
-                    <Text style={s.section}>MATCHING OPTIONS</Text>
+                    <SectionHeader eyebrow="MATCHING OPTIONS" />
 
                     {result.intelligence.rankedCandidates
                       .slice(0, 5)
                       .map((x) => (
-                        <Pressable
-                          style={s.product}
+                        <ProductCard
                           key={x.id}
+                          title={x.title}
+                          category={x.category}
+                          source={x.source}
+                          price={typeof x.priceHuf === 'number' ? x.priceHuf : undefined}
                           onPress={() => { void openProductLink(x.url); }}
-                        >
-                          <View style={s.productMain}>
-                            <Text style={s.productTitle}>{x.title}</Text>
-                            <Text style={s.productMeta}>
-                              {x.category} · {x.source}
-                            </Text>
-                          </View>
-
-                          <Text style={s.price}>
-                            {x.priceHuf?.toLocaleString('hu-HU') ?? 0} Ft
-                          </Text>
-                        </Pressable>
+                        />
                       ))}
                   </>
                 ) : null}
 
+                {shouldShowEmptyProductPanel(
+                  result.unified?.intent.name,
+                  result.intelligence?.action?.type,
+                  result.intelligence?.rankedCandidates?.length
+                ) ? (
+                  <StatePanel
+                    kind="empty"
+                    title="No matching products yet"
+                    description="The shopping search is complete, but no safe product match was found. You can still use the next action above."
+                    actionLabel="TRY ANOTHER PHOTO"
+                    actionAccessibilityHint="Returns to photo selection."
+                    onAction={reset}
+                  />
+                ) : null}
+
                 {redesign ? (
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Create visual concept"
+                    accessibilityHint="Generates a visual redesign from the selected photo."
                     style={s.primary}
                     onPress={createVisualConcept}
                   >
@@ -388,16 +463,26 @@ export default function Home() {
                   </Pressable>
                 ) : null}
 
-                <Pressable style={s.secondary} onPress={reset}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Try another photo"
+                  accessibilityHint="Returns to photo selection."
+                  style={s.secondary}
+                  onPress={reset}
+                >
                   <Text style={s.secondaryText}>TRY ANOTHER PHOTO</Text>
                 </Pressable>
               </>
             ) : (
               <>
+                {noticePanel}
                 <Text style={s.title}>What should I do with this?</Text>
 
                 {modes.map(([a, b]) => (
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${a.toUpperCase()} mode`}
+                    accessibilityHint={b}
                     key={a}
                     style={s.mode}
                     onPress={() => analyze(a)}
@@ -421,7 +506,7 @@ export default function Home() {
 const s = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F7F7F2',
+    backgroundColor: theme.colors.canvas,
   },
   page: {
     padding: 24,
@@ -438,7 +523,7 @@ const s = StyleSheet.create({
     fontSize: 36,
     fontWeight: '900',
     letterSpacing: -2,
-    color: '#111',
+    color: theme.colors.ink,
     marginTop: 12,
   },
   small: {
@@ -448,13 +533,13 @@ const s = StyleSheet.create({
   },
   close: {
     fontSize: 20,
-    color: '#777',
+    color: theme.colors.muted,
   },
   kicker: {
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 2,
-    color: '#777',
+    color: theme.colors.muted,
     marginTop: 32,
   },
   hero: {
@@ -462,7 +547,7 @@ const s = StyleSheet.create({
     lineHeight: 53,
     fontWeight: '800',
     letterSpacing: -2.5,
-    color: '#111',
+    color: theme.colors.ink,
     marginTop: 10,
   },
   title: {
@@ -470,13 +555,13 @@ const s = StyleSheet.create({
     lineHeight: 44,
     fontWeight: '800',
     letterSpacing: -2,
-    color: '#111',
+    color: theme.colors.ink,
     marginVertical: 20,
   },
   sub: {
     fontSize: 17,
     lineHeight: 25,
-    color: '#666',
+    color: theme.colors.muted,
     marginTop: 16,
   },
   capture: {
@@ -490,24 +575,24 @@ const s = StyleSheet.create({
   },
   cam: {
     fontSize: 30,
-    color: '#fff',
+    color: theme.colors.surface,
   },
   cta: {
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: 1,
-    color: '#fff',
+    color: theme.colors.surface,
     marginTop: 8,
   },
   hint: {
     fontSize: 12,
-    color: '#aaa',
+    color: theme.colors.captureTextMuted,
     marginTop: 6,
   },
   gallery: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.line,
     borderRadius: 20,
     padding: 18,
     alignItems: 'center',
@@ -520,7 +605,7 @@ const s = StyleSheet.create({
   },
   galleryHint: {
     fontSize: 12,
-    color: '#888',
+    color: theme.colors.subtle,
     marginTop: 4,
   },
   tags: {
@@ -531,13 +616,13 @@ const s = StyleSheet.create({
   },
   tag: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.line,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 7,
     fontSize: 10,
     fontWeight: '800',
-    color: '#777',
+    color: theme.colors.muted,
   },
   photo: {
     width: '100%',
@@ -549,21 +634,13 @@ const s = StyleSheet.create({
     height: 420,
     borderRadius: 26,
   },
-  loading: {
-    alignItems: 'center',
-    paddingTop: 55,
-  },
-  load: {
-    marginTop: 14,
-    color: '#666',
-  },
   mode: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#e5e5df',
+    borderColor: theme.colors.line,
   },
   modeTitle: {
     fontSize: 20,
@@ -571,7 +648,7 @@ const s = StyleSheet.create({
   },
   modeDesc: {
     fontSize: 14,
-    color: '#777',
+    color: theme.colors.muted,
     marginTop: 4,
     maxWidth: '85%',
   },
@@ -580,18 +657,18 @@ const s = StyleSheet.create({
     right: 18,
     top: 17,
     fontSize: 28,
-    color: '#aaa',
+    color: theme.colors.subtle,
   },
   section: {
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 2,
-    color: '#888',
+    color: theme.colors.subtle,
     marginTop: 26,
     marginBottom: 10,
   },
   action: {
-    backgroundColor: '#111',
+    backgroundColor: theme.colors.ink,
     borderRadius: 20,
     padding: 20,
   },
@@ -599,25 +676,25 @@ const s = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 2,
-    color: '#aaa',
+    color: theme.colors.captureTextMuted,
   },
   actionTitle: {
     fontSize: 21,
     fontWeight: '900',
-    color: '#fff',
+    color: theme.colors.surface,
     marginTop: 7,
   },
   actionMeta: {
     fontSize: 11,
-    color: '#aaa',
+    color: theme.colors.captureTextMuted,
     marginTop: 10,
   },
   solution: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#e5e5df',
+    borderColor: theme.colors.line,
   },
   solutionTitle: {
     fontSize: 17,
@@ -625,11 +702,11 @@ const s = StyleSheet.create({
   },
   solutionText: {
     fontSize: 13,
-    color: '#666',
+    color: theme.colors.muted,
     marginTop: 7,
   },
   product: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 18,
     padding: 18,
     marginBottom: 9,
@@ -637,7 +714,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e5e5df',
+    borderColor: theme.colors.line,
   },
   productMain: {
     flex: 1,
@@ -649,7 +726,7 @@ const s = StyleSheet.create({
   },
   productMeta: {
     fontSize: 11,
-    color: '#888',
+    color: theme.colors.subtle,
     marginTop: 5,
   },
   price: {
@@ -657,9 +734,9 @@ const s = StyleSheet.create({
     fontWeight: '900',
   },
   notice: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.line,
     borderRadius: 18,
     padding: 16,
     marginTop: 18,
@@ -671,24 +748,24 @@ const s = StyleSheet.create({
   },
   noticeText: {
     fontSize: 13,
-    color: '#666',
+    color: theme.colors.muted,
     marginTop: 5,
   },
   primary: {
-    backgroundColor: '#111',
+    backgroundColor: theme.colors.ink,
     padding: 18,
     borderRadius: 18,
     alignItems: 'center',
     marginTop: 28,
   },
   primaryText: {
-    color: '#fff',
+    color: theme.colors.surface,
     fontWeight: '900',
   },
   disclosure: {
     fontSize: 11,
     lineHeight: 17,
-    color: '#888',
+    color: theme.colors.subtle,
     marginTop: 10,
   },
   secondary: {
@@ -699,6 +776,6 @@ const s = StyleSheet.create({
   secondaryText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#111',
+    color: theme.colors.ink,
   },
 });
