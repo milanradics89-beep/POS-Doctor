@@ -202,7 +202,7 @@ describe('2026-11-20 04:18 exact-head verification', () => {
     const sections = documents.map((document) => {
       const start = document.indexOf(marker);
       if (start < 0) return '';
-      const end = document.indexOf('\\n\\n---\\n\\n', start);
+      const end = document.indexOf('\n\n---\n\n', start);
       return document.slice(start, end < 0 ? undefined : end).trim();
     });
 
