@@ -452,3 +452,38 @@ describe('2026-11-20 12:05 exact-head verification', () => {
     ].forEach((evidence) => expect(section).toContain(evidence));
   });
 });
+
+
+describe('2026-11-20 13:09 exact-head verification', () => {
+  it('keeps the current exact-head evidence identical across all three release records', () => {
+    const marker = '## Exact-head verification — 2026-11-20 13:09 CET';
+    const sections = documents.map((document) => {
+      const start = document.indexOf(marker);
+      if (start < 0) return '';
+      const end = document.indexOf('\n\n---\n\n', start);
+      return document.slice(start, end < 0 ? undefined : end).trim();
+    });
+    expect(sections.every(Boolean)).toBe(true);
+    expect(new Set(sections).size).toBe(1);
+    const section = sections[0];
+    [
+      'PR #193 remains OPEN/DRAFT', 'aa7b65af89f5fbc8b7ecaf330326d742b766a539',
+      'Validation [44725614569]', 'CodeQL [44725614562]', 'Dependency Review [44725614717]',
+      'all 61 test files passed', '3 moderate minimatch findings', 'GHSA-g3hv-75wg-m249',
+      'pytest 450 passed with 1 warning', 'production-readiness 27 passed with 1 warning',
+      'production-security 78 passed', 'No known vulnerabilities found',
+      'PR #41 is CLOSED/MERGED', '68b380e73ca3c870048035197beef8febbf90ef1',
+      'f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1', 'e12d6daca4cdb19c7c4bd0b0a1610e96e851b266',
+      '53 conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED, 1 human APPROVED)',
+      '22/22 inline threads resolved', '109 combined timeline records',
+      'Issue #47 is CLOSED with 11 comments', 'Issue #64 remains OPEN with 74 comments',
+      'f91c70d2636948e538f8e3559afc39cd93eb5139', '17 commits ahead / 2 behind',
+      '155 branches', '91 open pull requests', '8 open non-PR issues', '0 published GitHub releases',
+      'unverified, not empty', '2 Done / 15 In Progress / 8 Blocked',
+      'Done (2): #1, #6.',
+      'In Progress (15): #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.',
+      'Blocked (8): #2', 'remain BLOCKED until direct evidence exists.',
+      'RELEASE NOT READY. PRODUCTION/PILOT ACCEPTANCE NOT GRANTED.',
+    ].forEach((evidence) => expect(section).toContain(evidence));
+  });
+});
