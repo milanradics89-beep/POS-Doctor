@@ -8,17 +8,42 @@ const documents = [
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
 const marker = '## Current release evidence checkpoint — 2026-11-21 21:02 CET';
+
+const stripTrailingHorizontalRules = (value) => {
+  const lines = value.split('\n');
+  let end = lines.length;
+
+  while (end > 0 && lines[end - 1].trim() === '') {
+    end -= 1;
+  }
+
+  while (end > 1 && lines[end - 1].trim() === '---') {
+    end -= 1;
+    while (end > 0 && lines[end - 1].trim() === '') {
+      end -= 1;
+    }
+  }
+
+  return lines.slice(0, end).join('\n');
+};
+
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
-  return document.slice(start)
-    .replace(/(?:\n\s*---\s*)+$/g, '')
+  return stripTrailingHorizontalRules(document.slice(start))
     .trimEnd()
     .replace(/\*\*/g, '')
     .replace(/`/g, '');
 });
 
 describe('current release evidence checkpoint', () => {
+  it('strips repeated trailing horizontal rules without backtracking', () => {
+    const repeatedRules = ['checkpoint', ...Array.from({ length: 256 }, () => '\n\n---')].join('');
+    expect(stripTrailingHorizontalRules(repeatedRules)).toBe('checkpoint');
+    expect(stripTrailingHorizontalRules('checkpoint\n \t--- \t\n\n')).toBe('checkpoint');
+    expect(stripTrailingHorizontalRules('checkpoint\n\n---\n\nkeep')).toBe('checkpoint\n\n---\n\nkeep');
+  });
+
   it('keeps the same current checkpoint in all three release records', () => {
     expect(latestSections.every(Boolean)).toBe(true);
     expect(new Set(latestSections).size).toBe(1);
@@ -160,6 +185,7 @@ describe('current release evidence checkpoint', () => {
       }
     }
   });
+
   it('records the current PR #219 exact-head failure without borrowing earlier checks', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #219 is OPEN/DRAFT at exact HEAD 5b152f27c5a44ac16a81af77e92ecfa50dd44f33');
@@ -172,5 +198,4 @@ describe('current release evidence checkpoint', () => {
       expect(section).toContain('The failed assertions identify a real test-harness boundary defect');
     }
   });
-
 });
