@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-21 16:11 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-21 17:32 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -42,20 +42,33 @@ describe('current release evidence checkpoint', () => {
 
   it('records PR #206 current exact-head Validation, CodeQL, Dependency Review, and job evidence', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #206 is OPEN/DRAFT at exact HEAD a7a2033589a429609c6d62eea2f99684eba3731f');
-      expect(section).toContain('23 commits and four changed files');
-      expect(section).toContain('44913605303');
-      expect(section).toContain('44913605312');
-      expect(section).toContain('44913606044');
-      expect(section).toContain('335 frontend tests passed, 1 failed; 71/72 files');
+      expect(section).toContain('PR #206 is OPEN/DRAFT at exact HEAD df0c26e7fb14b170b4f7cd80da570ce031480720');
+      expect(section).toContain('24 commits and four changed files');
+      expect(section).toContain('44918462263');
+      expect(section).toContain('44918462197');
+      expect(section).toContain('44918462179');
+      expect(section).toContain('334 frontend tests passed, 2 failed; 71/72 files');
       expect(section).toContain('450 tests, 27 production-readiness checks, and 78 security/privacy checks');
       expect(section).toContain('Expo Doctor 21/21');
       expect(section).toContain('native Release build and simulator smoke');
       expect(section).toContain('zero formal human reviews, zero inline review threads');
       expect(section).toContain('tarlaci1984-sketch is requested');
       expect(section).toContain('validated parent PR #206 HEAD d924ad080f04f765016821113210bc4634c3e8f2');
-      expect(section).toContain('one release-evidence wording assertion');
+      expect(section).toContain('two release-evidence assertion mismatches');
       expect(section).toContain('PR #206 description is stale');
+    }
+  });
+
+  it('records PR #217 child exact-head workflows and the remaining checkpoint wording failure', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #217 is OPEN/DRAFT at exact HEAD 4ee367797e748c1fc5d1e1614f4e4f766a9665ac');
+      expect(section).toContain('44923441377');
+      expect(section).toContain('44923441358');
+      expect(section).toContain('44923441374');
+      expect(section).toContain('335 frontend tests passed, 1 failed; 71/72 files');
+      expect(section).toContain('Three historical queued runs remain QUEUED with zero jobs');
+      expect(section).toContain('zero formal reviews, zero inline review threads');
+      expect(section).toContain('PR #217 description is stale');
     }
   });
 
@@ -81,10 +94,10 @@ describe('current release evidence checkpoint', () => {
 
   it('records the current paginated repository, issue, release, and security evidence', () => {
     for (const section of latestSections) {
-      expect(section).toContain('172 branches (100 + 72; final page empty)');
-      expect(section).toContain('104 open PRs and eight open non-PR issues');
-      expect(section).toContain('Issue #74 has 334 comments');
-      expect(section).toContain('Issue #149 has 244 comments');
+      expect(section).toContain('173 branches (100 + 73; final page empty)');
+      expect(section).toContain('105 open PRs and eight open non-PR issues');
+      expect(section).toContain('Issue #74 has 338 comments');
+      expect(section).toContain('Issue #149 has 249 comments');
       expect(section).toContain('Issue #64 has 91 comments');
       expect(section).toContain('Issue #47 is CLOSED with 11 comments');
       expect(section).toContain('zero published releases');
@@ -101,8 +114,8 @@ describe('current release evidence checkpoint', () => {
       .filter((line) => /^\|\s*\d+\s*\|/.test(line))
       .slice(0, 25);
     expect(rows).toHaveLength(25);
-    expect(rows[9]).toContain('a7a2033589a429609c6d62eea2f99684eba3731f');
-    expect(rows[23]).toContain('a7a2033589a429609c6d62eea2f99684eba3731f');
+    expect(rows[9]).toContain('4ee367797e748c1fc5d1e1614f4e4f766a9665ac');
+    expect(rows[23]).toContain('4ee367797e748c1fc5d1e1614f4e4f766a9665ac');
     const counts = { Done: 0, 'In Progress': 0, Blocked: 0 };
     for (const row of rows) {
       const status = row.match(/\*\*(Done|In Progress|Blocked)\*\*/)?.[1];
@@ -113,7 +126,7 @@ describe('current release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain("Main's existing register remains 3 Done / 15 In Progress / 7 Blocked");
       expect(section).toContain('candidate backlog contains exactly 25 numbered rows: 2 Done / 15 In Progress / 8 Blocked');
-      expect(section).toContain('Issue #74 has 334 comments and remains a separate 64-item development checklist: 41 checked and 23 open');
+      expect(section).toContain('Issue #74 has 338 comments and remains a separate 64-item development checklist: 41 checked and 23 open');
     }
   });
 
