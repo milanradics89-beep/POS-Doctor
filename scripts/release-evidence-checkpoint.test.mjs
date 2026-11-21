@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-21 11:27 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-21 12:48 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -51,6 +51,12 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('three moderate minimatch findings');
       expect(section).toContain('18 commits ahead of main and 0 behind');
       expect(section).toContain('tarlaci1984-sketch is requested');
+      expect(section).toContain('PR #206 is OPEN/DRAFT at current exact HEAD dae8b3f37eaf2c3f066a84050e28e16d265af1ce');
+      expect(section).toContain('44895290673');
+      expect(section).toContain('44895290741');
+      expect(section).toContain('44895290701');
+      expect(section).toContain('331 frontend tests passed and 5 failed');
+      expect(section).toContain('five frontend failures are all release-evidence assertion mismatches');
     }
   });
 
@@ -58,10 +64,10 @@ describe('current-main release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('8603fc3be80efcfb0c2a27efc1f13b37af1020b8');
       expect(section).toContain('50a41b13b2cb1f76040c8d16fdbae9e1135a2656');
-      expect(section).toContain('PR #212 remains OPEN/DRAFT at 2b767c68f7e81a054f8cd12b7ad38dd17f3288a7');
+      expect(section).toContain('PR #212 remains OPEN/DRAFT at exact HEAD 2b767c68f7e81a054f8cd12b7ad38dd17f3288a7');
       expect(section).toContain('44883482260');
-      expect(section).toContain('mergeable_state=dirty');
-      expect(section).toContain('PR #213 remains OPEN/DRAFT at f744702155aad6f8f7fc8423b15af8d7c4fbbf6c');
+      expect(section).toContain('mergeable=false because its base SHA 108c251f65987f88053c89a3337187164d08c8d4 is stale against current PR #206 HEAD dae8b3f37eaf2c3f066a84050e28e16d265af1ce');
+      expect(section).toContain('PR #213 remains OPEN/DRAFT at exact HEAD f744702155aad6f8f7fc8423b15af8d7c4fbbf6c');
       expect(section).toContain('44883818525');
       expect(section).toContain('PR #214 is CLOSED/unmerged as superseded');
       expect(section).toContain('3a28d3455e066cc0ab726af2a05421d0594118ad');
@@ -89,11 +95,11 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records the current paginated repository, issue, release, and security evidence', () => {
     for (const section of latestSections) {
-      expect(section).toContain('170 branches');
-      expect(section).toContain('103 open PRs');
+      expect(section).toContain('172 branches');
+      expect(section).toContain('105 open PRs');
       expect(section).toContain('eight open non-PR issues');
-      expect(section).toContain('Issue #74 had 319 comments');
-      expect(section).toContain('Issue #149 had 227 comments');
+      expect(section).toContain('Issue #74 has 324 comments');
+      expect(section).toContain('Issue #149 has 234 comments');
       expect(section).toContain('zero published releases');
       expect(section).toContain('unverified, not empty');
       expect(section).toContain('Protect main ruleset 26370589 is ACTIVE');
@@ -131,7 +137,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Upstream PR #238 exact HEAD 44f192261f312ddf236cb7bdc05d8f22663f98f9');
       expect(section).toContain('3/6');
       expect(section).toContain('PR #235 is CLOSED/unmerged');
-      expect(section).toContain('do not import, pin or override this fork');
+      expect(section.toLowerCase()).toContain('do not import, pin or override this fork');
       expect(section).toContain('Issue #155 remains OPEN');
     }
   });
