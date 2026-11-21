@@ -32,7 +32,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('30 inline review comments');
       expect(section).toContain('22/22 inline threads resolved');
       expect(section).toContain('109 combined timeline records');
-      expect(section).toContain('three historical runs remain QUEUED with zero jobs');
+      expect(section).toContain('Three historical runs remain QUEUED with zero jobs');
     }
   });
 
