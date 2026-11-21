@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-20 23:18 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-21 02:04 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -34,10 +34,6 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records exact-head remediation and current PR #204 CI without transferring parent results', () => {
     for (const section of latestSections) {
-      expect(section).toContain('c1250400f5c6022483c967c8b79a42be0dc614fd');
-      expect(section).toContain('44743155619');
-      expect(section).toContain('44743155647');
-      expect(section).toContain('44743155582');
       expect(section).toContain('fd0424f1f1ba1b8aabefc3c5dabae6df59a3f67a');
       expect(section).toContain('776432e4e75327088034fa2f5448d96d7d71f068');
       expect(section).toContain('67eafbebd5f45724f2c97430fee4bc1a6d153746');
@@ -45,16 +41,23 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('found 0 vulnerabilities');
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('PR #204 is OPEN/DRAFT on `docs/release-evidence-current-main-20261120-run11`');
-      expect(section).toContain('Current exact HEAD is `cbdb625f775acb0267069b2405972b4d2ea380f8`');
-      expect(section).toContain('44821276883');
-      expect(section).toContain('44821276876');
-      expect(section).toContain('44821276864');
-      expect(section).toContain('330 tests passed and 2 failed');
+      expect(section).toContain('PR #204 pre-checkpoint exact HEAD was `c3fd17a1029adb26962b8cb96b06ef87b5fee2a7`');
+      expect(section).toContain('44828340885');
+      expect(section).toContain('44828340790');
+      expect(section).toContain('44828341122');
+      expect(section).toContain('331 tests passed, one failed');
       expect(section).toContain('71 other test files passed');
-      expect(section).toContain('27 passed');
-      expect(section).toContain('78 passed');
       expect(section).toContain('terminal FAILURE');
-      expect(section).toContain('PR #204 review inventory: 2 conversation comments');
+      expect(section).toContain('PR #204 review inventory: 2 conversation comments, 0 inline review comments, 0 formal reviews');
+      expect(section).toContain('PR #206 pre-checkpoint HEAD was `42879b4d6e6b9f1b8646aa6bb8b1a71bbfd61d5e`');
+      expect(section).toContain('44831372949');
+      expect(section).toContain('44831372936');
+      expect(section).toContain('44831372878');
+      expect(section).toContain('162** (100 + 62). Open pull requests: **98**. Open non-PR issues: **7');
+      expect(section).toContain('Issue [#64]');
+      expect(section).toContain('85 comments');
+      expect(section).toContain('Issue [#155]');
+      expect(section).toContain('94 comments');
     }
   });
 
