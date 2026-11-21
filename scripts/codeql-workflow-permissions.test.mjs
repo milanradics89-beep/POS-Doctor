@@ -13,6 +13,16 @@ describe('CodeQL workflow permissions', () => {
     );
   });
 
+  it('pins CodeQL init and analyze to the same immutable action revision', () => {
+    const actionRefs = [...workflow.matchAll(
+      /uses:\s*github\/codeql-action\/(?:init|analyze)@([0-9a-f]{40})/g,
+    )].map((match) => match[1]);
+
+    expect(actionRefs).toHaveLength(2);
+    expect(new Set(actionRefs).size).toBe(1);
+    expect(actionRefs[0]).toBe('33d7b85da1a04171e211befe2c739303b9a4c066');
+  });
+
   it('does not grant Actions write access', () => {
     expect(workflow).not.toMatch(/\bactions:\s*write\b/);
   });
