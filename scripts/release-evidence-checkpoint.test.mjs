@@ -7,12 +7,15 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-21 20:01 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-21 21:02 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
-  const end = document.indexOf('\n\n---\n\n', start);
-  return document.slice(start, end < 0 ? document.length : end).trimEnd();
+  return document.slice(start)
+    .replace(/(?:\n\s*---\s*)+$/g, '')
+    .trimEnd()
+    .replace(/\*\*/g, '')
+    .replace(/`/g, '');
 });
 
 describe('current release evidence checkpoint', () => {
@@ -73,7 +76,7 @@ describe('current release evidence checkpoint', () => {
       expect(section).toContain('44937218887');
       expect(section).toContain('frontend job 136946382756 FAILED at Unit tests');
       expect(section).toContain('backend job 136946383046 SUCCESS');
-      expect(section).toContain('iOS job 136946382948 is IN_PROGRESS');
+      expect(section).toContain('iOS job 136953844817 SUCCESS');
       expect(section).toContain('334 frontend tests passed, 3 failed; 71/72 files');
       expect(section).toContain('new logical commit on a separate child branch; its own exact-head CI is a separate gate');
     }
@@ -95,18 +98,18 @@ describe('current release evidence checkpoint', () => {
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('No known vulnerabilities found');
       expect(section).toContain('not evidence of zero frontend vulnerabilities');
-      expect(section).toContain('Issue #155 has 114 comments');
+      expect(section).toContain('Issue #155 has 115 comments at capture time');
     }
   });
 
   it('records the current paginated repository, issue, release, and security evidence', () => {
     for (const section of latestSections) {
-      expect(section).toContain('174 branches (100 + 74; page 3 empty)');
-      expect(section).toContain('106 open PRs and five open non-PR issues');
+      expect(section).toContain('175 branches (100 + 75; page 3 empty)');
+      expect(section).toContain('107 open PRs and five open non-PR issues');
       expect(section).toContain('Issue #74 has 342 comments');
-      expect(section).toContain('Issue #149 has 255 comments');
-      expect(section).toContain('Issue #64 remains OPEN with 93 comments');
-      expect(section).toContain('Issue #47 is CLOSED with 11 comments');
+      expect(section).toContain('Issue #149 has 261 comments at capture time');
+      expect(section).toContain('Issue #64 remains OPEN with 93 comments at capture time');
+      expect(section).toContain('Issue #47 is CLOSED with 11 comments at capture time');
       expect(section).toContain('zero published releases');
       expect(section).toContain('unverified, not empty');
       expect(section).toContain('Protect main ruleset 26370589 is ACTIVE');
@@ -133,7 +136,7 @@ describe('current release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain("Main's existing register remains 3 Done / 15 In Progress / 7 Blocked");
       expect(section).toContain('candidate backlog contains exactly 25 numbered rows: 2 Done / 15 In Progress / 8 Blocked');
-      expect(section).toContain('Issue #74 has 342 comments and remains a separate 64-item development checklist: 41 checked and 23 open');
+      expect(section).toContain('Issue #74 has 344 comments at capture time and remains a separate 64-item development checklist: 41 checked and 23 open');
     }
   });
 
@@ -157,4 +160,17 @@ describe('current release evidence checkpoint', () => {
       }
     }
   });
+  it('records the current PR #219 exact-head failure without borrowing earlier checks', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #219 is OPEN/DRAFT at exact HEAD 5b152f27c5a44ac16a81af77e92ecfa50dd44f33');
+      expect(section).toContain('44939390294');
+      expect(section).toContain('44939390283');
+      expect(section).toContain('44939390318');
+      expect(section).toContain('frontend job 136958490630 FAILED at Unit tests');
+      expect(section).toContain('backend job 136958534132 SUCCESS');
+      expect(section).toContain('iOS job 136958492139 SUCCESS');
+      expect(section).toContain('The failed assertions identify a real test-harness boundary defect');
+    }
+  });
+
 });
