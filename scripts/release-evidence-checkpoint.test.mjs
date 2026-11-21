@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-21 11:27 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-21 12:06 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -76,6 +76,12 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('44645305765');
       expect(section).toContain('44645306118');
       expect(section).toContain('299/300 tests');
+      expect(section).toContain('PR #206 current exact HEAD `dae8b3f37eaf2c3f066a84050e28e16d265af1ce`');
+      expect(section).toContain('Validation `44895290673` is terminal FAILURE in frontend Unit tests');
+      expect(section).toContain('5 failed / 331 passed (336)');
+      expect(section).toContain('Backend passed 450 tests, 27 readiness checks and 78 security checks');
+      expect(section).toContain('The iOS Release build and simulator smoke passed');
+      expect(section).toContain('frontend runtime npm audit was skipped after Unit tests failed');
       expect(section).toContain('PR #163 exact HEAD 879a6392b3bcd248deca40916e15fd69a467df7b');
       expect(section).toContain('PR #166 exact HEAD 205d39742a8c98e94453df44106ec83d5dba0ea0');
       expect(section).toContain('PR #167 exact HEAD 3177cfba1cbaee43a9feed2dd8b2010249a7d12f');
@@ -95,6 +101,9 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Issue #74 had 319 comments');
       expect(section).toContain('Issue #149 had 227 comments');
       expect(section).toContain('zero published releases');
+      expect(section).toContain('37 formal review submissions (4 APPROVED, 33 COMMENTED)');
+      expect(section).toContain('19/19 inline threads resolved');
+      expect(section).toContain('Live issue comment counts at this refresh: #74 322, #149 231, #155 106, #64 89');
       expect(section).toContain('unverified, not empty');
       expect(section).toContain('Protect main ruleset 26370589 is ACTIVE');
     }
@@ -128,6 +137,9 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Snyk marks the JavaScript advisory revoked');
       expect(section).toContain('Official npm lists picomatch 4.0.7 as latest');
       expect(section).toContain('there is no 4.0.8 release');
+      expect(section).toContain('separate OSV CVE-2026-112366 conversion record still lists CVSS v4 8.7 HIGH');
+      expect(section).toContain('signed provenance statement at transparency-log index `3560960054`');
+      expect(section).toContain('fork\'s current test file covers only the first four of the six exact patterns');
       expect(section).toContain('Upstream PR #238 exact HEAD 44f192261f312ddf236cb7bdc05d8f22663f98f9');
       expect(section).toContain('3/6');
       expect(section).toContain('PR #235 is CLOSED/unmerged');
