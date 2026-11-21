@@ -22,7 +22,7 @@ These exact-head runs belong to PR #85 pre-write parent HEAD cc9095d5bfa8edd71d1
 - Frontend: 300 passed across 61 test files (300 total); source-boundary check covered 340 tracked files; TypeScript typecheck passed; pinned Expo Doctor 21/21; Android export passed; native Android Release build and Android emulator smoke all passed.
 - iOS native Release build and simulator smoke passed.
 - Backend job: 450 tests, 27 production-readiness checks and 78 production-security checks passed; cryptography 50.0.2; pip-audit reported no known vulnerabilities.
-- Runtime npm audit --omit=dev --audit-level=high completed with 3 moderate minimatch findings. It passed the configured HIGH threshold; it is not a zero-finding audit. npm audit fix --force was not run.
+- Runtime `npm audit --omit=dev --audit-level=high` completed with 3 moderate minimatch findings. It passed the configured HIGH threshold; it is not a zero-finding audit. npm audit fix --force was not run.
 - CodeQL [44500678319](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44500678319): terminal SUCCESS; analyze job SUCCESS.
 - Dependency Review [44500678286](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44500678286): terminal SUCCESS; dependency-review job SUCCESS.
 
