@@ -44,14 +44,15 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('terminal FAILURE');
       expect(section).toContain('PR #207 was CLOSED/MERGED');
       expect(section).toContain('d085930930d099888ab5ea7d7ba09c9a7bac4c7d');
-      expect(section).toContain('all terminal SUCCESS');
+      expect(section).toContain('are terminal SUCCESS on `17c4e432`');
       expect(section).toContain('17c4e432db0df7d97e0185d7c087db8ee2b1563e');
       expect(section).toContain('44865522900');
       expect(section).toContain('44865522924');
       expect(section).toContain('44865522887');
       expect(section).toContain('terminal SUCCESS on `17c4e432`');
       expect(section).toContain('332 unit tests');
-      expect(section).toContain('Android emulator smoke and runtime dependency audit');
+      expect(section).toContain('Android emulator smoke');
+      expect(section).toContain('runtime dependency audit');
       expect(section).toContain('one automated Dependency Review conversation comment');
     }
   });
