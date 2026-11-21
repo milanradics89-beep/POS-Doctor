@@ -48,7 +48,7 @@ describe('current release evidence checkpoint', () => {
       expect(section).toContain('44918462197');
       expect(section).toContain('44918462179');
       expect(section).toContain('334 frontend tests passed, 2 failed; 71/72 files');
-      expect(section).toContain('450 tests, 27 production-readiness checks, and 78 security/privacy checks');
+      expect(section).toContain('450 backend tests, 27 production-readiness checks, 78 security/privacy checks');
       expect(section).toContain('Expo Doctor 21/21');
       expect(section).toContain('native Release build and simulator smoke');
       expect(section).toContain('zero formal human reviews, zero inline review threads');
@@ -67,7 +67,8 @@ describe('current release evidence checkpoint', () => {
       expect(section).toContain('44923441374');
       expect(section).toContain('335 frontend tests passed, 1 failed; 71/72 files');
       expect(section).toContain('Three historical queued runs remain QUEUED with zero jobs');
-      expect(section).toContain('zero formal reviews, zero inline review threads');
+      expect(section).toContain('zero formal reviews');
+      expect(section).toContain('zero inline review threads');
       expect(section).toContain('PR #217 description is stale');
     }
   });
