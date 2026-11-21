@@ -29,7 +29,9 @@ describe('current release evidence checkpoint', () => {
       expect(section).toContain('43492153234');
       expect(section).toContain('43492153161');
       expect(section).toContain('43492153021');
-      expect(section).toContain('26 submissions (25 COMMENTED, 1 APPROVED by tarlaci1984-sketch)');
+      expect(section).toContain('26 formal submissions');
+      expect(section).toContain('25 COMMENTED');
+      expect(section).toContain('one human APPROVED by tarlaci1984-sketch');
       expect(section).toContain('22/22 inline threads resolved');
       expect(section).toContain('Three historical queued runs remain QUEUED with zero jobs');
       expect(section).toContain('43098210284');
