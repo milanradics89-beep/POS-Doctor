@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-21 19:41 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-21 20:01 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -62,12 +62,20 @@ describe('current release evidence checkpoint', () => {
       expect(section).toContain('44930055266');
       expect(section).toContain('336 tests passed and 1 failed across 71/72 files');
       expect(section).toContain('PR #217 description is stale');
-      expect(section).toContain('PR #218 is OPEN/DRAFT at exact HEAD 8698b2d6bf7757b5b1ca7617dfd6eac1b14b7776');
+      expect(section).toContain('PR #218 previously validated HEAD 8698b2d6bf7757b5b1ca7617dfd6eac1b14b7776');
       expect(section).toContain('44933475924');
       expect(section).toContain('44933476051');
       expect(section).toContain('44933475916');
       expect(section).toContain('frontend, backend, iOS, CodeQL Analyze, and Dependency Review jobs all passed');
-      expect(section).toContain('new logical commit on the same branch; its own exact-head CI is a separate gate');
+      expect(section).toContain('PR #218 current exact HEAD e638a5714481afbb08adc54877131d7152e5ab24');
+      expect(section).toContain('44937218893');
+      expect(section).toContain('44937218873');
+      expect(section).toContain('44937218887');
+      expect(section).toContain('frontend job 136946382756 FAILED at Unit tests');
+      expect(section).toContain('backend job 136946383046 SUCCESS');
+      expect(section).toContain('iOS job 136946382948 is IN_PROGRESS');
+      expect(section).toContain('334 frontend tests passed, 3 failed; 71/72 files');
+      expect(section).toContain('new logical commit on a separate child branch; its own exact-head CI is a separate gate');
     }
   });
 
@@ -94,7 +102,7 @@ describe('current release evidence checkpoint', () => {
   it('records the current paginated repository, issue, release, and security evidence', () => {
     for (const section of latestSections) {
       expect(section).toContain('174 branches (100 + 74; page 3 empty)');
-      expect(section).toContain('106 open PRs and eight open non-PR issues');
+      expect(section).toContain('106 open PRs and five open non-PR issues');
       expect(section).toContain('Issue #74 has 342 comments');
       expect(section).toContain('Issue #149 has 255 comments');
       expect(section).toContain('Issue #64 remains OPEN with 93 comments');
