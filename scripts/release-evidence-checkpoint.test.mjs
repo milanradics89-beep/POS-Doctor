@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-21 07:03 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-21 10:11 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -32,41 +32,50 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('30 inline review comments');
       expect(section).toContain('22/22 inline threads resolved');
       expect(section).toContain('109 combined timeline records');
+      expect(section).toContain('three historical runs remain QUEUED with zero jobs');
     }
   });
 
-  it('records PR #204 failure, PR #207 merge, and PR #206 current exact-head CI separately', () => {
+  it('records PR #204 and PR #206 failures on their own exact heads', () => {
     for (const section of latestSections) {
       expect(section).toContain('c3fd17a1029adb26962b8cb96b06ef87b5fee2a7');
       expect(section).toContain('44828340885');
       expect(section).toContain('44828340790');
       expect(section).toContain('44828341122');
+      expect(section).toContain('PR #206');
+      expect(section).toContain('108c251f65987f88053c89a3337187164d08c8d4');
+      expect(section).toContain('44874048568');
+      expect(section).toContain('44874048725');
+      expect(section).toContain('44874048701');
       expect(section).toContain('terminal FAILURE');
-      expect(section).toContain('PR #207 was CLOSED/MERGED');
-      expect(section).toContain('d085930930d099888ab5ea7d7ba09c9a7bac4c7d');
-      expect(section).toContain('44859993370');
-      expect(section).toContain('44859993354');
-      expect(section).toContain('44859993364');
-      expect(section).toContain('all terminal SUCCESS');
-      expect(section).toContain('17c4e432db0df7d97e0185d7c087db8ee2b1563e');
-      expect(section).toContain('44865522900');
-      expect(section).toContain('44865522924');
-      expect(section).toContain('44865522887');
-      expect(section).toContain('terminal SUCCESS on `17c4e432`');
-      expect(section).toContain('332 unit tests');
-      expect(section).toContain('Android emulator smoke and runtime dependency audit');
-      expect(section).toContain('one automated Dependency Review conversation comment');
+      expect(section).toContain('332 passing tests and one failing checkpoint assertion');
     }
   });
 
-  it('records current paginated repository and issue inventory', () => {
+  it('keeps the alternate correction branches and their exact-head CI separate', () => {
     for (const section of latestSections) {
-      expect(section).toContain('163 branches');
-      expect(section).toContain('98 pull requests');
-      expect(section).toContain('eight issues');
+      expect(section).toContain('8603fc3be80efcfb0c2a27efc1f13b37af1020b8');
+      expect(section).toContain('44879889461');
+      expect(section).toContain('44879889464');
+      expect(section).toContain('44879889445');
+      expect(section).toContain('50a41b13b2cb1f76040c8d16fdbae9e1135a2656');
+      expect(section).toContain('2b767c68f7e81a054f8cd12b7ad38dd17f3288a7');
+      expect(section).toContain('44883482260');
+      expect(section).toContain('44883482245');
+      expect(section).toContain('44883482182');
+      expect(section).toContain('does not update the three release documents');
+    }
+  });
+
+  it('records the current paginated repository, issue, release, and security evidence', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('169 branches');
+      expect(section).toContain('103 open pull requests');
+      expect(section).toContain('eight open non-PR issues');
       expect(section).toContain('89 comments');
-      expect(section).toContain('99 comments');
-      expect(section).toMatch(/Published GitHub releases:\s*\*\*0\*\*/);
+      expect(section).toContain('102 comments');
+      expect(section).toContain('zero published releases');
+      expect(section).toContain('unverified, not empty');
     }
   });
 
@@ -89,7 +98,6 @@ describe('current-main release evidence checkpoint', () => {
 
   it('does not promote external acceptance or unavailable security inventories', () => {
     for (const section of latestSections) {
-      expect(section).toContain('unverified, not empty');
       expect(section).toContain('PRODUCTION/PILOT ACCEPTANCE: NOT GRANTED');
       for (const item of ['#2', '#4', '#5', '#16', '#18', '#21', '#22', '#25']) {
         expect(section).toContain(item);
