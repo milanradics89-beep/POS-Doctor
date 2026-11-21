@@ -12,7 +12,7 @@ const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
   const end = document.indexOf('\n\n---\n\n', start);
-  return document.slice(start, end < 0 ? document.length : end);
+  return document.slice(start, end < 0 ? document.length : end).trimEnd();
 });
 
 describe('current-main release evidence checkpoint', () => {
@@ -28,7 +28,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('43492153234');
       expect(section).toContain('43492153161');
       expect(section).toContain('43492153021');
-      expect(section).toContain('26 submissions (25 COMMENTED, 1 APPROVED)');
+      expect(section).toContain('26 submissions (25 COMMENTED, 1 APPROVED by `tarlaci1984-sketch`)');
       expect(section).toContain('22/22 inline threads resolved');
       expect(section).toContain('three historical queued runs 43098210284, 43098210473 and 43098210255');
     }
@@ -51,7 +51,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('three moderate minimatch findings');
       expect(section).toContain('18 commits ahead of main and 0 behind');
       expect(section).toContain('tarlaci1984-sketch is requested');
-      expect(section).toContain('PR #206 is OPEN/DRAFT at current exact HEAD dae8b3f37eaf2c3f066a84050e28e16d265af1ce');
+      expect(section).toContain('PR #206 is OPEN/DRAFT at current exact HEAD `dae8b3f37eaf2c3f066a84050e28e16d265af1ce`');
       expect(section).toContain('44895290673');
       expect(section).toContain('44895290741');
       expect(section).toContain('44895290701');
@@ -64,7 +64,7 @@ describe('current-main release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('8603fc3be80efcfb0c2a27efc1f13b37af1020b8');
       expect(section).toContain('50a41b13b2cb1f76040c8d16fdbae9e1135a2656');
-      expect(section).toContain('PR #212 remains OPEN/DRAFT at exact HEAD 2b767c68f7e81a054f8cd12b7ad38dd17f3288a7');
+      expect(section).toContain('PR #212 remains OPEN/DRAFT at exact HEAD `2b767c68f7e81a054f8cd12b7ad38dd17f3288a7`');
       expect(section).toContain('44883482260');
       expect(section).toContain('mergeable=false because its base SHA 108c251f65987f88053c89a3337187164d08c8d4 is stale against current PR #206 HEAD dae8b3f37eaf2c3f066a84050e28e16d265af1ce');
       expect(section).toContain('PR #213 remains OPEN/DRAFT at exact HEAD f744702155aad6f8f7fc8423b15af8d7c4fbbf6c');
@@ -77,7 +77,7 @@ describe('current-main release evidence checkpoint', () => {
 
   it('distinguishes Unit-test failures from runtime npm-audit failures', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #85 current exact HEAD is ea1bf815d90d91026b24c46ec1869b8218211d80');
+      expect(section).toContain('PR #85 current exact HEAD is `ea1bf815d90d91026b24c46ec1869b8218211d80`');
       expect(section).toContain('44645305669');
       expect(section).toContain('44645305765');
       expect(section).toContain('44645306118');
@@ -122,7 +122,7 @@ describe('current-main release evidence checkpoint', () => {
     }
     expect(counts).toEqual({ Done: 2, 'In Progress': 15, Blocked: 8 });
     for (const section of latestSections) {
-      expect(section).toContain('main 3 Done / 15 In Progress / 7 Blocked');
+      expect(section).toContain('Main\'s existing register remains 3 Done / 15 In Progress / 7 Blocked');
       expect(section).toContain('candidate 2 Done / 15 In Progress / 8 Blocked');
       expect(section).toContain('Issue #74 remains 64 checklist items: 41 checked and 23 open');
     }
@@ -134,7 +134,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Snyk marks the JavaScript advisory revoked');
       expect(section).toContain('Official npm lists picomatch 4.0.7 as latest');
       expect(section).toContain('there is no 4.0.8 release');
-      expect(section).toContain('Upstream PR #238 exact HEAD 44f192261f312ddf236cb7bdc05d8f22663f98f9');
+      expect(section).toContain('PR #238 exact HEAD `44f192261f312ddf236cb7bdc05d8f22663f98f9`');
       expect(section).toContain('3/6');
       expect(section).toContain('PR #235 is CLOSED/unmerged');
       expect(section.toLowerCase()).toContain('do not import, pin or override this fork');
