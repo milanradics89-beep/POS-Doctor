@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-21 12:48 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-21 14:16 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -30,7 +30,10 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('43492153021');
       expect(section).toContain('26 submissions (25 COMMENTED, 1 APPROVED by `tarlaci1984-sketch`)');
       expect(section).toContain('22/22 inline threads resolved');
-      expect(section).toContain('three historical queued runs 43098210284, 43098210473 and 43098210255');
+      expect(section).toContain('Three historical runs remain QUEUED with zero jobs');
+      expect(section).toContain('43098210284');
+      expect(section).toContain('43098210473');
+      expect(section).toContain('43098210255');
     }
   });
 
@@ -51,12 +54,12 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('three moderate minimatch findings');
       expect(section).toContain('18 commits ahead of main and 0 behind');
       expect(section).toContain('tarlaci1984-sketch is requested');
-      expect(section).toContain('PR #206 is OPEN/DRAFT at current exact HEAD `dae8b3f37eaf2c3f066a84050e28e16d265af1ce`');
-      expect(section).toContain('44895290673');
-      expect(section).toContain('44895290741');
-      expect(section).toContain('44895290701');
-      expect(section).toContain('331 frontend tests passed and 5 failed');
-      expect(section).toContain('five frontend failures are all release-evidence assertion mismatches');
+      expect(section).toContain('PR #206 is OPEN/DRAFT at current exact HEAD `c138a0cad3a427d906f48bfca2d4faf1928e6ac5`');
+      expect(section).toContain('44902970962');
+      expect(section).toContain('44902970838');
+      expect(section).toContain('44902970850');
+      expect(section).toContain('332 frontend tests passed and 4 failed');
+      expect(section).toContain('four frontend failures are release-evidence assertion mismatches');
     }
   });
 
@@ -66,8 +69,8 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('50a41b13b2cb1f76040c8d16fdbae9e1135a2656');
       expect(section).toContain('PR #212 remains OPEN/DRAFT at exact HEAD `2b767c68f7e81a054f8cd12b7ad38dd17f3288a7`');
       expect(section).toContain('44883482260');
-      expect(section).toContain('mergeable=false because its base SHA 108c251f65987f88053c89a3337187164d08c8d4 is stale against current PR #206 HEAD dae8b3f37eaf2c3f066a84050e28e16d265af1ce');
-      expect(section).toContain('PR #213 remains OPEN/DRAFT at exact HEAD f744702155aad6f8f7fc8423b15af8d7c4fbbf6c');
+      expect(section).toContain('mergeable=false because its base SHA `108c251f65987f88053c89a3337187164d08c8d4` is stale against current PR #206 HEAD `c138a0cad3a427d906f48bfca2d4faf1928e6ac5`');
+      expect(section).toContain('PR #213 remains OPEN/DRAFT at exact HEAD `f744702155aad6f8f7fc8423b15af8d7c4fbbf6c`');
       expect(section).toContain('44883818525');
       expect(section).toContain('PR #214 is CLOSED/unmerged as superseded');
       expect(section).toContain('3a28d3455e066cc0ab726af2a05421d0594118ad');
@@ -87,8 +90,8 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('PR #167 exact HEAD 3177cfba1cbaee43a9feed2dd8b2010249a7d12f');
       expect(section).toContain('PR #170 exact HEAD 6de7cedc9b1214f7bf819e8b76fd1d8986d8d085');
       expect(section).toContain('28 findings (2 moderate, 26 high)');
-      expect(section).toContain('PR #171 exact HEAD cd3cd0e01f8dab9c1ac8e47c923a05134857d47d');
-      expect(section).toContain('PR #172 exact HEAD 5e0f0c000a3a3707e5565c32804e4d221a886caa');
+      expect(section).toContain('PR #171 exact HEAD `cd3cd0e01f8dab9c1ac8e47c923a05134857d47d`');
+      expect(section).toContain('PR #172 exact HEAD `5e0f0c000a3a3707e5565c32804e4d221a886caa`');
       expect(section).toContain('cf955182d98cae2e19f10c0e08f8e12621cb5242');
     }
   });
@@ -96,10 +99,10 @@ describe('current-main release evidence checkpoint', () => {
   it('records the current paginated repository, issue, release, and security evidence', () => {
     for (const section of latestSections) {
       expect(section).toContain('172 branches');
-      expect(section).toContain('105 open PRs');
+      expect(section).toContain('104 open PRs');
       expect(section).toContain('eight open non-PR issues');
-      expect(section).toContain('Issue #74 has 324 comments');
-      expect(section).toContain('Issue #149 has 234 comments');
+      expect(section).toContain('Issue #74 has 327 comments');
+      expect(section).toContain('Issue #149 has 240 comments');
       expect(section).toContain('zero published releases');
       expect(section).toContain('unverified, not empty');
       expect(section).toContain('Protect main ruleset 26370589 is ACTIVE');
@@ -123,7 +126,7 @@ describe('current-main release evidence checkpoint', () => {
     expect(counts).toEqual({ Done: 2, 'In Progress': 15, Blocked: 8 });
     for (const section of latestSections) {
       expect(section).toContain('Main\'s existing register remains 3 Done / 15 In Progress / 7 Blocked');
-      expect(section).toContain('candidate 2 Done / 15 In Progress / 8 Blocked');
+      expect(section).toContain('candidate row-level register remains **2 Done / 15 In Progress / 8 Blocked**');
       expect(section).toContain('Issue #74 remains 64 checklist items: 41 checked and 23 open');
     }
   });
