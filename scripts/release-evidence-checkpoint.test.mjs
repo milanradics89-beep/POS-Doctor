@@ -76,7 +76,7 @@ describe('current release evidence checkpoint', () => {
       expect(section).toContain('44918462197');
       expect(section).toContain('44918462179');
       expect(section).toContain('334 tests passed and 2 failed across 71/72 files');
-      expect(section).toContain('zero formal human reviews, and zero inline review threads');
+      expect(section).toContain('zero formal human reviews and zero inline review threads');
       expect(section).toContain('tarlaci1984-sketch is requested');
       expect(section).toContain('two failed assertions');
     }
@@ -99,7 +99,7 @@ describe('current release evidence checkpoint', () => {
       expect(section).toContain('44937218893');
       expect(section).toContain('44937218873');
       expect(section).toContain('44937218887');
-      expect(section).toContain('frontend job 136946382756 FAILED at Unit tests');
+      expect(section).toContain('frontend job 136953842120 FAILED at Unit tests');
       expect(section).toContain('backend job 136946383046 SUCCESS');
       expect(section).toContain('iOS job 136953844817 SUCCESS');
       expect(section).toContain('334 frontend tests passed, 3 failed; 71/72 files');
@@ -131,7 +131,7 @@ describe('current release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('175 branches (100 + 75; page 3 empty)');
       expect(section).toContain('107 open PRs and five open non-PR issues');
-      expect(section).toContain('Issue #74 has 342 comments');
+      expect(section).toContain('Issue #74 has 344 comments at capture time');
       expect(section).toContain('Issue #149 has 261 comments at capture time');
       expect(section).toContain('Issue #64 remains OPEN with 93 comments at capture time');
       expect(section).toContain('Issue #47 is CLOSED with 11 comments at capture time');
