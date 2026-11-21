@@ -41,7 +41,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('found 0 vulnerabilities');
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('**PR #204** is OPEN/DRAFT on `docs/release-evidence-current-main-20261120-run11`');
-      expect(section).toContain('PR #204 pre-checkpoint exact HEAD was `c3fd17a1029adb26962b8cb96b06ef87b5fee2a7`');
+      expect(section).toContain('Its pre-checkpoint exact HEAD was `c3fd17a1029adb26962b8cb96b06ef87b5fee2a7`');
       expect(section).toContain('44828340885');
       expect(section).toContain('44828340790');
       expect(section).toContain('44828341122');
@@ -49,7 +49,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('71 other test files passed');
       expect(section).toContain('terminal FAILURE');
       expect(section).toContain('PR #204 review inventory: 2 conversation comments, 0 inline review comments, 0 formal reviews');
-      expect(section).toContain('PR #206 pre-checkpoint HEAD was `42879b4d6e6b9f1b8646aa6bb8b1a71bbfd61d5e`');
+      expect(section).toContain('**PR #206 pre-checkpoint HEAD** was `42879b4d6e6b9f1b8646aa6bb8b1a71bbfd61d5e`');
       expect(section).toContain('44831372949');
       expect(section).toContain('44831372936');
       expect(section).toContain('44831372878');
