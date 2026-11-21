@@ -51,7 +51,8 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('44865522887');
       expect(section).toContain('terminal SUCCESS on `17c4e432`');
       expect(section).toContain('332 unit tests');
-      expect(section).toContain('Android emulator smoke and runtime dependency audit');
+      expect(section).toContain('Android emulator smoke');
+      expect(section).toContain('runtime dependency audit');
       expect(section).toContain('one automated Dependency Review conversation comment');
     }
   });
