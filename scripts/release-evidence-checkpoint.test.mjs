@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-21 05:15 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-21 07:03 CET';
 const latestSections = documents.map((document) => {
   const start = document.lastIndexOf(marker);
   if (start < 0) return '';
@@ -35,7 +35,7 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('records PR #204 failure and PR #206 merged-child exact-head CI separately', () => {
+  it('records PR #204 failure, PR #207 merge, and PR #206 current exact-head CI separately', () => {
     for (const section of latestSections) {
       expect(section).toContain('c3fd17a1029adb26962b8cb96b06ef87b5fee2a7');
       expect(section).toContain('44828340885');
@@ -48,6 +48,11 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('44859993354');
       expect(section).toContain('44859993364');
       expect(section).toContain('all terminal SUCCESS');
+      expect(section).toContain('17c4e432db0df7d97e0185d7c087db8ee2b1563e');
+      expect(section).toContain('44865522900');
+      expect(section).toContain('44865522924');
+      expect(section).toContain('44865522887');
+      expect(section).toContain('terminal SUCCESS on `17c4e432`');
       expect(section).toContain('332 unit tests');
       expect(section).toContain('Android emulator smoke and runtime dependency audit');
       expect(section).toContain('one automated Dependency Review conversation comment');
@@ -59,8 +64,8 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('163 branches');
       expect(section).toContain('98 pull requests');
       expect(section).toContain('eight issues');
-      expect(section).toContain('88 comments');
-      expect(section).toContain('98 comments');
+      expect(section).toContain('89 comments');
+      expect(section).toContain('99 comments');
       expect(section).toMatch(/Published GitHub releases:\s*\*\*0\*\*/);
     }
   });

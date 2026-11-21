@@ -1,3 +1,49 @@
+## Current release evidence checkpoint — 2026-11-21 07:03 CET
+
+This checkpoint supersedes the 2026-11-21 05:15 CET checkpoint. Evidence was refreshed at 06:03 UTC from live PR metadata, exact-head workflow runs and jobs, review threads/submissions, issue metadata/comments, paginated branch and open-PR inventories, the active ruleset, and the releases endpoint. Main is `e12d6daca4cdb19c7c4bd0b0a1610e96e851b266`. This checkpoint does not grant production or pilot acceptance.
+
+### PR #41 — merged baseline
+
+- PR #41 is CLOSED/MERGED on `fix/release-blockers-2026-10`. Live PR metadata and the source branch ref both report exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. The merged PR contains 517 commits, 100 changed files, 11,887 additions and 2,005 deletions.
+- Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) are terminal SUCCESS on this exact SHA. Validation frontend, backend and iOS jobs passed; CodeQL Analyze and Dependency Review passed (five jobs total).
+- Review inventory: 53 conversation comments, 30 inline review comments, 26 formal review submissions (25 COMMENTED, one human APPROVED by `tarlaci1984-sketch`), 22/22 inline threads resolved (20 outdated), and 109 combined timeline records.
+- The PR description still contains historical checkpoint text claiming the old `b46c5b8` HEAD. It is stale; live PR metadata and the source branch ref are authoritative and agree on `68b380e`.
+- Three historical runs remain QUEUED with zero jobs on obsolete SHA `b46c5b8082ecbebd263a86cd53b1321a86e570d1`: Validation [43098210284](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210284), CodeQL [43098210473](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210473), and Dependency Review [43098210255](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210255). They are not current-head checks; a repository administrator must cancel them.
+
+### PR #204 — earlier documentation candidate
+
+- PR #204 remains OPEN/DRAFT on `docs/release-evidence-current-main-20261120-run11`, base `main`, exact HEAD `c3fd17a1029adb26962b8cb96b06ef87b5fee2a7`; 10 commits and four changed files.
+- Exact-head Validation [44828340885](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44828340885) is terminal FAILURE: frontend 331 tests passed and one documentation assertion failed; backend and iOS jobs passed. CodeQL [44828340790](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44828340790) and Dependency Review [44828341122](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44828341122) are terminal SUCCESS on that same SHA. The failure is a wording assertion in the release-evidence regression test, not an application runtime failure. PR #204 remains separate and unmerged.
+
+### PR #206 and merged child PR #207 — current documentation candidate
+
+- PR #207 was CLOSED/MERGED at 2026-11-21 03:13:25 UTC into PR #206's branch, not into `main`. Its exact source HEAD and merge commit are `d085930930d099888ab5ea7d7ba09c9a7bac4c7d`.
+- PR #206 remains OPEN/DRAFT on `fix/release-evidence-checkpoint-assertion-20261120-run11`, targeting `main` at `e12d6daca4cdb19c7c4bd0b0a1610e96e851b266`. Its current exact HEAD is `17c4e432db0df7d97e0185d7c087db8ee2b1563e`; the live PR metadata and branch ref match. It contains 15 commits, four changed files, 1,012 additions and 12 deletions.
+- Current exact-head Validation [44865522900](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44865522900), CodeQL [44865522924](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44865522924), and Dependency Review [44865522887](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/44865522887) are terminal SUCCESS on `17c4e432`. Direct run metadata confirms all three `head_sha` values equal the current PR HEAD. Validation frontend, backend and iOS jobs passed; CodeQL Analyze and Dependency Review passed.
+- Frontend steps passed source-boundary enforcement, TypeScript, 332 unit tests, Expo Doctor, Android export, Android native Release build, Android emulator smoke, and runtime dependency audit. Backend compile/tests/readiness/dependency-audit steps passed. iOS Release build and simulator smoke passed.
+- PR #206 has one automated Dependency Review conversation comment, zero inline review threads, zero formal human review submissions and no human APPROVED review. It remains draft and requires human review before integration.
+- The PR #206 description is stale: it still names `7dc73caf` and the earlier run set. Refresh the description only after the next exact-head checkpoint is terminal; do not treat its body as current metadata.
+
+### Issues, security and repository inventory
+
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is CLOSED with 11 comments. Repository visibility is public; main reports `protected: true`. Active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) targets the default branch, has no bypass actors, and requires six strict checks (`CodeQL`, `backend`, `frontend`, `ios`, `analyze`, `dependency-review`), one approval, stale-review dismissal, last-push approval, resolved review threads, and deletion/non-fast-forward protection.
+- Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains OPEN with 89 comments. Production acceptance for the DNS-rebinding SSRF remediation still requires independent security-owner approval, a complete production DNS64/NAT64 prefix inventory, verified deployed `USEIT_NAT64_PREFIXES`, and staging/production egress evidence.
+- Issue [#155](https://github.com/milanradics89-beep/POS-Doctor/issues/155) remains OPEN with 99 comments. GHSA-fc5q-39xc-vjpf was withdrawn on 2026-11-18; withdrawal is not a patched npm release. Repository-wide runtime reachability review remains incomplete. No fork import or audit suppression is justified.
+- Repository visibility is public. Main exact HEAD is `e12d6daca4cdb19c7c4bd0b0a1610e96e851b266`. Branch pagination returned 163 branches (100 + 63; next page empty). Open-PR search returned 98 pull requests. Open non-PR issue search returned eight issues. Published GitHub releases: **0**.
+- Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable through the connected GitHub integration; status remains **unverified, not empty**. Successful CodeQL and Dependency Review workflows are not alert-inventory queries.
+
+### Release records and canonical 25-point register
+
+- This 07:03 CET checkpoint is being added identically to `docs/RELEASE_RUNBOOK.md`, `docs/RELEASE_PILOT_ACCEPTANCE.md`, and `docs/25-POINT-RELEASE-BACKLOG.md` on the PR #206 branch only. Main's three release records remain on their older 2026-11-13 checkpoint; main is not changed.
+- The row-level register remains **2 Done / 15 In Progress / 8 Blocked**. Done: **#1, #6**. In Progress: **#3, #7–#15, #17, #19, #20, #23, #24**. Blocked: **#2, #4, #5, #16, #18, #21, #22, #25**.
+- **#2 remains Blocked** pending the owner's durable public/private repository-visibility and release-plan decision. Active branch protection is a separate verified fact and does not resolve that decision.
+- External blockers remain #4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark/business acceptance, #21 production monitoring and alert delivery, #22 approved staged rollout and tested rollback, and #25 real-user pilot/business sign-off.
+- CI, emulators and simulators do not satisfy production console setup, physical-device verification, production cloud access, witnessed backup/restore, staged rollout approval or real-user/business acceptance.
+
+**Release decision: NOT READY. PRODUCTION/PILOT ACCEPTANCE: NOT GRANTED.** No published release exists. Human review remains outstanding on PR #206 and the security/dependency candidates. No PR is merged automatically by this process; no security threshold, required check or test is weakened.
+
+---
+
 ## Current release evidence checkpoint — 2026-11-21 05:15 CET
 
 This checkpoint supersedes the 2026-11-21 02:04 CET checkpoint. Evidence was refreshed at 04:15 UTC from live PR metadata, source-branch refs, exact-head Actions runs and jobs, issue metadata, paginated repository inventory, the releases API, and the active main ruleset. Current main is `e12d6daca4cdb19c7c4bd0b0a1610e96e851b266`. This checkpoint does not grant production or pilot acceptance.
