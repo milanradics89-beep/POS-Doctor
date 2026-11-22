@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 08:22 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 10:27 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -39,10 +39,10 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('records the current PR #204 exact-head success and security workflow results', () => {
+  it('records the previous PR #204 parent success and current exact-head state', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #204 is OPEN/DRAFT against `main`');
-      expect(section).toContain('current exact HEAD is `9311dae635423369badf9b4fcfdcc14aa26a8b96`');
+      expect(section).toContain('PR #204 is OPEN/DRAFT against main');
+      expect(section).toContain('previous exact HEAD was 9311dae635423369badf9b4fcfdcc14aa26a8b96');
       expect(section).toContain('Validation [44993531919](');
       expect(section).toContain('terminal SUCCESS');
       expect(section).toContain('CodeQL [44993531899](');
@@ -51,13 +51,22 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('450 pytest tests');
       expect(section).toContain('27 production-readiness checks');
       expect(section).toContain('78 security/privacy checks');
-      expect(section).toContain('iOS job');
+      expect(section).toContain('iOS job: native Release build and simulator install/launch smoke passed');
       expect(section).toContain('Parent results are historical');
       expect(section).toContain('21/21 checks passed');
       expect(section).toContain('Android emulator smoke test passed');
       expect(section).toContain('iOS simulator smoke test passed');
       expect(section).toContain('3 moderate severity vulnerabilities');
       expect(section).toContain('PR #204 review inventory: 2 conversation comments');
+      expect(section).toContain('current exact HEAD is cb6aabab1dc38b6a21000cb5465ab967b2f87b65');
+      expect(section).toContain('Validation [45002029764](');
+      expect(section).toContain('CodeQL 45002029777');
+      expect(section).toContain('Dependency Review 45002029773');
+      expect(section).toContain('333 frontend tests passed and 1 failed');
+      expect(section).toContain('Runtime npm audit was skipped after Unit tests failed');
+      expect(section).toContain('cryptography 50.0.2 installed and pip-audit reported No known vulnerabilities found');
+      expect(section).toContain('0 formal review submissions, 0 inline threads, and 0 human approvals');
+      expect(section).toContain('child correction branch fix/release-evidence-current-main-20261122-run11-child');
     }
   });
 
