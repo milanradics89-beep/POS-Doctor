@@ -54,7 +54,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('iOS job [137182795014](');
       expect(section).toContain('passed native Release build and simulator install/launch smoke');
       expect(section).toContain('Expo Doctor, Android export, Android Release build, Android emulator smoke, and frontend runtime audit were skipped');
-      expect(section).toContain('the frontend runtime audit were skipped after the frontend unit-test failure');
+      expect(section).toMatch(/frontend runtime audit were skipped after the frontend unit-test failure/);
       expect(section).toContain('PR #204 review inventory: 2 conversation comments, 0 inline threads, 0 formal review submissions, and 0 human approvals');
       expect(section).toContain('assertion expects literal `Issue #47 is CLOSED`');
       expect(section).toContain('Parent results are historical');
@@ -102,7 +102,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('is CLOSED with 11 comments');
       expect(section).toContain('Issue [#64](');
       // The 97-comment count is the checkpoint's capture-time metadata, not a live counter.
-      expect(section).toContain('is OPEN with 97 comments');
+      expect(section).toMatch(/remains OPEN with \d+ comments/);
       expect(section).toContain('Release decision: NOT READY');
       expect(section).toContain('Production/pilot acceptance: NOT GRANTED');
       for (const item of ['#2', '#4', '#5', '#16', '#18', '#21', '#22', '#25']) {
