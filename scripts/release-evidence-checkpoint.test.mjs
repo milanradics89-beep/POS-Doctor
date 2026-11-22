@@ -40,7 +40,8 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('333 passed / 1 failed across 72/72 files');
       expect(section).toContain('CodeQL [44973384562]');
       expect(section).toContain('Dependency Review [44973384597]');
-      expect(section).toContain('Previous PR #204 HEAD `ef8b92b63ce3449b061728f56c351671f46ffe14` had 3/3 exact-head workflows SUCCESS');
+      expect(section).toContain('Previous PR #204 HEAD `a676a8420a3a98093d3687476b3fbc987a080a98` had terminal Validation FAILURE');
+      expect(section).toContain('Earlier PR #204 HEAD `ef8b92b63ce3449b061728f56c351671f46ffe14` had 3/3 exact-head workflows SUCCESS');
       expect(section).toContain('332 tests across 72 test files');
       expect(section).toContain('3 moderate severity vulnerabilities');
       expect(section).toContain('PR #204 review inventory: 2 conversation comments');
