@@ -118,6 +118,29 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
+  it('records the latest PR #233 exact head and keeps PR #237 base evidence separate', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #233 current exact HEAD `dd732252a3a8eea5211ca0a5324c61eca044a8c4`');
+      expect(section).toContain('8 commits and 4 changed files');
+      expect(section).toContain('Validation [45077680540](');
+      expect(section).toContain('CodeQL [45077680551](');
+      expect(section).toContain('Dependency Review [45077680544](');
+      expect(section).toContain('337 passed / 1 failed across 72 test files');
+      expect(section).toContain('runtime npm audit was skipped, not failed');
+      expect(section).toContain('PR #237 exact HEAD `fe6178ce5d342dc7a9dbf9eb4594e51167622503`');
+      expect(section).toContain('base SHA is still `6805604d5781ff62284a94beb5d77f39b816ccf9`');
+      expect(section).toContain('3 moderate minimatch findings');
+      expect(section).toContain('PR #85 current exact HEAD `e3cc12a5ecb36877bdee5984ddd09d5e4f8f7bc9`');
+      expect(section).toContain('9/9 resolved inline threads');
+      expect(section).toContain('three commits behind current main');
+      expect(section).toContain('PR #171 exact HEAD `cd3cd0e01f8dab9c1ac8e47c923a05134857d47d`');
+      expect(section).toContain('PR #172 exact HEAD `5e0f0c000a3a3707e5565c32804e4d221a886caa`');
+      expect(section).toContain('3 moderate minimatch findings and no picomatch finding');
+      expect(section).toContain('64 items / 41 checked / 23 open');
+      expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
+    }
+  });
+
   it('records the current-main Redis acceptance candidate on its own exact head', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #232 is OPEN/DRAFT');
