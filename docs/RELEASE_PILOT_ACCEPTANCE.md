@@ -1,4 +1,23 @@
-## Latest acceptance checkpoint — 2026-11-13 18:49 CET
+## Current main exact-head CI and dependency audit / production acceptance — 2026-11-22 16:42 CET
+
+Current main HEAD: 3a262358552a9650d865aa5bd3c92905f1e863cb.
+
+- Validation #45030954025: frontend job #137234211132 passed 71 test files, Android Release build, and emulator install/launch smoke. Runtime npm audit --omit=dev --audit-level=high reported **3 moderate severity vulnerabilities** in minimatch (GHSA-g3hv-75wg-m249); the configured high-severity threshold passed. This is not a zero-finding audit.
+- Backend job #137234211043 completed pip-audit with **No known vulnerabilities found**.
+- iOS job #137234211281 passed Release simulator build and install/launch smoke.
+- CodeQL workflow #45030954087 and prebuild workflow #45030961828 completed successfully.
+- The current merge commit has no separate exact-head Dependency Review check-run. PR #200 source-head Dependency Review #44735858455 passed, but source-head evidence is not transferred to the merge commit.
+- PR #231 is a separate, unmerged minimatch 11.0.5 candidate whose exact-head runtime audit reported 0 vulnerabilities. It remains draft with no human approval; its clean candidate result does not change the current main audit.
+- The 25-point release register remains 2 Done / 15 In Progress / 8 Blocked. The separate Issue #74 checklist remains 64 items / 41 checked / 23 open.
+
+**Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.** Historical four-finding audit records below refer to their original older exact-head runs and are not overwritten by this current three-moderate main result.
+
+---
+Production acceptance remains NOT GRANTED. Physical-device Apple/Google verification, production secrets/configuration, backup/restore, monitoring, staged rollout, and pilot/business sign-off require direct external evidence; simulator/emulator CI does not satisfy them.
+
+---
+
+## Historical acceptance checkpoint — 2026-11-13 18:49 CET
 
 **Pilot/production acceptance: NOT GRANTED.**
 
