@@ -60,7 +60,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('CodeQL [45017190867](');
       expect(section).toContain('Dependency Review [45017190810](');
       expect(section).toContain('332 passed / 2 failed across 72 test files');
-      expect(section).toContain('450 tests');
+      expect(section).toContain('450 pytest tests');
       expect(section).toContain('27 production-readiness checks');
       expect(section).toContain('78 security/privacy checks');
       expect(section).toContain('native Release build and simulator install/launch smoke');
@@ -84,7 +84,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Dependency Review [45067156113](');
       expect(section).toContain('333 passed / 4 failed across 72 test files');
       expect(section).toContain('PR #236 is CLOSED/MERGED into the PR #233 branch');
-      expect(section).toContain('fast-forward with expected-SHA');
+      expect(section).toContain('fast-forwarded with expected-SHA');
       expect(section).toContain('1a35bf4aa51b5d0f623728c4645e42b5df0fe54c');
       expect(section).toContain('336 passed / 1 failed across 72 test files');
       expect(section).toContain('539 pytest tests');
