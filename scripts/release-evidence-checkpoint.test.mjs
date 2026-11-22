@@ -41,7 +41,8 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records the current PR #204 exact-head success and security workflow results', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #204 current exact HEAD is `9311dae635423369badf9b4fcfdcc14aa26a8b96`');
+      expect(section).toContain('PR #204 is OPEN/DRAFT against `main`');
+      expect(section).toContain('current exact HEAD is `9311dae635423369badf9b4fcfdcc14aa26a8b96`');
       expect(section).toContain('Validation [44993531919](');
       expect(section).toContain('terminal SUCCESS');
       expect(section).toContain('CodeQL [44993531899](');
@@ -63,7 +64,7 @@ describe('current-main release evidence checkpoint', () => {
   it('keeps other candidate CI evidence bound to each candidate exact head', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #200 exact HEAD');
-      expect(section).toContain('539 backend tests');
+      expect(section).toContain('Backend evidence is 539 tests');
       expect(section).toContain('44735858583');
       expect(section).toContain('PR #201 exact HEAD');
       expect(section).toContain('found 0 vulnerabilities');
