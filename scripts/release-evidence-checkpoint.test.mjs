@@ -62,7 +62,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('44744190838');
       expect(section).toContain('44744190840');
       expect(section).toContain('44744190839');
-      expect(section).toContain('PR #218 exact HEAD `c01fef68d1a33f5ca60f3cd8ed62781c4e59cb6e`');
+      expect(section).toContain('**PR #218** exact HEAD `c01fef68d1a33f5ca60f3cd8ed62781c4e59cb6e`');
       expect(section).toContain('44945232153');
       expect(section).toContain('PR #219 exact HEAD `3ba1c4f20f7aab6dafa774bb8c2d11cb21c59735`');
       expect(section).toContain('zero exact-head workflow runs, zero check-runs, and zero status contexts');
