@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 22:30 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 23:21 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -60,7 +60,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('CodeQL [45017190867](');
       expect(section).toContain('Dependency Review [45017190810](');
       expect(section).toContain('332 passed / 2 failed across 72 test files');
-      expect(section).toContain('450 tests');
+      expect(section).toContain('450 pytest tests');
       expect(section).toContain('27 production-readiness checks');
       expect(section).toContain('78 security/privacy checks');
       expect(section).toContain('native Release build and simulator install/launch smoke');
@@ -84,7 +84,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Dependency Review [45067156113](');
       expect(section).toContain('333 passed / 4 failed across 72 test files');
       expect(section).toContain('PR #236 is CLOSED/MERGED into the PR #233 branch');
-      expect(section).toContain('fast-forward with expected-SHA');
+      expect(section).toContain('fast-forwarded with expected-SHA');
       expect(section).toContain('1a35bf4aa51b5d0f623728c4645e42b5df0fe54c');
       expect(section).toContain('336 passed / 1 failed across 72 test files');
       expect(section).toContain('539 pytest tests');
@@ -95,6 +95,26 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('0 human approvals');
       expect(section).toContain('The PR #229 test correction is carried forward by content in PR #233');
       expect(section).not.toContain('on the PR #204 candidate branch');
+    }
+  });
+
+  it('records PR #233 current exact-head failure and isolates the two checkpoint assertion mismatches', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #233 is OPEN/DRAFT at exact HEAD 6805604d5781ff62284a94beb5d77f39b816ccf9');
+      expect(section).toContain('7 commits and 4 changed files');
+      expect(section).toContain('Validation [45073803426](');
+      expect(section).toContain('CodeQL [45073803442](');
+      expect(section).toContain('Dependency Review [45073803419](');
+      expect(section).toContain('335 passed / 2 failed across 72 test files');
+      expect(section).toContain('expected 450 tests while the PR #204 evidence correctly says 450 pytest tests');
+      expect(section).toContain('expected fast-forward with expected-SHA while the PR #236 provenance correctly says fast-forwarded with expected-SHA');
+      expect(section).toContain('Backend job [137372346371](');
+      expect(section).toContain('539 pytest tests, 27 production-readiness checks, and 78 security/privacy checks');
+      expect(section).toContain('iOS job [137372296410](');
+      expect(section).toContain('native Release build and simulator smoke');
+      expect(section).toContain('runtime npm audit were skipped');
+      expect(section).toContain('PR #233 review inventory: 2 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
+      expect(section).toContain('PR #236 is CLOSED/MERGED into the PR #233 branch only');
     }
   });
 
