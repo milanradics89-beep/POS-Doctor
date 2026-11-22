@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 20:12 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 21:29 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -76,12 +76,12 @@ describe('current-main release evidence checkpoint', () => {
   it('records PR #233 exact-head success without transferring parent results', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #233 is OPEN/DRAFT');
-      expect(section).toContain('ea2ee9e6e8d3e4b30dd9bac2f10bff0dd0d1e461');
-      expect(section).toContain('4 commits and 4 changed files');
-      expect(section).toContain('Validation [45051779453](');
+      expect(section).toContain('e66056a5083ddb24087b13c9d82dc1f42aae9794');
+      expect(section).toContain('5 commits and 4 changed files');
+      expect(section).toContain('Validation [45059736810](');
       expect(section).toContain('terminal SUCCESS');
-      expect(section).toContain('CodeQL [45051779441](');
-      expect(section).toContain('Dependency Review [45051779511](');
+      expect(section).toContain('CodeQL [45059737023](');
+      expect(section).toContain('Dependency Review [45059736866](');
       expect(section).toContain('Frontend, backend, iOS, CodeQL Analyze, and Dependency Review jobs all passed');
       expect(section).toContain('PR #236 is CLOSED/MERGED into the PR #233 branch');
       expect(section).toContain('fast-forward with expected-SHA');
