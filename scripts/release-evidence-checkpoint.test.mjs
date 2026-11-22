@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 17:37 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 20:12 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -73,23 +73,25 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('records PR #233 exact-head validation failure without transferring parent results', () => {
+  it('records PR #233 exact-head success without transferring parent results', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #233 is OPEN/DRAFT');
+      expect(section).toContain('ea2ee9e6e8d3e4b30dd9bac2f10bff0dd0d1e461');
+      expect(section).toContain('4 commits and 4 changed files');
+      expect(section).toContain('Validation [45051779453](');
+      expect(section).toContain('terminal SUCCESS');
+      expect(section).toContain('CodeQL [45051779441](');
+      expect(section).toContain('Dependency Review [45051779511](');
+      expect(section).toContain('Frontend, backend, iOS, CodeQL Analyze, and Dependency Review jobs all passed');
+      expect(section).toContain('PR #236 is CLOSED/MERGED into the PR #233 branch');
+      expect(section).toContain('fast-forward with expected-SHA');
       expect(section).toContain('1a35bf4aa51b5d0f623728c4645e42b5df0fe54c');
-      expect(section).toContain('Validation [45043529095](');
-      expect(section).toContain('terminal FAILURE');
       expect(section).toContain('336 passed / 1 failed across 72 test files');
-      expect(section).toContain('expects `450 pytest tests` but the PR #204 backend evidence correctly says `450 tests`');
-      expect(section).toContain('539 tests, 27 production-readiness checks, 78 security/privacy checks');
-      expect(section).toContain('native Release build and simulator install/launch smoke');
-      expect(section).toContain('45043529095');
-      expect(section).toContain('CodeQL [45043529103](');
-      expect(section).toContain('Dependency Review [45043529261](');
-      expect(section).toContain('PR #229 test correction is carried forward by content in PR #233');
-      expect(section).toContain('1 conversation comment');
+      expect(section).toContain('2 conversation comments');
       expect(section).toContain('0 formal review submissions');
       expect(section).toContain('0 inline review threads');
+      expect(section).toContain('0 human approvals');
+      expect(section).toContain('The PR #229 test correction is carried forward by content in PR #233');
       expect(section).not.toContain('on the PR #204 candidate branch');
     }
   });
