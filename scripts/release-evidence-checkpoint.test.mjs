@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 07:19 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 08:22 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -39,19 +39,24 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('records the current PR #204 exact-head Validation failure and security workflow results', () => {
+  it('records the current PR #204 exact-head success and security workflow results', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #204 current exact HEAD is `0526826a0c6c0dd3a0ba818bdc397c4270611d79`');
-      expect(section).toContain('Validation [44988810605](');
-      expect(section).toContain('terminal FAILURE');
-      expect(section).toContain('CodeQL [44988810641](');
-      expect(section).toContain('Dependency Review [44988810588](');
-      expect(section).toContain('332 passed and 3 failed across 72 files');
+      expect(section).toContain('PR #204 current exact HEAD is `9311dae635423369badf9b4fcfdcc14aa26a8b96`');
+      expect(section).toContain('Validation [44993531919](');
+      expect(section).toContain('terminal SUCCESS');
+      expect(section).toContain('CodeQL [44993531899](');
+      expect(section).toContain('Dependency Review [44993531931](');
+      expect(section).toContain('334 passed across 72 files');
       expect(section).toContain('450 pytest tests');
       expect(section).toContain('27 production-readiness checks');
       expect(section).toContain('78 security/privacy checks');
       expect(section).toContain('iOS job');
       expect(section).toContain('Parent results are historical');
+      expect(section).toContain('21/21 checks passed');
+      expect(section).toContain('Android emulator smoke test passed');
+      expect(section).toContain('iOS simulator smoke test passed');
+      expect(section).toContain('3 moderate severity vulnerabilities');
+      expect(section).toContain('PR #204 review inventory: 2 conversation comments');
     }
   });
 
