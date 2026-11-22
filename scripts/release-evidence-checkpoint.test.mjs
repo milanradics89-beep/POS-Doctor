@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 15:38 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 17:17 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -53,7 +53,7 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records PR #204 exact-head failure and the separately validated PR #229 test correction', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #204 pre-reconciliation exact HEAD');
+      expect(section).toContain('PR #204 — release-documentation candidate before reconciliation');
       expect(section).toContain('00d2dff332888e5eb2fa731d32e2e5b3e1cc4f9f');
       expect(section).toContain('Validation [45017190851](');
       expect(section).toContain('terminal FAILURE');
@@ -70,6 +70,34 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('45031397027');
       expect(section).toContain('45031397143');
       expect(section).toContain('all passed');
+    }
+  });
+
+  it('records PR #233 exact-head validation failure without transferring parent results', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #233 is OPEN/DRAFT');
+      expect(section).toContain('6c3db804197254904897c50c798b64c4b1ddbc99');
+      expect(section).toContain('Validation [45034918907](');
+      expect(section).toContain('terminal FAILURE');
+      expect(section).toContain('334 tests passed / 1 failed across 72 test files');
+      expect(section).toContain('CodeQL [45034918932](');
+      expect(section).toContain('Dependency Review [45034919026](');
+      expect(section).toContain('PR #229 test correction is carried forward by content in PR #233');
+      expect(section).toContain('1 conversation comment');
+      expect(section).toContain('0 formal review submissions');
+      expect(section).toContain('0 inline review threads');
+      expect(section).not.toContain('on the PR #204 candidate branch');
+    }
+  });
+
+  it('records the current-main Redis acceptance candidate on its own exact head', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #232 is OPEN/DRAFT');
+      expect(section).toContain('696ac10f2bbb4a502a507a07d562fb92136b0fb2');
+      expect(section).toContain('Validation [45040014939](');
+      expect(section).toContain('CodeQL [45040015166](');
+      expect(section).toContain('Dependency Review [45040014952](');
+      expect(section).toContain('3/3 terminal SUCCESS');
     }
   });
 
