@@ -47,7 +47,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('terminal SUCCESS');
       expect(section).toContain('CodeQL [44993531899](');
       expect(section).toContain('Dependency Review [44993531931](');
-      expect(section).toContain('334 passed across 72 files');
+      expect(section).toContain('334 tests across 72 files');
       expect(section).toContain('450 pytest tests');
       expect(section).toContain('27 production-readiness checks');
       expect(section).toContain('78 security/privacy checks');
