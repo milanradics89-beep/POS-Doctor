@@ -57,7 +57,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toMatch(/frontend runtime audit were skipped after the frontend unit-test failure/);
       expect(section).toContain('PR #204 review inventory: 2 conversation comments, 0 inline threads, 0 formal review submissions, and 0 human approvals');
       expect(section).toContain('assertion expects literal `Issue #47 is CLOSED`');
-      expect(section).toContain('Parent results are historical');
+      expect(section).toContain('parent results are not reused');
     }
   });
 
