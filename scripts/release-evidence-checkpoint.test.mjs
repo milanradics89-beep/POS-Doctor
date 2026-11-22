@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 11:15 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 12:20 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -42,19 +42,20 @@ describe('current-main release evidence checkpoint', () => {
   it('records PR #204 current exact-head failure and separate security workflow results', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #204 is OPEN/DRAFT against `main`');
-      expect(section).toContain('current exact HEAD is `cb6aabab1dc38b6a21000cb5465ab967b2f87b65`');
-      expect(section).toContain('Validation [45002029764](');
+      expect(section).toContain('current exact HEAD is `ddd34e688343189b67d9fca463590287479188d1`');
+      expect(section).toContain('Validation [45011953827](');
       expect(section).toContain('terminal FAILURE');
-      expect(section).toContain('CodeQL [45002029777](');
-      expect(section).toContain('Dependency Review [45002029773](');
+      expect(section).toContain('CodeQL [45011953752](');
+      expect(section).toContain('Dependency Review [45011953751](');
       expect(section).toContain('333 tests passed / 1 failed across 72 files');
       expect(section).toContain('450 pytest tests');
       expect(section).toContain('27 production-readiness checks');
       expect(section).toContain('78 security/privacy checks');
       expect(section).toContain('iOS native Release build and simulator install/launch smoke passed');
       expect(section).toContain('Expo Doctor, Android export, Android Release build, Android emulator smoke, and frontend runtime audit were skipped');
-      expect(section).toContain('3 moderate minimatch vulnerabilities through `@expo/fingerprint`');
+      expect(section).toContain('the frontend runtime audit were skipped after the frontend unit-test failure');
       expect(section).toContain('PR #204 review inventory: 2 conversation comments, 0 inline threads, 0 formal review submissions, and 0 human approvals');
+      expect(section).toContain('assertion expects literal `Issue #47 is CLOSED`');
       expect(section).toContain('Parent results are historical');
     }
   });
@@ -96,8 +97,10 @@ describe('current-main release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('unverified, not empty');
       expect(section).toContain('0 published releases');
-      expect(section).toContain('Issue #47 is CLOSED');
-      expect(section).toContain('Issue #64 is OPEN');
+      expect(section).toContain('Issue [#47](');
+      expect(section).toContain('is CLOSED with 11 comments');
+      expect(section).toContain('Issue [#64](');
+      expect(section).toContain('is OPEN with 105 comments');
       expect(section).toContain('Release decision: NOT READY');
       expect(section).toContain('Production/pilot acceptance: NOT GRANTED');
       for (const item of ['#2', '#4', '#5', '#16', '#18', '#21', '#22', '#25']) {
