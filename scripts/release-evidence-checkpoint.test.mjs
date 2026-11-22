@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 17:17 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 17:37 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -60,7 +60,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('CodeQL [45017190867](');
       expect(section).toContain('Dependency Review [45017190810](');
       expect(section).toContain('332 passed / 2 failed across 72 test files');
-      expect(section).toContain('450 pytest tests');
+      expect(section).toContain('450 tests');
       expect(section).toContain('27 production-readiness checks');
       expect(section).toContain('78 security/privacy checks');
       expect(section).toContain('native Release build and simulator install/launch smoke');
@@ -76,12 +76,16 @@ describe('current-main release evidence checkpoint', () => {
   it('records PR #233 exact-head validation failure without transferring parent results', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #233 is OPEN/DRAFT');
-      expect(section).toContain('6c3db804197254904897c50c798b64c4b1ddbc99');
-      expect(section).toContain('Validation [45034918907](');
+      expect(section).toContain('1a35bf4aa51b5d0f623728c4645e42b5df0fe54c');
+      expect(section).toContain('Validation [45043529095](');
       expect(section).toContain('terminal FAILURE');
-      expect(section).toContain('334 tests passed / 1 failed across 72 test files');
-      expect(section).toContain('CodeQL [45034918932](');
-      expect(section).toContain('Dependency Review [45034919026](');
+      expect(section).toContain('336 passed / 1 failed across 72 test files');
+      expect(section).toContain('expects `450 pytest tests` but the PR #204 backend evidence correctly says `450 tests`');
+      expect(section).toContain('539 tests, 27 production-readiness checks, 78 security/privacy checks');
+      expect(section).toContain('native Release build and simulator install/launch smoke');
+      expect(section).toContain('45043529095');
+      expect(section).toContain('CodeQL [45043529103](');
+      expect(section).toContain('Dependency Review [45043529261](');
       expect(section).toContain('PR #229 test correction is carried forward by content in PR #233');
       expect(section).toContain('1 conversation comment');
       expect(section).toContain('0 formal review submissions');
