@@ -53,7 +53,7 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records PR #204 exact-head failure and the separately validated PR #229 test correction', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #204 — release-documentation candidate before reconciliation');
+      expect(section).toContain('### PR #204 and PR #229 — historical documentation candidates');
       expect(section).toContain('00d2dff332888e5eb2fa731d32e2e5b3e1cc4f9f');
       expect(section).toContain('Validation [45017190851](');
       expect(section).toContain('terminal FAILURE');
