@@ -96,8 +96,9 @@ describe('current-main release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('unverified, not empty');
       expect(section).toContain('0 published releases');
-      expect(section).toContain('Issue #47 is CLOSED');
-      expect(section).toContain('Issue #64 is OPEN');
+      const normalizedSection = section.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+      expect(normalizedSection).toMatch(/Issue #47 is CLOSED/);
+      expect(normalizedSection).toMatch(/Issue #64 (?:is|remains) OPEN/);
       expect(section).toContain('Release decision: NOT READY');
       expect(section).toContain('Production/pilot acceptance: NOT GRANTED');
       for (const item of ['#2', '#4', '#5', '#16', '#18', '#21', '#22', '#25']) {
