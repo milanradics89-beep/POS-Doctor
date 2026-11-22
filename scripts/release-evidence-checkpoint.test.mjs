@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 10:27 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 10:46 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -58,6 +58,17 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('iOS simulator smoke test passed');
       expect(section).toContain('3 moderate severity vulnerabilities');
       expect(section).toContain('PR #204 review inventory: 2 conversation comments');
+      expect(section).toContain('53 conversation comments');
+      expect(section).toContain('30 inline review comments');
+      expect(section).toContain('26 formal review submissions');
+      expect(section).toContain('22/22 inline review threads resolved');
+      expect(section).toContain('Issue #47 is CLOSED');
+      expect(section).toContain('Issue #64 is OPEN');
+      expect(section).toContain('Required exact ReDoS pattern matrix: +(*), *(*), +(a*), +(*a), *(a*|b), +(ab|abab)');
+      expect(section).toContain('Current PR #238 test file contains +(*) yes, *(*) no, +(a*) yes, +(*a) yes, *(a*|b) no, +(ab|abab) no');
+      expect(section).toContain('PR #224 current exact HEAD is 3a4b661ff1752345e4c6467f803d598f683f170d');
+      expect(section).toContain('Validation 45008948274 remains in_progress');
+      expect(section).toContain('CodeQL 45008948278 and Dependency Review 45008948289 succeeded');
       expect(section).toContain('current exact HEAD is cb6aabab1dc38b6a21000cb5465ab967b2f87b65');
       expect(section).toContain('Validation [45002029764](');
       expect(section).toContain('CodeQL 45002029777');
