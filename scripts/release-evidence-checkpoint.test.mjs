@@ -7,15 +7,17 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 03:54 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 06:11 CET';
 const latestSections = documents.map((document) => {
-  const start = document.lastIndexOf(marker);
-  if (start < 0) return '';
-  const end = document.indexOf('\n\n---\n\n', start);
-  return document.slice(start, end < 0 ? document.length : end);
+  if (!document.startsWith(marker)) return '';
+  const end = document.indexOf('\n\n---\n\n', marker.length);
+  return document.slice(0, end < 0 ? document.length : end);
 });
 
 describe('current-main release evidence checkpoint', () => {
+  it('selects the top checkpoint rather than a historical section', () => {
+    expect(documents.every((document) => document.startsWith(marker))).toBe(true);
+  });
   it('keeps the same current checkpoint in all three release records', () => {
     expect(latestSections.every(Boolean)).toBe(true);
     expect(new Set(latestSections).size).toBe(1);
@@ -32,19 +34,20 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('records the current PR #204 exact-head failure without borrowing parent CI', () => {
+  it('records the current PR #204 exact-head success without borrowing parent CI', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #204 current exact HEAD is `429bcf42e654dd7875eb1ec6e9121785641fdebb`');
-      expect(section).toContain('Validation [44973384594]');
-      expect(section).toContain('terminal FAILURE');
-      expect(section).toContain('333 passed / 1 failed across 72/72 files');
-      expect(section).toContain('CodeQL [44973384562]');
-      expect(section).toContain('Dependency Review [44973384597]');
-      expect(section).toContain('Previous PR #204 HEAD `a676a8420a3a98093d3687476b3fbc987a080a98` had terminal Validation FAILURE');
-      expect(section).toContain('Earlier PR #204 HEAD `ef8b92b63ce3449b061728f56c351671f46ffe14` had 3/3 exact-head workflows SUCCESS');
-      expect(section).toContain('332 tests across 72 test files');
+      expect(section).toContain('PR #204 current exact HEAD is 18c8ea7b40a5d936c3f56f18300b396ce685a8d7');
+      expect(section).toContain('Validation [44986429539] terminal SUCCESS');
+      expect(section).toContain('CodeQL [44986429568] terminal SUCCESS');
+      expect(section).toContain('Dependency Review [44986429575] terminal SUCCESS');
+      expect(section).toContain('334 tests across 72 files');
+      expect(section).toContain('21/21 checks passed');
+      expect(section).toContain('Android emulator smoke test passed');
+      expect(section).toContain('iOS simulator smoke test passed');
       expect(section).toContain('3 moderate severity vulnerabilities');
       expect(section).toContain('PR #204 review inventory: 2 conversation comments');
+      expect(section).toContain('This checkpoint records the validated pre-write parent');
+      expect(section).toContain('documentation/test child must pass its own exact-head CI');
     }
   });
 
@@ -74,9 +77,9 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records exact-head PR #204 validation and security workflow evidence', () => {
     for (const section of latestSections) {
-      expect(section).toContain('Validation [44973384594]');
-      expect(section).toContain('CodeQL [44973384562]');
-      expect(section).toContain('Dependency Review [44973384597]');
+      expect(section).toContain('Validation [44986429539]');
+      expect(section).toContain('CodeQL [44986429568]');
+      expect(section).toContain('Dependency Review [44986429575]');
       expect(section).toContain('450 pytest tests');
       expect(section).toContain('27 production-readiness checks');
       expect(section).toContain('78 security/privacy checks');
