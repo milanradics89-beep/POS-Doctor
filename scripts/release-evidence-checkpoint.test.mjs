@@ -66,7 +66,7 @@ describe('current release evidence checkpoint', () => {
       expect(section).toContain('44918462179');
       expect(section).toContain('334 tests passed and 2 failed across 71/72 files');
       expect(section).toContain('zero formal human reviews, and zero inline review threads');
-      expect(section).toContain('tarlaci1984-sketch is requested');
+      expect(section).toContain('`tarlaci1984-sketch` is requested');
       expect(section).toContain('two failed assertions');
     }
   });
@@ -102,8 +102,8 @@ describe('current release evidence checkpoint', () => {
   it('distinguishes frontend npm audit findings from the clean backend pip-audit', () => {
     for (const section of latestSections) {
       expect(section).toContain('three moderate minimatch findings');
-      expect(section).toContain('pip-audit reports no known vulnerabilities');
-      expect(section).toContain('that is not a fresh audit of `e638a57`');
+      expect(section).toContain('pip-audit ended `No known vulnerabilities found`');
+      expect(section).toContain('#171 and #172 runtime npm audit each show three moderate minimatch findings and no picomatch finding');
       expect(section).toContain('Issue #155 has 120 comments');
     }
   });
@@ -128,8 +128,8 @@ describe('current release evidence checkpoint', () => {
       expect(section).toContain('PR #220 current exact HEAD `1adf04eb3b17f91873ab7724a0d946ad7343ae11` passed Validation');
       expect(section).toContain('PR #201 exact HEAD `776432e4e75327088034fa2f5448d96d7d71f068`');
       expect(section).toContain('runtime npm audit reports zero vulnerabilities');
-      expect(section).toContain('PR #171 exact HEAD `cd3cd0e01f8dab9c1ac8e47c923a05134857d47d`');
-      expect(section).toContain('PR #172 exact HEAD `5e0f0c000a3a3707e5565c32804e4d221a886caa`');
+      expect(section).toContain('#171 exact HEAD `cd3cd0e01f8dab9c1ac8e47c923a05134857d47d`');
+      expect(section).toContain('#172 exact HEAD `5e0f0c000a3a3707e5565c32804e4d221a886caa`');
       expect(section).toContain('identical tree `cf955182d98cae2e19f10c0e08f8e12621cb5242`');
       expect(section).toContain('PR #116 exact HEAD `27fafece2783b11677bdd90e896a1c0e8551aa86`');
       expect(section).toContain('Node 22 setup precedes both Android and iOS Expo prebuild commands');
