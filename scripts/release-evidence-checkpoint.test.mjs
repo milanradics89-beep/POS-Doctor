@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 21:29 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 22:30 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -73,20 +73,22 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('records PR #233 exact-head success without transferring parent results', () => {
+  it('records PR #233 pre-correction exact-head failure without transferring parent results', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #233 is OPEN/DRAFT');
-      expect(section).toContain('e66056a5083ddb24087b13c9d82dc1f42aae9794');
-      expect(section).toContain('5 commits and 4 changed files');
-      expect(section).toContain('Validation [45059736810](');
-      expect(section).toContain('terminal SUCCESS');
-      expect(section).toContain('CodeQL [45059737023](');
-      expect(section).toContain('Dependency Review [45059736866](');
-      expect(section).toContain('Frontend, backend, iOS, CodeQL Analyze, and Dependency Review jobs all passed');
+      expect(section).toContain('6cf6f262697fbf0682d0c48c66ced56fcb46c000');
+      expect(section).toContain('6 commits and 4 changed files');
+      expect(section).toContain('Validation [45067156099](');
+      expect(section).toContain('terminal FAILURE');
+      expect(section).toContain('CodeQL [45067156045](');
+      expect(section).toContain('Dependency Review [45067156113](');
+      expect(section).toContain('333 passed / 4 failed across 72 test files');
       expect(section).toContain('PR #236 is CLOSED/MERGED into the PR #233 branch');
       expect(section).toContain('fast-forward with expected-SHA');
       expect(section).toContain('1a35bf4aa51b5d0f623728c4645e42b5df0fe54c');
       expect(section).toContain('336 passed / 1 failed across 72 test files');
+      expect(section).toContain('539 pytest tests');
+      expect(section).toContain('runtime npm audit was skipped');
       expect(section).toContain('2 conversation comments');
       expect(section).toContain('0 formal review submissions');
       expect(section).toContain('0 inline review threads');
