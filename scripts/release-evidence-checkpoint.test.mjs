@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 08:22 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-22 11:15 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -39,45 +39,39 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('records the current PR #204 exact-head success and security workflow results', () => {
+  it('records PR #204 current exact-head failure and separate security workflow results', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #204 is OPEN/DRAFT against `main`');
-      expect(section).toContain('current exact HEAD is `9311dae635423369badf9b4fcfdcc14aa26a8b96`');
-      expect(section).toContain('Validation [44993531919](');
-      expect(section).toContain('terminal SUCCESS');
-      expect(section).toContain('CodeQL [44993531899](');
-      expect(section).toContain('Dependency Review [44993531931](');
-      expect(section).toContain('334 tests across 72 files');
+      expect(section).toContain('current exact HEAD is `cb6aabab1dc38b6a21000cb5465ab967b2f87b65`');
+      expect(section).toContain('Validation [45002029764](');
+      expect(section).toContain('terminal FAILURE');
+      expect(section).toContain('CodeQL [45002029777](');
+      expect(section).toContain('Dependency Review [45002029773](');
+      expect(section).toContain('333 tests passed / 1 failed across 72 files');
       expect(section).toContain('450 pytest tests');
       expect(section).toContain('27 production-readiness checks');
       expect(section).toContain('78 security/privacy checks');
-      expect(section).toContain('iOS job');
+      expect(section).toContain('iOS native Release build and simulator install/launch smoke passed');
+      expect(section).toContain('Expo Doctor, Android export, Android Release build, Android emulator smoke, and frontend runtime audit were skipped');
+      expect(section).toContain('3 moderate minimatch vulnerabilities through `@expo/fingerprint`');
+      expect(section).toContain('PR #204 review inventory: 2 conversation comments, 0 inline threads, 0 formal review submissions, and 0 human approvals');
       expect(section).toContain('Parent results are historical');
-      expect(section).toContain('21/21 checks passed');
-      expect(section).toContain('Android emulator smoke test passed');
-      expect(section).toContain('iOS simulator smoke test passed');
-      expect(section).toContain('3 moderate severity vulnerabilities');
-      expect(section).toContain('PR #204 review inventory: 2 conversation comments');
     }
   });
 
-  it('keeps other candidate CI evidence bound to each candidate exact head', () => {
+  it('keeps other candidate CI evidence bound to their exact heads', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #200 exact HEAD');
       expect(section).toContain('Backend evidence is 539 tests');
       expect(section).toContain('44735858583');
       expect(section).toContain('PR #201 exact HEAD');
       expect(section).toContain('found 0 vulnerabilities');
-      expect(section).toContain('PR #203 exact HEAD');
-      expect(section).toContain('44744190838');
       expect(section).toContain('PR #218 exact HEAD');
       expect(section).toContain('44945232153');
       expect(section).toContain('PR #219 exact HEAD');
       expect(section).toContain('0 exact-head workflow runs, 0 check-runs and 0 status contexts');
       expect(section).toContain('PR #220 exact HEAD');
       expect(section).toContain('44955675733');
-      expect(section).toContain('PR #221 exact HEAD');
-      expect(section).toContain('PR #222 exact HEAD');
     }
   });
 
