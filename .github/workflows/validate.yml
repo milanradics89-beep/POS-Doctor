@@ -227,6 +227,9 @@ jobs:
           "$ADB_BIN" -s emulator-5554 shell am force-stop "$PACKAGE_NAME"
           echo "Android emulator smoke test passed for $PACKAGE_NAME"
 
+      - name: Full dependency audit (including development dependencies)
+        run: npm audit --audit-level=moderate
+
       - name: Runtime dependency audit
         run: npm audit --omit=dev --audit-level=high
 
