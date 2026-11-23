@@ -15,9 +15,16 @@ describe("CodeQL workflow action consistency", () => {
     expect(revisions[0]).toBe("1bd86f2fdb4b86187fa4059f16f31a3202acc9ea");
   });
 
-  it("groups CodeQL action updates atomically in Dependabot", () => {
+  it("groups CodeQL action updates only in the github-actions Dependabot stanza", () => {
     const dependabot = read(".github/dependabot.yml");
-    expect(dependabot).toContain("codeql-action:");
-    expect(dependabot).toContain('"github/codeql-action/*"');
+    const updateBlocks = dependabot.split(/(?=^  - package-ecosystem: )/m);
+    const npmUpdate = updateBlocks.find(block => /^  - package-ecosystem: npm\\s*$/m.test(block));
+    const actionsUpdate = updateBlocks.find(block => /^  - package-ecosystem: github-actions\\s*$/m.test(block));
+
+    expect(npmUpdate).toBeDefined();
+    expect(actionsUpdate).toBeDefined();
+    expect(npmUpdate).not.toContain("codeql-action:");
+    expect(actionsUpdate).toContain("codeql-action:");
+    expect(actionsUpdate).toContain('patterns:\\n          - "github/codeql-action/*"');
   });
 });
