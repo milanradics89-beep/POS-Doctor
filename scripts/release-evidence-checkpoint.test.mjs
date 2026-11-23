@@ -127,7 +127,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Dependency Review [#45077680544](');
       expect(section).toContain('337 passed / 1 failed across 72 test files');
       expect(section).toContain('runtime npm audit was skipped, not failed');
-      expect(section).toContain('PR #237 exact HEAD `fe6178ce5d342dc7a9dbf9eb4594e51167622503`');
+      expect(section).toContain('PR #237 is a separate child at exact HEAD `fe6178ce5d342dc7a9dbf9eb4594e51167622503`');
       expect(section).toContain('base SHA is still `6805604d5781ff62284a94beb5d77f39b816ccf9`');
       expect(section).toContain('3 moderate minimatch findings');
       expect(section).toContain('PR #85 current exact HEAD `e3cc12a5ecb36877bdee5984ddd09d5e4f8f7bc9`');
