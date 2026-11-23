@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-22 23:21 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-23 01:12 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -78,10 +78,10 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('PR #233 is OPEN/DRAFT');
       expect(section).toContain('6cf6f262697fbf0682d0c48c66ced56fcb46c000');
       expect(section).toContain('6 commits and 4 changed files');
-      expect(section).toContain('Validation [45067156099](');
+      expect(section).toContain('Validation [#45067156099](');
       expect(section).toContain('terminal FAILURE');
-      expect(section).toContain('CodeQL [45067156045](');
-      expect(section).toContain('Dependency Review [45067156113](');
+      expect(section).toContain('CodeQL [#45067156045](');
+      expect(section).toContain('Dependency Review [#45067156113](');
       expect(section).toContain('333 passed / 4 failed across 72 test files');
       expect(section).toContain('PR #236 is CLOSED/MERGED into the PR #233 branch');
       expect(section).toContain('fast-forwarded with expected-SHA');
@@ -120,11 +120,11 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records the latest PR #233 exact head and keeps PR #237 base evidence separate', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #233 current exact HEAD `dd732252a3a8eea5211ca0a5324c61eca044a8c4`');
+      expect(section).toContain('Current PR #233 exact HEAD is `dd732252a3a8eea5211ca0a5324c61eca044a8c4`');
       expect(section).toContain('8 commits and 4 changed files');
-      expect(section).toContain('Validation [45077680540](');
-      expect(section).toContain('CodeQL [45077680551](');
-      expect(section).toContain('Dependency Review [45077680544](');
+      expect(section).toContain('Validation [#45077680540](');
+      expect(section).toContain('CodeQL [#45077680551](');
+      expect(section).toContain('Dependency Review [#45077680544](');
       expect(section).toContain('337 passed / 1 failed across 72 test files');
       expect(section).toContain('runtime npm audit was skipped, not failed');
       expect(section).toContain('PR #237 exact HEAD `fe6178ce5d342dc7a9dbf9eb4594e51167622503`');
@@ -138,6 +138,25 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('3 moderate minimatch findings and no picomatch finding');
       expect(section).toContain('64 items / 41 checked / 23 open');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
+    }
+  });
+
+  it('records PR #238 child exact-head failure separately from PR #233', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #238 is OPEN/DRAFT at exact HEAD `46c594e57404934d8be8c8f2dc300886fc02caf0`');
+      expect(section).toContain('1 commit and 4 changed files');
+      expect(section).toContain('based on PR #233 branch');
+      expect(section).toContain('Validation [#45081443668](');
+      expect(section).toContain('CodeQL [#45081443620](');
+      expect(section).toContain('Dependency Review [#45081443715](');
+      expect(section).toContain('337 passed / 2 failed across 72 test files');
+      expect(section).toContain('two PR #238 frontend failures are test/evidence-contract mismatches');
+      expect(section).toContain('Backend job [137394341947](');
+      expect(section).toContain('539 pytest tests, 27 production-readiness checks, and 78 security/privacy checks');
+      expect(section).toContain('iOS job [137394342328](');
+      expect(section).toContain('native Release build and simulator smoke');
+      expect(section).toContain('PR #238 review inventory: 2 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
+      expect(section).toContain('PR #233 current review inventory: 3 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
     }
   });
 
