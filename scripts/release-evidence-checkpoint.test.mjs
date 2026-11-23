@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-23 04:45 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-23 06:36 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -224,6 +224,48 @@ describe('current-main release evidence checkpoint', () => {
       expect(document).toContain('PR #233 review inventory: 3 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
     }
   });
+  it('records the current PR #233 exact-head failure and preserves the historical evidence repair path', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #233 is OPEN/DRAFT at exact HEAD `835ca2f030e7d58c894fea00b39fc02ae63dc2a3`');
+      expect(section).toContain('14 commits and 4 changed files');
+      expect(section).toContain('Validation [45108244823](');
+      expect(section).toContain('CodeQL [45108244835](');
+      expect(section).toContain('Dependency Review [45108244803](');
+      expect(section).toContain('345 passed / 1 failed across 72 test files');
+      expect(section).toContain('scripts/release-evidence-checkpoint.test.mjs:186');
+      expect(section).toContain('missing historical 8acad8c evidence');
+      expect(section).toContain('Frontend job [137479943865](');
+      expect(section).toContain('Backend job [137479945106](');
+      expect(section).toContain('iOS job [137479984376](');
+      expect(section).toContain('CodeQL Analyze job [137474397520](');
+      expect(section).toContain('Dependency Review job [137474396353](');
+      expect(section).toContain('PR #233 review inventory: 4 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
+      expect(section).toContain('PR #243 is OPEN/DRAFT at exact HEAD `571434c362fa54d2472623742a63647eb483348f`');
+      expect(section).toContain('PR #245 is OPEN/DRAFT at exact HEAD `6ef6801fc43178b967f71ad241f160f3dc80651f`');
+      expect(section).toContain('deletes the historical `8acad8` evidence assertions');
+    }
+  });
+
+  it('records the full minimatch dependency audit on PR #246 exact head', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #246 is OPEN/DRAFT at exact HEAD `ad614dd25d0fd11d3d50737718e7dbd88a74c89a`');
+      expect(section).toContain('npm audit --audit-level=moderate');
+      expect(section).toContain('found 0 vulnerabilities');
+      expect(section).toContain('Validation [45112214845](');
+      expect(section).toContain('CodeQL [45112214955](');
+      expect(section).toContain('Dependency Review [45112214927](');
+    }
+  });
+
+  it('records picomatch counterexample timeouts as unresolved security evidence', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #244 exact HEAD `914e5f81df1c1859bfa7e946fda5504a211718fa`');
+      expect(section).toContain('329 passed / 4 failed across 72 files');
+      expect(section).toContain('2500ms child timeout');
+      expect(section).toContain('not proof of a confirmed exploitable vulnerability');
+    }
+  });
+
   it('records PR #238 as merged into PR #233 only, without merging main', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #238 is CLOSED/MERGED into the PR #233 branch only');
