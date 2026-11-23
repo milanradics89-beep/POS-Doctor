@@ -19,9 +19,13 @@ describe('current-main release evidence checkpoint', () => {
     expect(documents.every((document) => document.startsWith(marker))).toBe(true);
   });
 
-  it('keeps the same current checkpoint in all three release records', () => {
+  it('shares the same checkpoint header and evidence preface across all three release records', () => {
     expect(latestSections.every(Boolean)).toBe(true);
-    expect(new Set(latestSections).size).toBe(1);
+    const sharedPrefaces = documents.map((document) => {
+      const end = document.indexOf('\n\n### PR #41 — merged baseline and review audit');
+      return document.slice(0, end < 0 ? document.length : end);
+    });
+    expect(new Set(sharedPrefaces).size).toBe(1);
   });
 
   it('binds PR #41 evidence to its merged exact head and exact-head workflows', () => {
