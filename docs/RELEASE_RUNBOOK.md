@@ -1118,7 +1118,7 @@ Evidence refreshed from live GitHub PR metadata, exact branch refs, exact-commit
 ### Other active security/release candidates
 
 - PR #246 remains OPEN/DRAFT at exact HEAD ad614dd25d0fd11d3d50737718e7dbd88a74c89a; its exact-head Validation 45112214845, CodeQL 45112214955, and Dependency Review 45112214927 are terminal SUCCESS. Its recorded full dependency-tree audit at moderate threshold and runtime audit at high threshold reported zero vulnerabilities. It is an unmerged candidate, not mainline remediation.
-- PR #244 remains OPEN/DRAFT at 914e5f81df1c1859bfa7e946fda5504a211718fa; Validation 45110396689 failed, while CodeQL 45110396639 and Dependency Review 45110396664 passed. Four picomatch adversarial patterns exceeded the 2,500 ms child-process timeout: +(*), *(*) , +(a*), and +(*a). This is an unresolved security-testing signal, not proof of exploitability. Tests/timeouts were not weakened.
+- PR #244 remains OPEN/DRAFT at 914e5f81df1c1859bfa7e946fda5504a211718fa; Validation 45110396689 failed, while CodeQL 45110396639 and Dependency Review 45110396664 passed. Four picomatch adversarial patterns exceeded the 2,500 ms child-process timeout: +(*) *(*) , +(a*), and +(*a). This is an unresolved security-testing signal, not proof of exploitability. Tests/timeouts were not weakened.
 - PR #245 is not an acceptable integration path: its patch removes historical regression assertions. Green CI on that branch does not justify dropping those assertions.
 - Mainline PR #200's DNS-pinned SSRF implementation is merged on main. Production acceptance remains blocked pending independent security-owner approval, complete production NAT64/DNS64 prefix inventory, deployed USEIT_NAT64_PREFIXES verification, and staging/production egress tests.
 
@@ -1138,3 +1138,31 @@ Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.
 3. Security owner investigates the picomatch counterexamples and reviews PR #246 before dependency remediation is selected.
 4. Production security owner supplies NAT64/DNS64 and deployed egress evidence for Issue #64.
 5. Keep production rollout, backup/restore, monitoring, physical-device, and pilot gates closed until witnessed evidence and named approvals are recorded.
+
+
+## Latest live release-watch checkpoint — 2026-11-23 15:17 CET
+
+### Exact PR and branch evidence
+
+- PR #41 is CLOSED/MERGED. Its source branch `fix/release-blockers-2026-10` and PR metadata agree on exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. The PR records 517 commits, 100 changed files, +11,887/-2,005. Comparison with current main is DIVERGED, 517 ahead / 4 behind; do not reopen or merge it again.
+- PR #41 exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) are terminal SUCCESS. All five jobs are terminal success: backend, frontend, iOS, CodeQL analyze, and dependency-review.
+- PR #41 review inventory: 109 combined timeline records (53 conversation comments, 30 inline review comments, 26 formal review submissions); 25 submissions are COMMENTED and one human APPROVED by `tarlaci1984-sketch`. All 22 inline threads are resolved; 0 unresolved; 20 outdated.
+
+### Current release-documentation candidate
+
+- PR #249 is OPEN/DRAFT, based on PR #233's release-evidence branch, at exact HEAD `03f696d5213554e23527552daf74b0c769ea27f5`. It has 4 commits and 4 changed files. It remains a child candidate; it has not been merged into PR #233 or main.
+- PR #249 exact-head Validation [45177427806](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45177427806), CodeQL [45177427823](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45177427823), and Dependency Review [45177427845](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45177427845) are all terminal SUCCESS. Validation's backend, frontend, and iOS jobs passed. Frontend steps include unit tests, Expo Doctor, Android export, native Android Release build, Android emulator smoke, and runtime dependency audit; iOS Release build and simulator smoke passed. CodeQL Analyze and Dependency Review also passed.
+- PR #249 currently has one Dependency Review bot conversation comment, 0 formal review submissions, and 0 inline review threads. Human review is still required; green automation is not approval.
+- Parent PR #233 remains OPEN/DRAFT at exact HEAD `1f21b900c44194739ae6c85f171c3dd657c9fc84`. Its own Validation [45153637592](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45153637592) failed (329 passed / 4 failed in frontend); CodeQL [45153637645](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45153637645) and Dependency Review [45153637640](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45153637640) passed. PR #249's green child checks do not change that parent result.
+
+### Issues, mainline, releases, and security inventory
+
+- Issue #47 is CLOSED with 11 comments. Issue #64 is OPEN with 127 comments (last updated 2026-11-23 14:00:53 UTC). The merged DNS-pinned transport has source-level and automated regression evidence, but production NAT64/DNS64 inventory, deployed `USEIT_NAT64_PREFIXES` verification, staging/production egress evidence, and independent security-owner acceptance remain outstanding.
+- Current main HEAD is `3a262358552a9650d865aa5bd3c92905f1e863cb`. Active ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires six strict checks, one approving review, last-push approval, stale-review dismissal, resolved review threads, deletion/non-fast-forward protection, and has no bypass actors.
+- GitHub Releases API returned an empty array: 0 published releases.
+- Code Scanning, Dependabot, and Secret Scanning alert inventories remain UNAVAILABLE through the connected integration: UNVERIFIED, NOT EMPTY. The alert endpoint family was rejected; successful workflow checks are not a substitute for alert inventory.
+- PR #244 remains a picomatch counterexample test candidate. The four exact patterns are `+(*)`, `*(*)`, `+(a*)`, and `+(*a)`; each exceeded the 2,500 ms child-process timeout on its recorded failing Validation. This is an unresolved security-testing signal, not proof of exploitability. Do not weaken the timeout or suppress tests.
+
+### Release decision
+
+Automated CI on PR #249 is green at its exact HEAD, but PR #249 still requires human review and reconciliation with its parent. Production and pilot acceptance remain NOT GRANTED. Simulator/emulator checks do not satisfy physical-device, production-cloud, witnessed backup/restore, monitoring, staged rollout/rollback, real-user pilot, or business approval.

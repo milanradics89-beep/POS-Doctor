@@ -2061,7 +2061,7 @@ Evidence refreshed from live GitHub PR metadata, exact branch refs, exact-commit
 ### Other active security/release candidates
 
 - PR #246 remains OPEN/DRAFT at exact HEAD ad614dd25d0fd11d3d50737718e7dbd88a74c89a; its exact-head Validation 45112214845, CodeQL 45112214955, and Dependency Review 45112214927 are terminal SUCCESS. Its recorded full dependency-tree audit at moderate threshold and runtime audit at high threshold reported zero vulnerabilities. It is an unmerged candidate, not mainline remediation.
-- PR #244 remains OPEN/DRAFT at 914e5f81df1c1859bfa7e946fda5504a211718fa; Validation 45110396689 failed, while CodeQL 45110396639 and Dependency Review 45110396664 passed. Four picomatch adversarial patterns exceeded the 2,500 ms child-process timeout: +(*), *(*) , +(a*), and +(*a). This is an unresolved security-testing signal, not proof of exploitability. Tests/timeouts were not weakened.
+- PR #244 remains OPEN/DRAFT at 914e5f81df1c1859bfa7e946fda5504a211718fa; Validation 45110396689 failed, while CodeQL 45110396639 and Dependency Review 45110396664 passed. Four picomatch adversarial patterns exceeded the 2,500 ms child-process timeout: +(*) *(*) , +(a*), and +(*a). This is an unresolved security-testing signal, not proof of exploitability. Tests/timeouts were not weakened.
 - PR #245 is not an acceptable integration path: its patch removes historical regression assertions. Green CI on that branch does not justify dropping those assertions.
 - Mainline PR #200's DNS-pinned SSRF implementation is merged on main. Production acceptance remains blocked pending independent security-owner approval, complete production NAT64/DNS64 prefix inventory, deployed USEIT_NAT64_PREFIXES verification, and staging/production egress tests.
 
@@ -2084,3 +2084,31 @@ Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.
 | **Total** | **#1–#25** | **25** |
 
 Do not promote any blocked item based on CI, simulator/emulator smoke, or source-level review. Main's older historical register remains 3 Done / 15 In Progress / 7 Blocked and is tracked separately.
+
+
+## Latest live evidence checkpoint — 2026-11-23 15:17 CET
+
+### Current exact-head status
+
+- PR #41 is CLOSED/MERGED at source branch `fix/release-blockers-2026-10`, exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`, merge commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Its exact-head Validation, CodeQL, and Dependency Review passed; all five jobs passed. Review inventory: 53 conversation comments, 30 inline comments, 26 review submissions (25 COMMENTED, one APPROVED), 22/22 threads resolved.
+- PR #249 is OPEN/DRAFT at exact HEAD `03f696d5213554e23527552daf74b0c769ea27f5`. Its exact-head Validation [45177427806](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45177427806), CodeQL [45177427823](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45177427823), and Dependency Review [45177427845](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45177427845) all passed. Backend, frontend, iOS, CodeQL Analyze, and Dependency Review jobs are terminal success. PR #249 has 0 formal reviews and 0 inline threads; human review is still required.
+- Parent PR #233 remains OPEN/DRAFT at `1f21b900c44194739ae6c85f171c3dd657c9fc84`; its own Validation failed (329 passed / 4 frontend assertions), while CodeQL and Dependency Review passed. Do not transfer PR #249's checks to the parent.
+
+### Current issue, governance, release, and security inventory
+
+- Issue #47: CLOSED, 11 comments. Issue #64: OPEN, 127 comments (updated 2026-11-23 14:00:53 UTC). Main HEAD: `3a262358552a9650d865aa5bd3c92905f1e863cb`; active ruleset #26370589 requires six strict checks, one approval, last-push approval, resolved threads, deletion/non-fast-forward protection, and no bypass actors.
+- Published GitHub Releases: 0. Code Scanning, Dependabot, and Secret Scanning inventories are unavailable through the connected integration: UNVERIFIED, NOT EMPTY.
+- PR #244's four picomatch timeout patterns are `+(*)`, `*(*)`, `+(a*)`, and `+(*a)`. The recorded 2,500 ms timeouts remain an unresolved security-testing signal, not proof of exploitability. Do not weaken or suppress the tests.
+
+### Canonical 25-point register (unchanged)
+
+| Status | Items | Count |
+|---|---|---:|
+| Done | #1, #6 | 2 |
+| In Progress | #3, #7–#15, #17, #19, #20, #23, #24 | 15 |
+| Blocked | #2, #4, #5, #16, #18, #21, #22, #25 | 8 |
+| **Total** | **#1–#25** | **25** |
+
+The eight Blocked items remain blocked until the evidence specified in the acceptance record exists. Main's separate historical register remains 3 Done / 15 In Progress / 7 Blocked; do not merge the two registers.
+
+Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.
