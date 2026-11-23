@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-23 11:04 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-23 11:50 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -47,7 +47,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('44735858583');
       expect(section).toContain('44735858347');
       expect(section).toContain('44735858455');
-      expect(section).toContain('no separate PR-triggered workflow runs or combined status contexts');
+      expect(section).toContain('No push-triggered Dependency Review run was returned; source-PR Dependency Review is not substituted for a main push run.');
     }
   });
 
@@ -226,21 +226,21 @@ describe('current-main release evidence checkpoint', () => {
   });
   it('records PR #233 current exact-head Validation failure without transferring parent results', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #233 is OPEN/DRAFT at exact HEAD `2d8ca0d858b33c4fd9467c17a32dfc1a94067372`');
-      expect(section).toContain('17 commits and 4 changed files');
-      expect(section).toContain('Validation [45142687443](');
-      expect(section).toContain('CodeQL [45142687432](');
-      expect(section).toContain('Dependency Review [45142687463](');
+      expect(section).toContain('PR #233 is OPEN/DRAFT at exact HEAD `1f21b900c44194739ae6c85f171c3dd657c9fc84`');
+      expect(section).toContain('18 commits and 4 changed files (+3,052 / -17)');
+      expect(section).toContain('Validation [45153637592](');
+      expect(section).toContain('CodeQL [45153637645](');
+      expect(section).toContain('Dependency Review [45153637640](');
       expect(section).toContain('terminal FAILURE');
-      expect(section).toContain('Frontend job [137596405027](');
-      expect(section).toContain('348 passed / 1 failed across 72 test files');
-      expect(section).toContain('scripts/release-evidence-checkpoint.test.mjs:286');
-      expect(section).toContain('historical PR #233 / PR #238 review-inventory evidence');
-      expect(section).toContain('Backend job [137596407801](');
-      expect(section).toContain('iOS job [137596454624](');
+      expect(section).toContain('Frontend job [137638389920](');
+      expect(section).toContain('329 passed / 4 failed across 72 test files');
+      expect(section).toContain('four stale checkpoint-string expectations');
+      expect(section).toContain('not demonstrated application runtime failures');
+      expect(section).toContain('Backend job [137638392077](');
+      expect(section).toContain('iOS job [137638393316](');
       expect(section).toContain('native Release build and simulator smoke');
-      expect(section).toContain('CodeQL Analyze job [137584293094](');
-      expect(section).toContain('Dependency Review job [137584292691](');
+      expect(section).toContain('CodeQL Analyze job [137620986726](');
+      expect(section).toContain('Dependency Review job [137621000006](');
       expect(section).toContain('Expo Doctor, Android export, native Android Release build, emulator smoke, and frontend runtime npm audit were skipped');
       expect(section).toContain('PR #233 review inventory: 5 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
       expect(section).toContain('PR #243 is CLOSED/MERGED into the PR #233 branch only');
@@ -248,8 +248,8 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('force=false');
       expect(section).toContain('did not merge anything into main');
       expect(section).toContain('PR #245 is OPEN/DRAFT at exact HEAD `6ef6801fc43178b967f71ad241f160f3dc80651f`');
-      expect(section).toContain('1 ahead / 3 behind');
-      expect(section).toContain('deletes historical `8acad8` regression assertions');
+      expect(section).toContain('1 ahead / 4 behind');
+      expect(section).toContain('removing historical `8acad8` regression assertions');
     }
   });
 
@@ -266,9 +266,16 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records picomatch counterexample timeouts as unresolved security evidence', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #244 exact HEAD `914e5f81df1c1859bfa7e946fda5504a211718fa`');
+      expect(section).toContain('PR #244 is OPEN/DRAFT at exact HEAD `914e5f81df1c1859bfa7e946fda5504a211718fa`');
       expect(section).toContain('329 passed / 4 failed across 72 files');
       expect(section).toContain('2500ms child timeout');
+      expect(section).toContain('The exact six no-space patterns tested');
+      expect(section).toContain('+(*)');
+      expect(section).toContain('*(*)');
+      expect(section).toContain('+(a*)');
+      expect(section).toContain('+(*a)');
+      expect(section).toContain('*(a*|b)');
+      expect(section).toContain('+(ab|abab)');
       expect(section).toContain('not proof of a confirmed exploitable vulnerability');
     }
   });
@@ -299,7 +306,7 @@ describe('current-main release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('3 MODERATE severity vulnerabilities (minimatch)');
       expect(section).toContain('not a clean zero-vulnerability audit');
-      expect(section).toContain('Do not run npm audit fix --force');
+      expect(section).toContain('Do not run `npm audit fix --force`');
       expect(section).toContain('PR #231 exact HEAD 444e312b4bf94237eedfb0af1a24922bf5853942');
     }
   });
