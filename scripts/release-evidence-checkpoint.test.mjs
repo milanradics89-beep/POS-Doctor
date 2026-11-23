@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-23 19:31 CET';
+const marker = '## Latest live release-watch checkpoint — 2026-11-23 22:03 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const nextHeading = document.indexOf('\n## ', marker.length);
@@ -39,7 +39,7 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('records current PR #249 checkpoint-test failure separately from the earlier Expo Doctor finding', () => {
+  it('preserves the historical PR #249 checkpoint-test failure separately from the earlier Expo Doctor finding', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #249 is OPEN/DRAFT on `fix/pr233-live-checkpoint-refresh-20261123-1150`');
       expect(section).toContain('Parent exact HEAD before this checkpoint update was `d4a11d82c62c98a0e2ee9c0f669a54c6ac4f8a9d`');
@@ -398,6 +398,27 @@ describe('current-main release evidence checkpoint', () => {
     for (const [name, versions] of Object.entries(expected)) {
       expect(manifest.dependencies[name]).toBe(versions.range);
       expect(lockfile.packages[`node_modules/${name}`]?.version).toBe(versions.resolved);
+    }
+  });
+
+
+  it('records current PR #249 and PR #254 exact-head green evidence without conflating their dependency audit scopes', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD \`6a7e26e8aec39e1cbd9d860e54fd35614c3cd521\`');
+      expect(section).toContain('Validation [#45251454548](');
+      expect(section).toContain('CodeQL [#45251454522](');
+      expect(section).toContain('Dependency Review [#45251454529](');
+      expect(section).toContain('351/351 tests across 72 files');
+      expect(section).toContain('PR #254 is OPEN/DRAFT at exact HEAD \`2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3\`');
+      expect(section).toContain('Validation [#45223358003](');
+      expect(section).toContain('CodeQL [#45223357946](');
+      expect(section).toContain('Dependency Review [#45223358018](');
+      expect(section).toContain('3 MODERATE minimatch findings');
+      expect(section).toContain('Issue [#64]');
+      expect(section).toContain('132 comments');
+      expect(section).toContain('0 published releases');
+      expect(section).toContain('UNAVAILABLE, UNVERIFIED, NOT EMPTY');
+      expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
     }
   });
 
