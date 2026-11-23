@@ -203,25 +203,25 @@ describe('current-main release evidence checkpoint', () => {
   });
 
   it('records the current PR #233 exact-head failure and its precise checkpoint assertion', () => {
-    for (const section of latestSections) {
-      expect(section).toContain('PR #233 is OPEN/DRAFT on docs/release-evidence-main-sync-20261122-run13, current exact HEAD `cc4c3f7b00d4ac7b7c1e3cc1c382b548a1362537`');
-      expect(section).toContain('13 commits and 4 changed files');
-      expect(section).toContain('Validation [45102371195](');
-      expect(section).toContain('CodeQL [45102371200](');
-      expect(section).toContain('Dependency Review [45102371250](');
-      expect(section).toContain('terminal FAILURE');
-      expect(section).toContain('343 passed / 1 failed across 72 test files');
-      expect(section).toContain('the current checkpoint omits the required safety instruction');
-      expect(section).toContain('Do not run npm audit fix --force');
-      expect(section).toContain('Frontend job [137463168713](');
-      expect(section).toContain('Backend job [137463171003](');
-      expect(section).toContain('539 pytest tests, 27 production-readiness checks, and 78 security/privacy checks');
-      expect(section).toContain('iOS job [137463201544](');
-      expect(section).toContain('native Release build and simulator smoke');
-      expect(section).toContain('CodeQL Analyze job [137455905257](');
-      expect(section).toContain('Dependency Review job [137455905249](');
-      expect(section).toContain('runtime npm audit was skipped, not failed');
-      expect(section).toContain('PR #233 review inventory: 3 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
+    for (const document of documents) {
+      expect(document).toContain('PR #233 is OPEN/DRAFT on docs/release-evidence-main-sync-20261122-run13, current exact HEAD `cc4c3f7b00d4ac7b7c1e3cc1c382b548a1362537`');
+      expect(document).toContain('13 commits and 4 changed files');
+      expect(document).toContain('Validation [45102371195](');
+      expect(document).toContain('CodeQL [45102371200](');
+      expect(document).toContain('Dependency Review [45102371250](');
+      expect(document).toContain('terminal FAILURE');
+      expect(document).toContain('343 passed / 1 failed across 72 test files');
+      expect(document).toContain('the current checkpoint omits the required safety instruction');
+      expect(document).toContain('Do not run npm audit fix --force');
+      expect(document).toContain('Frontend job [137463168713](');
+      expect(document).toContain('Backend job [137463171003](');
+      expect(document).toContain('539 pytest tests, 27 production-readiness checks, and 78 security/privacy checks');
+      expect(document).toContain('iOS job [137463201544](');
+      expect(document).toContain('native Release build and simulator smoke');
+      expect(document).toContain('CodeQL Analyze job [137455905257](');
+      expect(document).toContain('Dependency Review job [137455905249](');
+      expect(document).toContain('runtime npm audit was skipped, not failed');
+      expect(document).toContain('PR #233 review inventory: 3 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
     }
   });
   it('records PR #238 as merged into PR #233 only, without merging main', () => {
