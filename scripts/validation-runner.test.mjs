@@ -23,6 +23,11 @@ describe('USEIT validation runner contract', () => {
     expect(workflow).toMatch(/^  ios:\r?\n    runs-on: macos-latest$/m);
   });
 
+  it('runs a full audit across production and development dependencies before the runtime threshold check', () => {
+    expect(frontendJob).toContain('name: Full dependency audit (including development dependencies)');
+    expect(frontendJob).toContain('run: npm audit --audit-level=moderate');
+  });
+
   it('captures the complete frontend job, including Expo Doctor and Android validation', () => {
     expect(frontendJob).toContain('name: Validate Expo project health');
     expect(frontendJob).toContain('name: Validate Android export');
