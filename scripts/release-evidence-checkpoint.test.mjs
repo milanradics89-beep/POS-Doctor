@@ -241,7 +241,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('native Release build and simulator smoke');
       expect(section).toContain('CodeQL Analyze job [137620986726](');
       expect(section).toContain('Dependency Review job [137621000006](');
-      expect(section).toContain('Expo Doctor, Android export, native Android Release build, emulator smoke, and frontend runtime npm audit were skipped');
+      expect(section).toContain('Expo Doctor, Android export, native Android Release build, emulator smoke, and frontend runtime `npm audit` were skipped');
       expect(section).toContain('PR #233 review inventory: 5 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
       expect(section).toContain('PR #243 is CLOSED/MERGED into the PR #233 branch only');
       expect(section).toContain('fast-forwarded with expected-SHA');
