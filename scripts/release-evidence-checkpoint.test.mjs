@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-23 06:36 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-23 09:51 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -224,24 +224,34 @@ describe('current-main release evidence checkpoint', () => {
       expect(document).toContain('PR #233 review inventory: 3 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
     }
   });
-  it('records the current PR #233 exact-head failure and preserves the historical evidence repair path', () => {
+  it('records PR #233 exact-head green CI and current runtime dependency findings', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #233 is OPEN/DRAFT at exact HEAD `835ca2f030e7d58c894fea00b39fc02ae63dc2a3`');
-      expect(section).toContain('14 commits and 4 changed files');
-      expect(section).toContain('Validation [45108244823](');
-      expect(section).toContain('CodeQL [45108244835](');
-      expect(section).toContain('Dependency Review [45108244803](');
-      expect(section).toContain('345 passed / 1 failed across 72 test files');
-      expect(section).toContain('scripts/release-evidence-checkpoint.test.mjs:186');
-      expect(section).toContain('missing historical 8acad8c evidence');
-      expect(section).toContain('Frontend job [137479943865](');
-      expect(section).toContain('Backend job [137479945106](');
-      expect(section).toContain('iOS job [137479984376](');
-      expect(section).toContain('CodeQL Analyze job [137474397520](');
-      expect(section).toContain('Dependency Review job [137474396353](');
+      expect(section).toContain('PR #233 is OPEN/DRAFT at exact HEAD `b92b29b4d605e466de3104d6fc4b7aec81c380a3`');
+      expect(section).toContain('16 commits and 4 changed files');
+      expect(section).toContain('Validation [45131288055](');
+      expect(section).toContain('CodeQL [45131287993](');
+      expect(section).toContain('Dependency Review [45131287991](');
+      expect(section).toContain('terminal SUCCESS on the same exact SHA');
+      expect(section).toContain('All five jobs passed');
+      expect(section).toContain('Frontend job [137547143310](');
+      expect(section).toContain('Backend job [137547143281](');
+      expect(section).toContain('539 pytest tests, 27 production-readiness checks, and 78 security/privacy checks');
+      expect(section).toContain('pip-audit reported no known vulnerabilities');
+      expect(section).toContain('iOS job [137547143081](');
+      expect(section).toContain('native Release build and simulator smoke');
+      expect(section).toContain('CodeQL Analyze job [137547143239](');
+      expect(section).toContain('Dependency Review job [137547142368](');
+      expect(section).toContain('3 MODERATE severity vulnerabilities (minimatch)');
+      expect(section).toContain('high-only threshold does not mean zero vulnerabilities');
+      expect(section).toContain('not a clean zero-vulnerability audit');
+      expect(section).toContain('Do not run npm audit fix --force');
       expect(section).toContain('PR #233 review inventory: 4 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
-      expect(section).toContain('PR #243 is OPEN/DRAFT at exact HEAD `571434c362fa54d2472623742a63647eb483348f`');
+      expect(section).toContain('PR #243 is CLOSED/MERGED into the PR #233 branch only');
+      expect(section).toContain('fast-forwarded with expected-SHA');
+      expect(section).toContain('force=false');
+      expect(section).toContain('did not merge anything into main');
       expect(section).toContain('PR #245 is OPEN/DRAFT at exact HEAD `6ef6801fc43178b967f71ad241f160f3dc80651f`');
+      expect(section).toContain('1 ahead / 2 behind');
       expect(section).toContain('deletes the historical `8acad8` evidence assertions');
     }
   });
