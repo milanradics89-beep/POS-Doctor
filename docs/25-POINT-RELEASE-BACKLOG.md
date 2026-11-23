@@ -1799,7 +1799,7 @@ Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/
 | 7 | Attestation retry/network/expiry | **In Progress** | Commit [7e8097b](https://github.com/milanradics89-beep/POS-Doctor/commit/7e8097b0927ca1b9f86457b559807fbf3965fde1) adds three regressions for expired, missing, and non-integer challenge expiry before native key creation/attestation. Real network-loss and provider-backed device verification remain open. |
 | 8 | Backend production security audit | **In Progress** | Exact validated-parent backend job [130764391957](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044324/job/130764391957) passed. The unchanged source/test baseline records 450 tests, 27 readiness checks, 78 security/privacy checks, and no known pip-audit vulnerabilities. Deployed secrets, ingress/CORS, provider identity, live Redis TLS/sysctl, and production host hardening remain environment-verification gates. |
 | 9 | Privacy and logging audit | **In Progress** | Exact validated-parent backend job [130764391957](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044324/job/130764391957) passed; the unchanged source/test baseline records 78 security/privacy checks. Valid PNG image-data URI and private-intent redaction tests remain in the suite. Production log sink, ingress/access logs, retention, and operator access remain unverified. |
-| 10 | Release acceptance evidence | **In Progress** | PR #233 exact HEAD 6805604d5781ff62284a94beb5d77f39b816ccf9: Validation [45073803426](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45073803426) failed at frontend Unit tests (335 passed / 2 failed across 72 files); CodeQL [45073803442](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45073803442) and Dependency Review [45073803419](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45073803419) passed on the same SHA. Both frontend failures are checkpoint-test wording mismatches, not application failures. Backend passed 539 pytest tests, 27 readiness checks and 78 security/privacy checks; iOS Release build/simulator smoke passed. PR #233 remains unapproved (2 conversation comments, 0 formal reviews, 0 inline threads). PR #204 remains a separate Validation failure (332 passed / 2 failed); PR #229, #231 and #232 each passed 3/3 on their own exact heads. Production/pilot acceptance is not granted. |
+| 10 | Release acceptance evidence | **In Progress** | PR #249 exact HEAD `7615189b9c7e52d2b4e67d1cc389d4c57a0d4104`: Validation [45193033662](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45193033662) failed at Expo Doctor; CodeQL [45193033650](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45193033650) and Dependency Review [45193033682](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45193033682) passed on the same SHA. Frontend unit tests passed 349/349 across 72 files and TypeScript passed. Expo Doctor 20/21 failed because `expo-constants` 57.0.24, `expo-image-picker` 57.0.21 and `expo-router` 57.0.31 are below the official SDK 57 bundled-module expectations `~57.0.25`, `~57.0.22` and `~57.0.32`. Backend and iOS passed; Android export/Release/emulator and runtime dependency audit were skipped. Parent PR #233 remains separately failed on its own exact SHA. Production/pilot acceptance is not granted. |
 | 11 | Mobile regression | **In Progress** | Exact validated-parent frontend/Android job [130764391800](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044324/job/130764391800) and iOS job [130764391399](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044324/job/130764391399) passed Release build and emulator/simulator smoke. The unchanged source/test baseline recorded 285 tests across 58 files. Physical-device regression remains. |
 | 12 | Camera/image processing | **In Progress** | Image-contract and permission tests exist; representative physical capture, camera/gallery flows, and real-photo coverage remain. |
 | 13 | Offline/weak network | **In Progress** | Abort/deadline/retry tests exist; real network interruption and reconnect recovery still need device/staging validation. |
@@ -1813,7 +1813,7 @@ Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/
 | 21 | Monitoring/alerting | **Blocked** | Production monitoring workspace, alert destination, named on-call owner, and alert-delivery tests are required. |
 | 22 | Staged rollout | **Blocked** | Production approval, TestFlight/Play track access, rollout gates, and a named rollback owner are required. |
 | 23 | Analytics | **In Progress** | `vision_usage` token/model telemetry exists; product funnel, retention, and dashboard validation remain. |
-| 24 | Release pipeline | **In Progress** | PR #233 current exact HEAD 6805604 has Validation FAILURE (335 passed / 2 failed; two checkpoint assertion wording mismatches), CodeQL SUCCESS and Dependency Review SUCCESS on the same SHA. The prior PR #233 HEAD 6cf6f26 also failed its own Validation (333 passed / 4 failed); no parent result is transferred. PR #229 (26aafc7), PR #231 (444e312), and PR #232 (696ac10) each passed all three mandatory workflows on their own exact heads. PR #231 runtime audit reported found 0 vulnerabilities at the configured high threshold. Published releases: 0. Code Scanning, Dependabot and Secret Scanning inventories remain unavailable, unverified and not empty. Signing/store distribution, production monitoring, staged rollout, rollback ownership and external acceptance remain open. |
+| 24 | Release pipeline | **In Progress** | PR #249 exact HEAD `7615189b9c7e52d2b4e67d1cc389d4c57a0d4104` has Validation FAILURE at Expo Doctor, with CodeQL and Dependency Review SUCCESS on that same SHA. The 349 frontend unit tests and TypeScript pass; Expo Doctor found three SDK 57 patch-version mismatches, so Android export, native Release build, emulator smoke and runtime dependency audit were skipped. PR #246 separately passed a full moderate-threshold npm audit with 0 vulnerabilities but remains unmerged. PR #251 and #252 passed their own exact-head checks; neither is merged. Published releases: 0. Code Scanning, Dependabot and Secret Scanning inventories remain unavailable, unverified and not empty. Store distribution, production monitoring, staged rollout, rollback ownership and external acceptance remain open. |
 | 25 | Pilot/business validation | **Blocked** | A real pilot cohort, success/stop thresholds, named business owner, and documented business/release approval are required. |
 
 **Current count: 3 Done / 15 In Progress / 7 Blocked.** Source presence or simulator evidence alone does not satisfy an external acceptance gate.
@@ -2110,5 +2110,45 @@ Do not promote any blocked item based on CI, simulator/emulator smoke, or source
 | **Total** | **#1–#25** | **25** |
 
 The eight Blocked items remain blocked until the evidence specified in the acceptance record exists. Main's separate historical register remains 3 Done / 15 In Progress / 7 Blocked; do not merge the two registers.
+
+Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.
+
+
+## Latest live evidence checkpoint — 2026-11-23 15:59 CET
+
+### Exact PR #41 baseline
+
+- PR #41 is CLOSED/MERGED. Source branch `fix/release-blockers-2026-10` and PR metadata agree on exact HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. Current main is `3a262358552a9650d865aa5bd3c92905f1e863cb`; comparison is DIVERGED, 517 ahead / 4 behind. Do not reopen or merge PR #41 again.
+- Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) passed; all five jobs passed. Review inventory: 53 conversation comments, 30 inline comments, 26 review submissions (25 COMMENTED, one human APPROVED), 22/22 threads resolved, 0 unresolved and 20 outdated.
+- Historical PR #41 runs 43098210284, 43098210473 and 43098210255 remain QUEUED on obsolete SHA `b46c5b8082ecbebd263a86cd53b1321a86e570d1`; all three jobs endpoints return zero jobs. Administrator cancellation remains required.
+
+### Current release candidate and Expo SDK 57 dependency alignment
+
+- PR #249 is OPEN/DRAFT at exact HEAD `7615189b9c7e52d2b4e67d1cc389d4c57a0d4104`, 5 commits / 4 changed files, based on PR #233 exact HEAD `1f21b900c44194739ae6c85f171c3dd657c9fc84`. Validation [45193033662](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45193033662) failed; CodeQL [45193033650](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45193033650) and Dependency Review [45193033682](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45193033682) passed on the same SHA. Backend and iOS passed; frontend failed at Expo Doctor.
+- Frontend unit tests passed 349/349 across 72 files and TypeScript passed. Expo Doctor passed 20/21 checks and identified three version mismatches against the official Expo SDK 57 bundled-module map ([source](https://github.com/expo/expo/blob/sdk-57/packages/expo/bundledNativeModules.json)): `expo-constants` expected `~57.0.25`, found `57.0.24`; `expo-image-picker` expected `~57.0.22`, found `57.0.21`; `expo-router` expected `~57.0.32`, found `57.0.31`. Android export, native Release build, emulator smoke and runtime dependency audit were skipped after the Expo Doctor failure.
+- The package manifest and lockfile both contain the older patch versions. No dependency write is claimed: regenerate the lockfile with npm in a Node 22 environment, preserve registry integrity metadata, add/retain targeted version-alignment regression coverage, and rerun exact-head CI. Do not hand-edit integrity values, omit integrity fields, force-downgrade Expo, or suppress Expo Doctor.
+- PR #249 has one Dependency Review bot comment, 0 formal reviews and 0 inline threads. Parent PR #233 remains OPEN/DRAFT at `1f21b900c44194739ae6c85f171c3dd657c9fc84`; its own Validation failed (329 passed / 4 frontend assertions), while CodeQL and Dependency Review passed. Child results do not replace parent results.
+
+### Other current candidates
+
+- PR #246 exact HEAD `ad614dd25d0fd11d3d50737718e7dbd88a74c89a`: Validation, CodeQL and Dependency Review passed. Its recorded full moderate-threshold dependency audit and runtime audit reported zero vulnerabilities; it remains unmerged.
+- PR #244 exact HEAD `914e5f81df1c1859bfa7e946fda5504a211718fa`: Validation failed, CodeQL and Dependency Review passed. Four picomatch patterns `+(*)`, `*(*)`, `+(a*)`, and `+(*a)` exceeded the 2,500 ms child-process timeout. This is an unresolved security-testing signal, not proof of exploitability; do not weaken tests/timeouts.
+- PR #245 remains unsuitable because its patch removes historical regression assertions. PR #251 exact HEAD `6ec5397210efdbf308bbaaf8e8772c073935ca0e` passed all three exact-head workflows for a test-only CodeQL/Dependabot assertion fix. PR #252 exact HEAD `16e1bb03aa2166092fdeaacd7456be23f2bf20cc` passed all three exact-head workflows for Node 22 Android/iOS prebuild regression assertions. Both remain open/draft and unmerged.
+
+### Current issues, governance, releases and alert inventory
+
+- Issue #47 is CLOSED with 11 comments. Issue #64 is OPEN with 127 comments. Main HEAD `3a262358552a9650d865aa5bd3c92905f1e863cb` has active ruleset #26370589 with six strict required checks, one approval, last-push approval, resolved threads, deletion/non-fast-forward protection and no bypass actors.
+- Published GitHub Releases: 0. Code Scanning, Dependabot and Secret Scanning inventories remain UNAVAILABLE, UNVERIFIED and NOT EMPTY.
+
+### Canonical 25-point register (unchanged)
+
+| Status | Items | Count |
+|---|---|---:|
+| Done | #1, #6 | 2 |
+| In Progress | #3, #7–#15, #17, #19, #20, #23, #24 | 15 |
+| Blocked | #2, #4, #5, #16, #18, #21, #22, #25 | 8 |
+| **Total** | **#1–#25** | **25** |
+
+Do not promote the eight Blocked items without their external evidence: durable visibility/release-plan decision (#2); physical iPhone App Attest (#4); Play-installed physical Android Play Integrity (#5); witnessed production backup/restore (#16); representative product-recognition benchmark and business acceptance (#18); production monitoring with witnessed alert delivery (#21); approved staged rollout and tested rollback (#22); real-user pilot and business sign-off (#25). Main's separate historical register remains 3 Done / 15 In Progress / 7 Blocked.
 
 Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.
