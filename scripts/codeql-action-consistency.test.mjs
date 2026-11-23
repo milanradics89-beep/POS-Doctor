@@ -18,13 +18,13 @@ describe("CodeQL workflow action consistency", () => {
   it("groups CodeQL action updates only in the github-actions Dependabot stanza", () => {
     const dependabot = read(".github/dependabot.yml");
     const updateBlocks = dependabot.split(/(?=^  - package-ecosystem: )/m);
-    const npmUpdate = updateBlocks.find(block => /^  - package-ecosystem: npm\\s*$/m.test(block));
-    const actionsUpdate = updateBlocks.find(block => /^  - package-ecosystem: github-actions\\s*$/m.test(block));
+    const npmUpdate = updateBlocks.find(block => /^  - package-ecosystem: npm\s*$/m.test(block));
+    const actionsUpdate = updateBlocks.find(block => /^  - package-ecosystem: github-actions\s*$/m.test(block));
 
     expect(npmUpdate).toBeDefined();
     expect(actionsUpdate).toBeDefined();
     expect(npmUpdate).not.toContain("codeql-action:");
     expect(actionsUpdate).toContain("codeql-action:");
-    expect(actionsUpdate).toContain('patterns:\\n          - "github/codeql-action/*"');
+    expect(actionsUpdate).toContain('patterns:\n          - "github/codeql-action/*"');
   });
 });
