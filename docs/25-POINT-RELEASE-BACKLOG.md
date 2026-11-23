@@ -2027,3 +2027,60 @@ The candidate row-level register contains exactly 25 items and parses to **2 Don
 
 ---
 
+
+
+---
+
+## Current release evidence checkpoint — 2026-11-23 13:39 CET
+
+Evidence refreshed from live GitHub PR metadata, exact branch refs, exact-commit Actions runs and job records, PR timeline/reviews/threads, issue records, repository metadata, the active ruleset, and the GitHub Releases endpoint. This checkpoint records automated evidence only; it does not grant production or pilot acceptance.
+
+### PR #41 — merged baseline and review closure
+
+- PR #41 is CLOSED/MERGED. Live PR metadata and independent refs/heads/fix/release-blockers-2026-10 both report exact HEAD 68b380e73ca3c870048035197beef8febbf90ef1; merge commit f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1. The PR contains 517 commits, 100 changed files, +11,887 additions and -2,005 deletions. Compared with current main 3a262358552a9650d865aa5bd3c92905f1e863cb, the retained source branch is 517 ahead / 4 behind; it is already merged and must not be merged again.
+- Exact-head Validation 43492153234, CodeQL 43492153161, and Dependency Review 43492153021 are terminal SUCCESS on that exact SHA. Frontend, backend, iOS, CodeQL Analyze and Dependency Review jobs all passed (5/5).
+- Refreshed review inventory: 109 combined timeline records; 53 conversation comments, 30 inline review comments, 26 formal submissions (25 COMMENTED and one human APPROVED by tarlaci1984-sketch), 22/22 inline threads resolved, 0 unresolved, 20 outdated.
+- Historical runs 43098210284, 43098210473, and 43098210255 remain QUEUED on obsolete SHA b46c5b8082ecbebd263a86cd53b1321a86e570d1; each jobs endpoint returned zero jobs. These are historical queues, not current PR #41 failures. Repository administrator cancellation is required.
+- PR #41's description still contains superseded historical open/unmerged wording; live metadata is authoritative.
+
+### Current release-documentation candidate — PR #249
+
+- PR #249 is OPEN/DRAFT on fix/pr233-live-checkpoint-refresh-20261123-1150, based on PR #233 exact HEAD 1f21b900c44194739ae6c85f171c3dd657c9fc84. Current exact PR #249 HEAD is ecc54c53b04ae767f583970273876b0792101eb1; 3 commits and 4 changed files. The branch remains a child candidate and has not been merged into PR #233 or main.
+- Exact-head Validation 45169777686, CodeQL 45169777815, and Dependency Review 45169777770 are terminal SUCCESS on ecc54c53b04ae767f583970273876b0792101eb1. Validation frontend, backend and iOS jobs all passed; CodeQL Analyze and Dependency Review jobs passed. This is exact-child evidence, not a retroactive pass for the parent PR #233 SHA.
+- The latest PR #249 commit changes only scripts/release-evidence-checkpoint.test.mjs: two historical checkpoint wording assertions were aligned with the actual recorded Markdown wording. Both assertions remain present. No application source, dependency manifest/lockfile, workflow security setting, or test coverage was removed.
+- Parent PR #233 remains OPEN/DRAFT at 1f21b900c44194739ae6c85f171c3dd657c9fc84; its own Validation 45153637592 failed (frontend 329 passed / 4 failed), while CodeQL 45153637645 and Dependency Review 45153637640 passed. PR #249's green child checks do not change the parent's recorded result. Human review and reconciliation are still required before integration.
+- This checkpoint documentation update is a new child commit; its own exact-head Validation, CodeQL and Dependency Review must be evaluated separately after the branch ref moves. No result is pre-claimed.
+
+### Issues, repository governance, releases and security inventory
+
+- Issue #47 is CLOSED with 11 comments. Issue #64 remains OPEN with 126 comments; its latest source-level notes re-verify the merged DNS-pinned transport but do not provide production deployment evidence.
+- Current main is 3a262358552a9650d865aa5bd3c92905f1e863cb. Active ruleset 26370589 is enforced on the default branch: six strict required checks (CodeQL, backend, frontend, ios, analyze, dependency-review), one approving review, stale-review dismissal, last-push approval, resolved review threads, deletion/non-fast-forward protection, and no bypass actors.
+- GitHub Releases API returned an empty array: 0 published releases.
+- Code Scanning, Dependabot, and Secret Scanning alert inventories remain unavailable through the connected integration: UNVERIFIED, NOT EMPTY. Their alert endpoints were rejected by the integration; successful workflow checks are not a substitute for repository-wide alert inventories.
+
+### Other active security/release candidates
+
+- PR #246 remains OPEN/DRAFT at exact HEAD ad614dd25d0fd11d3d50737718e7dbd88a74c89a; its exact-head Validation 45112214845, CodeQL 45112214955, and Dependency Review 45112214927 are terminal SUCCESS. Its recorded full dependency-tree audit at moderate threshold and runtime audit at high threshold reported zero vulnerabilities. It is an unmerged candidate, not mainline remediation.
+- PR #244 remains OPEN/DRAFT at 914e5f81df1c1859bfa7e946fda5504a211718fa; Validation 45110396689 failed, while CodeQL 45110396639 and Dependency Review 45110396664 passed. Four picomatch adversarial patterns exceeded the 2,500 ms child-process timeout: +(*), *(*) , +(a*), and +(*a). This is an unresolved security-testing signal, not proof of exploitability. Tests/timeouts were not weakened.
+- PR #245 is not an acceptable integration path: its patch removes historical regression assertions. Green CI on that branch does not justify dropping those assertions.
+- Mainline PR #200's DNS-pinned SSRF implementation is merged on main. Production acceptance remains blocked pending independent security-owner approval, complete production NAT64/DNS64 prefix inventory, deployed USEIT_NAT64_PREFIXES verification, and staging/production egress tests.
+
+### Canonical 25-point release register
+
+The candidate row-level register contains exactly 25 items: 2 Done / 15 In Progress / 8 Blocked. Done: #1, #6. In Progress: #3, #7–#15, #17, #19, #20, #23, #24. Blocked: #2, #4, #5, #16, #18, #21, #22, #25. Main's separate historical register remains 3 Done / 15 In Progress / 7 Blocked; the two registers are not silently merged.
+- #2 remains Blocked pending the owner's durable repository-visibility/release-plan decision.
+- #4 requires production Apple App Attest entitlement and physical-iPhone verification. #5 requires Play-installed physical Android Play Integrity. #16 requires witnessed production backup/restore. #18 requires a representative labeled product-recognition benchmark and business acceptance. #21 requires production monitoring and witnessed alert delivery. #22 requires approved staged rollout and tested rollback. #25 requires a real-user pilot and explicit business sign-off.
+- No simulator, emulator, automated CI, source inspection, or local test is promoted into physical-device, production-cloud, witnessed backup/restore, monitoring, rollout, or business acceptance.
+
+Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.
+
+### Row-level register status (unchanged)
+
+| Status | Items | Count |
+|---|---|---:|
+| Done | #1, #6 | 2 |
+| In Progress | #3, #7–#15, #17, #19, #20, #23, #24 | 15 |
+| Blocked | #2, #4, #5, #16, #18, #21, #22, #25 | 8 |
+| **Total** | **#1–#25** | **25** |
+
+Do not promote any blocked item based on CI, simulator/emulator smoke, or source-level review. Main's older historical register remains 3 Done / 15 In Progress / 7 Blocked and is tracked separately.
