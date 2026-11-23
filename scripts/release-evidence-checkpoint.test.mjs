@@ -283,8 +283,8 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('3 commits and 4 changed files');
       expect(section).toContain('expected previous SHA and force=false');
       expect(section).toContain('did not merge anything into main');
-      expect(section).toContain('PR #233 review inventory: 3 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
-      expect(section).toContain('PR #238 review inventory: 2 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
+      expect(section).toContain('At that earlier checkpoint PR #233 review inventory was 3 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals; PR #238 review inventory was 2 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals.');
+      
     }
   });
 
