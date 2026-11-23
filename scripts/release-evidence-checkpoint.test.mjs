@@ -386,4 +386,19 @@ describe('current-main release evidence checkpoint', () => {
       }
     }
   });
+  it('keeps the SDK 57 Expo patch versions aligned in package.json and package-lock.json', () => {
+    const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    const lockfile = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
+    const expected = {
+      'expo-constants': { range: '~57.0.25', resolved: '57.0.25' },
+      'expo-image-picker': { range: '~57.0.22', resolved: '57.0.22' },
+      'expo-router': { range: '~57.0.32', resolved: '57.0.32' },
+    };
+
+    for (const [name, versions] of Object.entries(expected)) {
+      expect(manifest.dependencies[name]).toBe(versions.range);
+      expect(lockfile.packages[`node_modules/${name}`]?.version).toBe(versions.resolved);
+    }
+  });
+
 });
