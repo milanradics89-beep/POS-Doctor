@@ -190,7 +190,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Dependency Review [45097970305](');
       expect(section).toContain('terminal FAILURE');
       expect(section).toContain('343 passed / 1 failed across 72 test files');
-      expect(section).toContain('historical 340 passed assertion is incorrectly scoped to latestSections');
+      expect(section).toContain('a historical assertion for the prior validated 4a9685b checkpoint is incorrectly scoped to latestSections');
       expect(section).toContain('Backend job [137449658202](');
       expect(section).toContain('539 pytest tests, 27 production-readiness checks, and 78 security/privacy checks');
       expect(section).toContain('iOS job [137449657218](');
@@ -225,7 +225,7 @@ describe('current-main release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('3 MODERATE severity vulnerabilities (minimatch)');
       expect(section).toContain('not a clean zero-vulnerability audit');
-      expect(section).toContain('Do not run npm audit fix --force');
+      expect(section).toContain('Do not run `npm audit fix --force`');
       expect(section).toContain('PR #231 exact HEAD 444e312b4bf94237eedfb0af1a24922bf5853942');
     }
   });

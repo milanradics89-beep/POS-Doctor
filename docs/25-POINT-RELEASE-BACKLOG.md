@@ -33,7 +33,7 @@ Evidence refreshed at 02:43 UTC on 2026-11-23 from live PR metadata, the indepen
 ### Other release candidates
 
 - PR #204 exact HEAD 00d2dff332888e5eb2fa731d32e2e5b3e1cc4f9f has a Validation failure; its two frontend failures are documentation assertions. PR #229 exact HEAD 26aafc7a2f5b3a735bc04926568ef5cbcc99f1d6, PR #231 exact HEAD 444e312b4bf94237eedfb0af1a24922bf5853942, and PR #232 exact HEAD 696ac10f2bbb4a502a507a07d562fb92136b0fb2 have previously recorded exact-head 3/3 successful workflows. Their external acceptance and review requirements remain separate.
-- PR #231's minimatch 11 candidate reported found 0 vulnerabilities on its own exact HEAD. It remains a separate open candidate and has not been merged into main.
+- PR #231's minimatch 11 candidate reported found 0 vulnerabilities on its own exact HEAD. It remains a separate open candidate and has not been merged into main. Do not run `npm audit fix --force` or downgrade Expo/React Native to silence the current mainline minimatch findings; evaluate any alternative only as a separate compatibility-tested candidate with independent review.
 
 ### Issues, releases, security inventory, and release register
 
