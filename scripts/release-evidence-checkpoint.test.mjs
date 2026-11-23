@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Current release evidence checkpoint — 2026-11-23 02:55 CET';
+const marker = '## Current release evidence checkpoint — 2026-11-23 03:43 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -161,26 +161,46 @@ describe('current-main release evidence checkpoint', () => {
   });
 
 
-  it('records the current PR #233 exact-head green workflows and completed jobs', () => {
-    for (const section of latestSections) {
-      expect(section).toContain('PR #233 is OPEN/DRAFT on docs/release-evidence-main-sync-20261122-run13, current exact HEAD 4a9685b361223a32c4ff49ea91fd467327bee3be');
-      expect(section).toContain('11 commits and 4 changed files');
-      expect(section).toContain('Validation [45093002583](');
-      expect(section).toContain('CodeQL [45093002548](');
-      expect(section).toContain('Dependency Review [45093002611](');
-      expect(section).toContain('terminal SUCCESS on the same exact SHA');
-      expect(section).toContain('Frontend, backend, iOS, CodeQL Analyze, and Dependency Review jobs all passed (5/5)');
-      expect(section).toContain('340 passed');
-      expect(section).toContain('3 MODERATE severity vulnerabilities (minimatch)');
-      expect(section).toContain('539 pytest tests');
-      expect(section).toContain('27 production-readiness checks');
-      expect(section).toContain('78 security/privacy checks');
-      expect(section).toContain('No known vulnerabilities found');
-      expect(section).toContain('Android emulator smoke');
-      expect(section).toContain('iOS simulator smoke');
+  it('records the previous PR #233 exact-head green workflows as historical evidence', () => {
+    for (const document of documents) {
+      expect(document).toContain('Previous validated PR #233 exact HEAD is `4a9685b361223a32c4ff49ea91fd467327bee3be`');
+      expect(document).toContain('11 commits and 4 changed files');
+      expect(document).toContain('Validation [45093002583](');
+      expect(document).toContain('CodeQL [45093002548](');
+      expect(document).toContain('Dependency Review [45093002611](');
+      expect(document).toContain('terminal SUCCESS on the same exact SHA');
+      expect(document).toContain('Frontend, backend, iOS, CodeQL Analyze, and Dependency Review jobs all passed (5/5)');
+      expect(document).toContain('340 passed across 72 test files');
+      expect(document).toContain('3 MODERATE severity vulnerabilities (minimatch)');
+      expect(document).toContain('539 pytest tests');
+      expect(document).toContain('27 production-readiness checks');
+      expect(document).toContain('78 security/privacy checks');
+      expect(document).toContain('No known vulnerabilities found');
+      expect(document).toContain('Android emulator smoke');
+      expect(document).toContain('iOS simulator smoke');
     }
   });
 
+  it('records PR #233 current exact-head failure and scopes historical evidence separately', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #233 is OPEN/DRAFT on docs/release-evidence-main-sync-20261122-run13, current exact HEAD `8acad8c5e80206a5095e97d06e79f906fce58818`');
+      expect(section).toContain('12 commits and 4 changed files');
+      expect(section).toContain('Validation [45097970332](');
+      expect(section).toContain('CodeQL [45097970383](');
+      expect(section).toContain('Dependency Review [45097970305](');
+      expect(section).toContain('terminal FAILURE');
+      expect(section).toContain('343 passed / 1 failed across 72 test files');
+      expect(section).toContain('historical 340 passed assertion is incorrectly scoped to latestSections');
+      expect(section).toContain('Backend job [137449658202](');
+      expect(section).toContain('539 pytest tests, 27 production-readiness checks, and 78 security/privacy checks');
+      expect(section).toContain('iOS job [137449657218](');
+      expect(section).toContain('native Release build and simulator smoke');
+      expect(section).toContain('runtime npm audit was skipped, not failed');
+      expect(section).toContain('CodeQL Analyze job [137441955103](');
+      expect(section).toContain('Dependency Review job [137441954598](');
+      expect(section).toContain('PR #233 review inventory: 3 conversation comments, 0 formal review submissions, 0 inline review threads, and 0 human approvals');
+    }
+  });
   it('records PR #238 as merged into PR #233 only, without merging main', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #238 is CLOSED/MERGED into the PR #233 branch only');
