@@ -234,7 +234,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('terminal FAILURE');
       expect(section).toContain('Frontend job [137638389920](');
       expect(section).toContain('329 passed / 4 failed across 72 test files');
-      expect(section).toContain('four stale checkpoint-string expectations');
+      expect(section).toContain('All four failures are stale checkpoint-string expectations');
       expect(section).toContain('not demonstrated application runtime failures');
       expect(section).toContain('Backend job [137638392077](');
       expect(section).toContain('iOS job [137638393316](');
@@ -307,7 +307,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('3 MODERATE severity vulnerabilities (minimatch)');
       expect(section).toContain('not a clean zero-vulnerability audit');
       expect(section).toContain('Do not run `npm audit fix --force`');
-      expect(section).toContain('PR #231 exact HEAD 444e312b4bf94237eedfb0af1a24922bf5853942');
+      expect(section).toContain('PR #231 is OPEN/DRAFT at exact HEAD `444e312b4bf94237eedfb0af1a24922bf5853942`');
     }
   });
 
