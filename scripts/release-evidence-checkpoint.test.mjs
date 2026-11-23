@@ -170,7 +170,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Dependency Review [45093002611](');
       expect(section).toContain('terminal SUCCESS on the same exact SHA');
       expect(section).toContain('Frontend, backend, iOS, CodeQL Analyze, and Dependency Review jobs all passed (5/5)');
-      expect(section).toContain('340 passed');
+      expect(section).toContain('340 tests across 72 files');
       expect(section).toContain('3 MODERATE severity vulnerabilities (minimatch)');
       expect(section).toContain('539 pytest tests');
       expect(section).toContain('27 production-readiness checks');
