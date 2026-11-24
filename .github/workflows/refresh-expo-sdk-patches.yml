@@ -2,6 +2,9 @@ name: Refresh Expo SDK patch dependencies
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - ci/google-cloud-wif-auth-test
 
 permissions:
   contents: write
