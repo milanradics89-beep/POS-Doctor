@@ -67,6 +67,26 @@ describe('UseitApiProvider boundary handling', () => {
     }
   });
 
+  it('forwards cancellation to the billable unified analysis request', async () => {
+    const controller = new AbortController();
+    let observedSignal: AbortSignal | undefined;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((_input, init) => {
+      observedSignal = init?.signal as AbortSignal;
+      return new Promise<Response>((_resolve, reject) => {
+        const abort = () => reject(new DOMException('The operation was aborted.', 'AbortError'));
+        if (observedSignal.aborted) abort();
+        else observedSignal.addEventListener('abort', abort, { once: true });
+      });
+    });
+
+    const pending = provider().analyzeUseit(image, 'improve', {}, controller.signal);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    controller.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    expect(observedSignal?.aborted).toBe(true);
+  });
+
   it('rejects a missing API base URL before network access', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
     await expect(new UseitApiProvider('').analyzeImage(image)).rejects.toThrow('USEIT API base URL is required.');
