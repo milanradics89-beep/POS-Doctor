@@ -5,6 +5,11 @@ import { createImageInput, MAX_IMAGE_DATA_URL_BYTES, validateImageInput, validat
 describe('image input validation', () => {
   it('accepts supported base64 image data', () => {
     expect(() => validateImageUri('data:image/jpeg;base64,AAAA')).not.toThrow();
+    expect(() => validateImageUri('data:image/gif;base64,AAAA')).not.toThrow();
+  });
+
+  it.each(['image/heic', 'image/heif'])('rejects unsupported %s data URLs', (mimeType) => {
+    expect(() => validateImageUri(`data:${mimeType};base64,AAAA`)).toThrow(`Unsupported image type: ${mimeType}`);
   });
 
   it('accepts a data URL at the shared client/server-safe limit', () => {
