@@ -478,7 +478,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('CodeQL [#45394960734](');
       expect(section).toContain('dynamic prebuild [#45394959647](');
       expect(section).toContain('No exact-main push-triggered Dependency Review run was returned');
-      expect(section).toContain('Ruleset #26370589 is ACTIVE');
+      expect(section).toContain('ruleset #26370589 is ACTIVE');
       expect(section).toContain('main branch API reports `protected: true`');
       expect(section).toContain('PR #283 source HEAD `c51577a4002b1516a4b3a3fbc747387145959843`');
     }
