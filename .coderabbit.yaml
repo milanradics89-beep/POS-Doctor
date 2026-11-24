@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# USEIT repository review policy
+language: "en-US"
+early_access: false
+tone_instructions: >
+  Be concise, technical, and evidence-driven. Prioritize correctness,
+  security, privacy, data integrity, reliability, and regressions over style.
+  Do not report speculative issues without a concrete code path and impact.
+  Distinguish confirmed defects from suggestions.
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    suggested_labels: false
+    suggested_reviewers: false
+  path_instructions:
+    - path: "**/.github/workflows/**"
+      instructions: >
+        Review workflow permissions using least privilege. Check untrusted
+        pull_request and workflow_run data boundaries, token exposure, cache
+        poisoning, action pinning to immutable SHAs, artifact handling, and
+        whether secrets can be accessed from fork or untrusted PR contexts.
+        Do not recommend weakening branch protection or suppressing findings.
+    - path: "**/*.{ts,tsx,js,jsx}"
+      instructions: >
+        Review React Native and Expo code for runtime correctness, permission
+        handling, secure storage, privacy, lifecycle cleanup, accessibility,
+        and Android/iOS behavior differences. Flag unsafe handling of device
+        identifiers, location, network data, and credentials.
+    - path: "**/*.py"
+      instructions: >
+        Review backend code for authentication and authorization on every
+        protected operation, input validation, injection risks, secret
+        handling, transaction integrity, concurrency, and safe error
+        responses. Check that tests cover security-sensitive branches.
+    - path: "**/*test*"
+      instructions: >
+        Check that tests assert observable behavior and meaningful failure
+        cases. Do not suggest deleting, skipping, weakening, or broadly
+        mocking tests to make CI pass.
