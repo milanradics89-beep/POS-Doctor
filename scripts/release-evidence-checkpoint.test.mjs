@@ -399,8 +399,8 @@ describe('current-main release evidence checkpoint', () => {
       const range = manifest.dependencies[name];
       const resolved = lockfile.packages[`node_modules/${name}`]?.version;
 
-      expect(range).toMatch(/^~57\\.0\\.\\d+$/);
-      expect(resolved).toMatch(/^57\\.0\\.\\d+$/);
+      expect(range).toMatch(/^~57\.0\.\d+$/);
+      expect(resolved).toMatch(/^57\.0\.\d+$/);
       expect(resolved).toBe(range.slice(1));
     }
   });
