@@ -1,0 +1,118 @@
+name: Apply validated Expo SDK 57.0.34 manifest to camera candidate
+
+on:
+  push:
+    branches:
+      - automation/expo-sdk57-lock-apply-20261124
+    paths:
+      - .github/workflows/expo-sdk57-lock-apply.yml
+
+concurrency:
+  group: expo-sdk57-lock-apply
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  apply:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/automation/expo-sdk57-lock-apply-20261124'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SOURCE_REF: feat/phase2-camera-openai-guardrails-main-20261124
+      SOURCE_SHA: d62a4068be09ae011e80aa0dd2ace774ae16b225
+      TARGET_REF: feat/phase2-camera-openai-guardrails-expo57-20261124
+      ARTIFACT_RUN_ID: "45421389788"
+      ARTIFACT_NAME: expo-sdk57-lock-refresh-098117ba4ca83ca15dbf78160a507b5841b9bfa0
+    steps:
+      - name: Checkout repository with short-lived workflow token
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify exact source and target branch safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/automation/expo-sdk57-lock-apply-20261124"
+          git fetch --no-tags origin "$SOURCE_REF"
+          git checkout --detach FETCH_HEAD
+          ACTUAL_SOURCE_SHA="$(git rev-parse HEAD)"
+          if [[ "$ACTUAL_SOURCE_SHA" != "$SOURCE_SHA" ]]; then
+            echo "::error::Source branch moved: expected $SOURCE_SHA, found $ACTUAL_SOURCE_SHA"
+            exit 1
+          fi
+          if git ls-remote --exit-code --heads origin "$TARGET_REF"; then
+            echo "::error::Target branch already exists; refusing to overwrite it."
+            exit 1
+          fi
+          test -z "$(git status --porcelain)"
+
+      - name: Download checksum-verified lockfile artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/expo-sdk57-artifact"
+          gh run download "$ARTIFACT_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$ARTIFACT_NAME" \
+            --dir "$RUNNER_TEMP/expo-sdk57-artifact"
+          cd "$RUNNER_TEMP/expo-sdk57-artifact"
+          test -s SHA256SUMS
+          test -s package.json
+          test -s package-lock.json
+          sha256sum -c SHA256SUMS
+
+      - name: Validate artifact dependency contract
+        run: |
+          set -euo pipefail
+          node - "$RUNNER_TEMP/expo-sdk57-artifact" <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const dir = process.argv[2];
+          const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
+          const lock = JSON.parse(fs.readFileSync(path.join(dir, 'package-lock.json'), 'utf8'));
+          const expected = {
+            expo: ['~57.0.34', '57.0.34'],
+            'expo-constants': ['~57.0.25', '57.0.25'],
+            'expo-linking': ['~57.0.14', '57.0.14'],
+            'expo-image-picker': ['~57.0.22', '57.0.22'],
+            'expo-router': ['~57.0.32', '57.0.32'],
+          };
+          for (const [name, [range, version]] of Object.entries(expected)) {
+            if (pkg.dependencies?.[name] !== range) throw new Error(`${name} manifest mismatch`);
+            if (lock.packages?.['']?.dependencies?.[name] !== range) throw new Error(`${name} lock root mismatch`);
+            if (lock.packages?.[`node_modules/${name}`]?.version !== version) throw new Error(`${name} locked version mismatch`);
+          }
+          if (lock.packages?.['node_modules/expo']?.integrity !== 'sha512-xBSP4O+pbc5FT0yOIgMUaW1iwFZwzvrqZwfNbLk03q8HCWov8xYoccw+KmovehK23J5Jqxze+ySTMu2Ty0loDw==') {
+            throw new Error('expo@57.0.34 integrity mismatch');
+          }
+          if (lock.packages?.['node_modules/minimatch']?.version !== '11.0.5') {
+            throw new Error('minimatch 11.0.5 baseline was not preserved');
+          }
+          if (Object.hasOwn(pkg.dependencies || {}, 'expo-modules-core')) {
+            throw new Error('expo-modules-core must remain transitive');
+          }
+          console.log('Artifact contract verified: Expo SDK 57.0.34, current SDK patch set, minimatch 11.0.5.');
+          NODE
+
+      - name: Create a new child branch and commit the verified manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/expo-sdk57-artifact/package.json" package.json
+          cp "$RUNNER_TEMP/expo-sdk57-artifact/package-lock.json" package-lock.json
+          git diff --check
+          git diff --stat
+          git diff -- package.json
+          git switch -c "$TARGET_REF"
+          git add package.json package-lock.json
+          git diff --cached --check
+          git commit -m "fix(deps): align Expo SDK 57.0.34 on camera candidate"
+          git push origin "HEAD:refs/heads/$TARGET_REF"
+          echo "Created $TARGET_REF from $SOURCE_SHA with the checksum-verified artifact."
