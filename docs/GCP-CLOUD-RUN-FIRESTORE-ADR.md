@@ -2,11 +2,9 @@
 
 **Status:** Proposed, implementation not yet deployed  
 **Date:** 2026-11-24  
-**Owner-designated GCP project:** \`fresh-weft-447913-u6\` (**not yet independently verified through Google Cloud API**)
+**Owner-designated GCP project:** `useit-platform-2026`
 
-The owner has designated \`fresh-weft-447913-u6\` as the target project. Before provisioning, a human must verify that this project exists, that the project owner has the required access, and that the intended billing account, project number, region and eligible SKUs are correct. Do not create a replacement project or change billing to resolve an access problem. No GCP resources have been created by this ADR.
-
-A previously shared billing screenshot referred to a different project, \`useit-platform-2026\`. Its historical credit display is not evidence of credit eligibility or current balance for \`fresh-weft-447913-u6\`; do not use it in the target project's cost estimate.
+Use the existing owner-designated `useit-platform-2026` project. Do not create a replacement project. Before provisioning, verify the intended billing account, project number, region and eligible SKUs in that project. No GCP resources have been created by this ADR.
 
 ## Decision
 
