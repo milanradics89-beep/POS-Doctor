@@ -16,7 +16,7 @@ describe('USEIT Home recovery-state integration', () => {
   it('validates camera and gallery data URLs through the same shared path', () => {
     expect(home).toContain("import { validateImageUri } from '../src/core/intelligence/imageInput';");
     expect(home).toContain('validateImageUri(imageUri);');
-    expect(home.match(/setSelectedPhoto\(a\.base64, a\.mimeType \|\| 'image\\/jpeg'\);/g)).toHaveLength(2);
+    expect(home.split("setSelectedPhoto(a.base64, a.mimeType || 'image/jpeg');").length - 1).toBe(2);
     expect(home).not.toContain('setPhoto(`data:${a.mimeType || \'image/jpeg\'};base64,${a.base64}`)');
   });
 
