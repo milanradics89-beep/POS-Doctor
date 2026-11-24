@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { assertImagePayload } from './imagePayload';
 import { createImageInput, MAX_IMAGE_DATA_URL_BYTES, validateImageInput, validateImageUri } from './imageInput';
 
 describe('image input validation', () => {
@@ -10,6 +11,12 @@ describe('image input validation', () => {
     const prefix = 'data:image/jpeg;base64,';
     const uri = prefix + 'A'.repeat(MAX_IMAGE_DATA_URL_BYTES - prefix.length);
     expect(() => validateImageUri(uri)).not.toThrow();
+  });
+
+  it('applies the same limit to the normalized image payload helper', () => {
+    const prefix = 'data:image/jpeg;base64,';
+    const dataUrl = prefix + 'A'.repeat(MAX_IMAGE_DATA_URL_BYTES - prefix.length + 1);
+    expect(() => assertImagePayload({ dataUrl, mimeType: 'image/jpeg' })).toThrow('Image is too large.');
   });
 
   it('rejects a data URL above the shared client/server-safe limit', () => {
