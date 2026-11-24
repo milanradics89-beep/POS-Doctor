@@ -1,8 +1,11 @@
 import json
 import os
+
+import pytest
 from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi.testclient import TestClient
+from redis.exceptions import RedisError
 
 from backend.main import app
 
@@ -90,3 +93,36 @@ def test_malformed_image_base64_is_rejected():
 def test_image_url_rejects_localhost_before_model_call():
     r = client.post('/v1/analyze', json={'imageUri': 'http://localhost:8000/image.jpg'})
     assert r.status_code == 422
+
+
+@pytest.mark.parametrize("failure_kind", ["permission", "redis-error", "capability-false"])
+def test_ready_returns_503_when_redis_rate_limit_capability_is_unavailable(monkeypatch, failure_kind):
+    import backend.main as main
+
+    class FakeRedis:
+        async def ping(self):
+            return True
+
+    monkeypatch.setattr(main, "production_mode", lambda: True)
+    monkeypatch.setattr(main, "configured_api_key", lambda: "test-api-key")
+    monkeypatch.setattr(main, "configured_session_secret", lambda: "")
+    monkeypatch.setattr(main, "configured_redis_url", lambda: "redis://redis.example.test:6379/0")
+    monkeypatch.setattr(main, "rate_limit_mode", lambda: "redis")
+    monkeypatch.setattr(main, "configured_attestation_mode", lambda: main.AttestationMode.DISABLED)
+    monkeypatch.setattr(main, "validate_production_session_auth_configuration", lambda: None)
+    monkeypatch.setattr(main, "validate_production_redis_transport", lambda: None)
+    monkeypatch.setattr(main.app.state, "redis_client", FakeRedis(), raising=False)
+
+    async def unavailable_rate_limit_capability(_redis_client):
+        if failure_kind == "permission":
+            raise PermissionError("NOPERM PEXPIRE")
+        if failure_kind == "redis-error":
+            raise RedisError("NOPERM PEXPIRE")
+        return False
+
+    monkeypatch.setattr(main, "check_redis_rate_limit_capability", unavailable_rate_limit_capability)
+    with patch.dict(os.environ, {"OPENAI_API_KEY": "test-openai-key"}, clear=False):
+        response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Service is not ready."}
