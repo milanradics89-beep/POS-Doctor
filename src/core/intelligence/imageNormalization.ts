@@ -1,5 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import * as ImageManipulator from 'expo-image-manipulator';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { validateImageUri } from './imageInput';
 
 export const IMAGE_NORMALIZATION_MAX_DIMENSION = 2048;
@@ -38,17 +38,21 @@ export async function normalizeImageAsset(
 
   for (const maxDimension of MAX_DATA_URL_ATTEMPTS) {
     const context = ImageManipulator.manipulate(uri);
-    const resize = getResizeAction(sourceWidth, sourceHeight, maxDimension);
-    if (resize) context.resize(resize);
-
-    const rendered = await context.renderAsync();
-    const saved = await rendered.saveAsync({
-      format: ImageManipulator.SaveFormat.JPEG,
-      compress: JPEG_QUALITY,
-      base64: true,
-    });
+    let rendered: Awaited<ReturnType<typeof context.renderAsync>> | undefined;
+    let outputUri: string | undefined;
 
     try {
+      const resize = getResizeAction(sourceWidth, sourceHeight, maxDimension);
+      if (resize) context.resize(resize);
+
+      rendered = await context.renderAsync();
+      const saved = await rendered.saveAsync({
+        format: SaveFormat.JPEG,
+        compress: JPEG_QUALITY,
+        base64: true,
+      });
+      outputUri = saved.uri;
+
       if (!saved.base64) throw new Error('The image could not be encoded.');
       const dataUrl = `data:image/jpeg;base64,${saved.base64}`;
       try {
@@ -60,7 +64,11 @@ export async function normalizeImageAsset(
         }
       }
     } finally {
-      await FileSystem.deleteAsync(saved.uri, { idempotent: true }).catch(() => undefined);
+      if (outputUri) {
+        await FileSystem.deleteAsync(outputUri, { idempotent: true }).catch(() => undefined);
+      }
+      rendered?.release();
+      context.release();
     }
   }
 
