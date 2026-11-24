@@ -67,7 +67,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('The three failures are checkpoint assertions for the parent-CI boundary wording, PR #244 branch metadata, and PR #271 merge/current-main wording');
       expect(section).toContain('Jobs: frontend FAILED, backend PASSED, iOS PASSED');
       expect(section).toContain('Android Expo Doctor, export, native Release build, emulator validation and frontend runtime dependency audit were skipped after the frontend unit-test failure');
-      expect(section).toContain('The next documentation commit's own exact-head Validation, CodeQL and Dependency Review must be evaluated separately and does not inherit results from `ae0cfaf` or any parent commit');
+      expect(section).toContain("The next documentation commit's own exact-head Validation, CodeQL and Dependency Review must be evaluated separately and does not inherit results from `ae0cfaf` or any parent commit");
     }
   });
 
