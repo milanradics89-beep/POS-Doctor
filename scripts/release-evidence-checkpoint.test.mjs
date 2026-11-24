@@ -34,7 +34,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('53 conversation comments');
       expect(section).toContain('30 inline review comments');
       expect(section).toContain('26 formal review submissions');
-      expect(section).toContain('22/22 inline review threads resolved');
+      expect(section).toContain('All 22 inline threads are resolved; 0 unresolved and 20 outdated');
       expect(section).toContain('tarlaci1984-sketch');
     }
   });
@@ -295,7 +295,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('+(*a)');
       expect(section).toContain('2,500 ms child-process timeout');
       expect(section).toContain('GHSA-fc5q-39xc-vjpf');
-      expect(section).toContain('WITHDRAWN on 2026-11-18');
+      expect(section).toContain('WITHDRAWN upstream on 2026-11-18 as not a security issue');
       expect(section).toContain('not a security issue');
       expect(section).toContain('do not establish a confirmed vulnerability or exploitability');
     }
@@ -373,7 +373,7 @@ describe('current-main release evidence checkpoint', () => {
 
   it('does not promote external acceptance or unavailable security inventories', () => {
     for (const section of latestSections) {
-      expect(section).toContain('unverified, not empty');
+      expect(section).toContain('UNAVAILABLE, UNVERIFIED, NOT EMPTY');
       expect(section).toContain('0 published releases');
       expect(section).toContain('Issue [#47](');
       expect(section).toContain('is CLOSED with 11 comments');
