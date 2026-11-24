@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-24 09:10 CET';
+const marker = '## Latest live release-watch checkpoint — 2026-11-24 10:20 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const nextHeading = document.indexOf('\n## ', marker.length);
@@ -59,14 +59,14 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records the current PR #249 exact-head failure without borrowing parent CI', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `079e58581f3e80ea3d7c332b9d6c2e7a1f270b10`');
-      expect(section).toContain('Validation [#45346864983](');
-      expect(section).toContain('CodeQL [#45346864899](');
-      expect(section).toContain('Dependency Review [#45346864793](');
-      expect(section).toContain('349 tests passed / 5 failed across 72 files');
-      expect(section).toContain('frontend failed, backend passed and iOS passed');
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `3c32029cd9e10f34fe7ec16fd2904e6aa25304c8`');
+      expect(section).toContain('Validation [#45354938290](');
+      expect(section).toContain('CodeQL [#45354938573](');
+      expect(section).toContain('Dependency Review [#45354938357](');
+      expect(section).toContain('353 tests passed / 1 failed across 72 files');
+      expect(section).toContain('Jobs: frontend FAILED, backend PASSED, iOS PASSED');
       expect(section).toContain('Android Expo Doctor, export, native Release build and emulator validation were skipped');
-      expect(section).toContain('its new exact-head CI must be evaluated separately and does not inherit results from `6cd5acd`');
+      expect(section).toContain('its new exact-head CI must be evaluated separately and does not inherit results from `079e585`');
     }
   });
 
@@ -367,7 +367,7 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('keeps the row-level 25-point register at 2 Done / 15 In Progress / 8 Blocked', () => {
+  it('keeps the row-level 25-point register at 3 Done / 14 In Progress / 8 Blocked', () => {
     const backlog = documents[0];
     const tableStart = backlog.indexOf('| # | Workstream | Status | Current evidence / remaining acceptance |');
     expect(tableStart).toBeGreaterThanOrEqual(0);
@@ -381,7 +381,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(status).toBeTruthy();
       counts[status]++;
     }
-    expect(counts).toEqual({ Done: 2, 'In Progress': 15, Blocked: 8 });
+    expect(counts).toEqual({ Done: 3, 'In Progress': 14, Blocked: 8 });
   });
 
   it('does not promote external acceptance or unavailable security inventories', () => {
@@ -421,11 +421,11 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records current PR #249 and exact-head SDK57/dependency candidates without transferring parent CI', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `079e58581f3e80ea3d7c332b9d6c2e7a1f270b10`');
-      expect(section).toContain('Validation [#45346864983](');
-      expect(section).toContain('CodeQL [#45346864899](');
-      expect(section).toContain('Dependency Review [#45346864793](');
-      expect(section).toContain('349 tests passed / 5 failed across 72 files');
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `3c32029cd9e10f34fe7ec16fd2904e6aa25304c8`');
+      expect(section).toContain('Validation [#45354938290](');
+      expect(section).toContain('CodeQL [#45354938573](');
+      expect(section).toContain('Dependency Review [#45354938357](');
+      expect(section).toContain('353 tests passed / 1 failed across 72 files');
       expect(section).toContain('PR #254 is OPEN and non-draft at exact HEAD `2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3`');
       expect(section).toContain('Validation [#45223358003](');
       expect(section).toContain('CodeQL [#45223357946](');
@@ -439,26 +439,51 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Validation [#43772791089](');
       expect(section).toContain('Issue [#64](');
       expect(section).toContain('136 comments');
-      expect(section).toContain('230 branches');
+      expect(section).toContain('234 branches');
       expect(section).toContain('0 published releases');
       expect(section).toContain('UNAVAILABLE, UNVERIFIED, NOT EMPTY');
-      expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
+      expect(section).toContain('3 Done / 14 In Progress / 8 Blocked');
     }
   });
 
-  it('keeps the current canonical 25-row register at 2 Done / 15 In Progress / 8 Blocked', () => {
+
+  it('records the merged PR #271 minimatch remediation on current main', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #271 is CLOSED/MERGED');
+      expect(section).toContain('exact source HEAD `2fcf27736d58ff9b165ffd72c252f3c2f4a1ecfc`');
+      expect(section).toContain('merge commit/current main `f04587771b8ad85b1d705fd6de7c0e8ee91a164f`');
+      expect(section).toContain('Validation [#45348594071](');
+      expect(section).toContain('CodeQL [#45348594121](');
+      expect(section).toContain('Dependency Review [#45348594035](');
+      expect(section).toContain('found 0 vulnerabilities');
+      expect(section).toContain('minimatch override `11.0.5`');
+    }
+  });
+
+  it('keeps the SDK57/minimatch integration candidate separate from current main', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #260 is OPEN/DRAFT at exact HEAD `ae74da6d8f6a8f35ceb2a5b3696578218a92bffd`');
+      expect(section).toContain('Validation [#45317003618](');
+      expect(section).toContain('CodeQL [#45317003576](');
+      expect(section).toContain('Dependency Review [#45317003567](');
+      expect(section).toContain('based on an integration branch rather than main');
+    }
+  });
+
+  it('keeps the current canonical 25-row register at 3 Done / 14 In Progress / 8 Blocked', () => {
     const backlog = readFileSync(new URL('../docs/25-POINT-RELEASE-BACKLOG.md', import.meta.url), 'utf8');
-    const registerMarker = '## Current canonical 25-point release register — 2026-11-24 09:10 CET';
+    const registerMarker = '## Current canonical 25-point release register — 2026-11-24 10:20 CET';
     const start = backlog.indexOf(registerMarker);
     expect(start).toBeGreaterThanOrEqual(0);
     const end = backlog.indexOf('\n## ', start + registerMarker.length);
     const section = backlog.slice(start, end < 0 ? backlog.length : end);
     const rows = section.split('\n').filter((line) => /^\|\s*\d+\s*\|/.test(line));
     expect(rows).toHaveLength(25);
-    expect(rows.filter((line) => line.includes('**Done**'))).toHaveLength(2);
-    expect(rows.filter((line) => line.includes('**In Progress**'))).toHaveLength(15);
+    expect(rows.filter((line) => line.includes('**Done**'))).toHaveLength(3);
+    expect(rows.filter((line) => line.includes('**In Progress**'))).toHaveLength(14);
     expect(rows.filter((line) => line.includes('**Blocked**'))).toHaveLength(8);
     expect(rows.find((line) => line.startsWith('| 2 |'))).toContain('**Blocked**');
+    expect(rows.find((line) => line.startsWith('| 3 |'))).toContain('**Done**');
   });
 
 });
