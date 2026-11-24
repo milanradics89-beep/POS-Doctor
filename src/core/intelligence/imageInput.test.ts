@@ -1,9 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { createImageInput, validateImageInput, validateImageUri } from './imageInput';
+import { assertImagePayload } from './imagePayload';
+import { createImageInput, MAX_IMAGE_DATA_URL_BYTES, validateImageInput, validateImageUri } from './imageInput';
 
 describe('image input validation', () => {
   it('accepts supported base64 image data', () => {
     expect(() => validateImageUri('data:image/jpeg;base64,AAAA')).not.toThrow();
+    expect(() => validateImageUri('data:image/gif;base64,AAAA')).not.toThrow();
+  });
+
+  it.each(['image/heic', 'image/heif'])('rejects unsupported %s data URLs', (mimeType) => {
+    expect(() => validateImageUri(`data:${mimeType};base64,AAAA`)).toThrow(`Unsupported image type: ${mimeType}`);
+  });
+
+  it('accepts a data URL at the shared client/server-safe limit', () => {
+    const prefix = 'data:image/jpeg;base64,';
+    const uri = prefix + 'A'.repeat(MAX_IMAGE_DATA_URL_BYTES - prefix.length);
+    expect(() => validateImageUri(uri)).not.toThrow();
+  });
+
+  it('applies the same limit to the normalized image payload helper', () => {
+    const prefix = 'data:image/jpeg;base64,';
+    const dataUrl = prefix + 'A'.repeat(MAX_IMAGE_DATA_URL_BYTES - prefix.length + 1);
+    expect(() => assertImagePayload({ dataUrl, mimeType: 'image/jpeg' })).toThrow('Image is too large.');
+  });
+
+  it('rejects a data URL above the shared client/server-safe limit', () => {
+    const prefix = 'data:image/jpeg;base64,';
+    const uri = prefix + 'A'.repeat(MAX_IMAGE_DATA_URL_BYTES - prefix.length + 1);
+    expect(() => validateImageUri(uri)).toThrow('Image is too large. Please choose a smaller photo.');
   });
 
   it('rejects malformed data URLs', () => {
