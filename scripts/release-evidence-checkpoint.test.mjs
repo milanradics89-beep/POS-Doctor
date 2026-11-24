@@ -10,7 +10,7 @@ const documents = [
 const marker = '## Latest live release-watch checkpoint — 2026-11-24 21:12 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
-  const end = document.indexOf('\\n\\n---\\n\\n', marker.length);
+  const end = document.indexOf('\n\n---\n\n', marker.length);
   return document.slice(0, end < 0 ? document.length : end);
 });
 
@@ -44,7 +44,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Validation [45461939876]');
       expect(section).toContain('Expo Doctor failed 20/21');
       expect(section).toContain('expects Expo `~57.0.34`');
-      expect(section).toContain('resolves `57.0.33`');
+      expect(section).toContain('resolve Expo `57.0.33`');
       expect(section).toContain('PR #288 is OPEN and non-draft');
       expect(section).toContain('db37acaa156a39be55309784026ae5710a9ecef5');
       expect(section).toContain('45472083095');
@@ -73,12 +73,12 @@ describe('current-main release evidence checkpoint', () => {
     const section = latestSections[0];
     const tableStart = section.indexOf('| # | Workstream | Status | Evidence / next gate |');
     expect(tableStart).toBeGreaterThanOrEqual(0);
-    const rows = section.slice(tableStart).split('\\n')
-      .filter((line) => /^\\|\\s*\\d+\\s*\\|/.test(line));
+    const rows = section.slice(tableStart).split('\n')
+      .filter((line) => /^\|\s*\d+\s*\|/.test(line));
     expect(rows).toHaveLength(25);
     const counts = { Done: 0, 'In Progress': 0, Blocked: 0 };
     for (const row of rows) {
-      const status = row.match(/\\*\\*(Done|In Progress|Blocked)\\*\\*/)?.[1];
+      const status = row.match(/\*\*(Done|In Progress|Blocked)\*\*/)?.[1];
       expect(status).toBeTruthy();
       counts[status]++;
     }
