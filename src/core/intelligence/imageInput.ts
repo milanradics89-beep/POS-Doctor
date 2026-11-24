@@ -10,7 +10,7 @@ export type ImageInput = {
   createdAt?: string;
 };
 
-const MAX_DATA_URL_BYTES = 12 * 1024 * 1024;
+export const MAX_IMAGE_DATA_URL_BYTES = 7_900_000;
 const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 
 function byteLength(value: string): number {
@@ -26,7 +26,7 @@ export function validateImageUri(uri: string): void {
 
   const mimeType = match[1].toLowerCase();
   if (!ALLOWED_IMAGE_MIME_TYPES.has(mimeType)) throw new Error(`Unsupported image type: ${mimeType}`);
-  if (byteLength(uri) > MAX_DATA_URL_BYTES) throw new Error('Image is too large. Please choose a smaller photo.');
+  if (byteLength(uri) > MAX_IMAGE_DATA_URL_BYTES) throw new Error('Image is too large. Please choose a smaller photo.');
 }
 
 export function validateImageInput(input: ImageInput): ImageInput {
