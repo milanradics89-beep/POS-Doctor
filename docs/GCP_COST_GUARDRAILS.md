@@ -4,7 +4,7 @@
 
 ## Target project and billing facts
 
-The owner-designated target project is `useit-platform-2026`. Its current project number, access, billing-account linkage, remaining credit balance, credit eligibility and SKU coverage have **not** been independently verified through Google Cloud API/Console in this work. Do not create a replacement project or provision resources until these facts are verified in Cloud Console.
+The owner-designated target project is `useit`. Its current project number, access, billing-account linkage, remaining credit balance, credit eligibility and SKU coverage have **not** been independently verified through Google Cloud API/Console in this work. Do not create a replacement project or provision resources until these facts are verified in Cloud Console.
 
 A previously shared Google Cloud Console screenshot for this same project showed a USD 300 welcome credit, USD 0 used at that time and an expiry date of 2027-02-23. This is historical evidence only, not a current balance or proof that every required SKU is covered. Re-check Billing Overview, remaining credit, expiry and covered SKUs immediately before any provisioning.
 
@@ -12,7 +12,7 @@ A credit is not a hard spending cap. Budget notifications are alerts, not automa
 
 ## Guardrail policy
 
-1. Use only the owner-designated existing target project \`useit-platform-2026\`, after verifying its existence, access and billing link. Do not create duplicate projects.
+1. Use only the owner-designated existing target project \`useit\`, after verifying its existence, access and billing link. Do not create duplicate projects.
 2. Use only services required by the approved architecture: Cloud Run, Firestore, Secret Manager, Artifact Registry, Cloud Logging and Cloud Monitoring, plus GitHub Actions WIF.
 3. Prefer request-based Cloud Run billing, minimum instances 0, conservative maximum instances, bounded concurrency and request timeout, and no always-on compute.
 4. Do not create Cloud SQL, Memorystore, GKE/Kubernetes, Compute Engine VMs, GPUs, Cloud Storage buckets, or Marketplace resources for the initial deployment.
@@ -35,7 +35,7 @@ Review usage cost and applied credits/savings in the Billing report. Check daily
 
 ### Gate A: account and project
 
-- Confirm project ID \`useit-platform-2026\`, project number and owner access.
+- Confirm project ID \`useit\`, project number and owner access.
 - Confirm billing-account linkage, billing-account type and payment responsibility.
 - Confirm current remaining credit, exact expiry, eligible services and restrictions for this exact project.
 - Confirm the project region and data-residency requirements.
@@ -78,7 +78,7 @@ Do not present Free Tier quotas as a guaranteed zero-cost bill until the project
 
 ## Current execution status
 
-- [x] Owner designated target project ID \`useit-platform-2026\` (Cloud Console existence/access/billing not yet verified).
+- [x] Owner designated target project ID \`useit\` (Cloud Console existence/access/billing not yet verified).
 - [ ] Confirm exact project number, billing account and current credit eligibility for each required SKU.
 - [ ] Approve monthly budget amount, cost exposure and alert recipients.
 - [ ] Approve region and initial staging resource configuration.
