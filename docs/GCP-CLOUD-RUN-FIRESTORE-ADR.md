@@ -116,7 +116,7 @@ Before enabling deployment:
 
 ## Cost guardrails
 
-Any previously recorded USD 300 welcome-credit display and USD 0.00 historical spend came from a screenshot associated with \`useit-platform-2026\`, not the owner-designated target project \`useit-platform-2026\`. It is historical evidence only and must not be treated as a current balance, transferable credit or cost allowance for the target project. Verify current billing, credit eligibility and covered SKUs directly in Cloud Console before provisioning.
+A previously shared Cloud Console screenshot for `useit-platform-2026` showed a USD 300 welcome credit, USD 0.00 used at that time and an expiry date of 2027-02-23. This is historical evidence only, not a current balance or proof that every required SKU is covered. Re-check the remaining credit, billing linkage, expiry and eligible SKUs in Cloud Console before provisioning.
 
 Set a project-scoped budget only after the owner approves a budget amount based on a measured service/usage model. Suggested notification thresholds are 25/50/75/90/100 percent of that approved budget; notifications do not stop resources or prevent overage.
 
