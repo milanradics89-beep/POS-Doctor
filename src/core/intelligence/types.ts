@@ -15,11 +15,11 @@ export type UnifiedIntelligenceProvider = {
     preferredColors?: string[];
     discoverProducts?: boolean;
     productLimit?: number;
-  }): Promise<UseitAnalyzeResponse>;
+  }, signal?: AbortSignal): Promise<UseitAnalyzeResponse>;
 };
 
 export interface IntelligenceProvider {
-  analyzeImage(imageUri: string, userIntent?: OpportunityKind): Promise<SceneAnalysis>;
+  analyzeImage(imageUri: string, userIntent?: OpportunityKind, signal?: AbortSignal): Promise<SceneAnalysis>;
   /** Optional canonical unified boundary. Legacy providers remain compatible during migration. */
   analyzeUseit?: UnifiedIntelligenceProvider['analyzeUseit'];
 }
