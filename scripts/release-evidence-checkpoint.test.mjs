@@ -61,8 +61,8 @@ describe('current-main release evidence checkpoint', () => {
   it('records the current documentation HEAD and exact-head workflow conclusions', () => {
     for (const section of latestSections) {
       expect(section).toContain('2955fa15b3489fc3cb89afb43a49f04b1aee777e');
-      expect(section).toContain('Validation [45486433214] is terminal FAILURE');
-      expect(section).toContain('CodeQL [45486433211] and Dependency Review [45486433110] are terminal SUCCESS');
+      expect(section).toMatch(/Validation \[45486433214\]\(https:\/\/github\.com\/[^)]+\) is terminal FAILURE/);
+      expect(section).toMatch(/CodeQL \[45486433211\]\(https:\/\/github\.com\/[^)]+\) and Dependency Review \[45486433110\]\(https:\/\/github\.com\/[^)]+\) are terminal SUCCESS/);
       expect(section).toContain('342 passed / 1 failed across 74 files');
       expect(section).toContain('scripts/release-evidence-checkpoint.test.mjs:57');
       expect(section).toContain('258 branches');
