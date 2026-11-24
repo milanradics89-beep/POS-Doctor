@@ -7,16 +7,17 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-24 06:17 CET';
+const markerPattern = /^## Latest live release-watch checkpoint — \d{4}-\d{2}-\d{2} \d{2}:\d{2} CET$/;
 const latestSections = documents.map((document) => {
-  if (!document.startsWith(marker)) return '';
+  const marker = document.split('\n')[0];
+  if (!markerPattern.test(marker)) return '';
   const nextHeading = document.indexOf('\n## ', marker.length);
   return document.slice(0, nextHeading < 0 ? document.length : nextHeading).trimEnd();
 });
 
 describe('current-main release evidence checkpoint', () => {
   it('selects the top checkpoint rather than a historical section', () => {
-    expect(documents.every((document) => document.startsWith(marker))).toBe(true);
+    expect(documents.every((document) => markerPattern.test(document.split('\n')[0]))).toBe(true);
   });
 
   it('keeps the same current checkpoint in all three release records', () => {
@@ -66,20 +67,43 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('360/360 across 73 files');
       expect(section).toContain('npm audit --audit-level=moderate');
       expect(section).toContain('0 vulnerabilities');
-      expect(section).toContain('diverged from current PR #249 by 4 commits ahead / 3 behind');
+      expect(section).toContain('diverged from current PR #249 by 4 commits ahead / 4 behind');
+    }
+  });
+
+  it('records the current PR #262 checkpoint child without transferring parent CI', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #262 is OPEN/DRAFT at exact HEAD 4da3724366ba7248d97b8466a2d8272938aa6b86');
+      expect(section).toContain('Validation [#45333673992](');
+      expect(section).toContain('CodeQL [#45333673995](');
+      expect(section).toContain('Dependency Review [#45333674002](');
+      expect(section).toContain('353 passed / 2 failed across 72 files');
+      expect(section).toContain('missing explicit #5 blocker');
+      expect(section).toContain('stale 04:08 register marker');
+    }
+  });
+
+  it('records the active PR #261 Expo Doctor blocker without writing to its running branch', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('Current PR #261 exact HEAD 8532e130788e2d02877aeb9feb73360d54142a78');
+      expect(section).toContain('Validation [#45341213308](');
+      expect(section).toContain('CodeQL [#45341213405](');
+      expect(section).toContain('Dependency Review [#45341213310](');
+      expect(section).toContain('Validate Expo project health failed');
+      expect(section).toContain('No successful Google Cloud WIF authentication evidence exists');
     }
   });
 
   it('records the current PR #249 exact-head failure without borrowing parent CI', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `fb694e7de45c22a155213ce7927b6135a32e8ff5`');
-      expect(section).toContain('Validation [#45326042843](');
-      expect(section).toContain('CodeQL [#45326042844](');
-      expect(section).toContain('Dependency Review [#45326042978](');
-      expect(section).toContain('351 tests passed / 3 failed across 72 files');
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `6cd5acd991f1db74d1e79277f8e84884f1b885a5`');
+      expect(section).toContain('Validation [#45339568119](');
+      expect(section).toContain('CodeQL [#45339568138](');
+      expect(section).toContain('Dependency Review [#45339568192](');
+      expect(section).toContain('352 tests passed / 2 failed across 72 files');
       expect(section).toContain('frontend failed, backend passed and iOS passed');
       expect(section).toContain('Android Expo Doctor, export, native Release build and emulator validation were skipped');
-      expect(section).toContain('its new exact-head CI must be evaluated separately and does not inherit results from `6cc6eb3`');
+      expect(section).toContain('its exact-head CI is branch-specific and is not inherited by the separate PR #262 child or PR #260 sibling');
     }
   });
 
@@ -434,11 +458,11 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records current PR #249 and exact-head SDK57/dependency candidates without transferring parent CI', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `fb694e7de45c22a155213ce7927b6135a32e8ff5`');
-      expect(section).toContain('Validation [#45326042843](');
-      expect(section).toContain('CodeQL [#45326042844](');
-      expect(section).toContain('Dependency Review [#45326042978](');
-      expect(section).toContain('351 tests passed / 3 failed across 72 files');
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `6cd5acd991f1db74d1e79277f8e84884f1b885a5`');
+      expect(section).toContain('Validation [#45339568119](');
+      expect(section).toContain('CodeQL [#45339568138](');
+      expect(section).toContain('Dependency Review [#45339568192](');
+      expect(section).toContain('352 tests passed / 2 failed across 72 files');
       expect(section).toContain('PR #254 is OPEN/DRAFT at exact HEAD `2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3`');
       expect(section).toContain('Validation [#45223358003](');
       expect(section).toContain('CodeQL [#45223357946](');
@@ -451,8 +475,8 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('PR #99 exact HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139`');
       expect(section).toContain('Validation [#43772791089](');
       expect(section).toContain('Issue [#64](');
-      expect(section).toContain('135 comments');
-      expect(section).toContain('219 branches');
+      expect(section).toContain('136 comments');
+      expect(section).toContain('220 branches');
       expect(section).toContain('0 published releases');
       expect(section).toContain('UNAVAILABLE, UNVERIFIED, NOT EMPTY');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
@@ -461,7 +485,8 @@ describe('current-main release evidence checkpoint', () => {
 
   it('keeps the current canonical 25-row register at 2 Done / 15 In Progress / 8 Blocked', () => {
     const backlog = readFileSync(new URL('../docs/25-POINT-RELEASE-BACKLOG.md', import.meta.url), 'utf8');
-    const registerMarker = '## Current canonical 25-point release register — 2026-11-24 04:08 CET';
+    const registerMarker = backlog.match(/^## Current canonical 25-point release register — \d{4}-\d{2}-\d{2} \d{2}:\d{2} CET$/m)?.[0];
+    expect(registerMarker).toBeTruthy();
     const start = backlog.indexOf(registerMarker);
     expect(start).toBeGreaterThanOrEqual(0);
     const end = backlog.indexOf('\n## ', start + registerMarker.length);
