@@ -2,9 +2,9 @@
 
 **Status:** Proposed, implementation not yet deployed  
 **Date:** 2026-11-24  
-**Owner-designated GCP project:** `useit-platform-2026`
+**Owner-designated GCP project:** `useit`
 
-Use the existing owner-designated `useit-platform-2026` project. Do not create a replacement project. Before provisioning, verify the intended billing account, project number, region and eligible SKUs in that project. No GCP resources have been created by this ADR.
+Use the existing owner-designated `useit` project. Do not create a replacement project. Before provisioning, verify the intended billing account, project number, region and eligible SKUs in that project. No GCP resources have been created by this ADR.
 
 ## Decision
 
@@ -116,7 +116,7 @@ Before enabling deployment:
 
 ## Cost guardrails
 
-A previously shared Cloud Console screenshot for `useit-platform-2026` showed a USD 300 welcome credit, USD 0.00 used at that time and an expiry date of 2027-02-23. This is historical evidence only, not a current balance or proof that every required SKU is covered. Re-check the remaining credit, billing linkage, expiry and eligible SKUs in Cloud Console before provisioning.
+A previously shared Cloud Console screenshot for `useit` showed a USD 300 welcome credit, USD 0.00 used at that time and an expiry date of 2027-02-23. This is historical evidence only, not a current balance or proof that every required SKU is covered. Re-check the remaining credit, billing linkage, expiry and eligible SKUs in Cloud Console before provisioning.
 
 Set a project-scoped budget only after the owner approves a budget amount based on a measured service/usage model. Suggested notification thresholds are 25/50/75/90/100 percent of that approved budget; notifications do not stop resources or prevent overage.
 
@@ -135,7 +135,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Acceptance checklist
 
-- [ ] Target project \`useit-platform-2026\`, project number, access and billing account verified in Cloud Console.
+- [ ] Target project \`useit\`, project number, access and billing account verified in Cloud Console.
 - [ ] Cloud Run container is stateless and deploys with a dedicated least-privilege runtime identity.
 - [ ] OpenAI key and all server secrets are read only from Secret Manager.
 - [ ] GitHub deployment uses OIDC/WIF; no service-account JSON key exists in GitHub secrets.
@@ -152,7 +152,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Open questions that require measured or external evidence
 
-- Verify that the owner-designated project ID \`useit-platform-2026\` exists, is accessible and is linked to the intended billing account; confirm its project number, region and eligible SKUs before provisioning.
+- Verify that the owner-designated project ID \`useit\` exists, is accessible and is linked to the intended billing account; confirm its project number, region and eligible SKUs before provisioning.
 - Firestore database location and retention must follow the actual data residency/privacy assessment.
 - Firestore transaction contention and cost must be load-tested using realistic per-user/IP traffic.
 - The exact Cloud Run CPU/memory/concurrency/max-instance configuration must be selected from measured latency and cost, not guessed.
