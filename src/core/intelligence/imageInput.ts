@@ -10,8 +10,10 @@ export type ImageInput = {
   createdAt?: string;
 };
 
-const MAX_DATA_URL_BYTES = 12 * 1024 * 1024;
-const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+// Stay below the backend's 8,000,000-character imageUri limit with room for the JSON envelope.
+export const MAX_IMAGE_DATA_URL_BYTES = 7_900_000;
+// Keep this set aligned with backend/main.py's accepted data-URI MIME contract.
+const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 function byteLength(value: string): number {
   return new TextEncoder().encode(value).byteLength;
@@ -26,7 +28,7 @@ export function validateImageUri(uri: string): void {
 
   const mimeType = match[1].toLowerCase();
   if (!ALLOWED_IMAGE_MIME_TYPES.has(mimeType)) throw new Error(`Unsupported image type: ${mimeType}`);
-  if (byteLength(uri) > MAX_DATA_URL_BYTES) throw new Error('Image is too large. Please choose a smaller photo.');
+  if (byteLength(uri) > MAX_IMAGE_DATA_URL_BYTES) throw new Error('Image is too large. Please choose a smaller photo.');
 }
 
 export function validateImageInput(input: ImageInput): ImageInput {
