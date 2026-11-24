@@ -4,9 +4,9 @@
 
 ## Target project and billing facts
 
-The owner-designated target project is \`useit-platform-2026\`. Its existence, project number, access, billing-account linkage, current credit balance, credit eligibility and SKU coverage have **not** been independently verified through Google Cloud API/Console in this work. Do not create a replacement project or provision resources until a human verifies these facts.
+The owner-designated target project is `useit-platform-2026`. Its current project number, access, billing-account linkage, remaining credit balance, credit eligibility and SKU coverage have **not** been independently verified through Google Cloud API/Console in this work. Do not create a replacement project or provision resources until these facts are verified in Cloud Console.
 
-A previously shared Google Cloud Console screenshot showed a USD 300 welcome credit, USD 0 used at that time and an expiry date of 2027-02-23 for a different project, \`useit-platform-2026\`. That historical screenshot is not evidence that the credit applies to \`useit-platform-2026\`, is transferable, or remains available. Do not include it in the target project's cost model. Re-check Billing Overview, credit eligibility and covered SKUs immediately before any provisioning.
+A previously shared Google Cloud Console screenshot for this same project showed a USD 300 welcome credit, USD 0 used at that time and an expiry date of 2027-02-23. This is historical evidence only, not a current balance or proof that every required SKU is covered. Re-check Billing Overview, remaining credit, expiry and covered SKUs immediately before any provisioning.
 
 A credit is not a hard spending cap. Budget notifications are alerts, not automatic shutdown controls. Usage not covered by an applicable credit or Free Tier may be charged to the linked payment method.
 
