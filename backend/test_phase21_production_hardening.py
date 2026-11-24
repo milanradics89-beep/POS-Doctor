@@ -1,5 +1,6 @@
 import pytest
 from fastapi import HTTPException
+from starlette.requests import Request
 
 import backend.main as main
 import backend.product_discovery as discovery
@@ -64,6 +65,25 @@ async def test_product_resolution_unexpected_exception_isolated_per_candidate(mo
     assert result["errors"][0]["message"] == "product resolution unavailable (RuntimeError)"
 
 
+def _disabled_idempotency_request() -> Request:
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0", "spec_version": "2.3"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/v1/useit/analyze",
+        "raw_path": b"/v1/useit/analyze",
+        "query_string": b"",
+        "headers": [],
+        "client": ("127.0.0.1", 12345),
+        "server": ("testserver", 80),
+    }
+    request = Request(scope)
+    request._body = b"{}"
+    return request
+
+
 @pytest.mark.asyncio
 async def test_unified_consumer_flow_survives_unexpected_discovery_failure(monkeypatch):
     async def fake_analyze(_request):
@@ -74,6 +94,7 @@ async def test_unified_consumer_flow_survives_unexpected_discovery_failure(monke
 
     monkeypatch.setattr(main, "_analyze", fake_analyze)
     monkeypatch.setattr(main, "discover_products", fail_discovery)
+    monkeypatch.setattr(main, "configured_idempotency_mode", lambda: "disabled")
 
     request = main.UseItAnalyzeRequest(
         imageUri="https://example.com/image.jpg",
@@ -81,7 +102,7 @@ async def test_unified_consumer_flow_survives_unexpected_discovery_failure(monke
         discoverProducts=True,
     )
 
-    result = await main.useit_analyze(request)
+    result = await main.useit_analyze(request, _disabled_idempotency_request())
 
     assert result["contractVersion"] == "useit_analyze_v1"
     assert result["scene"]["sceneType"] == "room"
