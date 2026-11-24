@@ -24,6 +24,11 @@ describe('image input validation', () => {
     expect(() => assertImagePayload({ dataUrl, mimeType: 'image/jpeg' })).toThrow('Image is too large.');
   });
 
+  it('accepts GIF in the normalized image payload contract', () => {
+    const payload = { dataUrl: 'data:image/gif;base64,AAAA', mimeType: 'image/gif' as const };
+    expect(assertImagePayload(payload)).toEqual(payload);
+  });
+
   it('rejects a data URL above the shared client/server-safe limit', () => {
     const prefix = 'data:image/jpeg;base64,';
     const uri = prefix + 'A'.repeat(MAX_IMAGE_DATA_URL_BYTES - prefix.length + 1);
@@ -36,6 +41,15 @@ describe('image input validation', () => {
 
   it('rejects unsupported image types', () => {
     expect(() => validateImageUri('data:image/svg+xml;base64,AAAA')).toThrow('Unsupported image type');
+  });
+
+  it('rejects a declared MIME type that differs from the data URL', () => {
+    expect(() => validateImageInput({
+      id: 'gallery-1',
+      uri: 'data:image/png;base64,AAAA',
+      mimeType: 'image/jpeg',
+      source: 'gallery',
+    })).toThrow('Image MIME type does not match its data URL');
   });
 
   it('rejects an invalid structured image input', () => {
