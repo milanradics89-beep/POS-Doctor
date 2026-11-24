@@ -290,11 +290,7 @@ export default function Home() {
       return;
     }
 
-    setNotice(null);
-    setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
-    setResult(null);
-    setRendered(null);
-    setNotice(null);
+    setSelectedPhoto(a.base64, a.mimeType || 'image/jpeg');
   }
 
   const noticePanel = notice ? (
