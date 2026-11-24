@@ -71,13 +71,13 @@ describe('UseitApiProvider boundary handling', () => {
     const controller = new AbortController();
     let observedSignal: AbortSignal | undefined;
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((_input, init) => {
-      const signal = init?.signal;
-      if (!signal) {
-        reject(new Error('Expected the billable analysis request to receive an AbortSignal.'));
-        return;
-      }
-      observedSignal = signal;
       return new Promise<Response>((_resolve, reject) => {
+        const signal = init?.signal;
+        if (!signal) {
+          reject(new Error('Expected the billable analysis request to receive an AbortSignal.'));
+          return;
+        }
+        observedSignal = signal;
         const abort = () => reject(new DOMException('The operation was aborted.', 'AbortError'));
         if (signal.aborted) abort();
         else signal.addEventListener('abort', abort, { once: true });
