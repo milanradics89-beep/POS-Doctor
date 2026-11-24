@@ -2,11 +2,7 @@
 # USEIT repository review policy
 language: "en-US"
 early_access: false
-tone_instructions: >
-  Be concise, technical, and evidence-driven. Prioritize correctness,
-  security, privacy, data integrity, reliability, and regressions over style.
-  Do not report speculative issues without a concrete code path and impact.
-  Distinguish confirmed defects from suggestions.
+tone_instructions: "Be concise and evidence-driven. Prioritize correctness, security, privacy, data integrity, and reliability over style."
 reviews:
   profile: "assertive"
   request_changes_workflow: false
@@ -16,32 +12,29 @@ reviews:
   collapse_walkthrough: false
   auto_review:
     enabled: true
-    drafts: false
+    drafts: true
     auto_incremental_review: true
     suggested_labels: false
     suggested_reviewers: false
   path_instructions:
     - path: "**/.github/workflows/**"
       instructions: >
-        Review workflow permissions using least privilege. Check untrusted
-        pull_request and workflow_run data boundaries, token exposure, cache
-        poisoning, action pinning to immutable SHAs, artifact handling, and
-        whether secrets can be accessed from fork or untrusted PR contexts.
-        Do not recommend weakening branch protection or suppressing findings.
+        Check least-privilege permissions, untrusted pull_request and
+        workflow_run boundaries, token exposure, cache poisoning, immutable
+        action SHA pins, and artifact handling. Never recommend weakening
+        branch protection or suppressing valid security findings.
     - path: "**/*.{ts,tsx,js,jsx}"
       instructions: >
         Review React Native and Expo code for runtime correctness, permission
         handling, secure storage, privacy, lifecycle cleanup, accessibility,
-        and Android/iOS behavior differences. Flag unsafe handling of device
-        identifiers, location, network data, and credentials.
+        and Android/iOS differences. Flag unsafe device identifiers, location,
+        network data, and credential handling.
     - path: "**/*.py"
       instructions: >
-        Review backend code for authentication and authorization on every
-        protected operation, input validation, injection risks, secret
-        handling, transaction integrity, concurrency, and safe error
-        responses. Check that tests cover security-sensitive branches.
+        Review backend authentication and authorization, input validation,
+        injection risks, secret handling, transaction integrity, concurrency,
+        and safe error responses. Check security-sensitive test coverage.
     - path: "**/*test*"
       instructions: >
-        Check that tests assert observable behavior and meaningful failure
-        cases. Do not suggest deleting, skipping, weakening, or broadly
-        mocking tests to make CI pass.
+        Check observable behavior and meaningful failure cases. Never suggest
+        deleting, skipping, weakening, or broadly mocking tests to make CI pass.
