@@ -32,7 +32,7 @@ workflows:
         script: |
           set -euo pipefail
           test -n "${ANDROID_SDK_ROOT:-}"
-          printf 'sdk.dir=%s\\n' "$ANDROID_SDK_ROOT" > android/local.properties
+          printf 'sdk.dir=%s\n' "$ANDROID_SDK_ROOT" > android/local.properties
       - name: Build unsigned Android release APK
         script: |
           set -euo pipefail
