@@ -1,6 +1,6 @@
 ## Latest live release-watch checkpoint — 2026-11-24 22:31 CET
 
-Repository identity: GitHub redirected the former `milanradics89-beep/POS-Doctor` path to `milanradics89-beep/USEIT`; repository ID `1246135116` is unchanged. All live checks in this checkpoint use the canonical `USEIT` name. Evidence refreshed from live PR metadata, exact branch refs, exact-head Actions runs and jobs, review submissions and threads, issue records, paginated branch inventory, the active main ruleset, package manifests and lockfiles, and the GitHub Releases endpoint. This checkpoint records automated repository evidence only. It does not grant production, store, pilot, or business acceptance.
+Repository identity: GitHub redirected the former `milanradics89-beep/POS-Doctor` path to `milanradics89-beep/USEIT`; repository ID `1246135116` is unchanged. All live checks in this checkpoint use the canonical `USEIT` name. Evidence refreshed from live GitHub PR metadata, exact branch refs, exact-head Actions runs and jobs, review submissions and threads, issue records, paginated branch inventory, the active main ruleset, package manifests and lockfiles, and the GitHub Releases endpoint. This checkpoint records automated repository evidence only. It does not grant production, store, pilot, or business acceptance.
 
 ### Repository and governance
 
