@@ -1,4 +1,63 @@
-## Latest live release-watch checkpoint — 2026-11-23 22:03 CET
+## Latest live release-watch checkpoint — 2026-11-24 01:41 CET
+
+Evidence refreshed from live GitHub PR metadata, independent branch refs, exact-commit Actions runs and jobs, PR conversation comments, inline review threads and formal review submissions, issue records, paginated branch inventory, repository metadata, the active ruleset, Releases API, and the three release records. This checkpoint records repository and automated evidence only; it does not grant production or pilot acceptance.
+
+### PR #41 — merged source baseline and complete review audit
+
+- PR #41 is CLOSED/MERGED from `fix/release-blockers-2026-10` to `main`. Live PR metadata and the independent branch ref both report exact source HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. The PR records 517 commits, 100 changed files, +11,887 additions and -2,005 deletions. Comparison with current main `3a262358552a9650d865aa5bd3c92905f1e863cb` is DIVERGED, 517 ahead / 4 behind.
+- Exact-head Validation [#43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [#43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161), and Dependency Review [#43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021) are terminal SUCCESS on that exact SHA. All five jobs passed: frontend, backend, iOS, CodeQL Analyze and Dependency Review. Frontend typecheck, unit tests, Expo Doctor, Android export/release/emulator smoke and runtime audit passed.
+- Refreshed PR timeline: 109 records = 53 conversation comments, 30 inline review comments and 26 formal review submissions (25 COMMENTED, one human APPROVED by `tarlaci1984-sketch` on 2026-11-13). The approval body is empty and is not a production or security acceptance statement. All 22 inline threads are resolved; 0 unresolved and 20 outdated.
+- PR #41's description still contains superseded historical text claiming HEAD `b46c5b8`, an open/unmerged state, 2 open threads and 0 human approvals. Those statements are stale; live metadata, branch ref, review APIs and exact-head runs are authoritative. The merged PR was not modified.
+- Historical Validation [#43098210284](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210284), CodeQL [#43098210473](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210473), and Dependency Review [#43098210255](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43098210255) remain QUEUED on obsolete SHA `b46c5b8082ecbebd263a86cd53b1321a86e570d1`; each jobs endpoint returns zero jobs. They are stale historical queues, not failures on PR #41's merged HEAD. Repository administrator cancellation is required.
+
+### Main governance and repository inventory
+
+- Current main HEAD is `3a262358552a9650d865aa5bd3c92905f1e863cb`; repository visibility is public.
+- Active ruleset [#26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) targets the default branch and is ACTIVE. It requires six strict checks (`CodeQL`, `backend`, `frontend`, `ios`, `analyze`, `dependency-review`), one approving review, stale-review dismissal, last-push approval and resolved review threads; deletion and non-fast-forward are blocked; bypass actors are empty and current-user bypass is never.
+- Paginated branch search returned 212 branches (100 + 100 + 12; the next page was empty). PR #41's release branch still points to the exact merged source HEAD above.
+- GitHub Releases API returned an empty array: 0 published releases. Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable through the connected integration because the alert endpoints were rejected: UNAVAILABLE, UNVERIFIED, NOT EMPTY.
+
+### PR #249 — current release-documentation candidate
+
+- PR #249 is OPEN/DRAFT at exact HEAD `7a78fbaebb45e232c57513b0bde8c5423dae5e89` on `fix/pr233-live-checkpoint-refresh-20261123-1150`, based on PR #254 exact HEAD `2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3`. It has 30 commits and 5 changed files (+3,917 / -17). PR metadata and the branch ref match.
+- Exact-head Validation [#45288974809](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45288974809), CodeQL [#45288974993](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45288974993), and Dependency Review [#45288974833](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45288974833) are terminal SUCCESS on this exact SHA. All five jobs passed: frontend, backend, iOS, CodeQL Analyze and Dependency Review. Frontend: 352/352 tests across 72 files; Expo Doctor 21/21; Android Release/emulator smoke and iOS Release/simulator smoke passed. Backend: 539 pytest tests, 27 production-readiness checks and 78 security/privacy checks passed; pip-audit reported no known vulnerabilities.
+- The frontend runtime audit `npm audit --omit=dev --audit-level=high` still reports 3 MODERATE minimatch findings. The configured HIGH threshold passes; this is not a zero-finding moderate-threshold audit. The Dependency Review bot's comment says no files were scanned, so it does not clear the runtime findings.
+- PR #249 has 1 Dependency Review bot conversation comment, 0 formal reviews, 0 inline threads and 0 human approvals. It remains draft and unmerged.
+
+### PR #254 — Expo SDK 57 package alignment
+
+- PR #254 is OPEN/DRAFT at exact HEAD `2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3`, based on main `3a262358552a9650d865aa5bd3c92905f1e863cb`; 1 commit and 2 changed files. Its manifest and lockfile align `expo-constants ~57.0.25`, `expo-image-picker ~57.0.22`, `expo-router ~57.0.32`, and `@expo/metro-runtime 57.0.19`, preserving npm registry integrity metadata.
+- Exact-head Validation [#45223358003](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45223358003), CodeQL [#45223357946](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45223357946), and Dependency Review [#45223358018](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45223358018) are terminal SUCCESS; all five jobs passed. Frontend: 327/327 tests across 71 files; Expo Doctor 21/21; Android Release/emulator and iOS Release/simulator smoke passed.
+- PR #254 remains draft and unmerged with no human approval. Its runtime high-threshold audit still reports 3 moderate minimatch findings; it is not a clean full moderate-threshold audit.
+
+### PR #231 and PR #246 — minimatch 11 remediation candidate
+
+- PR #231 is OPEN/DRAFT at exact HEAD `444e312b4bf94237eedfb0af1a24922bf5853942`, based on main `3a262358552a9650d865aa5bd3c92905f1e863cb`; 1 commit and 4 changed files. It adds the `minimatch 11.0.5` override, regenerated lockfile entries and targeted compatibility tests for the SDK 57 `@expo/fingerprint` consumer. Its own exact-head Validation [#45031336861](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45031336861), CodeQL [#45031337208](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45031337208), and Dependency Review [#45031336869](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45031336869) are terminal SUCCESS.
+- PR #246 is OPEN/DRAFT at exact HEAD `ad614dd25d0fd11d3d50737718e7dbd88a74c89a`, based on PR #231's branch at `444e312b4bf94237eedfb0af1a24922bf5853942`; 2 commits and 2 changed files. It adds a full moderate-threshold dependency audit and a validation-runner contract test without replacing the runtime audit.
+- PR #246 exact-head Validation [#45112214845](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45112214845), CodeQL [#45112214955](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45112214955), and Dependency Review [#45112214927](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45112214927) are terminal SUCCESS. Its frontend ran 335/335 tests across 72 files; `npm audit --audit-level=moderate` and `npm audit --omit=dev --audit-level=high` both reported 0 vulnerabilities on that candidate.
+- The PR #231/#246 candidate is not integrated with PR #254. Its minimatch override and fingerprint tests are promising, but the exact combined SDK 57 tree still needs a reproducible npm-generated lockfile and full compatibility/Android/iOS validation. Do not run `npm audit fix --force`: its suggested resolution downgrades Expo to 52.0.49.
+
+### PR #244 — picomatch runtime observations
+
+- PR #244 is OPEN/DRAFT on `test/picomatch-counterexamples-20261123-run11`, exact HEAD `6a1d531132cd457cdb997e8a677d39ace17d019a`.
+- Validation [#45220119684](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45220119684) failed: 330 tests passed / 4 failed across 72 files. CodeQL [#45220119625](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45220119625) and Dependency Review [#45220119889](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45220119889) passed.
+- The four patterns `+(*)`, `*(*)`, `+(a*)`, and `+(*a)` exceeded the 2,500 ms child-process timeout. GHSA-fc5q-39xc-vjpf / CVE-2026-112366 was WITHDRAWN upstream on 2026-11-18 as not a security issue. The measured runtime behavior is real, but these tests do not establish a confirmed vulnerability or exploitability. Preserve the tests and timeout while checking whether untrusted input can reach this build-time matcher.
+
+### Issues, production acceptance and release decision
+
+- Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is CLOSED with 11 comments. Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains OPEN with 133 comments (last updated 2026-11-23 21:42:53 UTC). PR #200's DNS-pinned transport is integrated into current main. Production SSRF acceptance remains blocked by explicit independent security-owner approval, complete production NAT64/DNS64 inventory, verified deployed `USEIT_NAT64_PREFIXES`, and captured staging/production egress behavior.
+- The canonical row-level 25-point register remains exactly 25 items: **2 Done / 15 In Progress / 8 Blocked**. Done: #1, #6. In Progress: #3, #7–#15, #17, #19, #20, #23, #24. Blocked: #2, #4, #5, #16, #18, #21, #22, #25. Main's separate historical register remains 3 Done / 15 In Progress / 7 Blocked; the two registers are not merged.
+- The eight Blocked items remain: #2 durable repository-visibility/release-plan decision; #4 physical iPhone App Attest; #5 Play-installed physical Android Play Integrity; #16 witnessed production backup/restore; #18 representative product-recognition benchmark and business acceptance; #21 production monitoring with witnessed alert delivery; #22 approved staged rollout and tested rollback; #25 real-user pilot and business sign-off. External console setup, physical-device tests, production cloud access, witnessed backup/restore, staged rollout approvals, and real-user pilot/business approval remain blocked until direct evidence exists.
+- Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.
+
+| Status | Items | Count |
+|---|---|---:|
+| Done | #1, #6 | 2 |
+| In Progress | #3, #7–#15, #17, #19, #20, #23, #24 | 15 |
+| Blocked | #2, #4, #5, #16, #18, #21, #22, #25 | 8 |
+| **Total** | **#1–#25** | **25** |
+
+## Previous live checkpoint — 2026-11-23 22:03 CET (superseded)
 
 Evidence refreshed from live GitHub PR metadata, exact branch refs, exact-commit Actions runs and jobs, review timelines/submissions/threads, issues, repository metadata, active ruleset, Releases API and the three release records. This checkpoint records repository and automated evidence only; it does not grant production or pilot acceptance.
 

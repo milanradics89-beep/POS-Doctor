@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-23 22:03 CET';
+const marker = '## Latest live release-watch checkpoint — 2026-11-24 01:41 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const nextHeading = document.indexOf('\n## ', marker.length);
@@ -40,20 +40,20 @@ describe('current-main release evidence checkpoint', () => {
   });
 
   it('preserves the historical PR #249 checkpoint-test failure separately from the earlier Expo Doctor finding', () => {
-    for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT on `fix/pr233-live-checkpoint-refresh-20261123-1150`');
-      expect(section).toContain('Parent exact HEAD before this checkpoint update was `d4a11d82c62c98a0e2ee9c0f669a54c6ac4f8a9d`');
-      expect(section).toContain('Validation [#45231276486](');
-      expect(section).toContain('CodeQL [#45231276504](');
-      expect(section).toContain('Dependency Review [#45231276317](');
-      expect(section).toContain('338/349 unit tests passed and 11 failed');
-      expect(section).toContain('scripts/release-evidence-checkpoint.test.mjs');
-      expect(section).toContain('11:50 marker');
-      expect(section).toContain('Expo Doctor, Android export, native Android Release build, Android emulator smoke and frontend runtime audit were skipped');
-      expect(section).toContain('Earlier exact HEAD `e8e80b1931667020ebeac561bd9a0adf905a32b7`');
-      expect(section).toContain('expo-constants');
-      expect(section).toContain('expo-image-picker');
-      expect(section).toContain('expo-router');
+    for (const document of documents) {
+      expect(document).toContain('PR #249 is OPEN/DRAFT on `fix/pr233-live-checkpoint-refresh-20261123-1150`');
+      expect(document).toContain('Parent exact HEAD before this checkpoint update was `d4a11d82c62c98a0e2ee9c0f669a54c6ac4f8a9d`');
+      expect(document).toContain('Validation [#45231276486](');
+      expect(document).toContain('CodeQL [#45231276504](');
+      expect(document).toContain('Dependency Review [#45231276317](');
+      expect(document).toContain('338/349 unit tests passed and 11 failed');
+      expect(document).toContain('scripts/release-evidence-checkpoint.test.mjs');
+      expect(document).toContain('11:50 marker');
+      expect(document).toContain('Expo Doctor, Android export, native Android Release build, Android emulator smoke and frontend runtime audit were skipped');
+      expect(document).toContain('Earlier exact HEAD `e8e80b1931667020ebeac561bd9a0adf905a32b7`');
+      expect(document).toContain('expo-constants');
+      expect(document).toContain('expo-image-picker');
+      expect(document).toContain('expo-router');
     }
   });
 
@@ -404,18 +404,19 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records current PR #249 and PR #254 exact-head green evidence without conflating their dependency audit scopes', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD \`6a7e26e8aec39e1cbd9d860e54fd35614c3cd521\`');
-      expect(section).toContain('Validation [#45251454548](');
-      expect(section).toContain('CodeQL [#45251454522](');
-      expect(section).toContain('Dependency Review [#45251454529](');
-      expect(section).toContain('351/351 tests across 72 files');
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD \`7a78fbaebb45e232c57513b0bde8c5423dae5e89\`');
+      expect(section).toContain('Validation [#45288974809](');
+      expect(section).toContain('CodeQL [#45288974993](');
+      expect(section).toContain('Dependency Review [#45288974833](');
+      expect(section).toContain('352/352 tests across 72 files');
       expect(section).toContain('PR #254 is OPEN/DRAFT at exact HEAD \`2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3\`');
       expect(section).toContain('Validation [#45223358003](');
       expect(section).toContain('CodeQL [#45223357946](');
       expect(section).toContain('Dependency Review [#45223358018](');
       expect(section).toContain('3 MODERATE minimatch findings');
       expect(section).toContain('Issue [#64]');
-      expect(section).toContain('132 comments');
+      expect(section).toContain('133 comments');
+      expect(section).toContain('212 branches');
       expect(section).toContain('0 published releases');
       expect(section).toContain('UNAVAILABLE, UNVERIFIED, NOT EMPTY');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
