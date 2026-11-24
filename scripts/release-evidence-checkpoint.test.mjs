@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-24 07:10 CET';
+const marker = '## Latest live release-watch checkpoint — 2026-11-24 08:08 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const nextHeading = document.indexOf('\n## ', marker.length);
@@ -59,14 +59,14 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records the current PR #249 exact-head failure without borrowing parent CI', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT at exact pre-repair HEAD `6cc6eb3fec0ac7a6404efc07f2a428e69196fbfe`');
-      expect(section).toContain('Validation [#45318427579](');
-      expect(section).toContain('CodeQL [#45318427573](');
-      expect(section).toContain('Dependency Review [#45318427585](');
-      expect(section).toContain('350 tests passed / 3 failed across 72 files');
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `6cd5acd991f1db74d1e79277f8e84884f1b885a5`');
+      expect(section).toContain('Validation [#45339568119](');
+      expect(section).toContain('CodeQL [#45339568138](');
+      expect(section).toContain('Dependency Review [#45339568192](');
+      expect(section).toContain('352 tests passed / 2 failed across 72 files');
       expect(section).toContain('frontend failed, backend passed and iOS passed');
       expect(section).toContain('Android Expo Doctor, export, native Release build and emulator validation were skipped');
-      expect(section).toContain('its new exact-head CI must be evaluated separately and does not inherit results from `6cc6eb3`');
+      expect(section).toContain('its new exact-head CI must be evaluated separately and does not inherit results from `fb694e7`');
     }
   });
 
@@ -439,7 +439,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Validation [#43772791089](');
       expect(section).toContain('Issue [#64](');
       expect(section).toContain('136 comments');
-      expect(section).toContain('220 branches');
+      expect(section).toContain('221 branches');
       expect(section).toContain('0 published releases');
       expect(section).toContain('UNAVAILABLE, UNVERIFIED, NOT EMPTY');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
@@ -448,7 +448,7 @@ describe('current-main release evidence checkpoint', () => {
 
   it('keeps the current canonical 25-row register at 2 Done / 15 In Progress / 8 Blocked', () => {
     const backlog = readFileSync(new URL('../docs/25-POINT-RELEASE-BACKLOG.md', import.meta.url), 'utf8');
-    const registerMarker = '## Current canonical 25-point release register — 2026-11-24 07:10 CET';
+    const registerMarker = '## Current canonical 25-point release register — 2026-11-24 08:08 CET';
     const start = backlog.indexOf(registerMarker);
     expect(start).toBeGreaterThanOrEqual(0);
     const end = backlog.indexOf('\n## ', start + registerMarker.length);
