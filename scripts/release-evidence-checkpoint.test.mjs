@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-24 08:08 CET';
+const marker = '## Latest live release-watch checkpoint — 2026-11-24 09:10 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const nextHeading = document.indexOf('\n## ', marker.length);
@@ -59,14 +59,14 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records the current PR #249 exact-head failure without borrowing parent CI', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `6cd5acd991f1db74d1e79277f8e84884f1b885a5`');
-      expect(section).toContain('Validation [#45339568119](');
-      expect(section).toContain('CodeQL [#45339568138](');
-      expect(section).toContain('Dependency Review [#45339568192](');
-      expect(section).toContain('352 tests passed / 2 failed across 72 files');
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `079e58581f3e80ea3d7c332b9d6c2e7a1f270b10`');
+      expect(section).toContain('Validation [#45346864983](');
+      expect(section).toContain('CodeQL [#45346864899](');
+      expect(section).toContain('Dependency Review [#45346864793](');
+      expect(section).toContain('349 tests passed / 5 failed across 72 files');
       expect(section).toContain('frontend failed, backend passed and iOS passed');
       expect(section).toContain('Android Expo Doctor, export, native Release build and emulator validation were skipped');
-      expect(section).toContain('its new exact-head CI must be evaluated separately and does not inherit results from `fb694e7`');
+      expect(section).toContain('its new exact-head CI must be evaluated separately and does not inherit results from `6cd5acd`');
     }
   });
 
@@ -421,11 +421,11 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records current PR #249 and exact-head SDK57/dependency candidates without transferring parent CI', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `fb694e7de45c22a155213ce7927b6135a32e8ff5`');
-      expect(section).toContain('Validation [#45326042843](');
-      expect(section).toContain('CodeQL [#45326042844](');
-      expect(section).toContain('Dependency Review [#45326042978](');
-      expect(section).toContain('351 tests passed / 3 failed across 72 files');
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `079e58581f3e80ea3d7c332b9d6c2e7a1f270b10`');
+      expect(section).toContain('Validation [#45346864983](');
+      expect(section).toContain('CodeQL [#45346864899](');
+      expect(section).toContain('Dependency Review [#45346864793](');
+      expect(section).toContain('349 tests passed / 5 failed across 72 files');
       expect(section).toContain('PR #254 is OPEN and non-draft at exact HEAD `2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3`');
       expect(section).toContain('Validation [#45223358003](');
       expect(section).toContain('CodeQL [#45223357946](');
@@ -439,7 +439,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Validation [#43772791089](');
       expect(section).toContain('Issue [#64](');
       expect(section).toContain('136 comments');
-      expect(section).toContain('221 branches');
+      expect(section).toContain('230 branches');
       expect(section).toContain('0 published releases');
       expect(section).toContain('UNAVAILABLE, UNVERIFIED, NOT EMPTY');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
@@ -448,7 +448,7 @@ describe('current-main release evidence checkpoint', () => {
 
   it('keeps the current canonical 25-row register at 2 Done / 15 In Progress / 8 Blocked', () => {
     const backlog = readFileSync(new URL('../docs/25-POINT-RELEASE-BACKLOG.md', import.meta.url), 'utf8');
-    const registerMarker = '## Current canonical 25-point release register — 2026-11-24 08:08 CET';
+    const registerMarker = '## Current canonical 25-point release register — 2026-11-24 09:10 CET';
     const start = backlog.indexOf(registerMarker);
     expect(start).toBeGreaterThanOrEqual(0);
     const end = backlog.indexOf('\n## ', start + registerMarker.length);
