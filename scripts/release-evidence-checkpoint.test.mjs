@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-24 22:31 CET';
+const marker = '## Latest live release-watch checkpoint — 2026-11-25 00:16 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -60,12 +60,12 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records the current documentation HEAD and exact-head workflow conclusions', () => {
     for (const section of latestSections) {
-      expect(section).toContain('2955fa15b3489fc3cb89afb43a49f04b1aee777e');
-      expect(section).toContain('Validation [45486433214] is terminal FAILURE');
-      expect(section).toContain('CodeQL [45486433211] and Dependency Review [45486433110] are terminal SUCCESS');
-      expect(section).toContain('342 passed / 1 failed across 74 files');
-      expect(section).toContain('scripts/release-evidence-checkpoint.test.mjs:57');
-      expect(section).toContain('258 branches');
+      expect(section).toContain('Before this checkpoint commit, PR #204 branch HEAD was `299e6f1c2ee995c03ca5d9148b5b45bfafaeeaac`');
+      expect(section).toMatch(/Validation \[45501294294\]\([^)]*\) is terminal FAILURE/);
+      expect(section).toMatch(/CodeQL \[45501294310\]\([^)]*\) and Dependency Review \[45501294338\]\([^)]*\) are terminal SUCCESS/);
+      expect(section).toContain('343 passed / 1 failed across 74 files');
+      expect(section).toContain('scripts/release-evidence-checkpoint.test.mjs:64');
+      expect(section).toContain('261 branches');
     }
   });
 
