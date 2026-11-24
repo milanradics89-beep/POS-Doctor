@@ -7,14 +7,14 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('expo-image-manipulator', () => ({
   SaveFormat: { JPEG: 'jpeg' },
-  manipulate: mocks.manipulate,
+  ImageManipulator: { manipulate: mocks.manipulate },
 }));
 
 vi.mock('expo-file-system/legacy', () => ({
   deleteAsync: mocks.deleteAsync,
 }));
 
-import * as ImageManipulator from 'expo-image-manipulator';
+import { ImageManipulator } from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import { normalizeImageAsset, getResizeAction, IMAGE_NORMALIZATION_MAX_DIMENSION } from './imageNormalization';
 
@@ -58,9 +58,11 @@ describe('normalizeImageAsset', () => {
       height: 1536,
       base64: 'Zm9v',
     });
-    const renderAsync = vi.fn().mockResolvedValue({ saveAsync });
+    const releaseImage = vi.fn();
+    const renderAsync = vi.fn().mockResolvedValue({ saveAsync, release: releaseImage });
     const resize = vi.fn();
-    const context = { resize, renderAsync };
+    const releaseContext = vi.fn();
+    const context = { resize, renderAsync, release: releaseContext };
 
     mocks.manipulate.mockReturnValue(context as unknown as ReturnType<typeof ImageManipulator.manipulate>);
 
@@ -79,13 +81,17 @@ describe('normalizeImageAsset', () => {
       height: 1536,
     });
     expect(FileSystem.deleteAsync).toHaveBeenCalledWith('file:///cache/normalized.jpg', { idempotent: true });
+    expect(releaseImage).toHaveBeenCalledOnce();
+    expect(releaseContext).toHaveBeenCalledOnce();
   });
 
   it('rejects corrupt or undecodable source files', async () => {
+    const releaseContext = vi.fn();
     const renderAsync = vi.fn().mockRejectedValue(new Error('decode failed'));
-    mocks.manipulate.mockReturnValue({ resize: vi.fn(), renderAsync } as unknown as ReturnType<typeof ImageManipulator.manipulate>);
+    mocks.manipulate.mockReturnValue({ resize: vi.fn(), renderAsync, release: releaseContext } as unknown as ReturnType<typeof ImageManipulator.manipulate>);
 
     await expect(normalizeImageAsset('file:///photos/corrupt.heic', 4032, 3024)).rejects.toThrow('decode failed');
     expect(FileSystem.deleteAsync).not.toHaveBeenCalled();
+    expect(releaseContext).toHaveBeenCalledOnce();
   });
 });
