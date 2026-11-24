@@ -152,7 +152,6 @@ class FirestoreIdempotencyStore:
 
     async def release_before_provider_start(self, claim: IdempotencyClaim) -> bool:
         reference = self._client.collection(self._collection).document(claim.document_id)
-        now = self._now()
 
         @async_transactional
         async def release_in_transaction(transaction):

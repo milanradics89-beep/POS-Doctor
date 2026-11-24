@@ -35,8 +35,8 @@ async def _close_pair(collection, first_client, second_client):
     try:
         await first_client.recursive_delete(first_client.collection(collection))
     finally:
-        await first_client.close()
-        await second_client.close()
+        first_client.close()
+        second_client.close()
 
 
 @pytest.mark.asyncio
@@ -160,5 +160,7 @@ async def test_invalid_keys_and_ttl_are_rejected_before_firestore_access():
             await first.claim("short", b"payload")
         with pytest.raises(ValueError, match="request fingerprint"):
             await first.claim(f"analysis-{uuid.uuid4().hex}", b"")
+        with pytest.raises(ValueError, match="TTL"):
+            FirestoreIdempotencyStore(first_client, SECRET, ttl_seconds=30, collection=collection)
     finally:
         await _close_pair(collection, first_client, second_client)
