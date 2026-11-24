@@ -36,6 +36,7 @@
   "overrides": {
     "decode-uri-component": "0.5.1",
     "zod": "$zod",
-    "deepmerge": "$deepmerge"
+    "deepmerge": "$deepmerge",
+    "minimatch": "11.0.5"
   }
 }
