@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-24 05:15 CET';
+const marker = '## Latest live release-watch checkpoint — 2026-11-24 06:17 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const nextHeading = document.indexOf('\n## ', marker.length);
@@ -57,13 +57,26 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
+  it('records the separate green PR #260 candidate without transferring CI to PR #249', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #260 is OPEN/DRAFT at exact HEAD `ae74da6d8f6a8f35ceb2a5b3696578218a92bffd`');
+      expect(section).toContain('Validation [#45317003618](');
+      expect(section).toContain('CodeQL [#45317003576](');
+      expect(section).toContain('Dependency Review [#45317003567](');
+      expect(section).toContain('360/360 across 73 files');
+      expect(section).toContain('npm audit --audit-level=moderate');
+      expect(section).toContain('0 vulnerabilities');
+      expect(section).toContain('diverged from current PR #249 by 4 commits ahead / 3 behind');
+    }
+  });
+
   it('records the current PR #249 exact-head failure without borrowing parent CI', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT at exact pre-repair HEAD `6cc6eb3fec0ac7a6404efc07f2a428e69196fbfe`');
-      expect(section).toContain('Validation [#45318427579](');
-      expect(section).toContain('CodeQL [#45318427573](');
-      expect(section).toContain('Dependency Review [#45318427585](');
-      expect(section).toContain('350 tests passed / 3 failed across 72 files');
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `fb694e7de45c22a155213ce7927b6135a32e8ff5`');
+      expect(section).toContain('Validation [#45326042843](');
+      expect(section).toContain('CodeQL [#45326042844](');
+      expect(section).toContain('Dependency Review [#45326042978](');
+      expect(section).toContain('351 tests passed / 3 failed across 72 files');
       expect(section).toContain('frontend failed, backend passed and iOS passed');
       expect(section).toContain('Android Expo Doctor, export, native Release build and emulator validation were skipped');
       expect(section).toContain('its new exact-head CI must be evaluated separately and does not inherit results from `6cc6eb3`');
@@ -310,7 +323,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('GHSA-fc5q-39xc-vjpf');
       expect(section).toContain('WITHDRAWN upstream on 2026-11-18 as not a security issue');
       expect(section).toContain('not a security issue');
-      expect(section).toContain('do not establish a confirmed vulnerability or exploitability');
+      expect(section).toContain('does not establish a confirmed vulnerability or exploitability');
     }
   });
   it('records PR #238 integration in the current checkpoint and preserves historical review counts', () => {
@@ -421,11 +434,11 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records current PR #249 and exact-head SDK57/dependency candidates without transferring parent CI', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `b3533ca9432cde52f34a43f74f056b51b70fd19f`');
-      expect(section).toContain('Validation [#45305295293](');
-      expect(section).toContain('CodeQL [#45305295375](');
-      expect(section).toContain('Dependency Review [#45305295323](');
-      expect(section).toContain('352/352 frontend tests across 72 files');
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `fb694e7de45c22a155213ce7927b6135a32e8ff5`');
+      expect(section).toContain('Validation [#45326042843](');
+      expect(section).toContain('CodeQL [#45326042844](');
+      expect(section).toContain('Dependency Review [#45326042978](');
+      expect(section).toContain('351 tests passed / 3 failed across 72 files');
       expect(section).toContain('PR #254 is OPEN/DRAFT at exact HEAD `2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3`');
       expect(section).toContain('Validation [#45223358003](');
       expect(section).toContain('CodeQL [#45223357946](');
@@ -439,7 +452,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Validation [#43772791089](');
       expect(section).toContain('Issue [#64](');
       expect(section).toContain('135 comments');
-      expect(section).toContain('218 branches');
+      expect(section).toContain('219 branches');
       expect(section).toContain('0 published releases');
       expect(section).toContain('UNAVAILABLE, UNVERIFIED, NOT EMPTY');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
