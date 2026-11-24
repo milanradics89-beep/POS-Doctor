@@ -19,6 +19,16 @@ import type { SceneModel } from './sceneModel';
 
 export type UseitApiClientOptions = { apiKey?: string };
 
+function createIdempotencyKey(): string {
+  const cryptoApi = (globalThis as typeof globalThis & { crypto?: Crypto }).crypto;
+  if (cryptoApi?.randomUUID) return `analysis-${cryptoApi.randomUUID()}`;
+  const bytes = new Uint8Array(16);
+  if (cryptoApi?.getRandomValues) cryptoApi.getRandomValues(bytes);
+  else for (let index = 0; index < bytes.length; index += 1) bytes[index] = Math.floor(Math.random() * 256);
+  const suffix = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
+  return `analysis-${suffix}`;
+}
+
 // The backend request middleware returns 504 at 45 seconds. Keep the client
 // deadline above that limit so it can receive the controlled server response.
 // These billable POSTs remain single-attempt until an end-to-end idempotency contract exists.
@@ -52,11 +62,13 @@ export class UseitApiProvider implements IntelligenceProvider {
     if (!checked.ok) throw new Error(`USEIT API returned an invalid analysis: ${checked.issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
     return normalizeAnalysis(checked.data);
   }
-  async analyzeUseit(imageUri: string, intent?: OpportunityKind, options: { budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; discoverProducts?: boolean; productLimit?: number } = {}, signal?: AbortSignal): Promise<UseitAnalyzeResponse> {
+  async analyzeUseit(imageUri: string, intent?: OpportunityKind, options: { budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; discoverProducts?: boolean; productLimit?: number; idempotencyKey?: string } = {}, signal?: AbortSignal): Promise<UseitAnalyzeResponse> {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
     const policy = createPromptPolicy(intent, 'hu-HU');
-    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/useit/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale, budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles ?? [], preferredColors: options.preferredColors ?? [], discoverProducts: options.discoverProducts ?? true, productLimit: options.productLimit ?? 8 }), signal }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS });
+    const idempotencyKey = options.idempotencyKey ?? createIdempotencyKey();
+    if (!/^[A-Za-z0-9._:-]{16,128}$/.test(idempotencyKey)) throw new Error('Invalid USEIT analysis idempotency key.');
+    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/useit/analyze`, { method: 'POST', headers: { ...(await this.headers()), 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale, budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles ?? [], preferredColors: options.preferredColors ?? [], discoverProducts: options.discoverProducts ?? true, productLimit: options.productLimit ?? 8 }), signal }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS });
     if (!response.ok) throw new Error(`USEIT unified analysis failed (${response.status}).`);
     if (parseError) throw new Error('USEIT unified analysis returned malformed JSON.');
     const checked = validateUseitAnalyzeResponse(payload);
@@ -171,10 +183,10 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
     disclosure: 'AI-generated visualization. Product appearance, scale, color and placement may differ from the real item. Verify product details on the linked retailer page.',
   };
 }
-export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean; signal?: AbortSignal } = {}): Promise<ConsumerAnalysis> {
+export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean; idempotencyKey?: string; signal?: AbortSignal } = {}): Promise<ConsumerAnalysis> {
   validateImageUri(imageUri);
   if (provider.analyzeUseit) {
-    const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors }, options.signal);
+    const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, idempotencyKey: options.idempotencyKey }, options.signal);
     const analysis = normalizeAnalysis(unified.scene);
     const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(unified.scene, imageUri.slice(0, 80));
     const redesign = toUnifiedRedesignPlan(unified, scene);

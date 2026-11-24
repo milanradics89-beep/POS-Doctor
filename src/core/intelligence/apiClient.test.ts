@@ -29,6 +29,34 @@ describe('UseitApiProvider boundary handling', () => {
     vi.restoreAllMocks();
   });
 
+  it('sends a caller-supplied idempotency key with the unified billable request', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(validUnified), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
+
+    await provider().analyzeUseit(image, undefined, { idempotencyKey: 'analysis-test-key-123456' });
+
+    const requestCall = fetchMock.mock.calls.find(([input]) => String(input).includes('/v1/useit/analyze'));
+    expect(requestCall).toBeDefined();
+    expect(new Headers(requestCall?.[1]?.headers).get('Idempotency-Key')).toBe('analysis-test-key-123456');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('generates a valid idempotency key for a unified analysis when none is supplied', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(validUnified), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
+
+    await provider().analyzeUseit(image);
+
+    const requestCall = fetchMock.mock.calls.find(([input]) => String(input).includes('/v1/useit/analyze'));
+    const key = new Headers(requestCall?.[1]?.headers).get('Idempotency-Key');
+    expect(key).toMatch(/^analysis-[A-Za-z0-9._:-]{16,128}$/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     { name: 'scene analysis', run: (api: UseitApiProvider) => api.analyzeImage(image) },
     { name: 'unified analysis', run: (api: UseitApiProvider) => api.analyzeUseit(image) },
