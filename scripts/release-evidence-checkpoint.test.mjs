@@ -34,7 +34,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('53 conversation comments');
       expect(section).toContain('30 inline review comments');
       expect(section).toContain('26 formal review submissions');
-      expect(section).toContain('22/22 inline review threads resolved');
+      expect(section).toContain('All 22 inline threads are resolved; 0 unresolved and 20 outdated');
       expect(section).toContain('tarlaci1984-sketch');
     }
   });
@@ -295,7 +295,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('+(*a)');
       expect(section).toContain('2,500 ms child-process timeout');
       expect(section).toContain('GHSA-fc5q-39xc-vjpf');
-      expect(section).toContain('WITHDRAWN on 2026-11-18');
+      expect(section).toContain('WITHDRAWN upstream on 2026-11-18 as not a security issue');
       expect(section).toContain('not a security issue');
       expect(section).toContain('do not establish a confirmed vulnerability or exploitability');
     }
@@ -373,7 +373,7 @@ describe('current-main release evidence checkpoint', () => {
 
   it('does not promote external acceptance or unavailable security inventories', () => {
     for (const section of latestSections) {
-      expect(section).toContain('unverified, not empty');
+      expect(section).toContain('UNAVAILABLE, UNVERIFIED, NOT EMPTY');
       expect(section).toContain('0 published releases');
       expect(section).toContain('Issue [#47](');
       expect(section).toContain('is CLOSED with 11 comments');
@@ -386,18 +386,22 @@ describe('current-main release evidence checkpoint', () => {
       }
     }
   });
-  it('keeps the SDK 57 Expo patch versions aligned in package.json and package-lock.json', () => {
+  it('keeps SDK 57 Expo manifest ranges aligned with lockfile resolutions', () => {
     const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
     const lockfile = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
-    const expected = {
-      'expo-constants': { range: '~57.0.25', resolved: '57.0.25' },
-      'expo-image-picker': { range: '~57.0.22', resolved: '57.0.22' },
-      'expo-router': { range: '~57.0.32', resolved: '57.0.32' },
-    };
+    const packages = ['expo-constants', 'expo-image-picker', 'expo-router'];
 
-    for (const [name, versions] of Object.entries(expected)) {
-      expect(manifest.dependencies[name]).toBe(versions.range);
-      expect(lockfile.packages[`node_modules/${name}`]?.version).toBe(versions.resolved);
+    // Exact patch selection is owned by the stacked SDK-alignment PR #254.
+    // This test runs on this PR's own head, so it checks the SDK 57 range and
+    // manifest/lockfile agreement without assuming the base-only patch update
+    // has already been merged into this branch.
+    for (const name of packages) {
+      const range = manifest.dependencies[name];
+      const resolved = lockfile.packages[`node_modules/${name}`]?.version;
+
+      expect(range).toMatch(/^~57\.0\.\d+$/);
+      expect(resolved).toMatch(/^57\.0\.\d+$/);
+      expect(resolved).toBe(range.slice(1));
     }
   });
 
