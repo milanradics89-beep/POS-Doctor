@@ -25,16 +25,22 @@ describe('Expo SDK 57 lock refresh workflow', () => {
   });
 
   it('aligns SDK 57 package versions with the release manifest', () => {
-    expect(workflow).toContain('expo: "~57.0.33"');
-    expect(workflow).toContain('"expo-constants": "~57.0.24"');
+    expect(workflow).toContain('expo: "~57.0.34"');
+    expect(workflow).toContain('"expo-constants": "~57.0.25"');
     expect(workflow).toContain('"expo-linking": "~57.0.14"');
-    expect(workflow).toContain('expo: { range: "~57.0.33", version: "57.0.33" }');
-    expect(workflow).toContain('"expo-constants": { range: "~57.0.24", version: "57.0.24" }');
+    expect(workflow).toContain('expo: { range: "~57.0.34", version: "57.0.34" }');
+    expect(workflow).toContain('"expo-constants": { range: "~57.0.25", version: "57.0.25" }');
     expect(workflow).toContain('"expo-linking": { range: "~57.0.14", version: "57.0.14" }');
-    expect(workflow).toContain('"expo-image-picker": { range: "~57.0.21", version: "57.0.21" }');
-    expect(workflow).toContain('"expo-router": { range: "~57.0.31", version: "57.0.31" }');
-    expect(workflow).toContain('"expo-image-picker": "~57.0.21"');
-    expect(workflow).toContain('"expo-router": "~57.0.31"');
+    expect(workflow).toContain('"expo-image-picker": { range: "~57.0.22", version: "57.0.22" }');
+    expect(workflow).toContain('"expo-router": { range: "~57.0.32", version: "57.0.32" }');
+    expect(workflow).toContain('"expo-image-picker": "~57.0.22"');
+    expect(workflow).toContain('"expo-router": "~57.0.32"');
+  });
+
+  it('pins Expo 57.0.34 with corroborated registry integrity on Node 22', () => {
+    expect(workflow).toContain('node-version: 22');
+    expect(workflow).toContain('expo@57.0.34');
+    expect(workflow).toContain('sha512-xBSP4O+pbc5FT0yOIgMUaW1iwFZwzvrqZwfNbLk03q8HCWov8xYoccw+KmovehK23J5Jqxze+ySTMu2Ty0loDw==');
   });
 
   it('keeps expo-modules-core transitive to avoid the incompatible Worklets peer graph', () => {
@@ -103,7 +109,7 @@ describe('Expo SDK 57 lock refresh workflow', () => {
   });
 
   it('restricts execution to the release branch', () => {
-    expect(workflow).toContain('TARGET_REF: refs/heads/fix/release-blockers-2026-10');
+    expect(workflow).toContain('TARGET_REF: refs/heads/automation/expo-sdk57-lock-refresh-20261124');
     expect(workflow).toContain('if ! is_allowed_ref "$GITHUB_REF"');
     expect(workflow).toContain('Main must never be a lockfile-refresh target.');
   });
