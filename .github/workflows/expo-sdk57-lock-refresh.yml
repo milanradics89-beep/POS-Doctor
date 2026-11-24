@@ -3,7 +3,7 @@ name: Temporary Expo SDK 57 lockfile refresh
 on:
   push:
     branches:
-      - fix/release-blockers-2026-10
+      - automation/expo-sdk57-lock-refresh-20261124
     paths:
       - .github/workflows/expo-sdk57-lock-refresh.yml
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
     steps:
       - name: Restrict execution to the release branch
         env:
-          TARGET_REF: refs/heads/fix/release-blockers-2026-10
+          TARGET_REF: refs/heads/automation/expo-sdk57-lock-refresh-20261124
         run: |
           set -euo pipefail
           is_allowed_ref() {
@@ -40,7 +40,7 @@ jobs:
             exit 1
           fi
           if ! is_allowed_ref "$GITHUB_REF"; then
-            echo "::error::This workflow may only run on fix/release-blockers-2026-10 (got $GITHUB_REF)."
+            echo "::error::This workflow may only run on automation/expo-sdk57-lock-refresh-20261124 (got $GITHUB_REF)."
             exit 1
           fi
 
@@ -61,7 +61,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: 24
+          node-version: 22
           cache: npm
       - name: Install dependencies reproducibly
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -75,11 +75,11 @@ jobs:
           pkg.dependencies ||= {};
 
           const expected = {
-            expo: "~57.0.33",
-            "expo-constants": "~57.0.24",
+            expo: "~57.0.34",
+            "expo-constants": "~57.0.25",
             "expo-linking": "~57.0.14",
-            "expo-image-picker": "~57.0.21",
-            "expo-router": "~57.0.31",
+            "expo-image-picker": "~57.0.22",
+            "expo-router": "~57.0.32",
           };
           for (const [name, version] of Object.entries(expected)) {
             if (!Object.hasOwn(pkg.dependencies, name)) {
@@ -90,7 +90,7 @@ jobs:
 
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           NODE
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --save-prefix='~' expo@57.0.34
 
       - name: Verify generated SDK 57 manifest and lockfile
         run: |
@@ -100,11 +100,11 @@ jobs:
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
           const expected = {
-            expo: { range: "~57.0.33", version: "57.0.33" },
-            "expo-constants": { range: "~57.0.24", version: "57.0.24" },
+            expo: { range: "~57.0.34", version: "57.0.34" },
+            "expo-constants": { range: "~57.0.25", version: "57.0.25" },
             "expo-linking": { range: "~57.0.14", version: "57.0.14" },
-            "expo-image-picker": { range: "~57.0.21", version: "57.0.21" },
-            "expo-router": { range: "~57.0.31", version: "57.0.31" },
+            "expo-image-picker": { range: "~57.0.22", version: "57.0.22" },
+            "expo-router": { range: "~57.0.32", version: "57.0.32" },
           };
 
           const root = lock.packages?.[""];
@@ -120,6 +120,10 @@ jobs:
             if (actual !== expectedPackage.version) {
               throw new Error(`node_modules/${name} expected ${expectedPackage.version}, found ${actual || "missing"}`);
             }
+          }
+          const expoLock = lock.packages?.["node_modules/expo"];
+          if (expoLock?.integrity !== "sha512-xBSP4O+pbc5FT0yOIgMUaW1iwFZwzvrqZwfNbLk03q8HCWov8xYoccw+KmovehK23J5Jqxze+ySTMu2Ty0loDw==") {
+            throw new Error("expo@57.0.34 registry integrity does not match the independently corroborated SHA-512 value");
           }
           if (Object.hasOwn(pkg.dependencies, "expo-modules-core")) {
             throw new Error("expo-modules-core must remain a transitive Expo dependency, not a direct root dependency");
