@@ -2,35 +2,43 @@
 
 **Status:** Proposed, implementation not yet deployed  
 **Date:** 2026-11-24  
-**GCP project:** **Not yet confirmed.** The cost-guardrails document currently names `useit-platform-2026`, while an earlier ADR draft named `fresh-weft-447913-u6`. These identifiers conflict. Do not provision resources or change billing until the owner verifies the intended project ID in Cloud Console and the documents are reconciled.
+**Owner-designated GCP project:** \`fresh-weft-447913-u6\` (**not yet independently verified through Google Cloud API**)
+
+The owner has designated \`fresh-weft-447913-u6\` as the target project. Before provisioning, a human must verify that this project exists, that the project owner has the required access, and that the intended billing account, project number, region and eligible SKUs are correct. Do not create a replacement project or change billing to resolve an access problem. No GCP resources have been created by this ADR.
+
+A previously shared billing screenshot referred to a different project, \`useit-platform-2026\`. Its historical credit display is not evidence of credit eligibility or current balance for \`fresh-weft-447913-u6\`; do not use it in the target project's cost estimate.
 
 ## Decision
 
-Use Google Cloud only as the hosting, persistence, secret-management and operations platform. OpenAI remains the only AI and multimodal inference provider. The existing FastAPI backend and versioned `POST /v1/useit/analyze` contract remain canonical.
+Use Google Cloud only as the hosting, persistence, secret-management and operations platform. OpenAI remains the only AI and multimodal inference provider. The existing FastAPI backend and versioned \`POST /v1/useit/analyze\` contract remain canonical.
 
-The target pilot footprint is deliberately small:
+The target footprint is deliberately small:
 
-- Cloud Run: stateless FastAPI service, scale-to-zero, minimum instances 0 unless measured cold-start/availability requirements justify otherwise.
-- Firestore: proposed persistent personal-memory records, rate-limit windows/counters, and one-time attestation challenges, subject to the adapter and concurrency validation below.
+- Cloud Run: stateless FastAPI service, request-based billing, scale-to-zero and minimum instances 0.
+- Firestore: proposed persistent personal-memory records, rate-limit state and one-time attestation challenges, only after adapter, concurrency, TTL, privacy and cost validation.
 - Secret Manager: OpenAI API key and USEIT server-side authentication/encryption secrets.
-- Cloud Logging and Cloud Monitoring: safe request telemetry, service health, latency/error metrics, budget/alert signals.
+- Cloud Logging and Cloud Monitoring: safe request telemetry, service health, latency/error metrics and alerts.
 - Artifact Registry: container image storage, with a reviewed retention/cleanup policy.
 - GitHub Actions Workload Identity Federation (WIF): short-lived deployment identity; no service-account JSON key in GitHub secrets.
 
-No Cloud SQL, Memorystore, Cloud Storage, Kubernetes/GKE, dedicated VM/server, GPU, Marketplace resource, or second AI provider is part of this decision. Images remain on the user's phone and are submitted only for the current analysis request; no image bucket or persistent server-side image store is introduced.
+Do not introduce Cloud SQL, Memorystore, Cloud Storage, Kubernetes/GKE, a dedicated VM/server, GPU, Marketplace resource, a second AI provider, or a second TypeScript API/orchestrator. Images remain on the user's phone and are submitted only for the current analysis request; no server-side image store is introduced.
 
 ## Existing application boundary
 
-The repository already has a FastAPI backend, an OpenAI `AsyncOpenAI` client, a canonical `/v1/useit/analyze` endpoint, encrypted SQLite personal memory, Redis-backed distributed rate limiting and Redis-backed attestation challenge storage. Production security is fail-closed and the OpenAI client disables implicit retries for billable POST requests.
+The repository has a FastAPI backend, an OpenAI \`AsyncOpenAI\` client, the canonical \`/v1/useit/analyze\` endpoint, encrypted SQLite personal memory, Redis-backed distributed rate limiting and Redis-backed attestation challenge storage. Production security is fail-closed and the OpenAI client disables implicit retries for billable POST requests.
 
 The currently inspected production code requires shared Redis in production:
-- `backend/production_security.py` rejects production startup unless `USEIT_RATE_LIMIT_MODE=redis` and a valid TLS `rediss://` `USEIT_REDIS_URL` are configured.
-- `backend/rate_limit.py` uses a Redis Lua script for atomic rolling-window admission, Redis server time, sorted-set event storage and expiry. It currently derives keys from the request client host; a future privacy hardening review should evaluate HMAC-derived client identities and trusted-proxy handling.
-- `backend/attestation_store.py` uses Redis `SET NX` with TTL and `GETDEL` for single-use challenge consumption.
+
+- \`backend/production_security.py\` rejects production startup unless \`USEIT_RATE_LIMIT_MODE=redis\` and a valid TLS \`rediss://USEIT_REDIS_URL\` are configured.
+- \`backend/rate_limit.py\` uses a Redis Lua script for atomic rolling-window admission, Redis server time, sorted-set event storage and expiry. The current identity derivation and trusted-proxy behavior require a separate privacy hardening review.
+- \`backend/attestation_store.py\` uses Redis \`SET NX\` with TTL and \`GETDEL\` for single-use challenge consumption.
 - Personal memory currently uses encrypted SQLite; no Firestore adapter is present in the inspected implementation.
 
+Redis may remain in existing compatibility tests, but it must not become a new Memorystore dependency. Production must not fall back to process-local/in-memory state.
+
 The migration must preserve:
-- the versioned unified API contract and current OpenAI model/provider boundary;
+
+- the versioned unified API contract and current OpenAI-only provider boundary;
 - server-only credentials, never embedded in Expo/mobile artifacts;
 - encrypted personal-memory values and keyed identity hashing;
 - atomic, single-use attestation challenge consumption;
@@ -41,27 +49,27 @@ The migration must preserve:
 
 ### Cloud Run
 
-Deploy the existing FastAPI application as one containerized service. The service must be stateless: no SQLite file, local filesystem persistence, process-local rate-limit state, or process-local challenge store may be relied on in production.
+Deploy the existing FastAPI application as one containerized service. The service must be stateless: no SQLite file, local filesystem persistence, process-local rate-limit state or process-local challenge store may be relied on in production.
 
-Use a dedicated runtime service account with only:
-- read access to the named Secret Manager versions required by the service;
-- Firestore access limited to the application database/collections;
-- permission to emit logs and metrics.
+Use a dedicated runtime service account with only the permissions needed to read the named Secret Manager versions, access the selected Firestore database, and emit logs/metrics. Keep deployment identity separate from runtime identity. Do not grant project Editor/Owner.
 
-Do not grant project Editor/Owner to the runtime identity. Keep deployment identity separate from runtime identity. Configure request concurrency, CPU/memory, request timeout, max instances and ingress only after load and cost tests; start with scale-to-zero and conservative maximum instances. Do not set a non-zero minimum instance without an explicit cost/availability decision.
+Do not claim collection-level Firestore IAM. Grant data-plane IAM at the resource scope actually supported by the selected Firestore API, and verify the effective policy before deployment. Enforce per-user, per-record and tenant authorization in the FastAPI application layer. Server-side Firestore Admin/server SDK calls are not constrained by Firestore Security Rules in the same way as untrusted client SDK calls; Security Rules are not a substitute for backend authorization.
+
+Configure request concurrency, CPU/memory, timeout, max instances and ingress only after load and cost tests. Start with scale-to-zero and minimum instances 0. Any non-zero minimum, public ingress expansion or higher capacity requires a separate cost/security decision.
 
 ### Firestore data model (proposed, not approved for production)
 
-Use a dedicated Firestore database (default database unless a measured requirement justifies another) and versioned collection/document schemas.
+Use a dedicated Firestore database only if data-residency and cost review supports it; otherwise use the default database. Use versioned collection/document schemas.
 
 Suggested collections:
-- `memory_v1/{identityHash}/entries/{memoryKeyHash}`: encrypted value, category, schema version, created/updated timestamps. Do not store raw identity or plaintext memory values.
-- `rate_limit_v1/{bucketHash}/windows/{windowId}`: bounded counter/window metadata and expiry timestamp. Keys must be HMAC-derived; never store raw IP, account ID, email, or access token.
-- `attestation_challenges_v1/{challengeHash}`: provider, app ID, expiry, and schema version. Store only a hash of the challenge, consume exactly once in a Firestore transaction, and check expiry in application code.
 
-Firestore TTL is cleanup, not an authorization control. Every read/consume path must validate expiry itself. Challenge consumption must be transactional so two instances cannot both accept the same challenge. Rate-limit increments/admission must use atomic transactions and a documented fixed/sliding-window algorithm with bounded document growth and contention tests.
+- \`memory_v1/{identityHash}/entries/{memoryKeyHash}\`: encrypted value, category, schema version, created/updated timestamps. Do not store raw identity or plaintext memory values.
+- \`rate_limit_v1/{bucketHash}/windows/{windowId}\`: bounded counter/window metadata and expiry timestamp. Keys must be HMAC-derived; never store raw IP, account ID, email or access token.
+- \`attestation_challenges_v1/{challengeHash}\`: provider, app ID, expiry and schema version. Store only a hash of the challenge, consume exactly once in a Firestore transaction, and check expiry in application code.
 
-**Important:** Firestore is not an automatic drop-in replacement for Redis. The current Redis Lua sliding-window algorithm and `GETDEL` semantics must not be described as migrated until Firestore adapters pass concurrency, contention, expiry, failure-mode and cost tests. If Firestore cannot meet the security and latency requirements at an acceptable cost, retain a separately reviewed shared-state design; do not silently add Memorystore, because it is explicitly excluded from the current target architecture. Production must remain fail-closed until a validated shared-state implementation is selected.
+Firestore TTL is cleanup, not an authorization control. Every read/consume path must validate expiry itself. Challenge consumption must be transactional so two instances cannot both accept the same challenge. Rate-limit admission must use atomic transactions and a documented fixed/sliding-window algorithm with bounded document growth, contention tests and fail-closed behavior. Verify consistency across multiple Cloud Run instances.
+
+**Important:** Firestore is not an automatic drop-in replacement for Redis. The current Redis Lua sliding-window algorithm and \`GETDEL\` semantics must not be described as migrated until Firestore adapters pass concurrency, contention, expiry, failure-mode, multi-instance and cost tests. If Firestore cannot meet the security and latency requirements at an acceptable cost, keep production fail-closed and return to an explicitly reviewed architecture decision; do not silently add Memorystore or an in-memory fallback.
 
 ### Personal-memory migration
 
@@ -69,17 +77,18 @@ Firestore TTL is cleanup, not an authorization control. Every read/consume path 
 2. Create a versioned, restartable, idempotent migration utility. Preserve HMAC identity derivation and AES-GCM encryption semantics; use a Secret Manager-managed encryption secret with an explicit key-version/rotation plan.
 3. Validate row counts, schema versions, authenticated decryption, identity isolation and duplicate handling without logging or exporting plaintext values.
 4. Run a dry-run and staging migration against synthetic or explicitly approved data. Record counts and checksums, never memory contents.
-5. Define rollback and dual-read/temporary compatibility behavior before production cutover. Do not delete the source SQLite data until witnessed restore and reconciliation pass.
+5. Define rollback and dual-read/temporary compatibility behavior before production cutover. Do not delete source SQLite data until witnessed restore and reconciliation pass.
 6. Production migration requires a separately approved maintenance window and backup/restore evidence.
 
 ### OpenAI and cost controls
 
-OpenAI remains the sole AI provider. The server reads `OPENAI_API_KEY` from Secret Manager at runtime. No key is exposed to the mobile client, GitHub repository, build output, logs, or user-visible error.
+OpenAI remains the sole AI provider. The server reads \`OPENAI_API_KEY\` from Secret Manager at runtime. No key is exposed to the mobile client, GitHub repository, build output, logs or user-visible error.
 
-Retain the existing bounded request timeout and disabled automatic retries for inference POSTs. Add/verify:
+Retain the bounded request timeout and disabled automatic retries for inference POSTs. Add/verify:
+
 - per-user and per-IP request limits;
 - maximum image/request payload and token/output budgets;
-- request correlation IDs without prompts, images, URIs, credentials, or response bodies in logs;
+- request correlation IDs without prompts, images, URIs, credentials or response bodies in logs;
 - OpenAI usage monitoring and budget/threshold alerts in the OpenAI account;
 - GCP budget alerts and service-level cost metrics.
 
@@ -90,7 +99,9 @@ GCP billing alerts are notifications, not hard spending caps. Any enforceable Op
 Use Workload Identity Federation with GitHub OIDC. Bind the federated principal to the exact repository and protected deployment branch/environment. Grant only the minimum deploy permissions required for Cloud Run revisions and the selected runtime service account. Do not create or store long-lived service-account JSON keys.
 
 Before enabling deployment:
-- verify the Google Cloud project number, workload identity pool/provider, repository and branch/environment attribute conditions;
+
+- verify the target project number and exact project ID;
+- verify the workload identity pool/provider and repository/branch/environment attribute conditions;
 - verify separate build/deploy and runtime identities;
 - run a non-production identity smoke test;
 - confirm secrets are not printed or persisted in artifacts;
@@ -98,33 +109,35 @@ Before enabling deployment:
 
 ### Observability, reliability and backup
 
-- `/health` remains informational; `/ready` is the deployment readiness gate.
+- \`/health\` remains informational; \`/ready\` is the deployment readiness gate.
 - Readiness must verify required runtime configuration and the selected shared-state store capability without exposing secret values.
-- Emit only request ID, method, route, status and duration. Never log request body, image URI/data, prompts, OpenAI key, memory values, or response body.
-- Alert on 5xx rate, latency, readiness failures, OpenAI quota/budget thresholds, Firestore errors/contention, and Cloud Run instance saturation.
+- Emit only request ID, method, route, status and duration. Never log request body, image URI/data, prompts, OpenAI key, memory values or response body.
+- Alert on 5xx rate, latency, readiness failures, OpenAI quota/budget thresholds, Firestore errors/contention and Cloud Run instance saturation.
 - Define named on-call ownership, alert delivery acknowledgement, incident runbook and rollback revision before pilot.
-- Configure Firestore backup/export and retention only after the actual data classification, recovery objective and billing are reviewed. A configured backup is not a witnessed restore; record measured RPO/RTO after a restore exercise.
+- Evaluate Firestore's native managed backup and point-in-time recovery (PITR) capabilities, retention, region support and pricing. Do not use Firestore export to Cloud Storage or create a Cloud Storage bucket. A configured backup/PITR policy is not a witnessed restore; record measured RPO/RTO only after a separately witnessed restore exercise. Backup features and retention require cost review and explicit approval.
 
 ## Cost guardrails
 
-The previously recorded Google Cloud welcome credit was USD 300 through 2027-02-23, with USD 0.00 spend at the time of that earlier check. These are historical figures, not a live balance. Recheck billing and eligible SKUs before provisioning. Budget alerts at 25/50/75/90/100 percent are notifications, not a spending cap. Follow `docs/GCP_COST_GUARDRAILS.md` after reconciling the project ID.
+Any previously recorded USD 300 welcome-credit display and USD 0.00 historical spend came from a screenshot associated with \`useit-platform-2026\`, not the owner-designated target project \`fresh-weft-447913-u6\`. It is historical evidence only and must not be treated as a current balance, transferable credit or cost allowance for the target project. Verify current billing, credit eligibility and covered SKUs directly in Cloud Console before provisioning.
 
-Start with scale-to-zero, minimum instances 0, conservative max instances, no image storage, and only the named services above. Set GCP budget alerts before creating billable resources. Track OpenAI usage separately. No paid subscription, resource expansion, or production rollout without explicit user approval.
+Set a project-scoped budget only after the owner approves a budget amount based on a measured service/usage model. Suggested notification thresholds are 25/50/75/90/100 percent of that approved budget; notifications do not stop resources or prevent overage.
+
+Start with scale-to-zero, minimum instances 0, conservative max instances, no image storage and only the named services above. Track OpenAI usage separately. No paid subscription, resource expansion, billing change or production rollout without explicit user approval.
 
 ## Staged implementation sequence
 
 1. **Repository preparation:** container build, health/readiness contract, local integration tests, no secrets in image.
 2. **Identity and secrets design:** least-privilege runtime/deploy identities, Secret Manager references, WIF conditions. Do not create identities or secrets until the owner approves the exact project and scope.
 3. **Firestore adapter feasibility:** implement/test memory, rate-limit and challenge-store interfaces only after proving transaction, expiry, concurrency, privacy and cost properties. Keep current SQLite/Redis adapters until replacements are validated.
-4. **Staging approval gate:** confirm project ID, billing account, credit eligibility, region, budget alerts, SKU list, estimated monthly cost and worst-case exposure; obtain explicit approval before provisioning.
+4. **Staging approval gate:** verify project ID, project number, billing account, credit eligibility, region, approved budget, alerts, SKU list, estimated monthly cost and worst-case exposure; obtain explicit approval before provisioning.
 5. **Staging:** deploy Cloud Run staging revision only after approval; run API contract, security, concurrency, cost and failure-mode tests using synthetic data.
-6. **Data migration rehearsal:** synthetic/approved data, dry-run, reconciliation, backup/restore and rollback exercise.
+6. **Data migration rehearsal:** synthetic/approved data, dry-run, reconciliation, native backup/PITR configuration and witnessed restore/rollback exercise.
 7. **Production gate:** separate explicit approval, budget check, physical-device attestation evidence, monitoring/on-call, staged rollout and rollback owner.
 8. **Pilot:** only after all external acceptance requirements are evidenced; CI green alone is insufficient.
 
 ## Acceptance checklist
 
-- [ ] GCP project ID and billing account are verified and consistent across all architecture/cost documents.
+- [ ] Target project \`fresh-weft-447913-u6\`, project number, access and billing account verified in Cloud Console.
 - [ ] Cloud Run container is stateless and deploys with a dedicated least-privilege runtime identity.
 - [ ] OpenAI key and all server secrets are read only from Secret Manager.
 - [ ] GitHub deployment uses OIDC/WIF; no service-account JSON key exists in GitHub secrets.
@@ -136,12 +149,12 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 - [ ] Images are not persisted in Cloud Storage or another server-side image store.
 - [ ] OpenAI usage and GCP spend alerts are configured and verified.
 - [ ] Safe telemetry excludes prompts, image data/URIs, credentials, memory values and response bodies.
-- [ ] Staging load/security/cost tests and witnessed backup/restore are complete.
+- [ ] Native backup/PITR, staging load/security/cost tests and witnessed restore are complete.
 - [ ] Production rollout and real-user pilot have separate approval and rollback evidence.
 
-## Open questions that require measured evidence
+## Open questions that require measured or external evidence
 
-- The intended GCP project ID is unresolved between two identifiers in existing project documentation; verify in Cloud Console before provisioning.
+- Verify that the owner-designated project ID \`fresh-weft-447913-u6\` exists, is accessible and is linked to the intended billing account; confirm its project number, region and eligible SKUs before provisioning.
 - Firestore database location and retention must follow the actual data residency/privacy assessment.
 - Firestore transaction contention and cost must be load-tested using realistic per-user/IP traffic.
 - The exact Cloud Run CPU/memory/concurrency/max-instance configuration must be selected from measured latency and cost, not guessed.
