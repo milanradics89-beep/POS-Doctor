@@ -1,6 +1,9 @@
 import { MAX_IMAGE_DATA_URL_BYTES } from './imageInput';
 
-export type ImagePayload = { dataUrl: string; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' };
+export type ImagePayload = {
+  dataUrl: string;
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+};
 
 export function assertImagePayload(payload: ImagePayload): ImagePayload {
   if (!payload.dataUrl.startsWith(`data:${payload.mimeType};base64,`)) throw new Error('Invalid image payload.');
