@@ -30,11 +30,11 @@ class FakeIdempotencyStore:
         self.claim_calls = []
         self.completed = []
         self.outcome_unknown = []
-        self.claim = IdempotencyClaim(document_id="a" * 64, lease_token="test-lease-token")
+        self.claim_value = IdempotencyClaim(document_id="a" * 64, lease_token="test-lease-token")
 
     async def claim(self, key: str, payload: bytes) -> IdempotencyClaimResult:
         self.claim_calls.append((key, payload))
-        claim = self.claim if self.decision is IdempotencyDecision.CLAIMED else None
+        claim = self.claim_value if self.decision is IdempotencyDecision.CLAIMED else None
         return IdempotencyClaimResult(decision=self.decision, claim=claim)
 
     async def mark_completed(self, claim: IdempotencyClaim) -> bool:
@@ -99,7 +99,7 @@ async def test_unified_analysis_claims_and_completes_using_exact_request_body(mo
 
     assert result["contractVersion"] == "useit_analyze_v1"
     assert store.claim_calls == [("analysis-test-key-123456", http_request._body)]
-    assert store.completed == [store.claim]
+    assert store.completed == [store.claim_value]
     assert store.outcome_unknown == []
     analyze.assert_awaited_once()
 
@@ -152,7 +152,7 @@ async def test_uncertain_provider_failure_retains_the_claim_until_expiry(monkeyp
         await main.useit_analyze(_analysis_request(), _http_request())
 
     assert exc.value.status_code == 502
-    assert store.outcome_unknown == [store.claim]
+    assert store.outcome_unknown == [store.claim_value]
     assert store.completed == []
 
 
