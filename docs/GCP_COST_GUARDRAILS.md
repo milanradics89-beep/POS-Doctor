@@ -4,15 +4,15 @@
 
 ## Target project and billing facts
 
-The owner-designated target project is \`fresh-weft-447913-u6\`. Its existence, project number, access, billing-account linkage, current credit balance, credit eligibility and SKU coverage have **not** been independently verified through Google Cloud API/Console in this work. Do not create a replacement project or provision resources until a human verifies these facts.
+The owner-designated target project is \`useit-platform-2026\`. Its existence, project number, access, billing-account linkage, current credit balance, credit eligibility and SKU coverage have **not** been independently verified through Google Cloud API/Console in this work. Do not create a replacement project or provision resources until a human verifies these facts.
 
-A previously shared Google Cloud Console screenshot showed a USD 300 welcome credit, USD 0 used at that time and an expiry date of 2027-02-23 for a different project, \`useit-platform-2026\`. That historical screenshot is not evidence that the credit applies to \`fresh-weft-447913-u6\`, is transferable, or remains available. Do not include it in the target project's cost model. Re-check Billing Overview, credit eligibility and covered SKUs immediately before any provisioning.
+A previously shared Google Cloud Console screenshot showed a USD 300 welcome credit, USD 0 used at that time and an expiry date of 2027-02-23 for a different project, \`useit-platform-2026\`. That historical screenshot is not evidence that the credit applies to \`useit-platform-2026\`, is transferable, or remains available. Do not include it in the target project's cost model. Re-check Billing Overview, credit eligibility and covered SKUs immediately before any provisioning.
 
 A credit is not a hard spending cap. Budget notifications are alerts, not automatic shutdown controls. Usage not covered by an applicable credit or Free Tier may be charged to the linked payment method.
 
 ## Guardrail policy
 
-1. Use only the owner-designated existing target project \`fresh-weft-447913-u6\`, after verifying its existence, access and billing link. Do not create duplicate projects.
+1. Use only the owner-designated existing target project \`useit-platform-2026\`, after verifying its existence, access and billing link. Do not create duplicate projects.
 2. Use only services required by the approved architecture: Cloud Run, Firestore, Secret Manager, Artifact Registry, Cloud Logging and Cloud Monitoring, plus GitHub Actions WIF.
 3. Prefer request-based Cloud Run billing, minimum instances 0, conservative maximum instances, bounded concurrency and request timeout, and no always-on compute.
 4. Do not create Cloud SQL, Memorystore, GKE/Kubernetes, Compute Engine VMs, GPUs, Cloud Storage buckets, or Marketplace resources for the initial deployment.
@@ -35,7 +35,7 @@ Review usage cost and applied credits/savings in the Billing report. Check daily
 
 ### Gate A: account and project
 
-- Confirm project ID \`fresh-weft-447913-u6\`, project number and owner access.
+- Confirm project ID \`useit-platform-2026\`, project number and owner access.
 - Confirm billing-account linkage, billing-account type and payment responsibility.
 - Confirm current remaining credit, exact expiry, eligible services and restrictions for this exact project.
 - Confirm the project region and data-residency requirements.
@@ -78,7 +78,7 @@ Do not present Free Tier quotas as a guaranteed zero-cost bill until the project
 
 ## Current execution status
 
-- [x] Owner designated target project ID \`fresh-weft-447913-u6\` (Cloud Console existence/access/billing not yet verified).
+- [x] Owner designated target project ID \`useit-platform-2026\` (Cloud Console existence/access/billing not yet verified).
 - [ ] Confirm exact project number, billing account and current credit eligibility for each required SKU.
 - [ ] Approve monthly budget amount, cost exposure and alert recipients.
 - [ ] Approve region and initial staging resource configuration.
