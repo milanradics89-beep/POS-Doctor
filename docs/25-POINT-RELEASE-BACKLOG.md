@@ -1,4 +1,4 @@
-| 24 | Release pipeline | **In Progress** | PR #249 current exact HEAD 6cd5acd has Validation FAILURE at 2 documentation assertions; CodeQL and Dependency Review SUCCESS. PR #262 exact HEAD 4da3724 has 2 documentation assertion failures; CodeQL and Dependency Review SUCCESS. PR #254, #246, #259 and #260 passed their own exact-head workflows; #246/#260 audits are clean only on separate unmerged candidates. Published releases: 0. Code Scanning, Dependabot and Secret Scanning inventories remain unavailable, unverified and not empty. Signing/store distribution, production monitoring, staged rollout, rollback ownership and external acceptance remain open. |
+## Latest live release-watch checkpoint — 2026-11-24 06:17 CET
 
 Evidence refreshed from live GitHub PR metadata, exact-head workflow runs and job logs, branch refs, review submissions, inline threads, issue records, paginated repository inventories, the active main ruleset, Releases API, upstream advisory records, and current release documents. This checkpoint records repository/CI evidence only; it does not grant production, store, pilot, or business acceptance.
 
