@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-24 01:41 CET';
+const marker = '## Latest live release-watch checkpoint — 2026-11-24 04:08 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const nextHeading = document.indexOf('\n## ', marker.length);
@@ -406,25 +406,46 @@ describe('current-main release evidence checkpoint', () => {
   });
 
 
-  it('records current PR #249 and PR #254 exact-head green evidence without conflating their dependency audit scopes', () => {
+  it('records current PR #249 and exact-head SDK57/dependency candidates without transferring parent CI', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD \`7a78fbaebb45e232c57513b0bde8c5423dae5e89\`');
-      expect(section).toContain('Validation [#45288974809](');
-      expect(section).toContain('CodeQL [#45288974993](');
-      expect(section).toContain('Dependency Review [#45288974833](');
-      expect(section).toContain('352/352 tests across 72 files');
-      expect(section).toContain('PR #254 is OPEN/DRAFT at exact HEAD \`2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3\`');
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact HEAD `b3533ca9432cde52f34a43f74f056b51b70fd19f`');
+      expect(section).toContain('Validation [#45305295293](');
+      expect(section).toContain('CodeQL [#45305295375](');
+      expect(section).toContain('Dependency Review [#45305295323](');
+      expect(section).toContain('352/352 frontend tests across 72 files');
+      expect(section).toContain('PR #254 is OPEN/DRAFT at exact HEAD `2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3`');
       expect(section).toContain('Validation [#45223358003](');
       expect(section).toContain('CodeQL [#45223357946](');
       expect(section).toContain('Dependency Review [#45223358018](');
       expect(section).toContain('3 MODERATE minimatch findings');
-      expect(section).toContain('Issue [#64]');
-      expect(section).toContain('133 comments');
-      expect(section).toContain('212 branches');
+      expect(section).toContain('PR #246 is OPEN/DRAFT at exact HEAD `ad614dd25d0fd11d3d50737718e7dbd88a74c89a`');
+      expect(section).toContain('npm audit --audit-level=moderate');
+      expect(section).toContain('PR #259 is OPEN/DRAFT at exact HEAD `40aafaafed80073575c1e8d37d87626a922d98d3`');
+      expect(section).toContain('Validation [#45304936171](');
+      expect(section).toContain('PR #99 exact HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139`');
+      expect(section).toContain('Validation [#43772791089](');
+      expect(section).toContain('Issue [#64](');
+      expect(section).toContain('135 comments');
+      expect(section).toContain('218 branches');
       expect(section).toContain('0 published releases');
       expect(section).toContain('UNAVAILABLE, UNVERIFIED, NOT EMPTY');
       expect(section).toContain('2 Done / 15 In Progress / 8 Blocked');
     }
+  });
+
+  it('keeps the current canonical 25-row register at 2 Done / 15 In Progress / 8 Blocked', () => {
+    const backlog = readFileSync(new URL('../docs/25-POINT-RELEASE-BACKLOG.md', import.meta.url), 'utf8');
+    const registerMarker = '## Current canonical 25-point release register — 2026-11-24 04:08 CET';
+    const start = backlog.indexOf(registerMarker);
+    expect(start).toBeGreaterThanOrEqual(0);
+    const end = backlog.indexOf('\n## ', start + registerMarker.length);
+    const section = backlog.slice(start, end < 0 ? backlog.length : end);
+    const rows = section.split('\n').filter((line) => /^\|\s*\d+\s*\|/.test(line));
+    expect(rows).toHaveLength(25);
+    expect(rows.filter((line) => line.includes('**Done**'))).toHaveLength(2);
+    expect(rows.filter((line) => line.includes('**In Progress**'))).toHaveLength(15);
+    expect(rows.filter((line) => line.includes('**Blocked**'))).toHaveLength(8);
+    expect(rows.find((line) => line.startsWith('| 2 |'))).toContain('**Blocked**');
   });
 
 });

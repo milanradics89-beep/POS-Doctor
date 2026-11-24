@@ -1,5 +1,59 @@
 # POS-Doctor Release Watch — Current Evidence Snapshot
 
+**Captured:** 2026-11-24 04:08 CET  
+**Repository:** `milanradics89-beep/POS-Doctor`  
+**Documentation branch:** `fix/pr233-live-checkpoint-refresh-20261123-1150`
+
+> Current operational snapshot from live GitHub API evidence. It does not grant production or pilot acceptance.
+
+## PR #41 — merged baseline
+
+- CLOSED/MERGED; exact branch HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+- Exact-head Validation [43492153234](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153161) and Dependency Review [43492153021](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43492153021): 3/3 SUCCESS; all five jobs passed.
+- Review inventory: 53 conversation comments, 30 inline comments, 26 formal submissions (25 COMMENTED, 1 APPROVED with empty body); 22/22 threads resolved, 20 outdated.
+- Three historical runs remain queued with zero jobs on obsolete SHA `b46c5b8`: Validation 43098210284, CodeQL 43098210473, Dependency Review 43098210255. Administrator cancellation required.
+
+## PR #249 — current documentation candidate
+
+- OPEN/DRAFT exact HEAD `b3533ca9432cde52f34a43f74f056b51b70fd19f`, base PR #254 at `2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3`; 32 commits, 5 files, +4,097 / -17.
+- Validation [45305295293](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45305295293), CodeQL [45305295375](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45305295375), Dependency Review [45305295323](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45305295323): 3/3 SUCCESS.
+- Frontend 352/352 tests / 72 files; Expo Doctor 21/21; Android Release/emulator and iOS Release/simulator smoke passed. Backend 539 tests, 27 readiness checks, 78 security/privacy checks; pip-audit no known Python vulnerabilities.
+- Runtime npm audit high threshold still reports 3 moderate minimatch findings. Dependency Review bot's scanned-file list is None; it does not clear the dependency tree. PR #249 has no human approval.
+
+## Other candidates
+
+- PR #254 exact HEAD `2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3`: 3/3 workflows passed; Expo SDK 57 aligned; 327/327 frontend tests; 3 moderate minimatch findings remain.
+- PR #231 exact HEAD `444e312b4bf94237eedfb0af1a24922bf5853942`: 3/3 passed.
+- PR #246 exact HEAD `ad614dd25d0fd11d3d50737718e7dbd88a74c89a`: 3/3 passed; full moderate-threshold and runtime high-threshold audits found 0 vulnerabilities on that unmerged candidate; not integrated with PR #254.
+- PR #259 exact HEAD `40aafaafed80073575c1e8d37d87626a922d98d3`: separate SDK57 integration test snapshot, 3/3 passed; draft and unmerged.
+- PR #244 exact HEAD `6a1d531132cd457cdb997e8a677d39ace17d019a`: Validation failed 330 passed / 4 timeouts; CodeQL and Dependency Review passed. Upstream advisory withdrawn 2026-11-18; preserve tests and timeout.
+
+## Issues, governance and release gates
+
+- Issue #47 CLOSED, 11 comments. Main ruleset #26370589 ACTIVE with six strict checks, one approval, last-push approval, resolved-thread enforcement, deletion/non-fast-forward protection and no bypass.
+- Issue #64 OPEN, 135 comments, last updated 2026-11-24 02:29:17 UTC. PR #99 exact HEAD `f91c70d2636948e538f8e3559afc39cd93eb5139` passed 3/3 workflows; one approval exists, but the requested independent security reviewer has not approved. Main source/test blobs match current issue evidence.
+- Production SSRF acceptance remains blocked by independent security-owner approval, production NAT64/DNS64 inventory, deployed `USEIT_NAT64_PREFIXES` verification and staging/production egress evidence.
+- Repository is public; main HEAD `3a262358552a9650d865aa5bd3c92905f1e863cb`; branch inventory 218; GitHub Releases API returned 0 published releases.
+- Code Scanning, Dependabot and Secret Scanning alert inventories are unavailable through the connected integration: unverified, not empty.
+
+## Canonical release register
+
+**2 Done / 15 In Progress / 8 Blocked.** The eight blockers are #2, #4, #5, #16, #18, #21, #22 and #25. The current 25-row register is in `docs/25-POINT-RELEASE-BACKLOG.md`.
+
+**Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.**
+
+## Next actions
+
+1. Administrator: cancel the three obsolete PR #41 queued runs.
+2. Reconcile minimatch 11.0.5 with the SDK57 dependency tree using a generated lockfile and targeted fingerprint compatibility tests; do not force-downgrade Expo.
+3. Obtain human review for PR #249 and PR #254.
+4. Obtain independent security-owner and production NAT64/DNS64 evidence for Issue #64.
+5. Keep all eight external acceptance blockers unchanged until direct evidence exists.
+
+## Previous snapshot — 2026-11-24 01:41 CET (superseded)
+
+# POS-Doctor Release Watch — Current Evidence Snapshot
+
 **Captured:** 2026-11-24 01:41 CET  
 **Repository:** `milanradics89-beep/POS-Doctor`  
 **Candidate branch:** `fix/pr233-live-checkpoint-refresh-20261123-1150`
