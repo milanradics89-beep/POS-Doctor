@@ -12,6 +12,7 @@ import { googleProductProvider } from './googleProductProvider';
 import { validateImageUri } from './imageInput';
 import { normalizeApiBaseUrl } from './apiConfig';
 import { validateUseitAnalyzeResponse, type UseitAnalyzeResponse } from './useitAnalyzeContract';
+import { createIdempotencyKey } from './analysisAttempt';
 import { isSafeExternalHttpUrl } from './externalLink';
 import { getSessionToken } from './attestationClient';
 import type { RedesignPlan } from './redesignPlan';
@@ -19,19 +20,9 @@ import type { SceneModel } from './sceneModel';
 
 export type UseitApiClientOptions = { apiKey?: string };
 
-function createIdempotencyKey(): string {
-  const cryptoApi = (globalThis as typeof globalThis & { crypto?: Crypto }).crypto;
-  if (cryptoApi?.randomUUID) return `analysis-${cryptoApi.randomUUID()}`;
-  const bytes = new Uint8Array(16);
-  if (cryptoApi?.getRandomValues) cryptoApi.getRandomValues(bytes);
-  else for (let index = 0; index < bytes.length; index += 1) bytes[index] = Math.floor(Math.random() * 256);
-  const suffix = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
-  return `analysis-${suffix}`;
-}
-
 // The backend request middleware returns 504 at 45 seconds. Keep the client
 // deadline above that limit so it can receive the controlled server response.
-// These billable POSTs remain single-attempt until an end-to-end idempotency contract exists.
+// Billable POSTs remain single-attempt; the UI reuses one idempotency key for retries of the same image/intent.
 const AI_REQUEST_TIMEOUT_MS = 50_000;
 
 export class UseitApiProvider implements IntelligenceProvider {

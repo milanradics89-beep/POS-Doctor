@@ -13,6 +13,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
+import { getOrCreateAnalysisAttempt, type AnalysisAttempt } from '../src/core/intelligence/analysisAttempt';
 import type { OpportunityKind } from '../src/core/intelligence/types';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
@@ -51,6 +52,7 @@ export default function Home() {
   const [notice, setNotice] = useState<ScreenNotice | null>(null);
   const analysisControllerRef = useRef<AbortController | null>(null);
   const analysisRequestIdRef = useRef(0);
+  const analysisAttemptRef = useRef<AnalysisAttempt | null>(null);
   const redesign = result?.redesign ?? result?.phase3?.redesign;
 
   useEffect(() => () => {
@@ -63,6 +65,7 @@ export default function Home() {
     analysisRequestIdRef.current += 1;
     analysisControllerRef.current?.abort();
     analysisControllerRef.current = null;
+    analysisAttemptRef.current = null;
     setBusy(false);
   }
 
@@ -127,14 +130,17 @@ export default function Home() {
     setNotice(null);
 
     try {
+      const attempt = getOrCreateAnalysisAttempt(analysisAttemptRef.current, intent);
+      analysisAttemptRef.current = attempt;
       const response = await analyzeForConsumer(
         new UseitApiProvider(API_URL),
         photo,
         intent,
-        { signal: controller.signal }
+        { signal: controller.signal, idempotencyKey: attempt.idempotencyKey }
       );
       if (controller.signal.aborted || requestId !== analysisRequestIdRef.current) return;
       setResult(response);
+      analysisAttemptRef.current = null;
     } catch (error) {
       if (controller.signal.aborted || requestId !== analysisRequestIdRef.current || (error instanceof Error && error.name === 'AbortError')) return;
       const kind = requestFailureKind(error);
