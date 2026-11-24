@@ -12,7 +12,8 @@ export type ImageInput = {
 
 // Stay below the backend's 8,000,000-character imageUri limit with room for the JSON envelope.
 export const MAX_IMAGE_DATA_URL_BYTES = 7_900_000;
-const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+// Keep this set aligned with backend/main.py's accepted data-URI MIME contract.
+const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 function byteLength(value: string): number {
   return new TextEncoder().encode(value).byteLength;

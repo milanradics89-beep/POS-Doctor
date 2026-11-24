@@ -13,11 +13,13 @@ describe('USEIT Home recovery-state integration', () => {
     expect(home).toContain('requestId !== analysisRequestIdRef.current');
   });
 
-  it('validates selected camera and gallery data URLs before retaining them', () => {
+  it('validates camera and gallery data URLs through the same shared path', () => {
     expect(home).toContain("import { validateImageUri } from '../src/core/intelligence/imageInput';");
     expect(home).toContain('validateImageUri(imageUri);');
-    expect(home).toContain("setSelectedPhoto(a.base64, a.mimeType || 'image/jpeg');");
+    expect(home.split("setSelectedPhoto(a.base64, a.mimeType || 'image/jpeg');").length - 1).toBe(2);
+    expect(home).not.toContain('setPhoto(`data:${a.mimeType || \'image/jpeg\'};base64,${a.base64}`)');
   });
+
   it('routes network failures to the offline panel with a retry for the same intent', () => {
     expect(home).toContain("import { requestFailureKind } from '../src/ui/requestFailure';");
     expect(home).toContain('const kind = requestFailureKind(error);');
