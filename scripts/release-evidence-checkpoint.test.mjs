@@ -7,7 +7,7 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-24 21:12 CET';
+const marker = '## Latest live release-watch checkpoint — 2026-11-24 22:31 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
@@ -54,7 +54,18 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Expo Doctor passed 21/21');
       expect(section).toContain('Android emulator smoke passed');
       expect(section).toContain('iOS Release build and simulator launch smoke passed');
-      expect(section).toContain('found 0 vulnerabilities');
+      expect(section).toContain('reported 0 vulnerabilities');
+    }
+  });
+
+  it('records the current documentation HEAD and exact-head workflow conclusions', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('2955fa15b3489fc3cb89afb43a49f04b1aee777e');
+      expect(section).toContain('Validation [45486433214] is terminal FAILURE');
+      expect(section).toContain('CodeQL [45486433211] and Dependency Review [45486433110] are terminal SUCCESS');
+      expect(section).toContain('342 passed / 1 failed across 74 files');
+      expect(section).toContain('scripts/release-evidence-checkpoint.test.mjs:57');
+      expect(section).toContain('258 branches');
     }
   });
 
