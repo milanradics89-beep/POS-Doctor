@@ -7,11 +7,11 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-24 04:08 CET';
+const marker = '## Latest live release-watch checkpoint — 2026-11-24 05:15 CET';
 const latestSections = documents.map((document) => {
   if (!document.startsWith(marker)) return '';
   const nextHeading = document.indexOf('\n## ', marker.length);
-  return document.slice(0, nextHeading < 0 ? document.length : nextHeading);
+  return document.slice(0, nextHeading < 0 ? document.length : nextHeading).trimEnd();
 });
 
 describe('current-main release evidence checkpoint', () => {
@@ -54,6 +54,19 @@ describe('current-main release evidence checkpoint', () => {
       expect(document).toContain('expo-constants');
       expect(document).toContain('expo-image-picker');
       expect(document).toContain('expo-router');
+    }
+  });
+
+  it('records the current PR #249 exact-head failure without borrowing parent CI', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #249 is OPEN/DRAFT at exact pre-repair HEAD `6cc6eb3fec0ac7a6404efc07f2a428e69196fbfe`');
+      expect(section).toContain('Validation [#45318427579](');
+      expect(section).toContain('CodeQL [#45318427573](');
+      expect(section).toContain('Dependency Review [#45318427585](');
+      expect(section).toContain('350 tests passed / 3 failed across 72 files');
+      expect(section).toContain('frontend failed, backend passed and iOS passed');
+      expect(section).toContain('Android Expo Doctor, export, native Release build and emulator validation were skipped');
+      expect(section).toContain('its new exact-head CI must be evaluated separately and does not inherit results from `6cc6eb3`');
     }
   });
 

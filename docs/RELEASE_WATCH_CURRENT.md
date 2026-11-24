@@ -1,6 +1,6 @@
 # POS-Doctor Release Watch — Current Evidence Snapshot
 
-**Captured:** 2026-11-24 04:08 CET  
+**Captured:** 2026-11-24 05:15 CET  
 **Repository:** `milanradics89-beep/POS-Doctor`  
 **Documentation branch:** `fix/pr233-live-checkpoint-refresh-20261123-1150`
 
@@ -15,10 +15,11 @@
 
 ## PR #249 — current documentation candidate
 
-- OPEN/DRAFT exact HEAD `b3533ca9432cde52f34a43f74f056b51b70fd19f`, base PR #254 at `2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3`; 32 commits, 5 files, +4,097 / -17.
-- Validation [45305295293](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45305295293), CodeQL [45305295375](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45305295375), Dependency Review [45305295323](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45305295323): 3/3 SUCCESS.
-- Frontend 352/352 tests / 72 files; Expo Doctor 21/21; Android Release/emulator and iOS Release/simulator smoke passed. Backend 539 tests, 27 readiness checks, 78 security/privacy checks; pip-audit no known Python vulnerabilities.
-- Runtime npm audit high threshold still reports 3 moderate minimatch findings. Dependency Review bot's scanned-file list is None; it does not clear the dependency tree. PR #249 has no human approval.
+- OPEN/DRAFT pre-repair exact HEAD `6cc6eb3fec0ac7a6404efc07f2a428e69196fbfe`, base PR #254 at `2c9d9ef7a052a2a55b491925c8c40d9fc3649bd3`; 33 commits, 5 files, +4,200 / -17.
+- Validation [45318427579](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45318427579) failed; CodeQL [45318427573](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45318427573) and Dependency Review [45318427585](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/45318427585) passed on that exact SHA. Frontend failed on 3 documentation assertions (350 passed / 3 failed across 72 files); backend and iOS jobs passed.
+- TypeScript passed. Android Expo Doctor, export, native Release build and emulator smoke were skipped after frontend unit tests failed. The iOS Release/simulator job passed. The three failures were a trailing-newline checkpoint comparison, a truncated PR #244 evidence line, and missing explicit external-blocker references.
+- The targeted documentation/test correction in this commit has its own exact-head CI and must be evaluated separately; it does not inherit results from `6cc6eb3`. PR #249 remains draft with no human approval.
+- Runtime npm audit high threshold still reports 3 moderate minimatch findings. Dependency Review's bot comment reports Scanned Files: None, so it does not clear the dependency tree.
 
 ## Other candidates
 
@@ -45,7 +46,7 @@
 ## Next actions
 
 1. Administrator: cancel the three obsolete PR #41 queued runs.
-2. Reconcile minimatch 11.0.5 with the SDK57 dependency tree using a generated lockfile and targeted fingerprint compatibility tests; do not force-downgrade Expo.
+2. Verify the new exact-head Validation, CodeQL and Dependency Review for this checkpoint correction; then reconcile minimatch 11.0.5 with the SDK57 dependency tree using a generated lockfile and targeted fingerprint compatibility tests. Do not force-downgrade Expo.
 3. Obtain human review for PR #249 and PR #254.
 4. Obtain independent security-owner and production NAT64/DNS64 evidence for Issue #64.
 5. Keep all eight external acceptance blockers unchanged until direct evidence exists.
