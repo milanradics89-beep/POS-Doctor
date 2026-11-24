@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { MAX_IMAGE_DATA_URL_BYTES, validateImageUri } from './imageInput';
+import { validateImageUri } from './imageInput';
 
 export const IMAGE_NORMALIZATION_MAX_DIMENSION = 2048;
 const MAX_DATA_URL_ATTEMPTS = [2048, 1600, 1280, 960, 720] as const;
@@ -58,7 +58,6 @@ export async function normalizeImageAsset(
         if (!(error instanceof Error) || error.message !== 'Image is too large. Please choose a smaller photo.') {
           throw error;
         }
-        if (dataUrl.length <= MAX_IMAGE_DATA_URL_BYTES) throw error;
       }
     } finally {
       await FileSystem.deleteAsync(saved.uri, { idempotent: true }).catch(() => undefined);
