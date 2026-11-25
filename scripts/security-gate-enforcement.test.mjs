@@ -57,13 +57,13 @@ describe('security workflow enforcement', () => {
   it('does not accept the Semgrep command when it appears only in a later job', () => {
     const requiredCommand = 'semgrep scan --config p/ci --error --metrics=off /src';
     const withoutActiveCommand = security.replace(requiredCommand, 'echo active Semgrep command missing');
-    const laterOnly = \`\${withoutActiveCommand}
+    const laterOnly = `${withoutActiveCommand}
   semgrep_fallback:
     name: Disabled fallback Semgrep job
     steps:
       - name: Scan
-        run: \${requiredCommand}
-\`;
+        run: ${requiredCommand}
+`;
 
     expect(jobBlock(laterOnly, 'semgrep')).not.toContain(requiredCommand);
     expect(jobBlock(laterOnly, 'semgrep_fallback')).toContain(requiredCommand);
