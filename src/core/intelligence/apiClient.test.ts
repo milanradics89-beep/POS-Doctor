@@ -229,7 +229,7 @@ describe('UseitApiProvider boundary handling', () => {
 
     expect(result.unified?.shopping?.candidates.map(candidate => candidate.id)).toEqual(['safe']);
     expect(result.intelligence.rankedCandidates.map(candidate => candidate.id)).toEqual(['safe']);
-    expect(result.intelligence.rankedCandidates[0].imageUrl).toBeUndefined();
+    expect(result.intelligence.rankedCandidates[0]).not.toHaveProperty('imageUrl');
     expect(result.redesign?.products.map(product => product.productId)).toEqual(['safe']);
   });
 
