@@ -11,8 +11,8 @@ export type HomeAnalysisNotice = {
   kind: 'error' | 'offline';
   title: string;
   description: string;
-  actionLabel: string;
-  actionAccessibilityHint: string;
+  actionLabel?: string;
+  actionAccessibilityHint?: string;
 };
 
 export function resolveAnalysisIdempotencyKey(
@@ -33,8 +33,6 @@ export function createAnalysisFailureNotice(error: unknown): HomeAnalysisNotice 
       kind: 'error',
       title: 'Analysis already received',
       description: 'This analysis request has already been accepted or is still processing. Choose a new photo or a different action to start another analysis.',
-      actionLabel: '',
-      actionAccessibilityHint: '',
     };
   }
 
