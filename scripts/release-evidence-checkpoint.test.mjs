@@ -72,11 +72,11 @@ describe('current-main release evidence checkpoint', () => {
   it('records PR #204 current exact-head failure and previous success separately', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #204 is OPEN/DRAFT');
-      expect(section).toContain('464941ea556921fb5c4013cf2a2d5dbf9b23ccbf');
-      expect(section).toContain('Validation [45586783375](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377367) is terminal FAILURE');
-      expect(section).toContain('CodeQL [45586783160](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377260) is terminal SUCCESS');
-      expect(section).toContain('Dependency Review [45586783229](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377312) is terminal SUCCESS');
-      expect(section).toContain('Frontend: FAILURE (342 passed / 5 failed across 74 files)');
+      expect(section).toContain('e280504649194a689bd20d0c689efaff95b4de6d');
+      expect(section).toContain('Validation [45590019680](https://github.com/milanradics89-beep/USEIT/actions/runs/45590019680) is terminal FAILURE');
+      expect(section).toContain('CodeQL [45590019635](https://github.com/milanradics89-beep/USEIT/actions/runs/45590019635) is terminal SUCCESS');
+      expect(section).toContain('Dependency Review [45590019662](https://github.com/milanradics89-beep/USEIT/actions/runs/45590019662) is terminal SUCCESS');
+      expect(section).toContain('Frontend: FAILURE (343 passed / 4 failed across 74 files)');
       expect(section).toContain('Backend: SUCCESS');
       expect(section).toContain('iOS: SUCCESS');
       expect(section).toContain('previous exact HEAD d3d532182b26f0d3c024dfadca5cddbda95a0797 passed all three exact-head workflows');
@@ -110,11 +110,11 @@ describe('current-main release evidence checkpoint', () => {
   it('records current security and unsigned-APK candidate evidence on exact heads', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #313 is OPEN');
-      expect(section).toContain('59b9bc6dc614564126aac484f249f957d61c469b');
-      expect(section).toContain('45532619165');
-      expect(section).toContain('45532619204');
-      expect(section).toContain('45532619548');
-      expect(section).toContain('45532619354');
+      expect(section).toContain('c14efbeeefbf99cadf36c298c930327e32a0c73a');
+      expect(section).toContain('45590280887');
+      expect(section).toContain('45590280868');
+      expect(section).toContain('45590280921');
+      expect(section).toContain('45590280895');
       expect(section).toContain('PR #321 exact HEAD');
       expect(section).toContain('2fdb8894f67a40171fe858ee01acd9c0e81c5d5f');
       expect(section).toContain('45554749062');
