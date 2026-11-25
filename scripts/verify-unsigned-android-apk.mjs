@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const NO_SIGNATURE_LINE = /^(?:ERROR:\s*)?(?:No JAR signatures(?: found)?|No signers found)\.?$/i;
+const NO_SIGNATURE_LINE = /^(?:ERROR:\s*)?(?:Missing META-INF\\/MANIFEST\\.MF|No JAR signatures(?: found)?|No signers found)\.?$/i;
 const UNSAFE_DIAGNOSTIC = /(?:digest mismatch|signature verification failed|failed to verify|malformed|invalid signature|signing block|signer #\d+|certificate)/i;
 
 export function isVerifiedUnsignedApk({ exitCode, output }) {
