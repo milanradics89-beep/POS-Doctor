@@ -13,8 +13,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
-import type { OpportunityKind } from '../src/core/intelligence/types';
-import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
+import type { ConsumerIntent, ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
 import { BrandMark, FadeIn, ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
@@ -22,6 +21,7 @@ import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
 import { requestFailureKind } from '../src/ui/requestFailure';
 import { validateImageUri } from '../src/core/intelligence/imageInput';
+import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -66,8 +66,7 @@ export default function Home() {
     setBusy(false);
   }
 
-  function setSelectedPhoto(base64: string, mimeType: string) {
-    const imageUri = `data:${mimeType};base64,${base64}`;
+  function setSelectedPhoto(imageUri: string) {
     try {
       validateImageUri(imageUri);
     } catch (error) {
@@ -83,6 +82,40 @@ export default function Home() {
     setPhoto(imageUri);
     setResult(null);
     setRendered(null);
+  }
+
+  async function prepareAndSelectPhoto(
+    uri: string,
+    width: number,
+    height: number,
+    orientation: unknown,
+    failureDescription: string
+  ) {
+    cancelAnalysis();
+    setResult(null);
+    setRendered(null);
+    setNotice(null);
+
+    try {
+      let resolvedWidth = width;
+      let resolvedHeight = height;
+      if (!Number.isFinite(resolvedWidth) || !Number.isFinite(resolvedHeight) || resolvedWidth <= 0 || resolvedHeight <= 0) {
+        const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+          Image.getSize(uri, (imageWidth, imageHeight) => resolve({ width: imageWidth, height: imageHeight }), reject);
+        });
+        const visualDimensions = resolveVisualDimensions(dimensions.width, dimensions.height, orientation);
+        resolvedWidth = visualDimensions.width;
+        resolvedHeight = visualDimensions.height;
+      }
+      const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
+      setSelectedPhoto(normalized.dataUrl);
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: error instanceof Error ? error.message : failureDescription,
+      });
+    }
   }
 
   const reset = () => {
@@ -106,7 +139,7 @@ export default function Home() {
     }
   }
 
-  async function analyze(intent?: OpportunityKind) {
+  async function analyze(intent?: ConsumerIntent) {
     if (analysisControllerRef.current) return;
     if (!API_URL) {
       setNotice({
@@ -222,27 +255,22 @@ export default function Home() {
     setNotice(null);
     const r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      base64: true,
+      quality: 1,
+      base64: false,
+      exif: true,
       allowsMultipleSelection: false,
     });
 
     if (r.canceled) return;
 
     const a = r.assets[0];
-
-    if (!a.base64) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'USEIT could not read this image. Choose the photo again.',
-        actionLabel: 'CHOOSE AGAIN',
-        onAction: () => { void chooseGallery(); },
-      });
-      return;
-    }
-
-    setSelectedPhoto(a.base64, a.mimeType || 'image/jpeg');
+    await prepareAndSelectPhoto(
+      a.uri,
+      a.width,
+      a.height,
+      a.exif?.Orientation,
+      'USEIT could not decode this image. Choose a different photo.'
+    );
   }
 
   async function capture() {
@@ -271,26 +299,21 @@ export default function Home() {
     setNotice(null);
     const r = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      base64: true,
+      quality: 1,
+      base64: false,
+      exif: true,
     });
 
     if (r.canceled) return;
 
     const a = r.assets[0];
-
-    if (!a.base64) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'USEIT could not read the captured image. Try taking it again.',
-        actionLabel: 'TAKE AGAIN',
-        onAction: () => { void capture(); },
-      });
-      return;
-    }
-
-    setSelectedPhoto(a.base64, a.mimeType || 'image/jpeg');
+    await prepareAndSelectPhoto(
+      a.uri,
+      a.width,
+      a.height,
+      a.exif?.Orientation,
+      'USEIT could not decode the captured image. Try taking it again.'
+    );
   }
 
   const noticePanel = notice ? (

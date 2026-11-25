@@ -6,6 +6,20 @@ def test_empty_intent_is_explore_fallback() -> None:
     assert result == {"name": "explore", "confidence": 0.35, "source": "default"}
 
 
+def test_canonical_mobile_modes_are_preserved() -> None:
+    expected = {
+        "create": "create",
+        "improve": "improve",
+        "fix": "fix",
+        "cook": "cook",
+        "surprise": "surprise",
+    }
+    for mode, expected_name in expected.items():
+        result = classify_intent(mode, "generic scene analysis prompt")
+        assert result["name"] == expected_name
+        assert result["source"] == "user_mode"
+
+
 def test_hungarian_shopping_intent_is_classified() -> None:
     result = classify_intent("Szeretnék venni egy új bútort")
     assert result["name"] == "shop"

@@ -92,6 +92,18 @@ describe('UseitApiProvider boundary handling', () => {
     expect(observedSignal?.aborted).toBe(true);
   });
 
+  it('forwards the canonical shop mode to the unified API request', async () => {
+    const payload = { ...validUnified, intent: { name: 'shop', confidence: 0.9 } };
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }),
+    );
+
+    await provider().analyzeUseit(image, 'shop');
+
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(requestBody.userIntent).toBe('shop');
+  });
+
   it('rejects a missing API base URL before network access', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
     await expect(new UseitApiProvider('').analyzeImage(image)).rejects.toThrow('USEIT API base URL is required.');
