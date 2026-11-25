@@ -26,6 +26,13 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Setup Node for dependency-aware analysis
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Install project dependencies for complete analysis
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Analyze TypeScript and JavaScript
         uses: fallow-rs/fallow@71369f80d099e25726ad04382f15aef14a251abc # v3.31.0
         with:
