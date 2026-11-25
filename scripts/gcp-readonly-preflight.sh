@@ -64,7 +64,7 @@ run_inventory "Cloud Monitoring notification channels" \
 
 if [[ -n "${USEIT_GCP_REGION:-}" ]]; then
   run_inventory "Cloud Run services in explicitly selected region ${USEIT_GCP_REGION}" \
-    gcloud run services list --project="$PROJECT_ID" --platform=managed --region="$USEIT_GCP_REGION" --format='table(metadata.name,status.url)'
+    gcloud run services list --project="$PROJECT_ID" --region="$USEIT_GCP_REGION" --format='table(metadata.name,status.url)'
 else
   printf '\n===== Cloud Run services =====\n'
   printf 'SKIPPED: USEIT_GCP_REGION is not set. Choose and approve a region before regional inventory or deployment.\n'
