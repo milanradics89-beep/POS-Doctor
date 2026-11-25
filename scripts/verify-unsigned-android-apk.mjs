@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const NO_SIGNATURE_LINE = /^(?:ERROR:\\s*)?(?:Missing META-INF\\/MANIFEST\\.MF|No JAR signatures(?: found)?|No signers found)\\.?$/i;
-const UNSAFE_DIAGNOSTIC = /(?:digest mismatch|signature verification failed|failed to verify|malformed|invalid signature|signing block|signer #\\d+|certificate)/i;
+const NO_SIGNATURE_LINE = /^(?:ERROR:\s*)?(?:Missing META-INF\/MANIFEST\.MF|No JAR signatures(?: found)?|No signers found)\.?$/i;
+const UNSAFE_DIAGNOSTIC = /(?:digest mismatch|signature verification failed|failed to verify|malformed|invalid signature|signing block|signer #\d+|certificate)/i;
 const APK_MAGIC = Buffer.from('APK Sig Block 42', 'ascii');
 
 export function hasApkSigningBlock(apk) {
@@ -19,12 +19,12 @@ export function hasApkSigningBlock(apk) {
   return apk.subarray(cd - 16, cd).equals(APK_MAGIC);
 }
 
-export function hasJarSignatureEntries(entries) {
+  return entries.some((entry) => /^META-INF\/(?:MANIFEST\.MF|[^/]+\.(?:SF|RSA|DSA|EC))$/i.test(entry.trim()));
   return entries.some((entry) => /^META-INF\\/(?:MANIFEST\\.MF|[^/]+\\.(?:SF|RSA|DSA|EC))$/i.test(entry.trim()));
 }
 
 export function isVerifiedUnsignedApk({ exitCode, output, hasSigningBlock = false, hasJarSignatures = false }) {
-  if (!Number.isInteger(exitCode) || typeof output !== 'string' || exitCode === 0 || hasSigningBlock || hasJarSignatures) return false;
+  const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const lines = output.split(/\\r?\\n/).map((line) => line.trim()).filter(Boolean);
   const banner = lines.some((line) => /^DOES NOT VERIFY$/i.test(line));
   const absence = lines.some((line) => NO_SIGNATURE_LINE.test(line));
@@ -37,7 +37,7 @@ if (direct) {
   const [logPath, exitText, apkPath] = process.argv.slice(2);
   if (!logPath || !/^\\d+$/.test(exitText ?? '') || !apkPath) throw new Error('Usage: verify-unsigned-android-apk <log> <exit-code> <apk>');
   const output = readFileSync(logPath, 'utf8');
-  const apk = readFileSync(apkPath);
+  const entries = execFileSync('unzip', ['-Z1', apkPath], { encoding: 'utf8' }).split(/\r?\n/).filter(Boolean);
   const entries = execFileSync('unzip', ['-Z1', apkPath], { encoding: 'utf8' }).split(/\\r?\\n/).filter(Boolean);
   const hasSigningBlock = hasApkSigningBlock(apk);
   const hasJarSignatures = hasJarSignatureEntries(entries);
