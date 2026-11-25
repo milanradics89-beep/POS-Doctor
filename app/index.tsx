@@ -52,6 +52,7 @@ export default function Home() {
   const [notice, setNotice] = useState<ScreenNotice | null>(null);
   const analysisControllerRef = useRef<AbortController | null>(null);
   const analysisRequestIdRef = useRef(0);
+  const redesignRequestIdRef = useRef(0);
   const redesign = result?.redesign ?? result?.phase3?.redesign;
 
   useEffect(() => () => {
@@ -68,6 +69,8 @@ export default function Home() {
   }
 
   function setSelectedPhoto(imageUri: string) {
+    redesignRequestIdRef.current += 1;
+    setRendering(false);
     try {
       validateImageUri(imageUri);
     } catch (error) {
@@ -121,6 +124,8 @@ export default function Home() {
 
   const reset = () => {
     cancelAnalysis();
+    redesignRequestIdRef.current += 1;
+    setRendering(false);
     setPhoto(null);
     setResult(null);
     setRendered(null);
@@ -193,8 +198,9 @@ export default function Home() {
   }
 
   async function createVisualConcept() {
-    if (!photo || !redesign) return;
+    if (!photo || !redesign || rendering) return;
 
+    const requestId = ++redesignRequestIdRef.current;
     setRendering(true);
     setNotice(null);
 
@@ -215,8 +221,10 @@ export default function Home() {
         products
       );
 
+      if (requestId !== redesignRequestIdRef.current) return;
       setRendered(renderedResult.imageDataUrl);
     } catch {
+      if (requestId !== redesignRequestIdRef.current) return;
       setNotice({
         kind: 'error',
         title: 'Visual concept failed',
@@ -226,7 +234,7 @@ export default function Home() {
         onAction: () => { void createVisualConcept(); },
       });
     } finally {
-      setRendering(false);
+      if (requestId === redesignRequestIdRef.current) setRendering(false);
     }
   }
 
