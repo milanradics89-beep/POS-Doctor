@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: useit-ci-recovery-${{ inputs.operation }}-${{ inputs.run_id }}
+  group: useit-ci-recovery-${{ inputs.operation }}
   cancel-in-progress: false
 
 jobs:
