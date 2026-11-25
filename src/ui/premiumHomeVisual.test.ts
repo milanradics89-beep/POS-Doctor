@@ -21,6 +21,13 @@ describe('premium USEIT home and visual result structure', () => {
     expect(home).toContain('modeWide: { width: \'100%\'');
   });
 
+  it('keeps the Surprise mode foreground readable on the graphite tile', () => {
+    expect(home.split("a === 'surprise' ? s.modeSurpriseForeground : null").length - 1).toBe(3);
+    expect(home).toContain("a === 'surprise' ? s.modeSurpriseDescription : null");
+    expect(home).toContain('modeSurpriseForeground: { color: theme.colors.surface }');
+    expect(home).toContain('modeSurpriseDescription: { color: theme.colors.captureTextMuted }');
+  });
+
   it('provides a before-and-after comparison instead of replacing the source photo', () => {
     expect(home).toContain('comparisonImage');
     expect(home).toContain('BEFORE');

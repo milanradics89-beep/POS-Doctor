@@ -554,13 +554,13 @@ export default function Home() {
                       onPress={() => analyze(a)}
                     >
                       <View style={s.modeTop}>
-                        <Text style={s.modeIcon}>
+                        <Text style={[s.modeIcon, a === 'surprise' ? s.modeSurpriseForeground : null]}>
                           {a === 'create' ? '✳' : a === 'improve' ? '↗' : a === 'fix' ? '⌁' : a === 'cook' ? '◒' : '✦'}
                         </Text>
-                        <Text style={s.modeArrow}>↗</Text>
+                        <Text style={[s.modeArrow, a === 'surprise' ? s.modeSurpriseForeground : null]}>↗</Text>
                       </View>
-                      <Text style={s.modeTitle}>{a.toUpperCase()}</Text>
-                      <Text style={s.modeDesc}>{b}</Text>
+                      <Text style={[s.modeTitle, a === 'surprise' ? s.modeSurpriseForeground : null]}>{a.toUpperCase()}</Text>
+                      <Text style={[s.modeDesc, a === 'surprise' ? s.modeSurpriseDescription : null]}>{b}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -713,6 +713,8 @@ const s = StyleSheet.create({
   modeFix: { backgroundColor: theme.colors.blue, borderColor: theme.colors.blue },
   modeCook: { backgroundColor: theme.colors.peach, borderColor: theme.colors.peach },
   modeSurprise: { backgroundColor: theme.colors.ink, borderColor: theme.colors.ink },
+  modeSurpriseForeground: { color: theme.colors.surface },
+  modeSurpriseDescription: { color: theme.colors.captureTextMuted },
   modeWide: { width: '100%', minHeight: 118 },
   modePressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
   modeTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
