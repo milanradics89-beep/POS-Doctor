@@ -168,6 +168,20 @@ describe('UseitApiProvider boundary handling', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0][0])).toContain('/v1/useit/analyze');
   });
+  it('forwards a stable idempotency key through the unified consumer boundary', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(validUnified), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
+
+    await analyzeForConsumer(provider(), image, 'improve', { idempotencyKey: 'analysis-retry-key-123456' });
+
+    const requestCall = fetchMock.mock.calls.find(([input]) => String(input).includes('/v1/useit/analyze'));
+    expect(requestCall).toBeDefined();
+    expect(new Headers(requestCall?.[1]?.headers).get('Idempotency-Key')).toBe('analysis-retry-key-123456');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('builds a visual redesign plan from unified visualizable suggestions and shopping candidates', async () => {
     const payload = {
       ...validUnified,
