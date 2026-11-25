@@ -6,7 +6,7 @@ describe('isVerifiedUnsignedApk', () => {
     expect(
       isVerifiedUnsignedApk({
         exitCode: 1,
-        output: 'DOES NOT VERIFY\\nERROR: No JAR signatures found.\\n',
+        output: 'DOES NOT VERIFY\nERROR: No JAR signatures found.\n',
       }),
     ).toBe(true);
   });
@@ -15,7 +15,7 @@ describe('isVerifiedUnsignedApk', () => {
     expect(
       isVerifiedUnsignedApk({
         exitCode: 1,
-        output: 'DOES NOT VERIFY\\nNo signers found.\\n',
+        output: 'DOES NOT VERIFY\nNo signers found.\n',
       }),
     ).toBe(true);
   });
@@ -24,7 +24,7 @@ describe('isVerifiedUnsignedApk', () => {
     expect(
       isVerifiedUnsignedApk({
         exitCode: 1,
-        output: 'DOES NOT VERIFY\\n',
+        output: 'DOES NOT VERIFY\n',
       }),
     ).toBe(false);
   });
@@ -34,7 +34,7 @@ describe('isVerifiedUnsignedApk', () => {
       isVerifiedUnsignedApk({
         exitCode: 1,
         output:
-          'DOES NOT VERIFY\\nERROR: No JAR signatures found.\\nERROR: SHA-256 digest mismatch.\\n',
+          'DOES NOT VERIFY\nERROR: No JAR signatures found.\nERROR: SHA-256 digest mismatch.\n',
       }),
     ).toBe(false);
   });
@@ -44,7 +44,7 @@ describe('isVerifiedUnsignedApk', () => {
       isVerifiedUnsignedApk({
         exitCode: 1,
         output:
-          'DOES NOT VERIFY\\nERROR: No JAR signatures found.\\nSigner #1 certificate SHA-256 digest: abc\\n',
+          'DOES NOT VERIFY\nERROR: No JAR signatures found.\nSigner #1 certificate SHA-256 digest: abc\n',
       }),
     ).toBe(false);
   });
@@ -53,7 +53,7 @@ describe('isVerifiedUnsignedApk', () => {
     expect(
       isVerifiedUnsignedApk({
         exitCode: 0,
-        output: 'Verifies\\nSigner #1 certificate SHA-256 digest: abc\\n',
+        output: 'Verifies\nSigner #1 certificate SHA-256 digest: abc\n',
       }),
     ).toBe(false);
   });
@@ -62,7 +62,7 @@ describe('isVerifiedUnsignedApk', () => {
     expect(
       isVerifiedUnsignedApk({
         exitCode: 1,
-        output: 'DOES NOT VERIFY\\nERROR: malformed APK signing block.\\n',
+        output: 'DOES NOT VERIFY\nERROR: malformed APK signing block.\n',
       }),
     ).toBe(false);
   });
