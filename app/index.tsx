@@ -73,16 +73,18 @@ export default function Home() {
     try {
       let resolvedWidth = width;
       let resolvedHeight = height;
+      let usedNativeDimensionFallback = false;
       if (!Number.isFinite(resolvedWidth) || !Number.isFinite(resolvedHeight) || resolvedWidth <= 0 || resolvedHeight <= 0) {
         const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
           Image.getSize(uri, (imageWidth, imageHeight) => resolve({ width: imageWidth, height: imageHeight }), reject);
         });
         resolvedWidth = dimensions.width;
         resolvedHeight = dimensions.height;
+        usedNativeDimensionFallback = true;
       }
       // EXIF orientations 5–8 rotate the visual image by 90 degrees, so swap
       // the decoded dimensions before choosing the resize axis.
-      if (exifOrientation !== undefined && exifOrientation >= 5 && exifOrientation <= 8) {
+      if (usedNativeDimensionFallback && exifOrientation !== undefined && exifOrientation >= 5 && exifOrientation <= 8) {
         [resolvedWidth, resolvedHeight] = [resolvedHeight, resolvedWidth];
       }\n      const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
       setSelectedPhoto(normalized.dataUrl);
