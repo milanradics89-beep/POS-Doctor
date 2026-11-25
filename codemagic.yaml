@@ -32,6 +32,8 @@ workflows:
         script: node node_modules/expo-doctor/bin/expo-doctor.js
       - name: Generate Android native project
         script: CI=1 npx expo prebuild --platform android --no-install
+      - name: Remove Expo template debug signing from release build
+        script: node scripts/prepare-unsigned-android-release.mjs android/app/build.gradle
       - name: Configure Android SDK
         script: |
           set -euo pipefail
@@ -43,6 +45,23 @@ workflows:
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
+      - name: Verify Android release APK has no signing certificate
+        script: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          test -s "$APK"
+          APKSIGNER="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+          test -x "$APKSIGNER"
+          VERIFY_LOG="$(mktemp)"
+          VERIFY_EXIT=0
+          if "$APKSIGNER" verify --verbose --print-certs "$APK" >"$VERIFY_LOG" 2>&1; then
+            VERIFY_EXIT=0
+          else
+            VERIFY_EXIT=$?
+          fi
+          cat "$VERIFY_LOG"
+          node scripts/verify-unsigned-android-apk.mjs "$VERIFY_LOG" "$VERIFY_EXIT" "$APK"
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
       - android/app/build/outputs/mapping/release/mapping.txt

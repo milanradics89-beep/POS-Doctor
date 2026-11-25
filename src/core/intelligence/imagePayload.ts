@@ -1,10 +1,13 @@
-export type ImagePayload = { dataUrl: string; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' };
+import { MAX_IMAGE_DATA_URL_BYTES } from './imageInput';
 
-const MAX_DATA_URL_LENGTH = 8_000_000;
+export type ImagePayload = {
+  dataUrl: string;
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+};
 
 export function assertImagePayload(payload: ImagePayload): ImagePayload {
   if (!payload.dataUrl.startsWith(`data:${payload.mimeType};base64,`)) throw new Error('Invalid image payload.');
-  if (payload.dataUrl.length > MAX_DATA_URL_LENGTH) throw new Error('Image is too large.');
+  if (payload.dataUrl.length > MAX_IMAGE_DATA_URL_BYTES) throw new Error('Image is too large.');
   return payload;
 }
 

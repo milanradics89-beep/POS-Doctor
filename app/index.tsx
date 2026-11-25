@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -13,14 +13,16 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
+import type { ConsumerIntent, ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
-import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
 import { BrandMark, FadeIn, ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
 import { requestFailureKind } from '../src/ui/requestFailure';
+import { validateImageUri } from '../src/core/intelligence/imageInput';
+import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -48,9 +50,77 @@ export default function Home() {
   const [rendered, setRendered] = useState<string | null>(null);
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
   const [notice, setNotice] = useState<ScreenNotice | null>(null);
+  const analysisControllerRef = useRef<AbortController | null>(null);
+  const analysisRequestIdRef = useRef(0);
   const redesign = result?.redesign ?? result?.phase3?.redesign;
 
+  useEffect(() => () => {
+    analysisRequestIdRef.current += 1;
+    analysisControllerRef.current?.abort();
+    analysisControllerRef.current = null;
+  }, []);
+
+  function cancelAnalysis() {
+    analysisRequestIdRef.current += 1;
+    analysisControllerRef.current?.abort();
+    analysisControllerRef.current = null;
+    setBusy(false);
+  }
+
+  function setSelectedPhoto(imageUri: string) {
+    try {
+      validateImageUri(imageUri);
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: error instanceof Error ? error.message : 'Choose a smaller supported photo.',
+      });
+      return;
+    }
+    cancelAnalysis();
+    setNotice(null);
+    setPhoto(imageUri);
+    setResult(null);
+    setRendered(null);
+  }
+
+  async function prepareAndSelectPhoto(
+    uri: string,
+    width: number,
+    height: number,
+    orientation: unknown,
+    failureDescription: string
+  ) {
+    cancelAnalysis();
+    setResult(null);
+    setRendered(null);
+    setNotice(null);
+
+    try {
+      let resolvedWidth = width;
+      let resolvedHeight = height;
+      if (!Number.isFinite(resolvedWidth) || !Number.isFinite(resolvedHeight) || resolvedWidth <= 0 || resolvedHeight <= 0) {
+        const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+          Image.getSize(uri, (imageWidth, imageHeight) => resolve({ width: imageWidth, height: imageHeight }), reject);
+        });
+        const visualDimensions = resolveVisualDimensions(dimensions.width, dimensions.height, orientation);
+        resolvedWidth = visualDimensions.width;
+        resolvedHeight = visualDimensions.height;
+      }
+      const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
+      setSelectedPhoto(normalized.dataUrl);
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: error instanceof Error ? error.message : failureDescription,
+      });
+    }
+  }
+
   const reset = () => {
+    cancelAnalysis();
     setPhoto(null);
     setResult(null);
     setRendered(null);
@@ -70,7 +140,8 @@ export default function Home() {
     }
   }
 
-  async function analyze(intent?: OpportunityKind) {
+  async function analyze(intent?: ConsumerIntent) {
+    if (analysisControllerRef.current) return;
     if (!API_URL) {
       setNotice({
         kind: 'error',
@@ -82,6 +153,9 @@ export default function Home() {
 
     if (!photo) return;
 
+    const controller = new AbortController();
+    const requestId = ++analysisRequestIdRef.current;
+    analysisControllerRef.current = controller;
     setBusy(true);
     setRendered(null);
     setNotice(null);
@@ -90,10 +164,13 @@ export default function Home() {
       const response = await analyzeForConsumer(
         new UseitApiProvider(API_URL),
         photo,
-        intent
+        intent,
+        { signal: controller.signal }
       );
+      if (controller.signal.aborted || requestId !== analysisRequestIdRef.current) return;
       setResult(response);
     } catch (error) {
+      if (controller.signal.aborted || requestId !== analysisRequestIdRef.current || (error instanceof Error && error.name === 'AbortError')) return;
       const kind = requestFailureKind(error);
       setNotice({
         kind,
@@ -108,7 +185,10 @@ export default function Home() {
         onAction: () => { void analyze(intent); },
       });
     } finally {
-      setBusy(false);
+      if (requestId === analysisRequestIdRef.current) {
+        analysisControllerRef.current = null;
+        setBusy(false);
+      }
     }
   }
 
@@ -176,30 +256,22 @@ export default function Home() {
     setNotice(null);
     const r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      base64: true,
+      quality: 1,
+      base64: false,
+      exif: true,
       allowsMultipleSelection: false,
     });
 
     if (r.canceled) return;
 
     const a = r.assets[0];
-
-    if (!a.base64) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'USEIT could not read this image. Choose the photo again.',
-        actionLabel: 'CHOOSE AGAIN',
-        onAction: () => { void chooseGallery(); },
-      });
-      return;
-    }
-
-    setNotice(null);
-    setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
-    setResult(null);
-    setRendered(null);
+    await prepareAndSelectPhoto(
+      a.uri,
+      a.width,
+      a.height,
+      a.exif?.Orientation,
+      'USEIT could not decode this image. Choose a different photo.'
+    );
   }
 
   async function capture() {
@@ -228,30 +300,21 @@ export default function Home() {
     setNotice(null);
     const r = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      base64: true,
+      quality: 1,
+      base64: false,
+      exif: true,
     });
 
     if (r.canceled) return;
 
     const a = r.assets[0];
-
-    if (!a.base64) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'USEIT could not read the captured image. Try taking it again.',
-        actionLabel: 'TAKE AGAIN',
-        onAction: () => { void capture(); },
-      });
-      return;
-    }
-
-    setNotice(null);
-    setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
-    setResult(null);
-    setRendered(null);
-    setNotice(null);
+    await prepareAndSelectPhoto(
+      a.uri,
+      a.width,
+      a.height,
+      a.exif?.Orientation,
+      'USEIT could not decode the captured image. Try taking it again.'
+    );
   }
 
   const noticePanel = notice ? (
