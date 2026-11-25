@@ -57,7 +57,7 @@ workflows:
             VERIFY_EXIT=$?
           fi
           cat "$VERIFY_LOG"
-          node scripts/verify-unsigned-android-apk.mjs "$VERIFY_LOG" "$VERIFY_EXIT"
+          node scripts/verify-unsigned-android-apk.mjs "$VERIFY_LOG" "$VERIFY_EXIT" "$APK"
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
       - android/app/build/outputs/mapping/release/mapping.txt
