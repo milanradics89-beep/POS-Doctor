@@ -450,25 +450,9 @@ function PhotoPreview({ photo, rendered, redesign }: {
   );
 }
 
-function HomeResultView({ result, redesign, noticePanel, onReset, onOpenProductLink, onCreateVisualConcept }: {
-  result: ConsumerAnalysis;
-  redesign: ConsumerAnalysis['redesign'];
-  noticePanel: React.ReactNode;
-  onReset: () => void;
-  onOpenProductLink: (url: string) => void;
-  onCreateVisualConcept: () => void;
-}) {
-  const rankedCandidates = result.intelligence?.rankedCandidates ?? [];
-  const showEmptyProducts = shouldShowEmptyProductPanel(
-    result.unified?.intent.name,
-    result.intelligence?.action?.type,
-    rankedCandidates.length,
-  );
-  const addedActions = redesign?.actions.filter((action) => action.type === 'add').map((action) => action.target).join(' · ');
-
+function HomeResultSummary({ result }: { result: ConsumerAnalysis }) {
   return (
     <>
-      {noticePanel}
       <Text style={s.kicker}>ONE IDEA</Text>
       <Text style={s.title}>
         {result.hero?.title || result.intelligence?.action?.title || 'Here is what I found'}
@@ -484,6 +468,13 @@ function HomeResultView({ result, redesign, noticePanel, onReset, onOpenProductL
           </Text>
         </View>
       ) : null}
+    </>
+  );
+}
+
+function NextActionCard({ result }: { result: ConsumerAnalysis }) {
+  return (
+    <>
       <Text style={s.section}>NEXT ACTION</Text>
       <View style={s.action}>
         <Text style={s.actionType}>
@@ -498,6 +489,27 @@ function HomeResultView({ result, redesign, noticePanel, onReset, onOpenProductL
           {Math.round((result.intelligence?.intentConfidence || 0) * 100)}% CONFIDENCE
         </Text>
       </View>
+    </>
+  );
+}
+
+function HomeResultSupplemental({ result, redesign, onReset, onOpenProductLink, onCreateVisualConcept }: {
+  result: ConsumerAnalysis;
+  redesign: ConsumerAnalysis['redesign'];
+  onReset: () => void;
+  onOpenProductLink: (url: string) => void;
+  onCreateVisualConcept: () => void;
+}) {
+  const rankedCandidates = result.intelligence?.rankedCandidates ?? [];
+  const showEmptyProducts = shouldShowEmptyProductPanel(
+    result.unified?.intent.name,
+    result.intelligence?.action?.type,
+    rankedCandidates.length,
+  );
+  const addedActions = redesign?.actions.filter((action) => action.type === 'add').map((action) => action.target).join(' · ');
+
+  return (
+    <>
       {redesign ? (
         <>
           <SectionHeader eyebrow="REDESIGN SOLUTION" />
@@ -545,6 +557,30 @@ function HomeResultView({ result, redesign, noticePanel, onReset, onOpenProductL
           <Text style={s.primaryText}>CREATE VISUAL CONCEPT</Text>
         </Pressable>
       ) : null}
+    </>
+  );
+}
+
+function HomeResultView({ result, redesign, noticePanel, onReset, onOpenProductLink, onCreateVisualConcept }: {
+  result: ConsumerAnalysis;
+  redesign: ConsumerAnalysis['redesign'];
+  noticePanel: React.ReactNode;
+  onReset: () => void;
+  onOpenProductLink: (url: string) => void;
+  onCreateVisualConcept: () => void;
+}) {
+  return (
+    <>
+      {noticePanel}
+      <HomeResultSummary result={result} />
+      <NextActionCard result={result} />
+      <HomeResultSupplemental
+        result={result}
+        redesign={redesign}
+        onReset={onReset}
+        onOpenProductLink={onOpenProductLink}
+        onCreateVisualConcept={onCreateVisualConcept}
+      />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Try another photo"
