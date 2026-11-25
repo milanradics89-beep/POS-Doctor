@@ -8,12 +8,14 @@ const recovery = readFileSync(new URL('../.github/workflows/ci-auto-recovery.yml
 const verdictScript = fileURLToPath(new URL('./assert-fallow-audit-verdict.mjs', import.meta.url));
 
 function jobBlock(source, name) {
-  const start = source.match(new RegExp(`^  ${name}:\\n`, 'm'));
-  if (!start) return '';
-  const contentStart = start.index + start[0].length;
-  const remainder = source.slice(contentStart);
-  const nextJob = remainder.search(/^  [A-Za-z0-9_-]+:\\n/m);
-  return nextJob < 0 ? remainder : remainder.slice(0, nextJob);
+  const lines = source.split(/\r?\n/);
+  const start = lines.findIndex((line) => line === \`  \${name}:\`);
+  if (start < 0) return '';
+  const nextJob = lines.findIndex(
+    (line, index) => index > start && /^  [A-Za-z0-9_-]+:$/.test(line),
+  );
+  const end = nextJob < 0 ? lines.length : nextJob;
+  return lines.slice(start + 1, end).join('\n');
 }
 
 describe('security workflow enforcement', () => {
@@ -50,6 +52,21 @@ describe('security workflow enforcement', () => {
   it('runs Semgrep with the error exit policy in the active job', () => {
     const semgrep = jobBlock(security, 'semgrep');
     expect(semgrep).toContain('semgrep scan --config p/ci --error --metrics=off /src');
+  });
+
+  it('does not accept the Semgrep command when it appears only in a later job', () => {
+    const requiredCommand = 'semgrep scan --config p/ci --error --metrics=off /src';
+    const withoutActiveCommand = security.replace(requiredCommand, 'echo active Semgrep command missing');
+    const laterOnly = \`\${withoutActiveCommand}
+  semgrep_fallback:
+    name: Disabled fallback Semgrep job
+    steps:
+      - name: Scan
+        run: \${requiredCommand}
+\`;
+
+    expect(jobBlock(laterOnly, 'semgrep')).not.toContain(requiredCommand);
+    expect(jobBlock(laterOnly, 'semgrep_fallback')).toContain(requiredCommand);
   });
 
   it('preserves queued recovery reports in the active concurrency policy', () => {
