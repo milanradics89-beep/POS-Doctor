@@ -225,6 +225,7 @@ export default function Home() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
       base64: false,
+      exif: true,
       allowsMultipleSelection: false,
     });
 
@@ -236,7 +237,8 @@ export default function Home() {
       a.uri,
       a.width,
       a.height,
-      'USEIT could not decode this image. Choose a different photo.'
+      'USEIT could not decode this image. Choose a different photo.',
+      typeof a.exif?.Orientation === 'number' ? a.exif.Orientation : undefined
     );
   }
 
@@ -268,6 +270,7 @@ export default function Home() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
       base64: false,
+      exif: true,
     });
 
     if (r.canceled) return;
@@ -278,7 +281,8 @@ export default function Home() {
       a.uri,
       a.width,
       a.height,
-      'USEIT could not decode the captured image. Try taking it again.'
+      'USEIT could not decode the captured image. Try taking it again.',
+      typeof a.exif?.Orientation === 'number' ? a.exif.Orientation : undefined
     );
   }
 
