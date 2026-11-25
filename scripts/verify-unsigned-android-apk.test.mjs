@@ -11,6 +11,27 @@ describe('isVerifiedUnsignedApk', () => {
     ).toBe(true);
   });
 
+  it('accepts the apksigner missing-manifest diagnostic only for an unsigned APK', () => {
+    expect(
+      isVerifiedUnsignedApk({
+        exitCode: 1,
+        output: 'DOES NOT VERIFY\\nERROR: Missing META-INF/MANIFEST.MF\\n',
+        hasSigningBlock: false,
+        hasJarSignatures: false,
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects signature material even when apksigner reports a missing manifest', () => {
+    const output = 'DOES NOT VERIFY\\nERROR: Missing META-INF/MANIFEST.MF\\n';
+    expect(isVerifiedUnsignedApk({
+      exitCode: 1, output, hasSigningBlock: true, hasJarSignatures: false,
+    })).toBe(false);
+    expect(isVerifiedUnsignedApk({
+      exitCode: 1, output, hasSigningBlock: false, hasJarSignatures: true,
+    })).toBe(false);
+  });
+
   it('accepts an explicit no-signers diagnostic', () => {
     expect(
       isVerifiedUnsignedApk({
