@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from google.cloud.firestore_v1.async_client import AsyncClient
+from google.cloud.firestore_v1.async_transaction import AsyncTransaction
 
 from backend.idempotency_store import (
     FirestoreIdempotencyStore,
@@ -165,6 +166,28 @@ async def test_check_connection_verifies_transactional_write_and_removes_probe()
         assert await first.check_connection() is True
         assert (await probe.get()).exists is False
         assert first._write_capability_verified is True
+    finally:
+        await _close_pair(collection, first_client, second_client)
+
+
+@pytest.mark.asyncio
+async def test_check_connection_cleans_probe_when_update_capability_is_denied(monkeypatch):
+    collection, first_client, second_client, first, second = await _new_pair()
+    original_update = AsyncTransaction.update
+
+    def reject_probe_update(transaction, reference, *args, **kwargs):
+        if reference.id == first._health_probe_document_id:
+            raise PermissionError("simulated Firestore update permission failure")
+        return original_update(transaction, reference, *args, **kwargs)
+
+    monkeypatch.setattr(AsyncTransaction, "update", reject_probe_update)
+    try:
+        with pytest.raises(PermissionError, match="simulated Firestore update permission failure"):
+            await first.check_connection()
+
+        probe = first_client.collection(collection).document(first._health_probe_document_id)
+        assert (await probe.get()).exists is False
+        assert first._write_capability_verified is False
     finally:
         await _close_pair(collection, first_client, second_client)
 

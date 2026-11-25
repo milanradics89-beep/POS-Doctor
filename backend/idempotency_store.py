@@ -261,8 +261,6 @@ class FirestoreIdempotencyStore:
                     },
                 )
 
-            await run_probe_transaction(create_probe)
-
             @async_transactional
             async def update_probe(transaction):
                 snapshot = await reference.get(transaction=transaction)
@@ -277,12 +275,23 @@ class FirestoreIdempotencyStore:
             @async_transactional
             async def delete_probe(transaction):
                 snapshot = await reference.get(transaction=transaction)
+                if not snapshot.exists:
+                    return
                 existing = snapshot.to_dict() or {}
                 stored_token = existing.get("probe_token")
-                if not snapshot.exists or not isinstance(stored_token, str) or not hmac.compare_digest(stored_token, probe_token):
-                    raise RuntimeError("Firestore readiness probe could not verify its cleanup.")
+                if not isinstance(stored_token, str) or not hmac.compare_digest(stored_token, probe_token):
+                    raise RuntimeError("Firestore readiness probe ownership changed before cleanup.")
                 transaction.delete(reference)
 
-            await run_probe_transaction(delete_probe)
+            # Always attempt cleanup after the create attempt, including when a
+            # transaction times out or the update capability check is denied.
+            # A probe that was never committed is a no-op; unexpected ownership
+            # changes fail closed rather than deleting another record.
+            try:
+                await run_probe_transaction(create_probe)
+                await run_probe_transaction(update_probe)
+            finally:
+                await run_probe_transaction(delete_probe)
+
             self._write_capability_verified = True
             return True
