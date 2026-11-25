@@ -95,6 +95,9 @@ export default function Home() {
     orientation: unknown,
     failureDescription: string
   ) {
+    // Invalidate a pending redesign before dimension lookup or normalization can await.
+    redesignRequestIdRef.current += 1;
+    setRendering(false);
     cancelAnalysis();
     setResult(null);
     setRendered(null);

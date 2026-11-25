@@ -25,6 +25,18 @@ describe('USEIT Home recovery-state integration', () => {
     expect(home).not.toContain('setPhoto(`data:${a.mimeType || \'image/jpeg\'};base64,${a.base64}`)');
   });
 
+  it('invalidates a pending visual concept before photo preparation can await', () => {
+    const start = home.indexOf('async function prepareAndSelectPhoto(');
+    const end = home.indexOf('\\n  const reset =', start);
+    const preparation = home.slice(start, end);
+    const invalidation = preparation.indexOf('redesignRequestIdRef.current += 1;');
+    const firstAwait = preparation.indexOf('await ');
+
+    expect(invalidation).toBeGreaterThanOrEqual(0);
+    expect(firstAwait).toBeGreaterThan(invalidation);
+    expect(preparation).toContain('setRendering(false);');
+  });
+
   it('routes network failures to the offline panel with a retry for the same intent', () => {
     expect(home).toContain("import { requestFailureKind } from '../src/ui/requestFailure';");
     expect(home).toContain('const kind = requestFailureKind(error);');
