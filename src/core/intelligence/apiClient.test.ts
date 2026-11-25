@@ -104,6 +104,25 @@ describe('UseitApiProvider boundary handling', () => {
     expect(requestBody.userIntent).toBe('shop');
   });
 
+  it('sends the caller-owned idempotency key on the canonical billable analysis request', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(validUnified), { status: 200, headers: { 'content-type': 'application/json' } }),
+    );
+    const key = 'analysis-test-key-123456';
+    await provider().analyzeUseit(image, 'improve', { idempotencyKey: key });
+    const headers = fetchMock.mock.calls[0][1]?.headers as Record<string, string>;
+    expect(headers['Idempotency-Key']).toBe(key);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves a 409 duplicate response as a typed API error', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'duplicate' }), { status: 409, headers: { 'content-type': 'application/json' } }),
+    );
+    await expect(provider().analyzeUseit(image, 'improve', { idempotencyKey: 'analysis-test-key-123456' }))
+      .rejects.toMatchObject({ name: 'UseitApiError', status: 409 });
+  });
+
   it('rejects a missing API base URL before network access', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
     await expect(new UseitApiProvider('').analyzeImage(image)).rejects.toThrow('USEIT API base URL is required.');

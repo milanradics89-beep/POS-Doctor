@@ -5,6 +5,11 @@ from fastapi.testclient import TestClient
 import backend.main as main
 
 
+class ReadyIdempotencyStore:
+    async def check_connection(self):
+        return True
+
+
 @pytest.mark.asyncio
 async def test_readiness_requires_vision_configuration(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
@@ -138,6 +143,7 @@ async def test_production_readiness_checks_shared_redis_connectivity(monkeypatch
         monkeypatch.delenv("USEIT_ATTESTATION_APP_ID", raising=False)
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
     monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")
+    monkeypatch.setattr(main.app.state, "idempotency_store", ReadyIdempotencyStore(), raising=False)
 
     created_clients = []
     connection_options = {}
@@ -470,6 +476,7 @@ async def test_production_readiness_reuses_application_redis_pool_without_closin
     monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
     monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
     monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")
+    monkeypatch.setattr(main.app.state, "idempotency_store", ReadyIdempotencyStore(), raising=False)
 
     class SharedRedis:
         closed = False
@@ -505,6 +512,43 @@ async def test_production_readiness_reuses_application_redis_pool_without_closin
     assert shared_client.eval_calls == 2
     assert shared_client.closed is False
 
+
+
+@pytest.mark.asyncio
+async def test_production_readiness_fails_when_analysis_idempotency_store_is_missing(monkeypatch):
+    monkeypatch.setenv("USEIT_ENV", "production")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-secret")
+    monkeypatch.setenv("USEIT_API_KEY", "test-app-secret")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "disabled")
+    monkeypatch.setenv("USEIT_RATE_LIMIT_MODE", "redis")
+    monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")
+    monkeypatch.setattr(main.app.state, "idempotency_store", None, raising=False)
+
+    class SharedRedis:
+        eval_calls = 0
+
+        async def ping(self):
+            return True
+
+        async def pexpire(self, key, milliseconds):
+            return False
+
+        async def eval(self, *args):
+            self.eval_calls += 1
+            return [1, 0] if self.eval_calls == 1 else [0, 60]
+
+        async def aclose(self):
+            pytest.fail("Readiness must not close the application-scoped Redis pool.")
+
+    shared_client = SharedRedis()
+    monkeypatch.setattr(main.app.state, "redis_client", shared_client, raising=False)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await main.ready()
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Service is not ready."
+    assert shared_client.eval_calls == 2
 
 def test_application_lifespan_creates_and_closes_one_shared_redis_pool(monkeypatch):
     monkeypatch.setenv("USEIT_REDIS_URL", "rediss://redis.internal:6379/0")

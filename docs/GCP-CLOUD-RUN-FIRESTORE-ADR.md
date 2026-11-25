@@ -64,6 +64,9 @@ Suggested collections:
 - `memory_v1/{identityHash}/entries/{memoryKeyHash}`: encrypted value, category, schema version, created/updated timestamps. Do not store raw identity or plaintext memory values.
 - `rate_limit_v1/{bucketHash}/windows/{windowId}`: bounded counter/window metadata and expiry timestamp. Keys must be HMAC-derived; never store raw IP, account ID, email or access token.
 - `attestation_challenges_v1/{challengeHash}`: provider, app ID, expiry and schema version. Store only a hash of the challenge, consume exactly once in a Firestore transaction, and check expiry in application code.
+- `analysis_idempotency_v1/{keyHash}`: HMAC key digest, HMAC request fingerprint, processing/completed/outcome-unknown state, lease token and expiry metadata. Never store the raw key, request body, image, prompt or model response.
+
+A Firestore-backed analysis idempotency adapter is now implemented and wired to the canonical `POST /v1/useit/analyze` route. Production requires an `Idempotency-Key`, Firestore mode, the owner-designated project and a server-only HMAC secret injected at runtime. Duplicate and payload-mismatch requests fail with HTTP 409; uncertain provider outcomes remain blocked until expiry. The adapter does not cache responses or persist images/prompts. This does not migrate Redis rate limiting, Redis attestation challenges, or encrypted SQLite personal memory.
 
 Firestore TTL is cleanup, not an authorization control. Every read/consume path must validate expiry itself. Challenge consumption must be transactional so two instances cannot both accept the same challenge. Rate-limit admission must use atomic transactions and a documented fixed/sliding-window algorithm with bounded document growth, contention tests and fail-closed behavior. Verify consistency across multiple Cloud Run instances.
 
@@ -142,6 +145,8 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 - [ ] Firestore memory values remain encrypted and identity hashes remain keyed.
 - [ ] Challenge consumption is atomic and one-time across concurrent instances.
 - [ ] Rate limiting is atomic, bounded and consistent across concurrent instances.
+- [ ] Billable `/v1/useit/analyze` requests require an idempotency key and use atomic Firestore claims that store only HMAC digests and lifecycle metadata.
+- [ ] Uncertain provider outcomes remain blocked until expiry; only proven pre-provider failures may release a claim.
 - [ ] TTL is treated only as cleanup; expiry is enforced in application logic.
 - [ ] No production path depends on SQLite, local disk, in-memory counters or in-memory challenges after approved migration.
 - [ ] Images are not persisted in Cloud Storage or another server-side image store.
