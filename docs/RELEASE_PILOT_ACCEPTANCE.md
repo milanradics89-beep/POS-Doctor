@@ -1,3 +1,80 @@
+## Latest live release-watch checkpoint — 2026-11-25 04:25 CET
+
+This checkpoint supersedes the 03:19 CET checkpoint below. It is based on fresh PR metadata, the independent PR #41 branch ref, exact-head Actions runs and jobs, review timelines/threads/submissions, issue records, the active main ruleset, paginated branch inventory, and the GitHub Releases endpoint. It records repository evidence only; it does not grant production, store, pilot, or business acceptance.
+
+### Repository and governance
+
+- The former `milanradics89-beep/POS-Doctor` path redirects to `milanradics89-beep/USEIT`; GitHub repository ID **1246135116** is unchanged. The repository is public.
+- Current main HEAD is `252cb529e9fdb0cf7ef05bbb25a29ec94fca1cfc`. Main's `package.json` and `package-lock.json` resolve Expo `57.0.34` and minimatch `11.0.5`.
+- Protect-main ruleset [#26370589](https://github.com/milanradics89-beep/USEIT/rules/26370589) is ACTIVE with strict required checks `CodeQL`, `backend`, `frontend`, `ios`, `analyze`, and `dependency-review`; one approving review; last-push approval; stale-review dismissal; resolved review threads; deletion and non-fast-forward protection; and no bypass actors.
+- The paginated branch inventory contains **277 branches** (100 + 100 + 77; page 4 is empty). GitHub Releases API returned **0 published releases**.
+- Code Scanning, Dependabot, and Secret Scanning alert inventories are unavailable through the connected integration: **UNVERIFIED, NOT EMPTY**. Successful CodeQL or Dependency Review workflows do not establish empty repository-wide alert inventories.
+
+### PR #41 — merged source baseline
+
+- PR #41 is CLOSED/MERGED on `fix/release-blockers-2026-10`. Live PR metadata and the independent branch ref agree on exact source HEAD `68b380e73ca3c870048035197beef8febbf90ef1`; merge commit `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`. It contains 517 commits, 100 changed files, +11,887 additions, and -2,005 deletions. Against current main the retained source branch is DIVERGED: 517 ahead / 18 behind. It is already merged and must not be merged again.
+- Exact-head Validation [43492153234](https://github.com/milanradics89-beep/USEIT/actions/runs/43492153234), CodeQL [43492153161](https://github.com/milanradics89-beep/USEIT/actions/runs/43492153161), and Dependency Review [43492153021](https://github.com/milanradics89-beep/USEIT/actions/runs/43492153021) are terminal SUCCESS on that exact SHA. Frontend, backend, iOS, CodeQL Analyze, and Dependency Review all passed (5/5 jobs).
+- Review inventory: 109 timeline records; 53 conversation comments; 30 inline review comments; 26 formal submissions (25 COMMENTED and one APPROVED by `tarlaci1984-sketch`); 22/22 inline threads resolved; 0 unresolved; 20 outdated. The single approval has an empty body and is not independent security-owner or production acceptance.
+- Historical runs [43098210284](https://github.com/milanradics89-beep/USEIT/actions/runs/43098210284), [43098210473](https://github.com/milanradics89-beep/USEIT/actions/runs/43098210473), and [43098210255](https://github.com/milanradics89-beep/USEIT/actions/runs/43098210255) remain QUEUED on obsolete SHA `b46c5b8082ecbebd263a86cd53b1321a86e570d1`; each jobs endpoint returned zero jobs. These are historical queues, not current-head failures. Repository-administrator cancellation is required.
+- PR #41's description retains superseded historical open/unmerged wording and an old HEAD; live metadata and the exact branch ref are authoritative.
+
+### PR #305 — Expo SDK 57.0.34 alignment merged
+
+- PR #305 is CLOSED/MERGED. Source HEAD `b0af4e7d43acdb0ccaa809899f43d96d47712748`; merge commit and current main HEAD `252cb529e9fdb0cf7ef05bbb25a29ec94fca1cfc`. It changed `package.json` and `package-lock.json`.
+- Exact-source Validation [45521231491](https://github.com/milanradics89-beep/USEIT/actions/runs/45521231491), CodeQL [45521231436](https://github.com/milanradics89-beep/USEIT/actions/runs/45521231436), and Dependency Review [45521231462](https://github.com/milanradics89-beep/USEIT/actions/runs/45521231462) are terminal SUCCESS on the exact source SHA.
+- Post-merge main Validation [45524790576](https://github.com/milanradics89-beep/USEIT/actions/runs/45524790576), CodeQL [45524790560](https://github.com/milanradics89-beep/USEIT/actions/runs/45524790560), and dynamic prebuild [45524790755](https://github.com/milanradics89-beep/USEIT/actions/runs/45524790755) are terminal SUCCESS on main. Validation frontend, backend, and iOS jobs all passed. A separate push-triggered Dependency Review on the merge commit was not found; the PR source exact-head Dependency Review did pass.
+- The Expo 57.0.34 alignment is merged and post-merge validated. Candidate register item **#3 is DONE**.
+
+### Current camera/OpenAI integration candidate — PR #288
+
+- PR #288 is OPEN and non-draft on `feat/phase2-camera-openai-guardrails-expo57-20261124`. Exact current HEAD `77e964b91aca17bf42fddf6bf69639f24733b86b`; 12 commits, 11 changed files, +295 / -35. Base is current main `252cb529e9fdb0cf7ef05bbb25a29ec94fca1cfc`; comparison is 12 ahead / 0 behind.
+- Exact-head Validation [45532871751](https://github.com/milanradics89-beep/USEIT/actions/runs/45532871751) remains IN PROGRESS: backend and frontend passed; the iOS simulator launch/smoke step is still running. CodeQL [45532871933](https://github.com/milanradics89-beep/USEIT/actions/runs/45532871933) and Dependency Review [45532871944](https://github.com/milanradics89-beep/USEIT/actions/runs/45532871944) are terminal SUCCESS on the same exact HEAD.
+- Earlier green CI for older PR #288 SHAs is not reused. Do not merge until current-head Validation completes and required human review is current.
+
+### Older stacked Expo candidate — PR #249
+
+- PR #249 remains OPEN/DRAFT on `fix/pr233-live-checkpoint-refresh-20261123-1150`, based on `fix/expo-sdk57-package-alignment-main-20261123-1754`. Exact HEAD `e89ca4d78082ef8df447388223a62fc8ae7ee95d`; 47 commits, 5 changed files, +4,553 / -17; comparison with its base is DIVERGED, 47 ahead / 1 behind.
+- Current exact-head Validation [45461939876](https://github.com/milanradics89-beep/USEIT/actions/runs/45461939876) is terminal FAILURE at `Validate Expo project health`; backend and iOS jobs passed. Android export, Android Release/emulator smoke, and runtime dependency audit were skipped after the Expo Doctor failure. CodeQL [45461940145](https://github.com/milanradics89-beep/USEIT/actions/runs/45461940145) and Dependency Review [45461940144](https://github.com/milanradics89-beep/USEIT/actions/runs/45461940144) are terminal SUCCESS on that same SHA.
+- The PR description's claim of HEAD `b3533ca` and 3/3 successful workflows is stale and does not describe the current branch. PR #305's mainline dependency update does not automatically update this stacked branch.
+
+### PR #204 — current-main release-documentation candidate
+
+- PR #204 is OPEN/DRAFT on `docs/release-evidence-current-main-20261120-run11`, based on current main `252cb529e9fdb0cf7ef05bbb25a29ec94fca1cfc`. Exact HEAD at this checkpoint is `fe8b0d0e3e412dfd81005a828ccfc77a2506132e`; 29 commits, 4 changed files, +1,535 / -13; comparison is 29 ahead / 0 behind.
+- Exact-head Validation [45532839638](https://github.com/milanradics89-beep/USEIT/actions/runs/45532839638), CodeQL [45532839715](https://github.com/milanradics89-beep/USEIT/actions/runs/45532839715), and Dependency Review [45532839650](https://github.com/milanradics89-beep/USEIT/actions/runs/45532839650) are terminal SUCCESS on `fe8b0d0`. All five jobs passed: frontend, backend, iOS, CodeQL Analyze, and Dependency Review.
+- PR #204 has 6 conversation comments, 0 inline threads, and 0 formal review submissions; reviewer `tarlaci1984-sketch` is requested. The candidate is not merged. The three release-record files on this branch have identical latest checkpoint sections; main's copies remain historical and are not edited directly.
+- The new checkpoint commit being created from this verified parent is a new exact HEAD and must pass its own Validation, CodeQL, and Dependency Review. No parent result is reused as child validation.
+
+### Issues, SSRF, and release acceptance
+
+- Issue [#47](https://github.com/milanradics89-beep/USEIT/issues/47) is CLOSED with 11 comments. The active main ruleset is direct evidence that branch protection is in force.
+- Issue [#64](https://github.com/milanradics89-beep/USEIT/issues/64) remains OPEN with 139 comments; last updated 2026-11-24. PR #200 is CLOSED/MERGED with DNS-pinned outbound transport in main (merge commit `3a262358552a9650d865aa5bd3c92905f1e863cb`). Production acceptance remains BLOCKED pending independent authorized security-owner approval, a complete production NAT64/DNS64 prefix inventory, verification of deployed `USEIT_NAT64_PREFIXES`, and staging/production egress evidence.
+- Code Scanning, Dependabot, and Secret Scanning alert inventories remain **UNVERIFIED, NOT EMPTY** because their endpoints are unavailable through the connected integration. GitHub Releases API currently returns 0 published releases.
+
+### Canonical candidate 25-point release register
+
+The candidate row-level register contains exactly 25 items and remains **3 Done / 14 In Progress / 8 Blocked**.
+
+- **Done:** #1, #3, #6.
+- **In Progress:** #7–#15, #17, #19, #20, #23, #24.
+- **Blocked:** #2, #4, #5, #16, #18, #21, #22, #25.
+
+The eight external blockers remain:
+- **#2:** durable repository-visibility and release-plan decision.
+- **#4:** production Apple App Attest entitlement and physical-iPhone verification.
+- **#5:** Play-installed physical Android Play Integrity verification.
+- **#16:** witnessed production backup/restore with recovery evidence.
+- **#18:** representative labeled product-recognition benchmark and business acceptance.
+- **#21:** production monitoring and witnessed alert delivery/acknowledgement.
+- **#22:** approved staged rollout, thresholds, rollback owner, and tested rollback.
+- **#25:** real-user pilot cohort and explicit business sign-off.
+
+No physical-device, production-cloud, backup/restore, monitoring, rollout, or business-acceptance item is promoted by automated CI, simulator, or emulator evidence. Main's older historical register remains separate and is not silently merged with the candidate register.
+
+**Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.** No CI result from a parent commit is attributed to a child SHA. The exact-head workflows for the new PR #204 checkpoint commit are a separate pending gate.
+
+
+---
+
 ## Latest live release-watch checkpoint — 2026-11-25 03:19 CET
 
 Repository identity: the former milanradics89-beep/POS-Doctor path redirects to milanradics89-beep/USEIT; GitHub repository ID 1246135116 is unchanged. The repository is public. This checkpoint uses live PR metadata, independent branch refs, exact-head Actions runs and jobs, review submissions and threads, issue records, paginated branch inventory, the active main ruleset, package manifests and lockfiles, and the GitHub Releases endpoint. It records repository evidence only and does not grant production, store, pilot or business acceptance.
