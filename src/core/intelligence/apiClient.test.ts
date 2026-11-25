@@ -196,6 +196,21 @@ describe('UseitApiProvider boundary handling', () => {
   });
 
 
+  it('never labels foreign-currency product prices as HUF', async () => {
+    const payload = {
+      ...validUnified,
+      intent: { name: 'shop', confidence: 0.9 },
+      shopping: {
+        query: 'lamp',
+        candidates: [{ id: 'lamp-eur', name: 'Lamp', url: 'https://shop.example.test/lamp', price: 99.99, currency: 'EUR', retailer: 'Example Shop' }],
+      },
+    };
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }));
+    const result = await analyzeForConsumer(provider(), image, 'shop');
+    expect(result.intelligence.rankedCandidates[0].priceHuf).toBeUndefined();
+    expect(result.intelligence.rankedCandidates[0].currency).toBe('EUR');
+  });
+
   it('filters unsafe external links from unified consumer and redesign results', async () => {
     const payload = {
       ...validUnified,
