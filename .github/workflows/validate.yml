@@ -65,8 +65,34 @@ jobs:
               raise SystemExit("Gradle wrapper network timeout was not configured.")
           print("Gradle wrapper download timeout configured to 120 seconds.")
           PY
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          properties_file = Path("android/gradle.properties")
+          properties = properties_file.read_text(encoding="utf-8") if properties_file.exists() else ""
+          managed = {
+              "org.gradle.jvmargs": "-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8",
+              "org.gradle.workers.max": "2",
+              "org.gradle.parallel": "false",
+          }
+          for key, value in managed.items():
+              pattern = re.compile(rf"(?m)^{re.escape(key)}=.*$")
+              line = f"{key}={value}"
+              if pattern.search(properties):
+                  properties = pattern.sub(lambda _: line, properties)
+              else:
+                  if properties and not properties.endswith("\n"):
+                      properties += "\n"
+                  properties += line + "\n"
+          properties_file.write_text(properties, encoding="utf-8")
+          for key, value in managed.items():
+              if not re.search(rf"(?m)^{re.escape(key)}={re.escape(value)}$", properties):
+                  raise SystemExit(f"Failed to configure {key}")
+          print("Configured a 4 GiB Gradle heap, 1 GiB metaspace cap and at most two workers for Android D8/R8.")
+          PY
           cd android
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --max-workers=2
       - name: Enable KVM for Android emulator
         shell: bash
         run: |
