@@ -454,7 +454,6 @@ export default function Home() {
                           category={x.category}
                           source={x.source}
                           price={typeof x.priceHuf === 'number' ? x.priceHuf : undefined}
-                          imageUrl={x.imageUrl}
                           onPress={() => { void openProductLink(x.url); }}
                         />
                       ))}
