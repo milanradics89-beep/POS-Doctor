@@ -31,3 +31,21 @@ during connected-peer validation. Malformed, non-global, unsupported, or invalid
 Every network-specific translator prefix used by production egress must be listed.
 Do not enable DNS64/NAT64 for product-page egress until this setting has been verified
 against the deployment's actual translator configuration.
+
+## Firestore idempotency adapter integration tests
+
+The Firestore-backed idempotency store is exercised against the local Firestore emulator; it does not require a Google Cloud project or credentials.
+
+```bash
+gcloud --project=useit-test emulators firestore start --host-port=127.0.0.1:8080
+```
+
+In another terminal:
+
+```bash
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+export GOOGLE_CLOUD_PROJECT=useit-test
+python -m pytest -q backend/test_idempotency_store.py
+```
+
+The adapter persists only HMAC digests and lifecycle metadata. It never stores the raw idempotency key, request body, image, prompt or model response. The emulator tests use two independent clients to exercise concurrent transactional claims. This adapter is a foundation only; it is not yet wired into the production analysis route, and it does not replace the existing Redis rate-limit or attestation adapters.

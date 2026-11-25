@@ -64,8 +64,17 @@ Suggested collections:
 - `memory_v1/{identityHash}/entries/{memoryKeyHash}`: encrypted value, category, schema version, created/updated timestamps. Do not store raw identity or plaintext memory values.
 - `rate_limit_v1/{bucketHash}/windows/{windowId}`: bounded counter/window metadata and expiry timestamp. Keys must be HMAC-derived; never store raw IP, account ID, email or access token.
 - `attestation_challenges_v1/{challengeHash}`: provider, app ID, expiry and schema version. Store only a hash of the challenge, consume exactly once in a Firestore transaction, and check expiry in application code.
+- `analysis_idempotency_v1/{keyHash}`: HMAC key digest, HMAC request fingerprint, processing/completed/outcome-unknown state, lease token, timestamps and `expires_at`. Never store the raw key, request body, image, prompt or model response. A transactional claim permits one winner across independent clients; replays return a conflict rather than replaying or caching user content.
 
 Firestore TTL is cleanup, not an authorization control. Every read/consume path must validate expiry itself. Challenge consumption must be transactional so two instances cannot both accept the same challenge. Rate-limit admission must use atomic transactions and a documented fixed/sliding-window algorithm with bounded document growth, contention tests and fail-closed behavior. Verify consistency across multiple Cloud Run instances.
+
+The analysis idempotency adapter is an isolated feasibility foundation in the repository; it is not yet connected to `/v1/useit/analyze`. Its claim transaction checks `expires_at` in application code and atomically creates/replaces one document. If the OpenAI call has started and the outcome is uncertain, the record remains blocked until expiry; only failures proven to occur before provider start may release the claim. A completed request is not response-cached. Enable Firestore TTL cleanup for the collection group only after project/billing approval:
+
+```bash
+gcloud firestore fields ttls update expires_at --collection-group=analysis_idempotency_v1 --enable-ttl --project=fresh-weft-447913-u6
+```
+
+TTL deletion is asynchronous cleanup, not the correctness mechanism, and incurs Firestore operations. The application expiry check remains authoritative. The adapter is not production acceptance and does not yet replace Redis rate-limit or attestation state.
 
 **Important:** Firestore is not an automatic drop-in replacement for Redis. The current Redis Lua sliding-window algorithm and `GETDEL` semantics must not be described as migrated until Firestore adapters pass concurrency, contention, expiry, failure-mode, multi-instance and cost tests. If Firestore cannot meet the security and latency requirements at an acceptable cost, keep production fail-closed and return to an explicitly reviewed architecture decision; do not silently add Memorystore or an in-memory fallback.
 
