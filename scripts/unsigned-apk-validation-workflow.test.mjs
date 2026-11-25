@@ -19,7 +19,7 @@ describe('unsigned Android APK CI proof', () => {
     expect(build).toContain('node scripts/prepare-unsigned-android-release.mjs android/app/build.gradle');
     expect(build).toContain('app-release-unsigned.apk');
     expect(build).toContain('"$APKSIGNER" verify --verbose --print-certs "$UNSIGNED_APK"');
-    expect(build).toContain('node scripts/verify-unsigned-android-apk.mjs "$VERIFY_LOG" "$VERIFY_EXIT"');
+    expect(build).toContain('node scripts/verify-unsigned-android-apk.mjs "$VERIFY_LOG" "$VERIFY_EXIT" "$UNSIGNED_APK"');
     expect(build.indexOf('cat "$VERIFY_LOG"')).toBeLessThan(
       build.indexOf('node scripts/verify-unsigned-android-apk.mjs'),
     );
