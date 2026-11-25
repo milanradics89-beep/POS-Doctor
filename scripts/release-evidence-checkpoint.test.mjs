@@ -42,7 +42,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('PR #305 — Expo SDK 57.0.34 alignment merged');
       expect(section).toContain('b0af4e7d43acdb0ccaa809899f43d96d47712748');
       expect(section).toContain('252cb529e9fdb0cf7ef05bbb25a29ec94fca1cfc');
-      expect(section).toContain('281 (100 + 100 + 81; page 4 empty)');
+      expect(section).toContain('283 (100 + 100 + 83; page 4 empty)');
       expect(section).toContain('45521231491');
       expect(section).toContain('45521231436');
       expect(section).toContain('45521231462');
@@ -69,19 +69,18 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('records PR #204 current-head failure separately from its validated parent', () => {
+  it('records PR #204 current exact-head success and its previous failure separately', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #204 is OPEN/DRAFT');
-      expect(section).toContain('e2b077f30c45386d142881932ce2fae7e40a7707');
-      expect(section).toMatch(/Validation \[45550259837\]\([^)]*\) is terminal FAILURE/);
-      expect(section).toMatch(/CodeQL \[45550259874\]\([^)]*\) and Dependency Review \[45550259796\]\([^)]*\) are terminal SUCCESS/);
+      expect(section).toContain('d3d532182b26f0d3c024dfadca5cddbda95a0797');
+      expect(section).toContain('Validation [45557201551](https://github.com/milanradics89-beep/USEIT/actions/runs/45557201551) are terminal SUCCESS');
+      expect(section).toContain('CodeQL [45557201495]');
+      expect(section).toContain('Dependency Review [45557201514]');
+      expect(section).toContain('All five jobs passed: frontend, backend, iOS, CodeQL Analyze and Dependency Review');
+      expect(section).toContain('previous exact HEAD e2b077f30c45386d142881932ce2fae7e40a7707 had Validation FAILURE');
       expect(section).toContain('343 passed / 2 failed across 74 files');
-      expect(section).toContain('Two assertions remain');
-      expect(section).toContain('05:52 CET snapshot');
-      expect(section).toContain('46955eb3b27878d02e2835a4a6fe4ce54d85db37');
-      expect(section).toContain('45540368306');
-      expect(section).toContain('45540368268');
-      expect(section).toContain('45540368335');
+      expect(section).toContain('PR #204 has 6 conversation comments, 0 inline threads and 0 formal review submissions');
+      expect(section).toContain('tarlaci1984-sketch');
     }
   });
 
@@ -104,6 +103,31 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('zizmor');
       expect(section).toContain('deletes scripts/expo-sdk57-lock-refresh.test.mjs');
       expect(section).toContain('preserve or migrate all 11 existing regression cases before integration');
+    }
+  });
+
+  it('records current security and unsigned-APK candidate evidence on exact heads', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #313 is OPEN');
+      expect(section).toContain('59b9bc6dc614564126aac484f249f957d61c469b');
+      expect(section).toContain('45532619165');
+      expect(section).toContain('45532619204');
+      expect(section).toContain('45532619548');
+      expect(section).toContain('45532619354');
+      expect(section).toContain('PR #321 exact HEAD');
+      expect(section).toContain('2fdb8894f67a40171fe858ee01acd9c0e81c5d5f');
+      expect(section).toContain('45554749062');
+      expect(section).toContain('PR #322 exact HEAD');
+      expect(section).toContain('aee4f500b233d31cab4eb73c9b3a1bf92b33d6db');
+      expect(section).toContain('45554864698');
+      expect(section).toContain('apksigner output did not prove signer absence');
+      expect(section).toContain('PR #323 exact HEAD');
+      expect(section).toContain('95fa71a9a3b8bebfe0ed9b31923fa9dc05cc0b90');
+      expect(section).toContain('45562801531');
+      expect(section).toContain('PR #324 exact HEAD');
+      expect(section).toContain('bb5907d3c75ff50aa8b819fd2487ee693c5fce8b');
+      expect(section).toContain('45563830049');
+      expect(section).toContain('283 (100 + 100 + 83; page 4 empty)');
     }
   });
 
