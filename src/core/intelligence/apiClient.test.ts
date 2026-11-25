@@ -106,6 +106,18 @@ describe('UseitApiProvider boundary handling', () => {
     await expect(provider().renderRedesign(image, 'test', [])).rejects.toThrow('USEIT redesign API returned an invalid result.');
   });
 
+  it('preserves verified product image and optional commercial metadata from unified results', async () => {
+    const payload = {
+      ...validUnified,
+      intent: { name: 'shop', confidence: 0.9 },
+      shopping: { query: 'desk lamp', candidates: [{ id: 'lamp-1', name: 'Desk lamp', url: 'https://shop.example.test/lamp', category: 'lighting', imageUrl: 'https://cdn.example.test/lamp.jpg', brand: 'Example', currency: 'HUF', availability: 'in_stock', retailer: 'Example Shop' }] },
+    };
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }));
+    const result = await analyzeForConsumer(provider(), image, 'shop');
+    expect(result.intelligence.rankedCandidates[0]).toMatchObject({ imageUrl: 'https://cdn.example.test/lamp.jpg', brand: 'Example', currency: 'HUF', availability: 'in_stock' });
+    expect(result.intelligence.rankedCandidates[0].priceHuf).toBeUndefined();
+  });
+
   it('uses the unified consumer boundary without calling legacy vision or client shopping', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(validUnified), { status: 200, headers: { 'content-type': 'application/json' } }));
     const result = await analyzeForConsumer(provider(), image, 'improve');
