@@ -57,7 +57,7 @@ jobs:
           docker run --rm \
             --volume "${PWD}:/src" \
             semgrep/semgrep@sha256:6e1b04340e60e910fbb4ddbf3c857ab0918f064417ad5ac530014ccb3cf8c8f1 \
-            semgrep scan --config p/ci --metrics=off /src
+            semgrep scan --config p/ci --error --metrics=off /src
 
   zizmor:
     name: zizmor workflow security audit
