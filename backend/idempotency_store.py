@@ -270,8 +270,6 @@ class FirestoreIdempotencyStore:
                     raise RuntimeError("Firestore readiness probe could not verify its write.")
                 transaction.update(reference, {"updated_at": self._now()})
 
-            await run_probe_transaction(update_probe)
-
             @async_transactional
             async def delete_probe(transaction):
                 snapshot = await reference.get(transaction=transaction)
