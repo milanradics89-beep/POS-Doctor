@@ -212,7 +212,7 @@ describe('UseitApiProvider boundary handling', () => {
       shopping: {
         query: 'floor lamp',
         candidates: [
-          { id: 'safe', name: 'Safe lamp', url: 'https://shop.example.test/lamp', category: 'lighting', retailer: 'Example Shop', price: 59000 },
+          { id: 'safe', name: 'Safe lamp', url: 'https://shop.example.test/lamp', category: 'lighting', retailer: 'Example Shop', price: 59000, imageUrl: 'http://192.168.1.10/private.jpg' },
           { id: 'credentials', name: 'Credentials', url: 'https://user:secret@shop.example.test/item', category: 'lighting' },
           { id: 'port', name: 'Non-default port', url: 'https://shop.example.test:8443/item', category: 'lighting' },
           { id: 'private-ip', name: 'Private IP', url: 'http://192.168.1.10/item', category: 'lighting' },
@@ -228,6 +228,7 @@ describe('UseitApiProvider boundary handling', () => {
 
     expect(result.unified?.shopping?.candidates.map(candidate => candidate.id)).toEqual(['safe']);
     expect(result.intelligence.rankedCandidates.map(candidate => candidate.id)).toEqual(['safe']);
+    expect(result.intelligence.rankedCandidates[0].imageUrl).toBeUndefined();
     expect(result.redesign?.products.map(product => product.productId)).toEqual(['safe']);
   });
 
