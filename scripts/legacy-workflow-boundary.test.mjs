@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const legacyWorkflow = new URL('../.github/workflows/expo-sdk57-lock-refresh.yml', import.meta.url);
+const legacyWorkflow = resolve(process.cwd(), '.github/workflows', 'expo-sdk57-lock-refresh.yml');
 const recoveryWorkflow = readFileSync(new URL('../.github/workflows/ci-auto-recovery.yml', import.meta.url), 'utf8');
 
 describe('legacy workflow boundary', () => {
