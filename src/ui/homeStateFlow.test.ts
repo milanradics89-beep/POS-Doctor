@@ -16,7 +16,12 @@ describe('USEIT Home recovery-state integration', () => {
   it('validates camera and gallery data URLs through the same shared path', () => {
     expect(home).toContain("import { validateImageUri } from '../src/core/intelligence/imageInput';");
     expect(home).toContain('validateImageUri(imageUri);');
-    expect(home.split("setSelectedPhoto(a.base64, a.mimeType || 'image/jpeg');").length - 1).toBe(2);
+    expect(home).toContain("import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';");
+    expect(home.split('await prepareAndSelectPhoto(').length - 1).toBe(2);
+    expect(home).toContain('a.exif?.Orientation');
+    expect(home).toContain('resolveVisualDimensions(dimensions.width, dimensions.height, orientation)');
+    expect(home).toContain('const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);');
+    expect(home).toContain('setSelectedPhoto(normalized.dataUrl);');
     expect(home).not.toContain('setPhoto(`data:${a.mimeType || \'image/jpeg\'};base64,${a.base64}`)');
   });
 
