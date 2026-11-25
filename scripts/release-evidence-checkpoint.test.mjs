@@ -42,7 +42,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('PR #305 — Expo SDK 57.0.34 alignment merged');
       expect(section).toContain('b0af4e7d43acdb0ccaa809899f43d96d47712748');
       expect(section).toContain('252cb529e9fdb0cf7ef05bbb25a29ec94fca1cfc');
-      expect(section).toContain('283 (100 + 100 + 83; page 4 empty)');
+      expect(section).toContain('286 (100 + 100 + 86; page 4 empty)');
       expect(section).toContain('45521231491');
       expect(section).toContain('45521231436');
       expect(section).toContain('45521231462');
@@ -69,16 +69,17 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('records PR #204 current exact-head success and its previous failure separately', () => {
+  it('records PR #204 current exact-head failure and previous success separately', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #204 is OPEN/DRAFT');
-      expect(section).toContain('d3d532182b26f0d3c024dfadca5cddbda95a0797');
-      expect(section).toContain('Validation [45557201551](https://github.com/milanradics89-beep/USEIT/actions/runs/45557201551) are terminal SUCCESS');
-      expect(section).toContain('CodeQL [45557201495]');
-      expect(section).toContain('Dependency Review [45557201514]');
-      expect(section).toContain('All five jobs passed: frontend, backend, iOS, CodeQL Analyze and Dependency Review');
-      expect(section).toContain('previous exact HEAD e2b077f30c45386d142881932ce2fae7e40a7707 had Validation FAILURE');
-      expect(section).toContain('343 passed / 2 failed across 74 files');
+      expect(section).toContain('f9c9a8ad2208db5312804dbc58c538f9553ec95d');
+      expect(section).toContain('Validation [45567377367](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377367) is terminal FAILURE');
+      expect(section).toContain('CodeQL [45567377260](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377260) is terminal SUCCESS');
+      expect(section).toContain('Dependency Review [45567377312](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377312) is terminal SUCCESS');
+      expect(section).toContain('Frontend: FAILURE (341 passed / 5 failed across 74 files)');
+      expect(section).toContain('Backend: SUCCESS');
+      expect(section).toContain('iOS: SUCCESS');
+      expect(section).toContain('previous exact HEAD d3d532182b26f0d3c024dfadca5cddbda95a0797 passed all three exact-head workflows');
       expect(section).toContain('PR #204 has 6 conversation comments, 0 inline threads and 0 formal review submissions');
       expect(section).toContain('tarlaci1984-sketch');
     }
@@ -127,7 +128,24 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('PR #324 exact HEAD');
       expect(section).toContain('bb5907d3c75ff50aa8b819fd2487ee693c5fce8b');
       expect(section).toContain('45563830049');
-      expect(section).toContain('283 (100 + 100 + 83; page 4 empty)');
+      expect(section).toContain('286 (100 + 100 + 86; page 4 empty)');
+    }
+  });
+
+  it('records exact-head structural unsigned-APK proof on PRs #325 and #326', () => {
+    for (const section of latestSections) {
+      expect(section).toContain('PR #325 exact HEAD b9bc12963166f1fb22c2c5068aaed5b395987203');
+      expect(section).toContain('45569681415');
+      expect(section).toContain('45569681087');
+      expect(section).toContain('45569681152');
+      expect(section).toContain('365 frontend tests across 76 files');
+      expect(section).toContain('structural verifier confirmed no v1 signature entries or v2/v3 APK Signing Block');
+      expect(section).toContain('PR #326 exact HEAD 63e7c57381db6856328e354032a57662e75845c7');
+      expect(section).toContain('45577240833');
+      expect(section).toContain('45577240879');
+      expect(section).toContain('45577240825');
+      expect(section).toContain('PR remains OPEN/DRAFT with 0 formal reviews and 0 inline threads');
+      expect(section).toContain('The GitHub Actions artifact is not a Codemagic build artifact');
     }
   });
 
