@@ -43,8 +43,25 @@ workflows:
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
+      - name: Generate and verify Android APK SHA-256 manifest
+        script: |
+          set -euo pipefail
+          APK_DIR="android/app/build/outputs/apk/release"
+          set -- "$APK_DIR"/*.apk
+          if [ ! -f "$1" ]; then
+            echo "No Android APK was produced in $APK_DIR" >&2
+            exit 1
+          fi
+          : > "$APK_DIR/SHA256SUMS"
+          for apk in "$APK_DIR"/*.apk; do
+            [ -f "$apk" ] || continue
+            (cd "$APK_DIR" && shasum -a 256 "$(basename "$apk")") >> "$APK_DIR/SHA256SUMS"
+          done
+          test -s "$APK_DIR/SHA256SUMS"
+          (cd "$APK_DIR" && shasum -a 256 -c SHA256SUMS)
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
+      - android/app/build/outputs/apk/release/SHA256SUMS
       - android/app/build/outputs/mapping/release/mapping.txt
 
   useit-ios-ci:
