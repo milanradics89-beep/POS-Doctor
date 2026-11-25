@@ -7,16 +7,16 @@ const documents = [
   'docs/RELEASE_PILOT_ACCEPTANCE.md',
 ].map((path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 
-const marker = '## Latest live release-watch checkpoint — 2026-11-25 03:19 CET';
+const marker = documents[0].match(/^## Latest live release-watch checkpoint — [^\n]+$/m)?.[0] ?? '';
 const latestSections = documents.map((document) => {
-  if (!document.startsWith(marker)) return '';
+  if (!marker || !document.startsWith(marker)) return '';
   const end = document.indexOf('\n\n---\n\n', marker.length);
   return document.slice(0, end < 0 ? document.length : end);
 });
 
 describe('current-main release evidence checkpoint', () => {
-  it('selects the latest checkpoint in all three release records', () => {
-    expect(documents.every((document) => document.startsWith(marker))).toBe(true);
+  it('selects one identical latest checkpoint in all three release records', () => {
+    expect(marker).toBeTruthy();
     expect(latestSections.every(Boolean)).toBe(true);
     expect(new Set(latestSections).size).toBe(1);
   });
@@ -37,9 +37,9 @@ describe('current-main release evidence checkpoint', () => {
     }
   });
 
-  it('records the merged Expo 57.0.34 baseline and current candidate heads', () => {
+  it('records the merged Expo 57.0.34 baseline and post-merge main validation', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #305 is CLOSED/MERGED');
+      expect(section).toContain('PR #305 — Expo SDK 57.0.34 alignment merged');
       expect(section).toContain('b0af4e7d43acdb0ccaa809899f43d96d47712748');
       expect(section).toContain('252cb529e9fdb0cf7ef05bbb25a29ec94fca1cfc');
       expect(section).toContain('45521231491');
@@ -48,45 +48,63 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('45524790576');
       expect(section).toContain('45524790560');
       expect(section).toContain('45524790755');
-      expect(section).toContain('Expo ~57.0.34');
+      expect(section).toContain('Expo 57.0.34 is merged and post-merge validated');
+    }
+  });
+
+  it('records current exact-head states for PRs #288 and #249', () => {
+    for (const section of latestSections) {
       expect(section).toContain('PR #288 is OPEN and non-draft');
-      expect(section).toContain('23a235e0fa35555507190902341143f592fad5aa');
-      expect(section).toContain('45525231729');
-      expect(section).toContain('45525231505');
-      expect(section).toContain('45525231555');
-      expect(section).toContain('11 commits, 13 changed files');
-      expect(section).toContain('three APPROVED, two DISMISSED');
+      expect(section).toContain('77e964b91aca17bf42fddf6bf69639f24733b86b');
+      expect(section).toContain('45532871751');
+      expect(section).toContain('45532871933');
+      expect(section).toContain('45532871944');
+      expect(section).toContain('three APPROVED and two DISMISSED');
       expect(section).toContain('PR #249 is OPEN/DRAFT');
       expect(section).toContain('e89ca4d78082ef8df447388223a62fc8ae7ee95d');
-      expect(section).toContain('Validation [45461939876]');
-      expect(section).toContain('Expo Doctor failed 20/21');
+      expect(section).toContain('45461939876');
+      expect(section).toContain('Expo Doctor (20/21)');
       expect(section).toContain('superseded HEAD b3533ca');
     }
   });
 
-  it('records the current documentation HEAD and exact-head workflow conclusions', () => {
+  it('records PR #204 current-head failure separately from its validated parent', () => {
     for (const section of latestSections) {
-      expect(section).toContain('Before this checkpoint commit, its branch was based on main 5389190fe230122f19c3406bfcb125c98ced5966 at exact HEAD bfd018b95b9edea5b1fd762bb26794a7d1656618');
-      expect(section).toMatch(/Validation \[45509270446\]\([^)]*\) is terminal FAILURE/);
-      expect(section).toMatch(/CodeQL \[45509270613\]\([^)]*\) and Dependency Review \[45509270488\]\([^)]*\) are terminal SUCCESS/);
-      expect(section).toContain('343 passed / 1 failed across 74 files');
-      expect(section).toContain('scripts/release-evidence-checkpoint.test.mjs:63');
-      expect(section).toContain('264 branches');
+      expect(section).toContain('PR #204 is OPEN/DRAFT');
+      expect(section).toContain('46955eb3b27878d02e2835a4a6fe4ce54d85db37');
+      expect(section).toMatch(/Validation \[45540368306\]\([^)]*\) is terminal FAILURE/);
+      expect(section).toMatch(/CodeQL \[45540368268\]\([^)]*\) and Dependency Review \[45540368335\]\([^)]*\) are terminal SUCCESS/);
+      expect(section).toContain('337 passed / 7 failed across 74 files');
+      expect(section).toContain('03:19 CET checkpoint marker');
+      expect(section).toContain('04:25 CET checkpoint');
+      expect(section).toContain('fe8b0d0e3e412dfd81005a828ccfc77a2506132e');
+      expect(section).toContain('45532839638');
+      expect(section).toContain('45532839715');
+      expect(section).toContain('45532839650');
     }
   });
 
-  it('records the pre-refresh documentation-branch failure without inheriting its checks', () => {
+  it('records exact-head validation for the unsigned-APK and security-workflow candidates', () => {
     for (const section of latestSections) {
-      expect(section).toContain('Before the prior checkpoint refresh its branch HEAD was 00d2dff332888e5eb2fa731d32e2e5b3e1cc4f9f');
-      expect(section).toContain('Validation [45017190851]');
-      expect(section).toContain('CodeQL [45017190867]');
-      expect(section).toContain('Dependency Review [45017190810]');
-      expect(section).toContain('332 passed / 2 failed across 72 files');
-      expect(section).toContain("This is historical evidence, not current-head CI.");
+      expect(section).toContain('PR #319 is OPEN/DRAFT');
+      expect(section).toContain('6a937425ea4d3763ab4555e8bf09f61c5a1797c2');
+      expect(section).toContain('45545777077');
+      expect(section).toContain('45545777202');
+      expect(section).toContain('45545776953');
+      expect(section).toContain('PR #320 is OPEN/DRAFT');
+      expect(section).toContain('e2bac14104ab112108b4a91f138c3eb3de7b7ca2');
+      expect(section).toContain('45546055534');
+      expect(section).toContain('45546055447');
+      expect(section).toContain('45546055514');
+      expect(section).toContain('45546055455');
+      expect(section).toContain('Semgrep Community');
+      expect(section).toContain('Gitleaks');
+      expect(section).toContain('Fallow');
+      expect(section).toContain('zizmor');
     }
   });
 
-  it('keeps the candidate register at exactly 25 rows and 3 / 14 / 8', () => {
+  it('keeps the canonical candidate register at exactly 25 rows and 3 / 14 / 8', () => {
     const section = latestSections[0];
     const tableStart = section.indexOf('| # | Workstream | Status | Evidence / next gate |');
     expect(tableStart).toBeGreaterThanOrEqual(0);
@@ -107,10 +125,8 @@ describe('current-main release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('UNVERIFIED, NOT EMPTY');
       expect(section).toContain('0 published releases');
-      expect(section).toContain('Issue [#47]');
-      expect(section).toContain('CLOSED with 11 comments');
-      expect(section).toContain('Issue [#64]');
-      expect(section).toContain('OPEN with 139 comments');
+      expect(section).toContain('Issue #47 is CLOSED with 11 comments');
+      expect(section).toContain('Issue #64 remains OPEN with 139 comments');
       expect(section).toContain('Release decision: NOT READY');
       expect(section).toContain('Production/pilot acceptance: NOT GRANTED');
       for (const item of ['#2', '#4', '#5', '#16', '#18', '#21', '#22', '#25']) {
