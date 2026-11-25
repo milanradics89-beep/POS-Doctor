@@ -13,7 +13,7 @@ describe('USEIT GCP read-only preflight', () => {
   it('supports the macOS system Bash 3.2 without Bash-4-only array helpers', () => {
     expect(script).toContain('ACTIVE_ACCOUNTS=()');
     expect(script).toContain('while IFS= read -r account; do');
-    expect(script).not.toMatch(/\\b(?:mapfile|readarray)\\b/);
+    expect(script).not.toMatch(/\b(?:mapfile|readarray)\b/);
   });
 
   it('inventories the approved infrastructure without reading secret values', () => {
