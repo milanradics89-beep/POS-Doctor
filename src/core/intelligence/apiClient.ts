@@ -187,5 +187,5 @@ export async function analyzeForConsumer(provider: IntelligenceProvider, imageUr
   const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(analysis, imageUri.slice(0, 80));
   const providers = options.phase3Providers ?? [googleProductProvider];
   const phase3 = await runIntelligence(scene, analyzeDomain(scene), providers, { budgetHuf: options.budgetHuf, preserveExisting: options.preserveExisting ?? true, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, userText: intentText(legacyIntent, analysis.sceneType) });
-  return { ...toPresentationResult(analysis, intent), intelligence: toConsumerIntelligence(phase3), phase3, analysis };
+  return { ...toPresentationResult(analysis, legacyIntent), intelligence: toConsumerIntelligence(phase3), phase3, analysis };
 }
