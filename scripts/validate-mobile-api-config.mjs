@@ -21,21 +21,54 @@ function validateMobileApiConfig(value) {
     throw new Error('EXPO_PUBLIC_USEIT_API_URL must not contain credentials, query parameters, or fragments.');
   }
   const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-  if (host === 'localhost' || host.endsWith('.localhost') || host === '0.0.0.0' || isIP(host)) {
+  const localSuffixes = ['.localhost', '.local', '.localdomain', '.internal', '.lan', '.home', '.home.arpa', '.intranet'];
+  if (host === 'localhost' || localSuffixes.some((suffix) => host.endsWith(suffix)) || host === '0.0.0.0' || isIP(host)) {
     throw new Error('EXPO_PUBLIC_USEIT_API_URL must point to a deployed public hostname, not localhost or an IP address.');
   }
 
   return url.toString().replace(/\/$/, '');
 }
 
+async function verifyBackendReady(baseUrl, fetchImpl = fetch) {
+  for (const path of ['/health', '/ready']) {
+    let response;
+    try {
+      response = await fetchImpl(new URL(path, baseUrl), {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch {
+      throw new Error(`USEIT backend ${path} is unreachable from the mobile build environment.`);
+    }
+
+    if (!response.ok) {
+      throw new Error(`USEIT backend ${path} returned HTTP ${response.status}; the deployment is not ready for mobile builds.`);
+    }
+
+    let payload;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error(`USEIT backend ${path} returned invalid JSON.`);
+    }
+
+    const expectedStatus = path === '/health' ? 'ok' : 'ready';
+    if (!payload || payload.status !== expectedStatus) {
+      throw new Error(`USEIT backend ${path} did not report status "${expectedStatus}".`);
+    }
+  }
+}
+
 if (import.meta.url === new URL(process.argv[1], 'file:').href) {
   try {
-    validateMobileApiConfig(raw);
-    process.stdout.write('Remote mobile API configuration is valid.\n');
+    const apiUrl = validateMobileApiConfig(raw);
+    await verifyBackendReady(apiUrl);
+    process.stdout.write('Remote USEIT API configuration and backend readiness are valid.\\n');
   } catch (error) {
-    process.stderr.write(`Mobile build configuration error: ${error.message}\n`);
+    process.stderr.write(`Mobile build configuration error: ${error.message}\\n`);
     process.exitCode = 1;
   }
 }
 
-export { validateMobileApiConfig };
+export { validateMobileApiConfig, verifyBackendReady };
