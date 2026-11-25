@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { validateMobileApiConfig } from './validate-mobile-api-config.mjs';
+import { describe, expect, it, vi } from 'vitest';
+import { validateMobileApiConfig, verifyBackendReady } from './validate-mobile-api-config.mjs';
 
 describe('remote mobile API build configuration', () => {
   it('accepts a deployed HTTPS backend URL', () => {
@@ -17,6 +17,28 @@ describe('remote mobile API build configuration', () => {
 
   it('rejects plain HTTP', () => {
     expect(() => validateMobileApiConfig('http://api.useit.example')).toThrow('must use HTTPS');
+  });
+
+  it('rejects private and internal DNS suffixes', () => {
+    expect(() => validateMobileApiConfig('https://backend.internal')).toThrow('deployed public hostname');
+    expect(() => validateMobileApiConfig('https://backend.local')).toThrow('deployed public hostname');
+  });
+
+  it('probes both public health and production readiness before a remote build', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'ok' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'ready' }), { status: 200 }));
+    await expect(verifyBackendReady('https://api.useit.example', fetchMock)).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[0][0])).toBe('https://api.useit.example/health');
+    expect(String(fetchMock.mock.calls[1][0])).toBe('https://api.useit.example/ready');
+  });
+
+  it('blocks builds when the backend readiness endpoint is unavailable', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'ok' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ detail: 'Service is not ready.' }), { status: 503 }));
+    await expect(verifyBackendReady('https://api.useit.example', fetchMock)).rejects.toThrow('/ready returned HTTP 503');
   });
 
   it('rejects embedded credentials and request-specific URL parts', () => {
