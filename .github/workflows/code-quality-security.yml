@@ -34,6 +34,7 @@ jobs:
       - name: Install project dependencies for complete analysis
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Analyze TypeScript and JavaScript
+        id: fallow-audit
         uses: fallow-rs/fallow@71369f80d099e25726ad04382f15aef14a251abc # v3.31.0
         with:
           version: 3.31.0
@@ -42,6 +43,10 @@ jobs:
           fail-on-issues: true
           sarif: false
           comment: false
+      - name: Enforce a clean Fallow audit verdict
+        env:
+          FALLOW_AUDIT_VERDICT: ${{ steps.fallow-audit.outputs.verdict }}
+        run: node scripts/assert-fallow-audit-verdict.mjs
 
   semgrep:
     name: Semgrep Community static analysis
