@@ -52,6 +52,21 @@ def classify_intent(user_intent: str | None, prompt: str | None = None) -> dict:
     text = " ".join(part for part in (user_intent, prompt) if part).strip()
     if not text:
         return {"name": "explore", "confidence": 0.35, "source": "default"}
+
+    # The mobile app sends these canonical mode identifiers directly. Resolve
+    # them before keyword matching so "surprise" is not silently downgraded to
+    # the generic explore fallback.
+    canonical_intents = {
+        "shop": 0.90,
+        "create": 0.80,
+        "improve": 0.82,
+        "fix": 0.88,
+        "cook": 0.90,
+        "surprise": 0.80,
+    }
+    canonical = (user_intent or "").strip().lower()
+    if canonical in canonical_intents:
+        return {"name": canonical, "confidence": canonical_intents[canonical], "source": "user_mode"}
     candidates = _intent_candidates(text)
     if not candidates:
         return {"name": "explore", "confidence": 0.35, "source": "fallback"}

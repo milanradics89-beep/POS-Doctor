@@ -2,11 +2,13 @@ import json
 import os
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
-from backend.main import app
+from backend import main
 
-client = TestClient(app)
+client = TestClient(main.app)
 
 
 def valid_output():
@@ -40,6 +42,23 @@ def test_analyze_passes_image_and_policy():
     assert call['messages'][1]['content'][1]['type'] == 'image_url'
     assert 'Analyze the whole room' in call['messages'][0]['content']
     assert call['response_format']['json_schema']['name'] == 'useit_scene_analysis'
+    assert call['max_completion_tokens'] == main.VISION_MAX_COMPLETION_TOKENS
+
+
+
+def test_vision_completion_token_budget_is_bounded():
+    assert main._load_vision_max_completion_tokens("256") == 256
+    assert main._load_vision_max_completion_tokens("8192") == 8192
+    for invalid in ("not-an-integer", "255", "8193", "0"):
+        with pytest.raises(RuntimeError):
+            main._load_vision_max_completion_tokens(invalid)
+
+
+def test_oversized_image_data_uri_is_rejected_by_validation():
+    prefix = "data:image/jpeg;base64,"
+    uri = prefix + "A" * (main.MAX_IMAGE_DATA_URI_BYTES - len(prefix) + 1)
+    with pytest.raises(ValidationError):
+        main.AnalyzeRequest.model_validate({"imageUri": uri})
 
 
 def test_useit_analyze_returns_versioned_contract():
