@@ -69,7 +69,7 @@ export default function Home() {
     setRendered(null);
   }
 
-  async function prepareAndSelectPhoto(uri: string, width: number, height: number, failureDescription: string) {
+  async function prepareAndSelectPhoto(uri: string, width: number, height: number, failureDescription: string, exifOrientation?: number) {
     try {
       let resolvedWidth = width;
       let resolvedHeight = height;
@@ -80,7 +80,7 @@ export default function Home() {
         resolvedWidth = dimensions.width;
         resolvedHeight = dimensions.height;
       }
-      const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
+      // EXIF orientations 5–8 rotate the visual image by 90 degrees, so swap\n      // the decoded dimensions before choosing the resize axis.\n      if (exifOrientation !== undefined && exifOrientation >= 5 && exifOrientation <= 8) {\n        [resolvedWidth, resolvedHeight] = [resolvedHeight, resolvedWidth];\n      }\n      const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
       setSelectedPhoto(normalized.dataUrl);
     } catch (error) {
       setNotice({
