@@ -53,8 +53,8 @@ describe('security workflow enforcement', () => {
   });
 
   it('preserves queued recovery reports in the active concurrency policy', () => {
-    const concurrency = recovery.match(/^concurrency:\\n([\\s\\S]*?)(?=^jobs:\\n)/m)?.[1] ?? '';
-    expect(concurrency).toMatch(/^\\s+cancel-in-progress:\\s*false\\s*$/m);
-    expect(concurrency).toMatch(/^\\s+queue:\\s*max\\s*$/m);
+    const concurrency = recovery.match(/^concurrency:\n([\s\S]*?)(?=^jobs:\n)/m)?.[1] ?? '';
+    expect(concurrency).toMatch(/^\s+cancel-in-progress:\s*false\s*$/m);
+    expect(concurrency).toMatch(/^\s+queue:\s*max\s*$/m);
   });
 });
