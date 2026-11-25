@@ -92,7 +92,7 @@ jobs:
             VERIFY_EXIT=$?
           fi
           cat "$VERIFY_LOG"
-          node scripts/verify-unsigned-android-apk.mjs "$VERIFY_LOG" "$VERIFY_EXIT"
+          node scripts/verify-unsigned-android-apk.mjs "$VERIFY_LOG" "$VERIFY_EXIT" "$UNSIGNED_APK"
       - name: Enable KVM for Android emulator
         shell: bash
         run: |
