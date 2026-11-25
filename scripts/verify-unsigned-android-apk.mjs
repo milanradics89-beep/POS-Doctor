@@ -19,13 +19,13 @@ export function hasApkSigningBlock(apk) {
   return apk.subarray(cd - 16, cd).equals(APK_MAGIC);
 }
 
+export function hasJarSignatureEntries(entries) {
   return entries.some((entry) => /^META-INF\/(?:MANIFEST\.MF|[^/]+\.(?:SF|RSA|DSA|EC))$/i.test(entry.trim()));
-  return entries.some((entry) => /^META-INF\\/(?:MANIFEST\\.MF|[^/]+\\.(?:SF|RSA|DSA|EC))$/i.test(entry.trim()));
 }
 
 export function isVerifiedUnsignedApk({ exitCode, output, hasSigningBlock = false, hasJarSignatures = false }) {
+  if (!Number.isInteger(exitCode) || typeof output !== 'string' || exitCode === 0 || hasSigningBlock || hasJarSignatures) return false;
   const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const lines = output.split(/\\r?\\n/).map((line) => line.trim()).filter(Boolean);
   const banner = lines.some((line) => /^DOES NOT VERIFY$/i.test(line));
   const absence = lines.some((line) => NO_SIGNATURE_LINE.test(line));
   const unexpected = lines.some((line) => /^ERROR:/i.test(line) && !NO_SIGNATURE_LINE.test(line));
@@ -35,16 +35,16 @@ export function isVerifiedUnsignedApk({ exitCode, output, hasSigningBlock = fals
 const direct = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 if (direct) {
   const [logPath, exitText, apkPath] = process.argv.slice(2);
-  if (!logPath || !/^\\d+$/.test(exitText ?? '') || !apkPath) throw new Error('Usage: verify-unsigned-android-apk <log> <exit-code> <apk>');
+  if (!logPath || !/^\d+$/.test(exitText ?? '') || !apkPath) throw new Error('Usage: verify-unsigned-android-apk <log> <exit-code> <apk>');
   const output = readFileSync(logPath, 'utf8');
+  const apk = readFileSync(apkPath);
   const entries = execFileSync('unzip', ['-Z1', apkPath], { encoding: 'utf8' }).split(/\r?\n/).filter(Boolean);
-  const entries = execFileSync('unzip', ['-Z1', apkPath], { encoding: 'utf8' }).split(/\\r?\\n/).filter(Boolean);
   const hasSigningBlock = hasApkSigningBlock(apk);
   const hasJarSignatures = hasJarSignatureEntries(entries);
   if (!isVerifiedUnsignedApk({ exitCode: Number(exitText), output, hasSigningBlock, hasJarSignatures })) {
-    process.stderr.write(`ERROR: unsigned APK proof failed (APK Signing Block: ${hasSigningBlock}; JAR signatures: ${hasJarSignatures}).\\n`);
+    process.stderr.write('ERROR: unsigned APK proof failed (APK Signing Block: ' + hasSigningBlock + '; JAR signatures: ' + hasJarSignatures + ').\n');
     process.exitCode = 1;
   } else {
-    process.stdout.write('Verified unsigned APK: ZIP readable; no APK Signing Block or JAR signature entries.\\n');
+    process.stdout.write('Verified unsigned APK: ZIP readable; no APK Signing Block or JAR signature entries.\n');
   }
 }
