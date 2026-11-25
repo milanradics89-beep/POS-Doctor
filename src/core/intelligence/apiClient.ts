@@ -77,6 +77,8 @@ export class UseitApiProvider implements IntelligenceProvider {
   }
 }
 
+export type ConsumerIntent = OpportunityKind | 'shop';
+
 export type ConsumerIntelligence = {
   action: { type: string; title: string };
   need: { kind: string };
@@ -178,12 +180,12 @@ export async function analyzeForConsumer(provider: IntelligenceProvider, imageUr
     const analysis = normalizeAnalysis(unified.scene);
     const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(unified.scene, imageUri.slice(0, 80));
     const redesign = toUnifiedRedesignPlan(unified, scene);
-    return { ...toPresentationResult(analysis, intent), intelligence: toUnifiedConsumerIntelligence(unified), analysis, unified, ...(redesign ? { redesign } : {}) };
+    return { ...toPresentationResult(analysis, intent === 'shop' ? undefined : intent), intelligence: toUnifiedConsumerIntelligence(unified), analysis, unified, ...(redesign ? { redesign } : {}) };
   }
   const legacyIntent = intent === 'shop' ? undefined : intent;
   const analysis = await provider.analyzeImage(imageUri, legacyIntent);
   const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(analysis, imageUri.slice(0, 80));
   const providers = options.phase3Providers ?? [googleProductProvider];
-  const phase3 = await runIntelligence(scene, analyzeDomain(scene), providers, { budgetHuf: options.budgetHuf, preserveExisting: options.preserveExisting ?? true, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, userText: intentText(intent, analysis.sceneType) });
+  const phase3 = await runIntelligence(scene, analyzeDomain(scene), providers, { budgetHuf: options.budgetHuf, preserveExisting: options.preserveExisting ?? true, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, userText: intentText(legacyIntent, analysis.sceneType) });
   return { ...toPresentationResult(analysis, intent), intelligence: toConsumerIntelligence(phase3), phase3, analysis };
 }
