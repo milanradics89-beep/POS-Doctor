@@ -42,6 +42,11 @@ describe('USEIT shared component accessibility', () => {
     expect(source.match(/accessibilityElementsHidden\s+importantForAccessibility="no-hide-descendants"/g)).toHaveLength(3);
   });
 
+  it('renders verified product images while retaining a decorative fallback', () => {
+    expect(source).toContain('imageUrl ? <Image source={{ uri: imageUrl }} style={styles.productImage}');
+    expect(source).toContain('productImage: { width: 58, height: 58');
+    expect(source).toContain('imageUrl?: string;');
+  });
   it('does not announce unavailable product details as an actionable link', () => {
     expect(source).toContain("accessibilityRole={onPress ? 'link' : 'text'}");
     expect(source).toContain("import { productCardAccessibilityLabel } from './productAccessibility';");
@@ -57,7 +62,7 @@ describe('USEIT shared component accessibility', () => {
   });
 
   it('announces dynamic state panels to VoiceOver without grouping recovery actions', () => {
-    expect(source).toContain("import { AccessibilityInfo, ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';");
+    expect(source).toContain("import { AccessibilityInfo, ActivityIndicator, Animated, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';");
     expect(source).toContain("if (Platform.OS === 'ios')");
     expect(source).toContain("AccessibilityInfo.announceForAccessibility(`${title}. ${description}`)");
     expect(source).toContain('}, [kind, title, description]);');
