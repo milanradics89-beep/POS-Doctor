@@ -451,8 +451,8 @@ export default function Home() {
                         <ProductCard
                           key={x.id}
                           title={x.title}
-                          category={x.category}
-                          source={x.source}
+                          category={x.brand ? `${x.brand} · ${x.category}` : x.category}
+                          source={x.availability && x.availability !== 'unknown' ? `${x.source} · ${x.availability.replace('_', ' ')}` : x.source}
                           price={typeof x.priceHuf === 'number' ? x.priceHuf : undefined}
                           onPress={() => { void openProductLink(x.url); }}
                         />
