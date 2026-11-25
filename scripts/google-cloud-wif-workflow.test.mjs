@@ -27,7 +27,7 @@ describe('Google Cloud WIF workflow security', () => {
     expect(workflow).toContain('persist-credentials: false');
     expect(workflow).toContain('create_credentials_file: true');
 
-    const stepNames = workflow.split(/\\r?\\n/).filter((line) => /^      - name: /.test(line));
+    const stepNames = workflow.split(/\r?\n/)).filter((line) => /^      - name: /.test(line));
     expect(stepNames).toEqual([
       '      - name: Checkout',
       '      - name: Authenticate with Workload Identity Federation',
@@ -35,7 +35,7 @@ describe('Google Cloud WIF workflow security', () => {
       '      - name: Verify authenticated identity',
     ]);
 
-    const actionPins = workflow.split(/\\r?\\n/).filter((line) => /^        uses: /.test(line));
+    const actionPins = workflow.split(/\r?\n/)).filter((line) => /^        uses: /.test(line));
     expect(actionPins).toEqual([
       '        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1',
       '        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2',
