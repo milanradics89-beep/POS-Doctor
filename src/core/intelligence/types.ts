@@ -15,6 +15,7 @@ export type UnifiedIntelligenceProvider = {
     preferredColors?: string[];
     discoverProducts?: boolean;
     productLimit?: number;
+    idempotencyKey?: string;
   }, signal?: AbortSignal): Promise<UseitAnalyzeResponse>;
 };
 

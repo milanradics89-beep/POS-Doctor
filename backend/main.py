@@ -7,14 +7,16 @@ from contextlib import asynccontextmanager
 from typing import Optional
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
 from redis import asyncio as redis_asyncio
 from redis.exceptions import RedisError
+from google.cloud.firestore_v1.async_client import AsyncClient
 
 from backend.security import validate_public_http_url
+from backend.idempotency_store import FirestoreIdempotencyStore, IdempotencyDecision
 from backend.privacy_logging import log_event
 
 from backend.action_layer import router as action_router
@@ -67,6 +69,56 @@ MAX_IMAGE_DATA_URI_BYTES = 7_900_000
 DEFAULT_VISION_MAX_COMPLETION_TOKENS = 4_096
 MIN_VISION_MAX_COMPLETION_TOKENS = 256
 MAX_VISION_MAX_COMPLETION_TOKENS = 8_192
+DEFAULT_IDEMPOTENCY_TTL_SECONDS = 600
+MIN_IDEMPOTENCY_TTL_SECONDS = 60
+MAX_IDEMPOTENCY_TTL_SECONDS = 3_600
+
+
+def configured_idempotency_mode() -> str:
+    mode = os.environ.get("USEIT_IDEMPOTENCY_MODE", "disabled").strip().lower()
+    if mode not in {"disabled", "firestore"}:
+        raise RuntimeError("USEIT_IDEMPOTENCY_MODE must be disabled or firestore.")
+    return mode
+
+
+def configured_firestore_project_id() -> str:
+    return os.environ.get(
+        "USEIT_FIRESTORE_PROJECT_ID",
+        os.environ.get("GOOGLE_CLOUD_PROJECT", ""),
+    ).strip()
+
+
+def configured_idempotency_ttl_seconds() -> int:
+    raw = os.environ.get("USEIT_IDEMPOTENCY_TTL_SECONDS", str(DEFAULT_IDEMPOTENCY_TTL_SECONDS))
+    try:
+        value = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("USEIT_IDEMPOTENCY_TTL_SECONDS must be an integer.") from exc
+    if not MIN_IDEMPOTENCY_TTL_SECONDS <= value <= MAX_IDEMPOTENCY_TTL_SECONDS:
+        raise RuntimeError(
+            f"USEIT_IDEMPOTENCY_TTL_SECONDS must be between {MIN_IDEMPOTENCY_TTL_SECONDS} "
+            f"and {MAX_IDEMPOTENCY_TTL_SECONDS}."
+        )
+    return value
+
+
+def validate_idempotency_configuration() -> str:
+    mode = configured_idempotency_mode()
+    if production_mode() and mode != "firestore":
+        raise RuntimeError("Production requires Firestore-backed analysis idempotency; no in-memory fallback is allowed.")
+    if mode == "firestore":
+        secret = os.environ.get("USEIT_IDEMPOTENCY_SECRET", "").strip()
+        normalized_secret = secret.lower()
+        if (
+            len(secret.encode("utf-8")) < 32
+            or normalized_secret in {"change-me", "changeme", "example", "placeholder", "test"}
+            or normalized_secret.startswith(("replace-with-", "your-"))
+        ):
+            raise RuntimeError("USEIT_IDEMPOTENCY_SECRET must be a non-placeholder secret of at least 32 UTF-8 bytes.")
+        if not configured_firestore_project_id():
+            raise RuntimeError("USEIT_FIRESTORE_PROJECT_ID or GOOGLE_CLOUD_PROJECT is required for Firestore idempotency.")
+        configured_idempotency_ttl_seconds()
+    return mode
 
 
 def _load_vision_max_completion_tokens(raw: str | None = None) -> int:
@@ -93,9 +145,25 @@ if production_mode():
 async def lifespan(application: FastAPI):
     redis_client = None
     openai_client = None
+    firestore_client = None
+    idempotency_store = None
     application.state.redis_client = None
     application.state.openai_client = None
+    application.state.firestore_client = None
+    application.state.idempotency_store = None
     try:
+        idempotency_mode = validate_idempotency_configuration()
+        if idempotency_mode == "firestore":
+            firestore_client = AsyncClient(project=configured_firestore_project_id())
+            idempotency_store = FirestoreIdempotencyStore(
+                firestore_client,
+                os.environ["USEIT_IDEMPOTENCY_SECRET"].strip(),
+                ttl_seconds=configured_idempotency_ttl_seconds(),
+            )
+            # Fail startup closed when the shared store is not reachable or the
+            # Cloud Run runtime identity lacks the required Firestore permission.
+            await idempotency_store.check_connection()
+
         redis_url = configured_redis_url()
         if redis_url:
             redis_client = redis_asyncio.Redis.from_url(
@@ -107,8 +175,7 @@ async def lifespan(application: FastAPI):
         api_key = os.environ.get("OPENAI_API_KEY")
         if api_key:
             # Analysis requests are billable POSTs. Keep one bounded client per
-            # application lifespan and disable implicit retries until requests
-            # have an end-to-end idempotency contract.
+            # application lifespan and disable implicit retries.
             openai_client = AsyncOpenAI(
                 api_key=api_key,
                 timeout=OPENAI_TIMEOUT_SECONDS,
@@ -116,10 +183,14 @@ async def lifespan(application: FastAPI):
             )
         application.state.redis_client = redis_client
         application.state.openai_client = openai_client
+        application.state.firestore_client = firestore_client
+        application.state.idempotency_store = idempotency_store
         yield
     finally:
         application.state.redis_client = None
         application.state.openai_client = None
+        application.state.firestore_client = None
+        application.state.idempotency_store = None
         if openai_client is not None:
             try:
                 await openai_client.close()
@@ -133,6 +204,15 @@ async def lifespan(application: FastAPI):
                 await redis_client.aclose()
             except (RedisError, TimeoutError, OSError):
                 logger.warning("Application shutdown could not close the shared Redis client cleanly")
+        if firestore_client is not None:
+            try:
+                # google-cloud-firestore AsyncClient.close() is synchronous.
+                firestore_client.close()
+            except Exception as exc:
+                logger.warning(
+                    "Application shutdown could not close the Firestore client cleanly (exception_type=%s)",
+                    type(exc).__name__,
+                )
 
 
 app = FastAPI(
@@ -150,7 +230,7 @@ install_rate_limit(app)
 # Keep CORS, security headers, and observability outside short-circuiting
 # auth/rate-limit middleware so 401/429/503 responses receive the same
 # browser policy, security headers, request ID, and request-completion log.
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "Authorization", "X-API-Key", "X-Request-ID"])
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "Authorization", "X-API-Key", "X-Request-ID", "Idempotency-Key"])
 install_security_headers(app)
 install_observability(app, logger)
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
@@ -268,11 +348,24 @@ def _build_discovery_query(scene: dict, request: UseItAnalyzeRequest) -> str:
 
 @app.get("/health")
 async def health():
-    return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyConfigured":bool(configured_api_key()),"apiKeyRequired":bool(configured_api_key() or configured_session_secret()),"sessionAuthConfigured":bool(configured_session_secret()),"attestationMode":configured_attestation_mode().value,"attestationProvider":configured_attestation_provider().value,"attestationAppIdConfigured":bool(configured_attestation_app_id()),"attestationChallengeTtlSeconds":attestation_challenge_ttl_seconds(),"attestationSharedStorageConfigured":bool(configured_redis_url())}
+    return {"status":"ok","model":MODEL,"responseFormat":"scene_analysis_v1","version":"0.8.0","apiKeyConfigured":bool(configured_api_key()),"apiKeyRequired":bool(configured_api_key() or configured_session_secret()),"sessionAuthConfigured":bool(configured_session_secret()),"attestationMode":configured_attestation_mode().value,"attestationProvider":configured_attestation_provider().value,"attestationAppIdConfigured":bool(configured_attestation_app_id()),"attestationChallengeTtlSeconds":attestation_challenge_ttl_seconds(),"attestationSharedStorageConfigured":bool(configured_redis_url()),"idempotencyMode":configured_idempotency_mode(),"idempotencySharedStorageConfigured":bool(getattr(app.state, "idempotency_store", None))}
 
 @app.get("/ready")
 async def ready():
     dependencies_ready = bool(os.environ.get("OPENAI_API_KEY"))
+    if configured_idempotency_mode() == "firestore":
+        idempotency_store = getattr(app.state, "idempotency_store", None)
+        if idempotency_store is None:
+            dependencies_ready = False
+        else:
+            try:
+                await idempotency_store.check_connection()
+            except Exception as exc:
+                logger.warning(
+                    "Readiness check failed: Firestore idempotency is unavailable (exception_type=%s)",
+                    type(exc).__name__,
+                )
+                dependencies_ready = False
     if production_mode():
         dependencies_ready = dependencies_ready and bool(configured_api_key() or configured_session_secret())
         attestation_mode = configured_attestation_mode()
@@ -400,25 +493,77 @@ async def analyze(request: AnalyzeRequest):
     return await _analyze(request)
 
 @app.post("/v1/useit/analyze")
-async def useit_analyze(request: UseItAnalyzeRequest):
-    scene = await _analyze(request)
-    intent = classify_intent(request.userIntent, request.prompt)
-    context = {"preferredStyles": request.preferredStyles, "preferredColors": request.preferredColors, "budgetHuf": request.budgetHuf}
-    ranked = rank_opportunities(scene, intent, context=context)
-    shopping = None
-    if request.discoverProducts and intent["name"] == "shop":
-        query = _build_discovery_query(scene, request)
-        if query:
+async def useit_analyze(request: UseItAnalyzeRequest, http_request: Request):
+    idempotency_store = getattr(app.state, "idempotency_store", None)
+    claim = None
+    if configured_idempotency_mode() == "firestore":
+        if idempotency_store is None:
+            raise HTTPException(503, "Analysis idempotency is not configured.")
+        idempotency_key = http_request.headers.get("Idempotency-Key")
+        if not idempotency_key:
+            raise HTTPException(400, "Idempotency-Key header is required.")
+        try:
+            request_body = await http_request.body()
+            claim_result = await idempotency_store.claim(idempotency_key, request_body)
+        except ValueError as exc:
+            raise HTTPException(400, "Invalid Idempotency-Key or request fingerprint.") from exc
+        except Exception as exc:
+            logger.error("Analysis idempotency claim failed (exception_type=%s)", type(exc).__name__)
+            raise HTTPException(503, "Analysis idempotency is temporarily unavailable.") from exc
+
+        if claim_result.decision is IdempotencyDecision.DUPLICATE:
+            raise HTTPException(409, "An analysis with this Idempotency-Key is already in progress or completed.")
+        if claim_result.decision is IdempotencyDecision.PAYLOAD_MISMATCH:
+            raise HTTPException(409, "Idempotency-Key was already used with a different request.")
+        claim = claim_result.claim
+        if claim is None:
+            raise HTTPException(503, "Analysis idempotency could not establish a request claim.")
+
+    try:
+        scene = await _analyze(request)
+        intent = classify_intent(request.userIntent, request.prompt)
+        context = {"preferredStyles": request.preferredStyles, "preferredColors": request.preferredColors, "budgetHuf": request.budgetHuf}
+        ranked = rank_opportunities(scene, intent, context=context)
+        shopping = None
+        if request.discoverProducts and intent["name"] == "shop":
+            query = _build_discovery_query(scene, request)
+            if query:
+                try:
+                    shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
+                except Exception as exc:
+                    logger.error("Unified product discovery degraded (exception_type=%s)", type(exc).__name__)
+                    shopping = {"query": query, "candidates": [], "errors": [{"url": "", "message": "product discovery unavailable"}]}
+        suggestions = [{"id":o["id"],"title":o["title"],"description":o["description"],"kind":o["kind"],"effort":o["effort"],"durationMinutes":o["durationMinutes"],"visualizable":o["visualizable"],"score":o["score"],"preferenceScore":o.get("preferenceScore",0.0),"rank":o["rank"],"reasons":build_suggestion_reasons(o,intent,scene,context)} for o in ranked]
+        scene["sceneFacts"] = derive_scene_facts(scene)
+        scene["sceneReasoning"] = derive_scene_reasoning(scene)
+        specialist = build_specialist_context(scene, intent)
+        result = {"contractVersion":"useit_analyze_v1","scene":scene,"intent":intent,"specialist":specialist,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","reason","intent","specialist","suggest","shop" if shopping else "plan"]}
+    except Exception:
+        if claim is not None:
             try:
-                shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
+                marked_unknown = await idempotency_store.mark_outcome_unknown(claim)
+                if not marked_unknown:
+                    logger.error("Analysis idempotency outcome could not be finalized as unknown.")
             except Exception as exc:
-                logger.error("Unified product discovery degraded (exception_type=%s)", type(exc).__name__)
-                shopping = {"query": query, "candidates": [], "errors": [{"url": "", "message": "product discovery unavailable"}]}
-    suggestions = [{"id":o["id"],"title":o["title"],"description":o["description"],"kind":o["kind"],"effort":o["effort"],"durationMinutes":o["durationMinutes"],"visualizable":o["visualizable"],"score":o["score"],"preferenceScore":o.get("preferenceScore",0.0),"rank":o["rank"],"reasons":build_suggestion_reasons(o,intent,scene,context)} for o in ranked]
-    scene["sceneFacts"] = derive_scene_facts(scene)
-    scene["sceneReasoning"] = derive_scene_reasoning(scene)
-    specialist = build_specialist_context(scene, intent)
-    return {"contractVersion":"useit_analyze_v1","scene":scene,"intent":intent,"specialist":specialist,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","reason","intent","specialist","suggest","shop" if shopping else "plan"]}
+                logger.error(
+                    "Analysis idempotency outcome persistence failed (exception_type=%s)",
+                    type(exc).__name__,
+                )
+        raise
+
+    if claim is not None:
+        try:
+            completed = await idempotency_store.mark_completed(claim)
+            if not completed:
+                logger.error("Analysis idempotency completion was not recorded for the active claim.")
+        except Exception as exc:
+            # Keep the original result. The processing claim remains until its
+            # application-checked expiry, preventing a second billable request.
+            logger.error(
+                "Analysis idempotency completion persistence failed (exception_type=%s)",
+                type(exc).__name__,
+            )
+    return result
 
 app.include_router(action_router)
 app.include_router(redesign_router)
