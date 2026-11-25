@@ -106,7 +106,7 @@ describe('UseitApiProvider boundary handling', () => {
     await expect(provider().renderRedesign(image, 'test', [])).rejects.toThrow('USEIT redesign API returned an invalid result.');
   });
 
-  it('preserves verified product image and optional commercial metadata from unified results', async () => {
+  it('preserves product metadata without directly loading untrusted remote image URLs', async () => {
     const payload = {
       ...validUnified,
       intent: { name: 'shop', confidence: 0.9 },
@@ -114,7 +114,8 @@ describe('UseitApiProvider boundary handling', () => {
     };
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }));
     const result = await analyzeForConsumer(provider(), image, 'shop');
-    expect(result.intelligence.rankedCandidates[0]).toMatchObject({ imageUrl: 'https://cdn.example.test/lamp.jpg', brand: 'Example', currency: 'HUF', availability: 'in_stock' });
+    expect(result.intelligence.rankedCandidates[0]).toMatchObject({ brand: 'Example', currency: 'HUF', availability: 'in_stock' });
+    expect(result.intelligence.rankedCandidates[0]).not.toHaveProperty('imageUrl');
     expect(result.intelligence.rankedCandidates[0].priceHuf).toBeUndefined();
   });
 
