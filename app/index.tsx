@@ -21,6 +21,8 @@ import { BrandMark, FadeIn, ProductCard, SectionHeader, StatePanel } from '../sr
 import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
 import { requestFailureKind } from '../src/ui/requestFailure';
+import { validateImageUri } from '../src/core/intelligence/imageInput';
+import { normalizeImageAsset } from '../src/core/intelligence/imageNormalization';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -49,6 +51,36 @@ export default function Home() {
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
   const [notice, setNotice] = useState<ScreenNotice | null>(null);
   const redesign = result?.redesign ?? result?.phase3?.redesign;
+
+  function setSelectedPhoto(imageUri: string) {
+    try {
+      validateImageUri(imageUri);
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: error instanceof Error ? error.message : 'Choose a smaller supported photo.',
+      });
+      return;
+    }
+    setNotice(null);
+    setPhoto(imageUri);
+    setResult(null);
+    setRendered(null);
+  }
+
+  async function prepareAndSelectPhoto(uri: string, width: number, height: number, failureDescription: string) {
+    try {
+      const normalized = await normalizeImageAsset(uri, width, height);
+      setSelectedPhoto(normalized.dataUrl);
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: error instanceof Error ? error.message : failureDescription,
+      });
+    }
+  }
 
   const reset = () => {
     setPhoto(null);
@@ -176,8 +208,8 @@ export default function Home() {
     setNotice(null);
     const r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      base64: true,
+      quality: 1,
+      base64: false,
       allowsMultipleSelection: false,
     });
 
@@ -185,21 +217,12 @@ export default function Home() {
 
     const a = r.assets[0];
 
-    if (!a.base64) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'USEIT could not read this image. Choose the photo again.',
-        actionLabel: 'CHOOSE AGAIN',
-        onAction: () => { void chooseGallery(); },
-      });
-      return;
-    }
-
-    setNotice(null);
-    setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
-    setResult(null);
-    setRendered(null);
+    await prepareAndSelectPhoto(
+      a.uri,
+      a.width,
+      a.height,
+      'USEIT could not decode this image. Choose a different photo.'
+    );
   }
 
   async function capture() {
@@ -228,30 +251,20 @@ export default function Home() {
     setNotice(null);
     const r = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      base64: true,
+      quality: 1,
+      base64: false,
     });
 
     if (r.canceled) return;
 
     const a = r.assets[0];
 
-    if (!a.base64) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'USEIT could not read the captured image. Try taking it again.',
-        actionLabel: 'TAKE AGAIN',
-        onAction: () => { void capture(); },
-      });
-      return;
-    }
-
-    setNotice(null);
-    setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
-    setResult(null);
-    setRendered(null);
-    setNotice(null);
+    await prepareAndSelectPhoto(
+      a.uri,
+      a.width,
+      a.height,
+      'USEIT could not decode the captured image. Try taking it again.'
+    );
   }
 
   const noticePanel = notice ? (
