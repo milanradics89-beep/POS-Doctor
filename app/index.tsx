@@ -86,7 +86,8 @@ export default function Home() {
       // the decoded dimensions before choosing the resize axis.
       if (usedNativeDimensionFallback && exifOrientation !== undefined && exifOrientation >= 5 && exifOrientation <= 8) {
         [resolvedWidth, resolvedHeight] = [resolvedHeight, resolvedWidth];
-      }\n      const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
+      }
+      const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
       setSelectedPhoto(normalized.dataUrl);
     } catch (error) {
       setNotice({
