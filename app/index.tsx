@@ -378,7 +378,7 @@ function HomeLanding({ noticePanel, onCapture, onChooseGallery }: HomeNoticePane
           <Text style={s.logo}>USEIT</Text>
         </View>
         <Text style={s.kicker}>SEE WHAT’S POSSIBLE</Text>
-        <Text style={s.hero}>Show me what{`\\n`}you have.</Text>
+        <Text style={s.hero}>Show me what{\`\n\`}you have.</Text>
         <Text style={s.sub}>
           Point your camera at almost anything. USEIT helps you discover what you can do with it.
         </Text>
