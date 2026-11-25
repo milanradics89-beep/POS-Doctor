@@ -14,13 +14,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
-import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
+import type { ConsumerIntent, ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
 import { BrandMark, FadeIn, ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
 import { requestFailureKind } from '../src/ui/requestFailure';
+import { validateImageUri } from '../src/core/intelligence/imageInput';
+import { normalizeImageAsset } from '../src/core/intelligence/imageNormalization';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -50,6 +52,45 @@ export default function Home() {
   const [notice, setNotice] = useState<ScreenNotice | null>(null);
   const redesign = result?.redesign ?? result?.phase3?.redesign;
 
+  function setSelectedPhoto(imageUri: string) {
+    try {
+      validateImageUri(imageUri);
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: error instanceof Error ? error.message : 'Choose a smaller supported photo.',
+      });
+      return;
+    }
+    setNotice(null);
+    setPhoto(imageUri);
+    setResult(null);
+    setRendered(null);
+  }
+
+  async function prepareAndSelectPhoto(uri: string, width: number, height: number, failureDescription: string) {
+    try {
+      let resolvedWidth = width;
+      let resolvedHeight = height;
+      if (!Number.isFinite(resolvedWidth) || !Number.isFinite(resolvedHeight) || resolvedWidth <= 0 || resolvedHeight <= 0) {
+        const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+          Image.getSize(uri, (imageWidth, imageHeight) => resolve({ width: imageWidth, height: imageHeight }), reject);
+        });
+        resolvedWidth = dimensions.width;
+        resolvedHeight = dimensions.height;
+      }
+      const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
+      setSelectedPhoto(normalized.dataUrl);
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: error instanceof Error ? error.message : failureDescription,
+      });
+    }
+  }
+
   const reset = () => {
     setPhoto(null);
     setResult(null);
@@ -70,7 +111,7 @@ export default function Home() {
     }
   }
 
-  async function analyze(intent?: OpportunityKind) {
+  async function analyze(intent?: ConsumerIntent) {
     if (!API_URL) {
       setNotice({
         kind: 'error',
@@ -176,8 +217,8 @@ export default function Home() {
     setNotice(null);
     const r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      base64: true,
+      quality: 1,
+      base64: false,
       allowsMultipleSelection: false,
     });
 
@@ -185,21 +226,12 @@ export default function Home() {
 
     const a = r.assets[0];
 
-    if (!a.base64) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'USEIT could not read this image. Choose the photo again.',
-        actionLabel: 'CHOOSE AGAIN',
-        onAction: () => { void chooseGallery(); },
-      });
-      return;
-    }
-
-    setNotice(null);
-    setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
-    setResult(null);
-    setRendered(null);
+    await prepareAndSelectPhoto(
+      a.uri,
+      a.width,
+      a.height,
+      'USEIT could not decode this image. Choose a different photo.'
+    );
   }
 
   async function capture() {
@@ -228,30 +260,20 @@ export default function Home() {
     setNotice(null);
     const r = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      base64: true,
+      quality: 1,
+      base64: false,
     });
 
     if (r.canceled) return;
 
     const a = r.assets[0];
 
-    if (!a.base64) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'USEIT could not read the captured image. Try taking it again.',
-        actionLabel: 'TAKE AGAIN',
-        onAction: () => { void capture(); },
-      });
-      return;
-    }
-
-    setNotice(null);
-    setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
-    setResult(null);
-    setRendered(null);
-    setNotice(null);
+    await prepareAndSelectPhoto(
+      a.uri,
+      a.width,
+      a.height,
+      'USEIT could not decode the captured image. Try taking it again.'
+    );
   }
 
   const noticePanel = notice ? (
@@ -429,6 +451,18 @@ export default function Home() {
                   </>
                 ) : null}
 
+                {result.unified?.intent.name !== 'shop' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Find matching products"
+                    accessibilityHint="Searches for products related to the selected photo and recommendation."
+                    style={s.primary}
+                    onPress={() => { void analyze('shop'); }}
+                  >
+                    <Text style={s.primaryText}>FIND MATCHING PRODUCTS</Text>
+                  </Pressable>
+                ) : null}
+
                 {(result.intelligence?.rankedCandidates?.length ?? 0) > 0 ? (
                   <>
                     <SectionHeader eyebrow="MATCHING OPTIONS" />
@@ -439,8 +473,8 @@ export default function Home() {
                         <ProductCard
                           key={x.id}
                           title={x.title}
-                          category={x.category}
-                          source={x.source}
+                          category={x.brand ? `${x.brand} · ${x.category}` : x.category}
+                          source={x.availability && x.availability !== 'unknown' ? `${x.source} · ${x.availability.replace('_', ' ')}` : x.source}
                           price={typeof x.priceHuf === 'number' ? x.priceHuf : undefined}
                           onPress={() => { void openProductLink(x.url); }}
                         />

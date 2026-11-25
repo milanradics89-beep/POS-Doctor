@@ -42,6 +42,10 @@ describe('USEIT shared component accessibility', () => {
     expect(source.match(/accessibilityElementsHidden\s+importantForAccessibility="no-hide-descendants"/g)).toHaveLength(3);
   });
 
+  it('does not automatically fetch untrusted remote product image URLs', () => {
+    expect(source).not.toContain('<Image source={{ uri: imageUrl }}');
+    expect(source).toContain('<View style={styles.productMark}');
+  });
   it('does not announce unavailable product details as an actionable link', () => {
     expect(source).toContain("accessibilityRole={onPress ? 'link' : 'text'}");
     expect(source).toContain("import { productCardAccessibilityLabel } from './productAccessibility';");
