@@ -34,7 +34,7 @@ type ScreenNotice = {
   onAction?: () => void;
 };
 
-const modes: [OpportunityKind, string][] = [
+const modes: [ConsumerIntent, string][] = [
   ['create', 'Turn what you have into something new.'],
   ['improve', 'Make your space or things better.'],
   ['fix', 'Figure out what to do next.'],
