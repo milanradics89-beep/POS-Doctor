@@ -27,7 +27,7 @@ describe('USEIT Home recovery-state integration', () => {
 
   it('invalidates a pending visual concept before photo preparation can await', () => {
     const start = home.indexOf('async function prepareAndSelectPhoto(');
-    const end = home.indexOf('\\n  const reset =', start);
+    const end = home.indexOf('\n  const reset =', start);
     const preparation = home.slice(start, end);
     const invalidation = preparation.indexOf('redesignRequestIdRef.current += 1;');
     const firstAwait = preparation.indexOf('await ');
