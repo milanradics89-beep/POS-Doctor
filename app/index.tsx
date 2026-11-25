@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UseitApiError, UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
+import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
+import { createAnalysisFailureNotice, resolveAnalysisIdempotencyKey } from '../src/ui/homeAnalysis';
 import { createIdempotencyKey } from '../src/core/intelligence/idempotencyKey';
 import type { ConsumerIntent, ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
@@ -21,7 +22,6 @@ import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
 import { BrandMark, FadeIn, ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
-import { requestFailureKind } from '../src/ui/requestFailure';
 import { validateImageUri } from '../src/core/intelligence/imageInput';
 import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';
 
@@ -157,10 +157,12 @@ export default function Home() {
 
     if (!photo) return;
 
-    const existingIdempotency = analysisIdempotencyRef.current;
-    const idempotencyKey = existingIdempotency?.photo === photo && existingIdempotency.intent === intent
-      ? existingIdempotency.key
-      : createIdempotencyKey();
+    const idempotencyKey = resolveAnalysisIdempotencyKey(
+      analysisIdempotencyRef.current,
+      photo,
+      intent,
+      createIdempotencyKey,
+    );
     analysisIdempotencyRef.current = { photo, intent, key: idempotencyKey };
 
     const controller = new AbortController();
@@ -181,27 +183,12 @@ export default function Home() {
       if (analysisIdempotencyRef.current?.key === idempotencyKey) analysisIdempotencyRef.current = null;
       setResult(response);
     } catch (error) {
-      if (controller.signal.aborted || requestId !== analysisRequestIdRef.current || (error instanceof Error && error.name === 'AbortError')) return;
-      if (error instanceof UseitApiError && error.status === 409) {
-        setNotice({
-          kind: 'error',
-          title: 'Analysis already received',
-          description: 'This analysis request has already been accepted or is still processing. Choose a new photo or a different action to start another analysis.',
-        });
-        return;
-      }
-      const kind = requestFailureKind(error);
+      if (controller.signal.aborted || requestId !== analysisRequestIdRef.current) return;
+      const failureNotice = createAnalysisFailureNotice(error);
+      if (!failureNotice) return;
       setNotice({
-        kind,
-        title: kind === 'offline' ? 'No connection' : 'Could not understand the image',
-        description: kind === 'offline'
-          ? 'Check your internet connection, then retry the analysis.'
-          : error instanceof Error
-            ? error.message
-            : 'Please try again with a clearer photo.',
-        actionLabel: 'TRY AGAIN',
-        actionAccessibilityHint: 'Retries image analysis for the selected photo.',
-        onAction: () => { void analyze(intent); },
+        ...failureNotice,
+        onAction: failureNotice.actionLabel ? () => { void analyze(intent); } : undefined,
       });
     } finally {
       if (requestId === analysisRequestIdRef.current) {
