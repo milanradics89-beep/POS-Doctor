@@ -8,9 +8,12 @@ const workflow = readFileSync(
 
 describe('manual CI recovery concurrency', () => {
   it('serializes all repeated-failure reports that share the diagnostic issue title', () => {
-    expect(workflow).toContain(
-      "group: useit-ci-recovery-\${{ inputs.operation }}-\${{ inputs.operation == 'report-repeated-failure' && 'shared-diagnostic-issue' || inputs.run_id }}",
-    );
+    const expectedGroup = [
+      'group: useit-ci-recovery-',
+      '$' + '{' + '{ inputs.operation }}-',
+      '$' + '{' + "{ inputs.operation == 'report-repeated-failure' && 'shared-diagnostic-issue' || inputs.run_id }}",
+    ].join('');
+    expect(workflow).toContain(expectedGroup);
   });
 
   it('keeps retry operations isolated by their target run ID', () => {
