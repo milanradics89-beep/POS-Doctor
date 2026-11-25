@@ -14,6 +14,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
+import type { ConsumerIntent } from '../src/core/intelligence/apiClient';
 import type { ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
@@ -70,7 +71,7 @@ export default function Home() {
     }
   }
 
-  async function analyze(intent?: OpportunityKind) {
+  async function analyze(intent?: ConsumerIntent) {
     if (!API_URL) {
       setNotice({
         kind: 'error',
@@ -429,6 +430,18 @@ export default function Home() {
                   </>
                 ) : null}
 
+                {result.unified?.intent.name !== 'shop' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Find matching products"
+                    accessibilityHint="Searches for products related to the selected photo and recommendation."
+                    style={s.primary}
+                    onPress={() => { void analyze('shop'); }}
+                  >
+                    <Text style={s.primaryText}>FIND MATCHING PRODUCTS</Text>
+                  </Pressable>
+                ) : null}
+
                 {(result.intelligence?.rankedCandidates?.length ?? 0) > 0 ? (
                   <>
                     <SectionHeader eyebrow="MATCHING OPTIONS" />
@@ -442,6 +455,7 @@ export default function Home() {
                           category={x.category}
                           source={x.source}
                           price={typeof x.priceHuf === 'number' ? x.priceHuf : undefined}
+                          imageUrl={x.imageUrl}
                           onPress={() => { void openProductLink(x.url); }}
                         />
                       ))}
