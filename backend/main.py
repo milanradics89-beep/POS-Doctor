@@ -63,6 +63,27 @@ logger = logging.getLogger("useit")
 logging.basicConfig(level=os.environ.get("USEIT_LOG_LEVEL", "INFO").upper())
 
 OPENAI_TIMEOUT_SECONDS = 35.0
+MAX_IMAGE_DATA_URI_BYTES = 7_900_000
+DEFAULT_VISION_MAX_COMPLETION_TOKENS = 4_096
+MIN_VISION_MAX_COMPLETION_TOKENS = 256
+MAX_VISION_MAX_COMPLETION_TOKENS = 8_192
+
+
+def _load_vision_max_completion_tokens(raw: str | None = None) -> int:
+    configured = os.environ.get("USEIT_VISION_MAX_COMPLETION_TOKENS", str(DEFAULT_VISION_MAX_COMPLETION_TOKENS)) if raw is None else raw
+    try:
+        value = int(configured)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("USEIT_VISION_MAX_COMPLETION_TOKENS must be an integer.") from exc
+    if not MIN_VISION_MAX_COMPLETION_TOKENS <= value <= MAX_VISION_MAX_COMPLETION_TOKENS:
+        raise RuntimeError(
+            f"USEIT_VISION_MAX_COMPLETION_TOKENS must be between {MIN_VISION_MAX_COMPLETION_TOKENS} "
+            f"and {MAX_VISION_MAX_COMPLETION_TOKENS}."
+        )
+    return value
+
+
+VISION_MAX_COMPLETION_TOKENS = _load_vision_max_completion_tokens()
 
 if production_mode():
     validate_production_security()
@@ -135,7 +156,7 @@ install_observability(app, logger)
 MODEL = os.environ.get("USEIT_VISION_MODEL", "gpt-4.1")
 
 class AnalyzeRequest(BaseModel):
-    imageUri: str = Field(min_length=20, max_length=8_000_000)
+    imageUri: str = Field(min_length=20, max_length=MAX_IMAGE_DATA_URI_BYTES)
     userIntent: Optional[str] = Field(default=None, max_length=2_000)
     prompt: Optional[str] = Field(default=None, max_length=20_000)
     locale: str = Field(default="hu-HU", max_length=20)
@@ -145,6 +166,8 @@ class AnalyzeRequest(BaseModel):
     @classmethod
     def validate_image_uri(cls, value: str) -> str:
         if value.lower().startswith("data:image/"):
+            if len(value.encode("utf-8")) > MAX_IMAGE_DATA_URI_BYTES:
+                raise ValueError("Image data URI exceeds the maximum allowed size")
             header, separator, payload = value.partition(",")
             if not separator or not payload:
                 raise ValueError("Invalid image data URI")
@@ -204,6 +227,7 @@ async def _analyze(request: AnalyzeRequest):
         if request.userIntent: user_text += f" User intent: {request.userIntent}."
         response = await _get_client().chat.completions.create(
             model=MODEL,
+            max_completion_tokens=VISION_MAX_COMPLETION_TOKENS,
             messages=[
                 {"role":"system","content":instructions},
                 {"role":"user","content":[{"type":"text","text":user_text},{"type":"image_url","image_url":{"url":request.imageUri,"detail":"high"}}]},
@@ -226,6 +250,7 @@ async def _analyze(request: AnalyzeRequest):
                     promptTokens=prompt_tokens,
                     completionTokens=completion_tokens,
                     totalTokens=total_tokens,
+                    maxCompletionTokens=VISION_MAX_COMPLETION_TOKENS,
                 )
         content = response.choices[0].message.content
         if not content: raise HTTPException(502, "Vision analysis returned no structured content.")

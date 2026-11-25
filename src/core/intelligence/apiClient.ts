@@ -41,22 +41,22 @@ export class UseitApiProvider implements IntelligenceProvider {
     };
   }
 
-  async analyzeImage(imageUri: string, userIntent?: OpportunityKind): Promise<SceneAnalysis> {
+  async analyzeImage(imageUri: string, userIntent?: OpportunityKind, signal?: AbortSignal): Promise<SceneAnalysis> {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
     const policy = createPromptPolicy(userIntent, 'hu-HU');
-    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale }) }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS });
+    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale }), signal }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS });
     if (!response.ok) throw new Error(`USEIT API request failed (${response.status}).`);
     if (parseError) throw new Error('USEIT API returned malformed JSON.');
     const checked = validateAnalysis(payload);
     if (!checked.ok) throw new Error(`USEIT API returned an invalid analysis: ${checked.issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
     return normalizeAnalysis(checked.data);
   }
-  async analyzeUseit(imageUri: string, intent?: OpportunityKind, options: { budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; discoverProducts?: boolean; productLimit?: number } = {}): Promise<UseitAnalyzeResponse> {
+  async analyzeUseit(imageUri: string, intent?: OpportunityKind, options: { budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; discoverProducts?: boolean; productLimit?: number } = {}, signal?: AbortSignal): Promise<UseitAnalyzeResponse> {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
     const policy = createPromptPolicy(intent, 'hu-HU');
-    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/useit/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale, budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles ?? [], preferredColors: options.preferredColors ?? [], discoverProducts: options.discoverProducts ?? true, productLimit: options.productLimit ?? 8 }) }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS });
+    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/useit/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale, budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles ?? [], preferredColors: options.preferredColors ?? [], discoverProducts: options.discoverProducts ?? true, productLimit: options.productLimit ?? 8 }), signal }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS });
     if (!response.ok) throw new Error(`USEIT unified analysis failed (${response.status}).`);
     if (parseError) throw new Error('USEIT unified analysis returned malformed JSON.');
     const checked = validateUseitAnalyzeResponse(payload);
@@ -171,16 +171,16 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
     disclosure: 'AI-generated visualization. Product appearance, scale, color and placement may differ from the real item. Verify product details on the linked retailer page.',
   };
 }
-export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean } = {}): Promise<ConsumerAnalysis> {
+export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: OpportunityKind, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean; signal?: AbortSignal } = {}): Promise<ConsumerAnalysis> {
   validateImageUri(imageUri);
   if (provider.analyzeUseit) {
-    const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors });
+    const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors }, options.signal);
     const analysis = normalizeAnalysis(unified.scene);
     const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(unified.scene, imageUri.slice(0, 80));
     const redesign = toUnifiedRedesignPlan(unified, scene);
     return { ...toPresentationResult(analysis, intent), intelligence: toUnifiedConsumerIntelligence(unified), analysis, unified, ...(redesign ? { redesign } : {}) };
   }
-  const analysis = await provider.analyzeImage(imageUri, intent);
+  const analysis = await provider.analyzeImage(imageUri, intent, options.signal);
   const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(analysis, imageUri.slice(0, 80));
   const providers = options.phase3Providers ?? [googleProductProvider];
   const phase3 = await runIntelligence(scene, analyzeDomain(scene), providers, { budgetHuf: options.budgetHuf, preserveExisting: options.preserveExisting ?? true, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, userText: intentText(intent, analysis.sceneType) });
