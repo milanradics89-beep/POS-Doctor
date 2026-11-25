@@ -71,7 +71,16 @@ export default function Home() {
 
   async function prepareAndSelectPhoto(uri: string, width: number, height: number, failureDescription: string) {
     try {
-      const normalized = await normalizeImageAsset(uri, width, height);
+      let resolvedWidth = width;
+      let resolvedHeight = height;
+      if (!Number.isFinite(resolvedWidth) || !Number.isFinite(resolvedHeight) || resolvedWidth <= 0 || resolvedHeight <= 0) {
+        const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+          Image.getSize(uri, (imageWidth, imageHeight) => resolve({ width: imageWidth, height: imageHeight }), reject);
+        });
+        resolvedWidth = dimensions.width;
+        resolvedHeight = dimensions.height;
+      }
+      const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
       setSelectedPhoto(normalized.dataUrl);
     } catch (error) {
       setNotice({
