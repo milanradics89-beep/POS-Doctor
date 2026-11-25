@@ -1,0 +1,96 @@
+workflows:
+  useit-android-ci:
+    name: USEIT Android CI (unsigned)
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - useit-production
+      vars:
+        EXPO_NO_TELEMETRY: "1"
+      node: 22
+    scripts:
+      - name: Install JavaScript dependencies
+        script: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Validate deployed USEIT API configuration
+        script: npm run validate:mobile-config
+      - name: Enforce USEIT source boundary
+        script: npm run guard:useit
+      - name: TypeScript validation
+        script: npm run typecheck
+      - name: Unit tests
+        script: npm test
+      - name: Install pinned Expo Doctor CLI
+        script: |
+          set -euo pipefail
+          mkdir -p "$TMPDIR/expo-doctor"
+          TARBALL="$(npm pack --silent --pack-destination "$TMPDIR/expo-doctor" expo-doctor@1.20.5)"
+          mkdir -p node_modules/expo-doctor
+          tar -xzf "$TMPDIR/expo-doctor/$TARBALL" -C node_modules/expo-doctor --strip-components=1
+          node -e "const pkg = require('./node_modules/expo-doctor/package.json'); if (pkg.version !== '1.20.5') throw new Error('Unexpected Expo Doctor version'); require.resolve('@expo/env')"
+      - name: Validate Expo project health
+        script: node node_modules/expo-doctor/bin/expo-doctor.js
+      - name: Generate Android native project
+        script: CI=1 npx expo prebuild --platform android --no-install
+      - name: Configure Android SDK
+        script: |
+          set -euo pipefail
+          test -n "${ANDROID_SDK_ROOT:-}"
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+      - name: Build unsigned Android release APK
+        script: |
+          set -euo pipefail
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+    artifacts:
+      - android/app/build/outputs/apk/release/*.apk
+      - android/app/build/outputs/mapping/release/mapping.txt
+
+  useit-ios-ci:
+    name: USEIT iOS CI (unsigned simulator)
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - useit-production
+      vars:
+        EXPO_NO_TELEMETRY: "1"
+      node: 22
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install JavaScript dependencies
+        script: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Validate deployed USEIT API configuration
+        script: npm run validate:mobile-config
+      - name: Enforce USEIT source boundary
+        script: npm run guard:useit
+      - name: TypeScript validation
+        script: npm run typecheck
+      - name: Unit tests
+        script: npm test
+      - name: Install pinned Expo Doctor CLI
+        script: |
+          set -euo pipefail
+          mkdir -p "$TMPDIR/expo-doctor"
+          TARBALL="$(npm pack --silent --pack-destination "$TMPDIR/expo-doctor" expo-doctor@1.20.5)"
+          mkdir -p node_modules/expo-doctor
+          tar -xzf "$TMPDIR/expo-doctor/$TARBALL" -C node_modules/expo-doctor --strip-components=1
+          node -e "const pkg = require('./node_modules/expo-doctor/package.json'); if (pkg.version !== '1.20.5') throw new Error('Unexpected Expo Doctor version'); require.resolve('@expo/env')"
+      - name: Validate Expo project health
+        script: node node_modules/expo-doctor/bin/expo-doctor.js
+      - name: Generate iOS native project
+        script: CI=1 npx expo prebuild --platform ios --no-install
+      - name: Install CocoaPods dependencies
+        script: |
+          set -euo pipefail
+          cd ios
+          pod install
+      - name: Build unsigned iOS Simulator app
+        script: |
+          set -euo pipefail
+          xcodebuild -workspace ios/USEIT.xcworkspace -scheme USEIT -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO -derivedDataPath build/ios-simulator build
+    artifacts:
+      - build/ios-simulator/Build/Products/Release-iphonesimulator/*.app
+      - /tmp/xcodebuild_logs/*.log
