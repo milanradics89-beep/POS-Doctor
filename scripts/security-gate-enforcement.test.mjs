@@ -9,7 +9,7 @@ const verdictScript = fileURLToPath(new URL('./assert-fallow-audit-verdict.mjs',
 
 function jobBlock(source, name) {
   const lines = source.split(/\r?\n/);
-  const start = lines.findIndex((line) => line === \`  \${name}:\`);
+  const start = lines.findIndex((line) => line === '  ' + name + ':');
   if (start < 0) return '';
   const nextJob = lines.findIndex(
     (line, index) => index > start && /^  [A-Za-z0-9_-]+:$/.test(line),
