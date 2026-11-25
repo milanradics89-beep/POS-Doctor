@@ -16,54 +16,6 @@ permissions:
   contents: read
 
 jobs:
-  fallow:
-    name: Fallow codebase intelligence
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Setup Node for dependency-aware analysis
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version: 22
-          package-manager-cache: false
-      - name: Install project dependencies for complete analysis
-        run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Analyze TypeScript and JavaScript
-        id: fallow-audit
-        uses: fallow-rs/fallow@71369f80d099e25726ad04382f15aef14a251abc # v3.31.0
-        with:
-          version: 3.31.0
-          command: audit
-          format: human
-          fail-on-issues: true
-          sarif: false
-          comment: false
-      - name: Enforce a clean Fallow audit verdict
-        env:
-          FALLOW_AUDIT_VERDICT: ${{ steps.fallow-audit.outputs.verdict }}
-        run: node scripts/assert-fallow-audit-verdict.mjs
-
-  semgrep:
-    name: Semgrep Community static analysis
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-        with:
-          persist-credentials: false
-      - name: Scan with the Semgrep Community CI ruleset
-        run: |
-          docker run --rm \
-            --volume "${PWD}:/src" \
-            semgrep/semgrep@sha256:6e1b04340e60e910fbb4ddbf3c857ab0918f064417ad5ac530014ccb3cf8c8f1 \
-            semgrep scan --config p/ci --error --metrics=off /src
-
   zizmor:
     name: zizmor workflow security audit
     runs-on: ubuntu-24.04

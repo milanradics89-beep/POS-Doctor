@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const security = readFileSync(new URL('../.github/workflows/code-quality-security.yml', import.meta.url), 'utf8');
+const validation = readFileSync(new URL('../.github/workflows/validate.yml', import.meta.url), 'utf8');
 const recovery = readFileSync(new URL('../.github/workflows/ci-auto-recovery.yml', import.meta.url), 'utf8');
 const verdictScript = fileURLToPath(new URL('./assert-fallow-audit-verdict.mjs', import.meta.url));
 
@@ -20,12 +21,13 @@ function jobBlock(source, name) {
 
 describe('security workflow enforcement', () => {
   it('wires the actual Fallow audit verdict to a fail-closed gate', () => {
-    const fallow = jobBlock(security, 'fallow');
-    expect(fallow).toContain('id: fallow-audit');
-    expect(fallow).toContain('command: audit');
-    expect(fallow).toContain('fail-on-issues: true');
-    expect(fallow).toContain('FALLOW_AUDIT_VERDICT: ${{ steps.fallow-audit.outputs.verdict }}');
-    expect(fallow).toContain('node scripts/assert-fallow-audit-verdict.mjs');
+    const frontend = jobBlock(validation, 'frontend');
+    expect(frontend).toContain('id: fallow-audit');
+    expect(frontend).toContain('command: audit');
+    expect(frontend).toContain('fail-on-issues: true');
+    expect(frontend).toContain('FALLOW_AUDIT_VERDICT: ${{ steps.fallow-audit.outputs.verdict }}');
+    expect(frontend).toContain('node scripts/assert-fallow-audit-verdict.mjs');
+    expect(jobBlock(security, 'fallow')).toBe('');
   });
 
   it.each([
@@ -50,13 +52,14 @@ describe('security workflow enforcement', () => {
   });
 
   it('runs Semgrep with the error exit policy in the active job', () => {
-    const semgrep = jobBlock(security, 'semgrep');
-    expect(semgrep).toContain('semgrep scan --config p/ci --error --metrics=off /src');
+    const frontend = jobBlock(validation, 'frontend');
+    expect(frontend).toContain('semgrep scan --config p/ci --error --metrics=off /src');
+    expect(jobBlock(security, 'semgrep')).toBe('');
   });
 
   it('does not accept the Semgrep command when it appears only in a later job', () => {
     const requiredCommand = 'semgrep scan --config p/ci --error --metrics=off /src';
-    const withoutActiveCommand = security.replace(requiredCommand, 'echo active Semgrep command missing');
+    const withoutActiveCommand = validation.replace(requiredCommand, 'echo active Semgrep command missing');
     const laterOnly = `${withoutActiveCommand}
   semgrep_fallback:
     name: Disabled fallback Semgrep job
