@@ -18,7 +18,7 @@ describe('unsigned Android APK CI proof', () => {
     expect(build).toContain('cp "$SIGNED_APK" "$RUNNER_TEMP/useit-ci-smoke.apk"');
     expect(build).toContain('node scripts/prepare-unsigned-android-release.mjs android/app/build.gradle');
     expect(build).toContain('app-release-unsigned.apk');
-    expect(build).toContain('apksigner verify --verbose --print-certs');
+    expect(build).toContain('"$APKSIGNER" verify --verbose --print-certs');
     expect(build).toContain('node scripts/verify-unsigned-android-apk.mjs "$VERIFY_LOG" "$VERIFY_EXIT"');
     expect(build.indexOf('prepare-unsigned-android-release.mjs')).toBeGreaterThan(
       build.indexOf('./gradlew assembleRelease --no-daemon'),
