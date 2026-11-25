@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from './theme';
 import { productCardAccessibilityLabel } from './productAccessibility';
 
@@ -21,8 +21,8 @@ export function SectionHeader({ eyebrow, detail }: { eyebrow: string; detail?: s
   );
 }
 
-export function ProductCard({ title, category, source, price, onPress }: {
-  title: string; category: string; source: string; price?: number; onPress?: () => void;
+export function ProductCard({ title, category, source, price, imageUrl, onPress }: {
+  title: string; category: string; source: string; price?: number; imageUrl?: string; onPress?: () => void;
 }) {
   return (
     <Pressable
@@ -33,7 +33,7 @@ export function ProductCard({ title, category, source, price, onPress }: {
       disabled={!onPress}
       style={({ pressed }) => [styles.product, pressed && styles.pressed]}
     >
-      <View style={styles.productMark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><Text style={styles.productMarkText}>✳</Text></View>
+      {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.productImage} resizeMode="cover" accessibilityIgnoresInvertColors /> : <View style={styles.productMark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><Text style={styles.productMarkText}>✳</Text></View>}
       <View style={styles.productCopy}>
         <Text style={styles.productTitle} numberOfLines={2}>{title}</Text>
         <Text style={styles.productMeta} numberOfLines={1}>{category} · {source}</Text>
@@ -164,6 +164,7 @@ const styles = StyleSheet.create({
   detail: { color: theme.colors.subtle, fontSize: 8, fontWeight: '900', letterSpacing: 1 },
   product: { minHeight: 76, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.controlBorder, borderRadius: 18, padding: 12, marginBottom: 9, flexDirection: 'row', alignItems: 'center' },
   productMark: { width: 42, height: 42, borderRadius: 14, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' },
+  productImage: { width: 58, height: 58, borderRadius: 13, backgroundColor: theme.colors.surfaceMuted },
   productMarkText: { color: theme.colors.ink, fontSize: 20 },
   productCopy: { flex: 1, paddingHorizontal: 12 },
   productTitle: { color: theme.colors.ink, fontSize: 12, lineHeight: 17, fontWeight: '800' },
