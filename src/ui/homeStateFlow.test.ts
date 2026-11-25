@@ -49,3 +49,12 @@ describe('USEIT Home recovery-state integration', () => {
     expect(home).toContain('<StatePanel');
   });
 });
+
+
+  it('reuses an idempotency key for the same photo and intent retry, then clears it on success or new input', () => {
+    expect(home).toContain('analysisIdempotencyRef');
+    expect(home).toContain('existingIdempotency?.photo === photo && existingIdempotency.intent === intent');
+    expect(home).toContain('idempotencyKey');
+    expect(home).toContain('analysisIdempotencyRef.current = null;');
+    expect(home).toContain('error instanceof UseitApiError && error.status === 409');
+  });

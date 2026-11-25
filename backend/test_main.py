@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from backend import main
+from backend.idempotency_store import IdempotencyClaim, IdempotencyClaimResult, IdempotencyDecision
 
 client = TestClient(main.app)
 
@@ -109,3 +110,147 @@ def test_malformed_image_base64_is_rejected():
 def test_image_url_rejects_localhost_before_model_call():
     r = client.post('/v1/analyze', json={'imageUri': 'http://localhost:8000/image.jpg'})
     assert r.status_code == 422
+
+
+
+class FakeIdempotencyStore:
+    def __init__(self, decision=IdempotencyDecision.CLAIMED, *, completed=True, claim_error=None):
+        claim = IdempotencyClaim(document_id="a" * 64, lease_token="test-lease-token") if decision is IdempotencyDecision.CLAIMED else None
+        self.claim = AsyncMock(
+            return_value=IdempotencyClaimResult(decision=decision, claim=claim),
+            side_effect=claim_error,
+        )
+        self.mark_completed = AsyncMock(return_value=completed)
+        self.mark_outcome_unknown = AsyncMock(return_value=True)
+        self.release_before_provider_start = AsyncMock(return_value=True)
+
+
+def _patch_useit_response(monkeypatch, scene=None):
+    scene = scene or valid_output()
+    monkeypatch.setattr(main, "_get_client", lambda: Mock())
+    monkeypatch.setattr(main, "_analyze", AsyncMock(return_value=scene))
+    monkeypatch.setattr(main, "classify_intent", lambda *_: {"name": "improve", "confidence": 0.9})
+    monkeypatch.setattr(main, "rank_opportunities", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(main, "derive_scene_facts", lambda *_: [])
+    monkeypatch.setattr(main, "derive_scene_reasoning", lambda *_: [])
+    monkeypatch.setattr(main, "build_specialist_context", lambda *_: {"profile": "home-design"})
+
+
+def _idempotent_analysis_request():
+    return {"imageUri": "data:image/jpeg;base64," + "a" * 32, "userIntent": "improve"}
+
+
+def test_useit_analyze_requires_idempotency_key_when_firestore_store_is_enabled(monkeypatch):
+    store = FakeIdempotencyStore()
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    response = client.post("/v1/useit/analyze", json=_idempotent_analysis_request())
+    assert response.status_code == 428
+    store.claim.assert_not_awaited()
+
+
+def test_useit_analyze_claims_and_completes_same_request_key(monkeypatch):
+    store = FakeIdempotencyStore()
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    _patch_useit_response(monkeypatch)
+    key = "analysis-test-key-123456"
+    response = client.post(
+        "/v1/useit/analyze",
+        headers={"Idempotency-Key": key},
+        json=_idempotent_analysis_request(),
+    )
+    assert response.status_code == 200
+    assert response.json()["contractVersion"] == "useit_analyze_v1"
+    store.claim.assert_awaited_once()
+    claimed_key, fingerprint = store.claim.await_args.args
+    assert claimed_key == key
+    assert b"data:image/jpeg" in fingerprint
+    store.mark_completed.assert_awaited_once()
+    store.mark_outcome_unknown.assert_not_awaited()
+
+
+def test_useit_analyze_duplicate_does_not_call_openai(monkeypatch):
+    store = FakeIdempotencyStore(IdempotencyDecision.DUPLICATE)
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    analyze = AsyncMock()
+    monkeypatch.setattr(main, "_analyze", analyze)
+    response = client.post(
+        "/v1/useit/analyze",
+        headers={"Idempotency-Key": "analysis-test-key-123456"},
+        json=_idempotent_analysis_request(),
+    )
+    assert response.status_code == 409
+    analyze.assert_not_awaited()
+    store.mark_completed.assert_not_awaited()
+
+
+def test_useit_analyze_payload_mismatch_does_not_call_openai(monkeypatch):
+    store = FakeIdempotencyStore(IdempotencyDecision.PAYLOAD_MISMATCH)
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    analyze = AsyncMock()
+    monkeypatch.setattr(main, "_analyze", analyze)
+    response = client.post(
+        "/v1/useit/analyze",
+        headers={"Idempotency-Key": "analysis-test-key-123456"},
+        json=_idempotent_analysis_request(),
+    )
+    assert response.status_code == 409
+    analyze.assert_not_awaited()
+
+
+def test_useit_analyze_releases_claim_when_openai_client_is_not_configured(monkeypatch):
+    store = FakeIdempotencyStore()
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr(main, "_get_client", Mock(side_effect=RuntimeError("not configured")))
+    response = client.post(
+        "/v1/useit/analyze",
+        headers={"Idempotency-Key": "analysis-test-key-123456"},
+        json=_idempotent_analysis_request(),
+    )
+    assert response.status_code == 503
+    store.release_before_provider_start.assert_awaited_once()
+    store.mark_outcome_unknown.assert_not_awaited()
+
+
+def test_useit_analyze_marks_provider_outcome_unknown_after_failure(monkeypatch):
+    from fastapi import HTTPException
+
+    store = FakeIdempotencyStore()
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr(main, "_get_client", lambda: Mock())
+    monkeypatch.setattr(main, "_analyze", AsyncMock(side_effect=HTTPException(status_code=502, detail="Vision analysis failed.")))
+    response = client.post(
+        "/v1/useit/analyze",
+        headers={"Idempotency-Key": "analysis-test-key-123456"},
+        json=_idempotent_analysis_request(),
+    )
+    assert response.status_code == 502
+    store.mark_outcome_unknown.assert_awaited_once()
+    store.mark_completed.assert_not_awaited()
+
+
+def test_useit_analyze_fails_closed_when_firestore_claim_is_unavailable(monkeypatch):
+    store = FakeIdempotencyStore(claim_error=RuntimeError("emulator unavailable"))
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    analyze = AsyncMock()
+    monkeypatch.setattr(main, "_analyze", analyze)
+    response = client.post(
+        "/v1/useit/analyze",
+        headers={"Idempotency-Key": "analysis-test-key-123456"},
+        json=_idempotent_analysis_request(),
+    )
+    assert response.status_code == 503
+    analyze.assert_not_awaited()
+
+
+def test_useit_analyze_fails_closed_when_claim_completion_cannot_be_confirmed(monkeypatch):
+    store = FakeIdempotencyStore(completed=False)
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    _patch_useit_response(monkeypatch)
+    response = client.post(
+        "/v1/useit/analyze",
+        headers={"Idempotency-Key": "analysis-test-key-123456"},
+        json=_idempotent_analysis_request(),
+    )
+    assert response.status_code == 503
+    store.mark_completed.assert_awaited_once()
+    store.mark_outcome_unknown.assert_awaited_once()

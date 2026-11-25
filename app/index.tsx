@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
+import { UseitApiError, UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
+import { createIdempotencyKey } from '../src/core/intelligence/idempotencyKey';
 import type { ConsumerIntent, ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
@@ -52,6 +53,7 @@ export default function Home() {
   const [notice, setNotice] = useState<ScreenNotice | null>(null);
   const analysisControllerRef = useRef<AbortController | null>(null);
   const analysisRequestIdRef = useRef(0);
+  const analysisIdempotencyRef = useRef<{ photo: string; intent: ConsumerIntent | undefined; key: string } | null>(null);
   const redesign = result?.redesign ?? result?.phase3?.redesign;
 
   useEffect(() => () => {
@@ -79,6 +81,7 @@ export default function Home() {
       return;
     }
     cancelAnalysis();
+    analysisIdempotencyRef.current = null;
     setNotice(null);
     setPhoto(imageUri);
     setResult(null);
@@ -121,6 +124,7 @@ export default function Home() {
 
   const reset = () => {
     cancelAnalysis();
+    analysisIdempotencyRef.current = null;
     setPhoto(null);
     setResult(null);
     setRendered(null);
@@ -153,6 +157,12 @@ export default function Home() {
 
     if (!photo) return;
 
+    const existingIdempotency = analysisIdempotencyRef.current;
+    const idempotencyKey = existingIdempotency?.photo === photo && existingIdempotency.intent === intent
+      ? existingIdempotency.key
+      : createIdempotencyKey();
+    analysisIdempotencyRef.current = { photo, intent, key: idempotencyKey };
+
     const controller = new AbortController();
     const requestId = ++analysisRequestIdRef.current;
     analysisControllerRef.current = controller;
@@ -165,12 +175,21 @@ export default function Home() {
         new UseitApiProvider(API_URL),
         photo,
         intent,
-        { signal: controller.signal }
+        { signal: controller.signal, idempotencyKey }
       );
       if (controller.signal.aborted || requestId !== analysisRequestIdRef.current) return;
+      if (analysisIdempotencyRef.current?.key === idempotencyKey) analysisIdempotencyRef.current = null;
       setResult(response);
     } catch (error) {
       if (controller.signal.aborted || requestId !== analysisRequestIdRef.current || (error instanceof Error && error.name === 'AbortError')) return;
+      if (error instanceof UseitApiError && error.status === 409) {
+        setNotice({
+          kind: 'error',
+          title: 'Analysis already received',
+          description: 'This analysis request has already been accepted or is still processing. Choose a new photo or a different action to start another analysis.',
+        });
+        return;
+      }
       const kind = requestFailureKind(error);
       setNotice({
         kind,
