@@ -42,6 +42,7 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('PR #305 — Expo SDK 57.0.34 alignment merged');
       expect(section).toContain('b0af4e7d43acdb0ccaa809899f43d96d47712748');
       expect(section).toContain('252cb529e9fdb0cf7ef05bbb25a29ec94fca1cfc');
+      expect(section).toContain('281 (100 + 100 + 81; page 4 empty)');
       expect(section).toContain('45521231491');
       expect(section).toContain('45521231436');
       expect(section).toContain('45521231462');
@@ -64,23 +65,23 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('e89ca4d78082ef8df447388223a62fc8ae7ee95d');
       expect(section).toContain('45461939876');
       expect(section).toContain('Expo Doctor (20/21)');
-      expect(section).toContain('superseded HEAD b3533ca');
+      expect(section).toContain("The PR description's claim of HEAD b3533ca and 3/3 successful workflows is stale");
     }
   });
 
   it('records PR #204 current-head failure separately from its validated parent', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #204 is OPEN/DRAFT');
+      expect(section).toContain('e2b077f30c45386d142881932ce2fae7e40a7707');
+      expect(section).toMatch(/Validation \[45550259837\]\([^)]*\) is terminal FAILURE/);
+      expect(section).toMatch(/CodeQL \[45550259874\]\([^)]*\) and Dependency Review \[45550259796\]\([^)]*\) are terminal SUCCESS/);
+      expect(section).toContain('343 passed / 2 failed across 74 files');
+      expect(section).toContain('Two assertions remain');
+      expect(section).toContain('05:52 CET snapshot');
       expect(section).toContain('46955eb3b27878d02e2835a4a6fe4ce54d85db37');
-      expect(section).toMatch(/Validation \[45540368306\]\([^)]*\) is terminal FAILURE/);
-      expect(section).toMatch(/CodeQL \[45540368268\]\([^)]*\) and Dependency Review \[45540368335\]\([^)]*\) are terminal SUCCESS/);
-      expect(section).toContain('337 passed / 7 failed across 74 files');
-      expect(section).toContain('03:19 CET checkpoint marker');
-      expect(section).toContain('04:25 CET checkpoint');
-      expect(section).toContain('fe8b0d0e3e412dfd81005a828ccfc77a2506132e');
-      expect(section).toContain('45532839638');
-      expect(section).toContain('45532839715');
-      expect(section).toContain('45532839650');
+      expect(section).toContain('45540368306');
+      expect(section).toContain('45540368268');
+      expect(section).toContain('45540368335');
     }
   });
 
@@ -101,6 +102,8 @@ describe('current-main release evidence checkpoint', () => {
       expect(section).toContain('Gitleaks');
       expect(section).toContain('Fallow');
       expect(section).toContain('zizmor');
+      expect(section).toContain('deletes scripts/expo-sdk57-lock-refresh.test.mjs');
+      expect(section).toContain('preserve or migrate all 11 existing regression cases before integration');
     }
   });
 
@@ -125,8 +128,8 @@ describe('current-main release evidence checkpoint', () => {
     for (const section of latestSections) {
       expect(section).toContain('UNVERIFIED, NOT EMPTY');
       expect(section).toContain('0 published releases');
-      expect(section).toContain('Issue #47 is CLOSED with 11 comments');
-      expect(section).toContain('Issue #64 remains OPEN with 139 comments');
+      expect(section).toContain('Issue [#47](https://github.com/milanradics89-beep/USEIT/issues/47) is CLOSED with 11 comments');
+      expect(section).toContain('Issue [#64](https://github.com/milanradics89-beep/USEIT/issues/64) remains OPEN with 139 comments');
       expect(section).toContain('Release decision: NOT READY');
       expect(section).toContain('Production/pilot acceptance: NOT GRANTED');
       for (const item of ['#2', '#4', '#5', '#16', '#18', '#21', '#22', '#25']) {
