@@ -34,6 +34,15 @@ describe('remote mobile API build configuration', () => {
     expect(String(fetchMock.mock.calls[1][0])).toBe('https://api.useit.example/ready');
   });
 
+  it('preserves a configured backend path prefix during readiness probes', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'ok' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'ready' }), { status: 200 }));
+    await expect(verifyBackendReady('https://api.useit.example/backend', fetchMock)).resolves.toBeUndefined();
+    expect(String(fetchMock.mock.calls[0][0])).toBe('https://api.useit.example/backend/health');
+    expect(String(fetchMock.mock.calls[1][0])).toBe('https://api.useit.example/backend/ready');
+  });
+
   it('blocks builds when the backend readiness endpoint is unavailable', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'ok' }), { status: 200 }))
