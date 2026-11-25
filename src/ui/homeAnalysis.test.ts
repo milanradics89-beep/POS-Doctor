@@ -25,8 +25,6 @@ describe('Home analysis orchestration helpers', () => {
       kind: 'error',
       title: 'Analysis already received',
       description: 'This analysis request has already been accepted or is still processing. Choose a new photo or a different action to start another analysis.',
-      actionLabel: '',
-      actionAccessibilityHint: '',
     });
   });
 
