@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import re
@@ -71,6 +72,11 @@ class FirestoreIdempotencyStore:
         self._ttl_seconds = ttl_seconds
         self._collection = collection
         self._clock = clock
+        # One private probe document per store instance avoids cross-instance
+        # collisions while keeping failed cleanup bounded to one non-user record.
+        self._health_probe_document_id = f"__health__{secrets.token_hex(16)}"
+        self._health_probe_lock = asyncio.Lock()
+        self._write_capability_verified = False
 
     def _digest(self, purpose: bytes, value: bytes) -> str:
         return hmac.new(self._secret, purpose + b"\0" + value, hashlib.sha256).hexdigest()
@@ -203,7 +209,80 @@ class FirestoreIdempotencyStore:
         return await finish_in_transaction(self._client.transaction(max_attempts=5))
 
     async def check_connection(self) -> bool:
-        # Read a reserved, non-user document. Readiness never creates a document
-        # or mutates a live idempotency record.
-        await self._client.collection(self._collection).document("__health__").get()
-        return True
+        """Verify transaction read/create/update/delete capability without touching claims.
+
+        The first readiness probe performs a bounded write lifecycle against a
+        random, per-instance health document. The document contains no user data
+        and is deleted before readiness succeeds. Later probes perform a cheap
+        read-only connectivity check after the write capability has been proven.
+        """
+        reference = self._client.collection(self._collection).document(self._health_probe_document_id)
+        async with self._health_probe_lock:
+            if self._write_capability_verified:
+                snapshot = await asyncio.wait_for(reference.get(), timeout=5.0)
+                if snapshot.exists:
+                    raise RuntimeError("Firestore readiness probe document was not cleaned up.")
+                return True
+
+            probe_token = secrets.token_urlsafe(32)
+            now = self._now()
+            expires_at = now + timedelta(minutes=5)
+
+            async def run_probe_transaction(operation):
+                return await asyncio.wait_for(
+                    operation(self._client.transaction(max_attempts=5)),
+                    timeout=5.0,
+                )
+
+            @async_transactional
+            async def remove_stale_probe(transaction):
+                snapshot = await reference.get(transaction=transaction)
+                if snapshot.exists:
+                    transaction.delete(reference)
+
+            # Recover a bounded probe left behind by an interrupted startup.
+            # If delete permission is absent, readiness remains failed closed.
+            await run_probe_transaction(remove_stale_probe)
+
+            @async_transactional
+            async def create_probe(transaction):
+                snapshot = await reference.get(transaction=transaction)
+                if snapshot.exists:
+                    raise RuntimeError("Firestore readiness probe document already exists.")
+                transaction.set(
+                    reference,
+                    {
+                        "schema_version": 1,
+                        "status": "health_probe",
+                        "probe_token": probe_token,
+                        "created_at": now,
+                        "updated_at": now,
+                        "expires_at": expires_at,
+                    },
+                )
+
+            await run_probe_transaction(create_probe)
+
+            @async_transactional
+            async def update_probe(transaction):
+                snapshot = await reference.get(transaction=transaction)
+                existing = snapshot.to_dict() or {}
+                stored_token = existing.get("probe_token")
+                if not snapshot.exists or not isinstance(stored_token, str) or not hmac.compare_digest(stored_token, probe_token):
+                    raise RuntimeError("Firestore readiness probe could not verify its write.")
+                transaction.update(reference, {"updated_at": self._now()})
+
+            await run_probe_transaction(update_probe)
+
+            @async_transactional
+            async def delete_probe(transaction):
+                snapshot = await reference.get(transaction=transaction)
+                existing = snapshot.to_dict() or {}
+                stored_token = existing.get("probe_token")
+                if not snapshot.exists or not isinstance(stored_token, str) or not hmac.compare_digest(stored_token, probe_token):
+                    raise RuntimeError("Firestore readiness probe could not verify its cleanup.")
+                transaction.delete(reference)
+
+            await run_probe_transaction(delete_probe)
+            self._write_capability_verified = True
+            return True

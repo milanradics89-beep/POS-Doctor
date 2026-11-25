@@ -153,6 +153,23 @@ async def test_firestore_document_contains_only_hmacs_and_lifecycle_metadata():
 
 
 @pytest.mark.asyncio
+async def test_check_connection_verifies_transactional_write_and_removes_probe():
+    collection, first_client, second_client, first, second = await _new_pair()
+    try:
+        assert await first.check_connection() is True
+        probe = first_client.collection(collection).document(first._health_probe_document_id)
+        assert (await probe.get()).exists is False
+
+        # The capability is cached for this process; later readiness checks are
+        # read-only and must not recreate the temporary document.
+        assert await first.check_connection() is True
+        assert (await probe.get()).exists is False
+        assert first._write_capability_verified is True
+    finally:
+        await _close_pair(collection, first_client, second_client)
+
+
+@pytest.mark.asyncio
 async def test_invalid_keys_and_ttl_are_rejected_before_firestore_access():
     collection, first_client, second_client, first, second = await _new_pair()
     try:
