@@ -33,7 +33,7 @@ async function verifyBackendReady(baseUrl, fetchImpl = fetch) {
   for (const path of ['/health', '/ready']) {
     let response;
     try {
-      response = await fetchImpl(new URL(path, baseUrl), {
+      response = await fetchImpl(new URL(path.slice(1), `${baseUrl}/`), {
         method: 'GET',
         headers: { Accept: 'application/json' },
         signal: AbortSignal.timeout(10_000),
