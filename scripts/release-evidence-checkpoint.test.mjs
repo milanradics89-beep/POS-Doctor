@@ -39,7 +39,7 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records the merged Expo 57.0.34 baseline and post-merge main validation', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #305 — Expo SDK 57.0.34 alignment merged');
+      expect(section).toContain('### PR #305 — Expo SDK 57.0.34 merged');
       expect(section).toContain('b0af4e7d43acdb0ccaa809899f43d96d47712748');
       expect(section).toContain('252cb529e9fdb0cf7ef05bbb25a29ec94fca1cfc');
       expect(section).toContain('286 (100 + 100 + 86; page 4 empty)');
@@ -55,7 +55,7 @@ describe('current-main release evidence checkpoint', () => {
 
   it('records current exact-head states for PRs #288 and #249', () => {
     for (const section of latestSections) {
-      expect(section).toContain('PR #288 is OPEN and non-draft');
+      expect(section).toContain('PR #288 is OPEN/non-draft');
       expect(section).toContain('77e964b91aca17bf42fddf6bf69639f24733b86b');
       expect(section).toContain('45532871751');
       expect(section).toContain('45532871933');
@@ -72,11 +72,11 @@ describe('current-main release evidence checkpoint', () => {
   it('records PR #204 current exact-head failure and previous success separately', () => {
     for (const section of latestSections) {
       expect(section).toContain('PR #204 is OPEN/DRAFT');
-      expect(section).toContain('f9c9a8ad2208db5312804dbc58c538f9553ec95d');
-      expect(section).toContain('Validation [45567377367](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377367) is terminal FAILURE');
-      expect(section).toContain('CodeQL [45567377260](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377260) is terminal SUCCESS');
-      expect(section).toContain('Dependency Review [45567377312](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377312) is terminal SUCCESS');
-      expect(section).toContain('Frontend: FAILURE (341 passed / 5 failed across 74 files)');
+      expect(section).toContain('464941ea556921fb5c4013cf2a2d5dbf9b23ccbf');
+      expect(section).toContain('Validation [45586783375](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377367) is terminal FAILURE');
+      expect(section).toContain('CodeQL [45586783160](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377260) is terminal SUCCESS');
+      expect(section).toContain('Dependency Review [45586783229](https://github.com/milanradics89-beep/USEIT/actions/runs/45567377312) is terminal SUCCESS');
+      expect(section).toContain('Frontend: FAILURE (342 passed / 5 failed across 74 files)');
       expect(section).toContain('Backend: SUCCESS');
       expect(section).toContain('iOS: SUCCESS');
       expect(section).toContain('previous exact HEAD d3d532182b26f0d3c024dfadca5cddbda95a0797 passed all three exact-head workflows');
