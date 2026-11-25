@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "guard:useit": "node scripts/useit-boundary.mjs"
+    "guard:useit": "node scripts/useit-boundary.mjs",
+    "validate:mobile-config": "node scripts/validate-mobile-api-config.mjs"
   },
   "dependencies": {
     "deepmerge": "file:vendor/deepmerge",
