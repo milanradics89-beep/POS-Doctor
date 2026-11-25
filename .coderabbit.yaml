@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# USEIT repository review policy
+language: "en-US"
+early_access: false
+tone_instructions: "Be concise and evidence-driven. Prioritize correctness, security, privacy, data integrity, and reliability over style."
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: true
+    auto_incremental_review: true
+  path_instructions:
+    - path: "**/.github/workflows/**"
+      instructions: >
+        Check least-privilege permissions, untrusted pull_request and
+        workflow_run boundaries, token exposure, cache poisoning, immutable
+        action SHA pins, and artifact handling. Never recommend weakening
+        branch protection or suppressing valid security findings.
+    - path: "**/*.{ts,tsx,js,jsx}"
+      instructions: >
+        Review React Native and Expo code for runtime correctness, permission
+        handling, secure storage, privacy, lifecycle cleanup, accessibility,
+        and Android/iOS differences. Flag unsafe device identifiers, location,
+        network data, and credential handling.
+    - path: "**/*.py"
+      instructions: >
+        Review backend authentication and authorization, input validation,
+        injection risks, secret handling, transaction integrity, concurrency,
+        and safe error responses. Check security-sensitive test coverage.
+    - path: "**/*test*"
+      instructions: >
+        Check observable behavior and meaningful failure cases. Never suggest
+        deleting, skipping, weakening, or broadly mocking tests to make CI pass.
