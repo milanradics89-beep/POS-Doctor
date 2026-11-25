@@ -61,7 +61,7 @@ describe('USEIT shared component accessibility', () => {
   });
 
   it('announces dynamic state panels to VoiceOver without grouping recovery actions', () => {
-    expect(source).toContain("import { AccessibilityInfo, ActivityIndicator, Animated, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';");
+    expect(source).toContain("import { AccessibilityInfo, ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';");
     expect(source).toContain("if (Platform.OS === 'ios')");
     expect(source).toContain("AccessibilityInfo.announceForAccessibility(`${title}. ${description}`)");
     expect(source).toContain('}, [kind, title, description]);');
