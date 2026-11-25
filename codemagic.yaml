@@ -4,6 +4,8 @@ workflows:
     max_build_duration: 90
     instance_type: mac_mini_m2
     environment:
+      groups:
+        - useit-production
       vars:
         EXPO_NO_TELEMETRY: "1"
       node: 22
@@ -50,6 +52,8 @@ workflows:
     max_build_duration: 90
     instance_type: mac_mini_m2
     environment:
+      groups:
+        - useit-production
       vars:
         EXPO_NO_TELEMETRY: "1"
       node: 22
