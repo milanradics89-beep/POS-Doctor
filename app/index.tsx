@@ -22,6 +22,7 @@ import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
 import { requestFailureKind } from '../src/ui/requestFailure';
 import { validateImageUri } from '../src/core/intelligence/imageInput';
+import { normalizeImageAsset } from '../src/core/intelligence/imageNormalization';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -66,8 +67,7 @@ export default function Home() {
     setBusy(false);
   }
 
-  function setSelectedPhoto(base64: string, mimeType: string) {
-    const imageUri = `data:${mimeType};base64,${base64}`;
+  function setSelectedPhoto(imageUri: string) {
     try {
       validateImageUri(imageUri);
     } catch (error) {
@@ -83,6 +83,19 @@ export default function Home() {
     setPhoto(imageUri);
     setResult(null);
     setRendered(null);
+  }
+
+  async function prepareAndSelectPhoto(uri: string, width: number, height: number, failureDescription: string) {
+    try {
+      const normalized = await normalizeImageAsset(uri, width, height);
+      setSelectedPhoto(normalized.dataUrl);
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: error instanceof Error ? error.message : failureDescription,
+      });
+    }
   }
 
   const reset = () => {
@@ -222,8 +235,8 @@ export default function Home() {
     setNotice(null);
     const r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      base64: true,
+      quality: 1,
+      base64: false,
       allowsMultipleSelection: false,
     });
 
@@ -231,18 +244,12 @@ export default function Home() {
 
     const a = r.assets[0];
 
-    if (!a.base64) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'USEIT could not read this image. Choose the photo again.',
-        actionLabel: 'CHOOSE AGAIN',
-        onAction: () => { void chooseGallery(); },
-      });
-      return;
-    }
-
-    setSelectedPhoto(a.base64, a.mimeType || 'image/jpeg');
+    await prepareAndSelectPhoto(
+      a.uri,
+      a.width,
+      a.height,
+      'USEIT could not decode this image. Choose a different photo.'
+    );
   }
 
   async function capture() {
@@ -271,26 +278,20 @@ export default function Home() {
     setNotice(null);
     const r = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      base64: true,
+      quality: 1,
+      base64: false,
     });
 
     if (r.canceled) return;
 
     const a = r.assets[0];
 
-    if (!a.base64) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'USEIT could not read the captured image. Try taking it again.',
-        actionLabel: 'TAKE AGAIN',
-        onAction: () => { void capture(); },
-      });
-      return;
-    }
-
-    setSelectedPhoto(a.base64, a.mimeType || 'image/jpeg');
+    await prepareAndSelectPhoto(
+      a.uri,
+      a.width,
+      a.height,
+      'USEIT could not decode the captured image. Try taking it again.'
+    );
   }
 
   const noticePanel = notice ? (
