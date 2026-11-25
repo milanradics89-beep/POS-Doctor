@@ -15,7 +15,7 @@ describe('isVerifiedUnsignedApk', () => {
     expect(
       isVerifiedUnsignedApk({
         exitCode: 1,
-        output: 'DOES NOT VERIFY\\nERROR: Missing META-INF/MANIFEST.MF\\n',
+        output: 'DOES NOT VERIFY\nERROR: Missing META-INF/MANIFEST.MF\n',
         hasSigningBlock: false,
         hasJarSignatures: false,
       }),
@@ -23,7 +23,7 @@ describe('isVerifiedUnsignedApk', () => {
   });
 
   it('rejects signature material even when apksigner reports a missing manifest', () => {
-    const output = 'DOES NOT VERIFY\\nERROR: Missing META-INF/MANIFEST.MF\\n';
+    const output = 'DOES NOT VERIFY\nERROR: Missing META-INF/MANIFEST.MF\n';
     expect(isVerifiedUnsignedApk({
       exitCode: 1, output, hasSigningBlock: true, hasJarSignatures: false,
     })).toBe(false);
