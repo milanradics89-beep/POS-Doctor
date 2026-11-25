@@ -21,6 +21,7 @@ permissions:
 concurrency:
   group: useit-ci-recovery-${{ inputs.operation }}-${{ inputs.operation == 'report-repeated-failure' && 'shared-diagnostic-issue' || inputs.run_id }}
   cancel-in-progress: false
+  queue: max
 
 jobs:
   retry-transient-failures:
