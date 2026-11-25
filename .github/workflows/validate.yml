@@ -67,6 +67,32 @@ jobs:
           PY
           cd android
           ./gradlew assembleRelease --no-daemon
+          cd ..
+          SIGNED_APK="android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$SIGNED_APK"
+          cp "$SIGNED_APK" "$RUNNER_TEMP/useit-ci-smoke.apk"
+          node scripts/prepare-unsigned-android-release.mjs android/app/build.gradle
+          rm -rf android/app/build/outputs/apk/release
+          (
+            cd android
+            ./gradlew assembleRelease --no-daemon
+          )
+          UNSIGNED_APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          test -s "$UNSIGNED_APK"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$SDK_ROOT"
+          APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner -perm -111 -print | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+          test -x "$APKSIGNER"
+          VERIFY_LOG="$RUNNER_TEMP/useit-unsigned-apk-verification.log"
+          VERIFY_EXIT=0
+          if "$APKSIGNER" verify --verbose --print-certs "$UNSIGNED_APK" >"$VERIFY_LOG" 2>&1; then
+            VERIFY_EXIT=0
+          else
+            VERIFY_EXIT=$?
+          fi
+          node scripts/verify-unsigned-android-apk.mjs "$VERIFY_LOG" "$VERIFY_EXIT"
+          cat "$VERIFY_LOG"
       - name: Enable KVM for Android emulator
         shell: bash
         run: |
@@ -216,7 +242,7 @@ jobs:
             exit 1
           fi
 
-          APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
+          APK_PATH="$RUNNER_TEMP/useit-ci-smoke.apk"
           test -f "$APK_PATH"
           PACKAGE_NAME="$("$AAPT_BIN" dump badging "$APK_PATH" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
           test -n "$PACKAGE_NAME"
