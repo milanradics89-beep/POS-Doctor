@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -21,6 +21,7 @@ import { BrandMark, FadeIn, ProductCard, SectionHeader, StatePanel } from '../sr
 import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
 import { requestFailureKind } from '../src/ui/requestFailure';
+import { validateImageUri } from '../src/core/intelligence/imageInput';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -48,9 +49,44 @@ export default function Home() {
   const [rendered, setRendered] = useState<string | null>(null);
   const [result, setResult] = useState<ConsumerAnalysis | null>(null);
   const [notice, setNotice] = useState<ScreenNotice | null>(null);
+  const analysisControllerRef = useRef<AbortController | null>(null);
+  const analysisRequestIdRef = useRef(0);
   const redesign = result?.redesign ?? result?.phase3?.redesign;
 
+  useEffect(() => () => {
+    analysisRequestIdRef.current += 1;
+    analysisControllerRef.current?.abort();
+    analysisControllerRef.current = null;
+  }, []);
+
+  function cancelAnalysis() {
+    analysisRequestIdRef.current += 1;
+    analysisControllerRef.current?.abort();
+    analysisControllerRef.current = null;
+    setBusy(false);
+  }
+
+  function setSelectedPhoto(base64: string, mimeType: string) {
+    const imageUri = `data:${mimeType};base64,${base64}`;
+    try {
+      validateImageUri(imageUri);
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: error instanceof Error ? error.message : 'Choose a smaller supported photo.',
+      });
+      return;
+    }
+    cancelAnalysis();
+    setNotice(null);
+    setPhoto(imageUri);
+    setResult(null);
+    setRendered(null);
+  }
+
   const reset = () => {
+    cancelAnalysis();
     setPhoto(null);
     setResult(null);
     setRendered(null);
@@ -71,6 +107,7 @@ export default function Home() {
   }
 
   async function analyze(intent?: OpportunityKind) {
+    if (analysisControllerRef.current) return;
     if (!API_URL) {
       setNotice({
         kind: 'error',
@@ -82,6 +119,9 @@ export default function Home() {
 
     if (!photo) return;
 
+    const controller = new AbortController();
+    const requestId = ++analysisRequestIdRef.current;
+    analysisControllerRef.current = controller;
     setBusy(true);
     setRendered(null);
     setNotice(null);
@@ -90,10 +130,13 @@ export default function Home() {
       const response = await analyzeForConsumer(
         new UseitApiProvider(API_URL),
         photo,
-        intent
+        intent,
+        { signal: controller.signal }
       );
+      if (controller.signal.aborted || requestId !== analysisRequestIdRef.current) return;
       setResult(response);
     } catch (error) {
+      if (controller.signal.aborted || requestId !== analysisRequestIdRef.current || (error instanceof Error && error.name === 'AbortError')) return;
       const kind = requestFailureKind(error);
       setNotice({
         kind,
@@ -108,7 +151,10 @@ export default function Home() {
         onAction: () => { void analyze(intent); },
       });
     } finally {
-      setBusy(false);
+      if (requestId === analysisRequestIdRef.current) {
+        analysisControllerRef.current = null;
+        setBusy(false);
+      }
     }
   }
 
@@ -196,10 +242,7 @@ export default function Home() {
       return;
     }
 
-    setNotice(null);
-    setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
-    setResult(null);
-    setRendered(null);
+    setSelectedPhoto(a.base64, a.mimeType || 'image/jpeg');
   }
 
   async function capture() {
@@ -247,11 +290,7 @@ export default function Home() {
       return;
     }
 
-    setNotice(null);
-    setPhoto(`data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`);
-    setResult(null);
-    setRendered(null);
-    setNotice(null);
+    setSelectedPhoto(a.base64, a.mimeType || 'image/jpeg');
   }
 
   const noticePanel = notice ? (
