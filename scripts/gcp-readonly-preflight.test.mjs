@@ -10,6 +10,12 @@ describe('USEIT GCP read-only preflight', () => {
     expect(script).toContain('No active gcloud credential');
   });
 
+  it('supports the macOS system Bash 3.2 without Bash-4-only array helpers', () => {
+    expect(script).toContain('ACTIVE_ACCOUNTS=()');
+    expect(script).toContain('while IFS= read -r account; do');
+    expect(script).not.toMatch(/\\b(?:mapfile|readarray)\\b/);
+  });
+
   it('inventories the approved infrastructure without reading secret values', () => {
     for (const command of [
       'gcloud billing projects describe',

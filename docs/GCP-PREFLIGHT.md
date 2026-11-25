@@ -8,7 +8,7 @@ Use only the owner-designated project: fresh-weft-447913-u6. Do not create a rep
 
 ## Run the read-only inventory
 
-Requirements: Google Cloud CLI, an interactively authenticated account with read access, and Bash.
+Requirements: Google Cloud CLI, an interactively authenticated account with read access, and Bash 3.2 or newer (including the macOS system Bash).
 
     bash scripts/gcp-readonly-preflight.sh
 

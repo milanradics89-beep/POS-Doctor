@@ -23,8 +23,12 @@ run_inventory() {
 }
 
 command -v gcloud >/dev/null 2>&1 || fail "Google Cloud CLI (gcloud) is not installed."
-mapfile -t ACTIVE_ACCOUNTS < <(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null || true)
-[[ ${#ACTIVE_ACCOUNTS[@]} -gt 0 && -n "${ACTIVE_ACCOUNTS[0]}" ]] || fail "No active gcloud credential. Authenticate interactively, then rerun this read-only preflight."
+ACTIVE_ACCOUNTS=()
+while IFS= read -r account; do
+  [[ -n "$account" ]] && ACTIVE_ACCOUNTS+=("$account")
+done < <(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null || true)
+[[ ${#ACTIVE_ACCOUNTS[@]} -gt 0 ]] || fail "No active gcloud credential. Authenticate interactively, then rerun this read-only preflight."
+[[ -n "${ACTIVE_ACCOUNTS[0]}" ]] || fail "No active gcloud credential. Authenticate interactively, then rerun this read-only preflight."
 
 printf 'USEIT GCP READ-ONLY PREFLIGHT\n'
 printf 'Target project: %s\n' "$PROJECT_ID"
