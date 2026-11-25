@@ -67,3 +67,24 @@ describe('isVerifiedUnsignedApk', () => {
     ).toBe(false);
   });
 });
+
+import { hasApkSigningBlock, hasJarSignatureEntries } from './verify-unsigned-android-apk.mjs';
+
+describe('APK signing structure checks', () => {
+  it('detects v1 signature files', () => {
+    expect(hasJarSignatureEntries(['META-INF/MANIFEST.MF', 'classes.dex'])).toBe(true);
+    expect(hasJarSignatureEntries(['META-INF/CERT.SF', 'META-INF/CERT.RSA'])).toBe(true);
+    expect(hasJarSignatureEntries(['META-INF/services/provider'])).toBe(false);
+  });
+
+  it('detects APK Signing Block before the ZIP central directory', () => {
+    const apk = Buffer.alloc(128);
+    const cd = 80;
+    apk.writeUInt32LE(0x02014b50, cd);
+    Buffer.from('APK Sig Block 42', 'ascii').copy(apk, cd - 16);
+    const eocd = 106;
+    apk.writeUInt32LE(0x06054b50, eocd);
+    apk.writeUInt32LE(cd, eocd + 16);
+    expect(hasApkSigningBlock(apk)).toBe(true);
+  });
+});
