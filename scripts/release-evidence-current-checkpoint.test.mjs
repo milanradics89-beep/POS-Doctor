@@ -46,8 +46,12 @@ describe('current release evidence checkpoint', () => {
       '45723475105', '45723475050', '45723475048', '45723475166',
       '809b97744abbb5075ec896d02e79b31ebd23706c',
       '45717661072', '45717661086', '45717661270', '45717661069',
-      'abe19faac6b05449bf37f6531bba9853c7bb5172',
-      '45708952090', '45708952378', '45708952349', '45708952695',
+      'f0c7d4561f449ce640bcaa813e84d0bd0a5b275e',
+      '45748693636', '45748693477', '45748693458', '45748693481',
+      '707b4bbd7163aa36e73ca8fb2210cca2cb1e7d81',
+      '45743545603', '45743545596', '45743545518', '45743545623',
+      '5d026cb62e0626e59e3fdf686fca0e7f6981d780',
+      '45743617132', '45743617056', '45743617033', '45743617016',
     ]) expect(section).toContain(value);
     expect(section).toContain('failed audit verdict');
     expect(section).toContain('fail-on-issues: false');
@@ -68,6 +72,17 @@ describe('current release evidence checkpoint', () => {
       counts[status]++;
     }
     expect(counts).toEqual({ Done: 3, 'In Progress': 15, Blocked: 7 });
+  });
+
+  it('records the stacked Home refactor and validated documentation candidate on their own exact heads', () => {
+    const section = sections[0];
+    expect(section).toContain('stacked child PR #339');
+    expect(section).toContain('PR #339');
+    expect(section).toContain('PR #340');
+    expect(section).toContain('FALLOW_GATES_PASSED: audit-verdict');
+    expect(section).toContain('fail-on-issues: true');
+    expect(section).toContain('semgrep scan --config p/ci --error');
+    expect(section).toContain('new child of validated parent');
   });
 
   it('keeps production blockers and unavailable alert inventories explicit', () => {
