@@ -43,11 +43,13 @@ docker build --pull --file backend/Dockerfile --tag useit-backend:local .
 ```
 
 The image runs Uvicorn on the Cloud Run-provided `PORT` (default `8080`) as a
-non-root user. The build does not receive, copy, or bake runtime secrets into the
-image. The root `.dockerignore` excludes environment files and, under `backend/`,
-credential/secret directories, JSON files, private keys, certificates,
-and local database files, in addition to tests, local tooling, and frontend assets.
-Keep runtime credentials outside the repository wherever possible.
+non-root user. The root `.dockerignore` excludes common secret-bearing patterns,
+including environment files, credential/secret directories, JSON credential files,
+private keys, certificates, token/credential text files, and local database files.
+These exclusions are a defence-in-depth filter, not a guarantee that arbitrary
+secret files are detected. **Never place runtime credentials anywhere inside the
+Docker build context or repository.** Supply them at runtime through the approved
+secret manager; inspect the build context before any local image is shared.
 
 A GitHub Actions workflow builds the image on pull requests and mainline changes
 that affect the backend/container definition. It builds only and does not publish
