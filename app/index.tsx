@@ -430,6 +430,9 @@ export default function Home() {
                 kind="loading"
                 title="Understanding your photo"
                 description="USEIT is analyzing the image and preparing your next step."
+                actionLabel="CANCEL ANALYSIS"
+                actionAccessibilityHint="Stops the current image analysis and returns to the selected photo."
+                onAction={cancelAnalysis}
               />
               </FadeIn>
             ) : rendering ? (
