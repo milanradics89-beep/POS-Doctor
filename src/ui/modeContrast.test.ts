@@ -27,11 +27,20 @@ function contrastRatio(foreground: string, background: string): number {
 }
 
 describe('USEIT SURPRISE mode contrast', () => {
-  it('applies the light foreground styles to every label and symbol on the graphite tile', () => {
-    expect(home).toContain("a === 'surprise' ? s.modeSurprise : null");
-    expect(home.match(/s\.modeSurpriseForeground/g)).toHaveLength(3);
+  it('binds the contrast override to every visible element on the SURPRISE tile', () => {
+    const expectedBindings = [
+      'style={[s.modeIcon, a === \'surprise\' ? s.modeSurpriseForeground : null]}',
+      'style={[s.modeArrow, a === \'surprise\' ? s.modeSurpriseForeground : null]}',
+      'style={[s.modeTitle, a === \'surprise\' ? s.modeSurpriseForeground : null]}',
+      'style={[s.modeDesc, a === \'surprise\' ? s.modeSurpriseDescription : null]}',
+    ];
+
+    for (const binding of expectedBindings) {
+      expect(home).toContain(binding);
+    }
+
+    expect(home).toContain(`a === 'surprise' ? s.modeSurprise : null`);
     expect(home).toContain('modeSurpriseForeground: { color: theme.colors.surface }');
-    expect(home.match(/s\.modeSurpriseDescription/g)).toHaveLength(1);
     expect(home).toContain('modeSurpriseDescription: { color: theme.colors.surfaceMuted }');
   });
 
