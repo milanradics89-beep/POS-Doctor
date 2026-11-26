@@ -27,6 +27,12 @@ backend/**/secrets/
 backend/**/*.json
 backend/**/*.pem
 backend/**/*.key
+backend/**/*.p8
+backend/**/*.crt
+backend/**/*.cer
+backend/**/*.der
+backend/**/*.jks
+backend/**/*.keystore
 backend/**/*.p12
 backend/**/*.pfx
 backend/**/*.db
