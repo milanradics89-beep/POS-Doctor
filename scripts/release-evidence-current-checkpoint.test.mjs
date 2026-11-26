@@ -66,6 +66,14 @@ describe('current release evidence checkpoint', () => {
     expect(section).toContain('Validation [45759191651]');
     expect(section).toContain('all four exact-head workflows are terminal SUCCESS');
     expect(section).toContain('396 passed across 81 test files');
+    expect(section).toContain('Pre-write HEAD and live branch ref were `5a303b564bf4275469d154f0fbd4868918c5e96d`');
+    expect(section).toContain('Validation [45774286476]');
+    expect(section).toContain('CodeQL [45774286247]');
+    expect(section).toContain('Dependency Review [45774286475]');
+    expect(section).toContain('Quality/Security [45774286453]');
+    expect(section).toContain('56 task checkboxes, 0 checked / 56 open');
+    expect(section).toContain('PR [#314]');
+    expect(section).toContain('exact-head Actions lookup returned **0 workflow runs**');
   });
 
   it('contains exactly 25 rows with the canonical 3 / 15 / 7 distribution', () => {
