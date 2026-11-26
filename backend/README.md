@@ -65,7 +65,10 @@ and validated against the approved Firestore design before a stateless multi-ins
 Cloud Run deployment. Do not set production to memory rate limiting, use local SQLite
 as persistent storage, add Memorystore, or silently bypass production security checks.
 
-The confirmed Google Cloud project is `useit-platform-2026` (display name
-`USEIT`, project number `386862694550`). Staging deployment remains gated on
-the Firestore adapter tests, least-privilege deployment IAM/WIF verification,
+The owner-provided target label is `useit`, but the exact valid Google Cloud
+project ID and project number are currently unresolved. Do not substitute a
+remembered or historical project ID, create a project, change IAM or billing,
+enable paid services, or deploy until the owner reconfirms the exact existing
+project ID in current approved instructions. Staging deployment also remains
+gated on Firestore adapter tests, least-privilege deployment IAM/WIF verification,
 billing/region/cost approval, and a reviewed Cloud Run configuration.
