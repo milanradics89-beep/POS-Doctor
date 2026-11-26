@@ -1,4 +1,4 @@
-## Latest live release-watch checkpoint — 2026-11-26 02:15 CET
+## Latest live release-watch checkpoint — 2026-11-26 03:34 CET
 
 **Canonical repository:** [milanradics89-beep/USEIT](https://github.com/milanradics89-beep/USEIT) (the legacy POS-Doctor repository path resolves here).  
 **Current main:** `df959f270ed95f3b2a3eb4e2293b45505a074823`.  
@@ -32,6 +32,18 @@ Main's exact-head push workflows are terminal SUCCESS: Validation [45664649912](
 PR #337's latest WIF test parses YAML structurally and checks the exact trigger, permission map, job set, action pins, step set and full shell command scalar. Its seven review threads are resolved. PR #338's Firestore readiness probe now verifies transactional write capability and attempts ownership-checked cleanup in `finally`; its two review threads are resolved. Neither PR is merged or human-approved.
 
 The current main `.github/workflows/validate.yml` does not yet contain the fail-closed Fallow/Semgrep enforcement from PR #333. Do not treat PR #338's green Quality/Security conclusion as proof that Fallow passed.
+
+### PR #340 — synchronized release records candidate
+
+PR [#340](https://github.com/milanradics89-beep/USEIT/pull/340) is OPEN/DRAFT on `docs/release-evidence-current-main-20261126-run11`. Its validated parent HEAD at this checkpoint is `9476bc2e35be562ffcb2a9e88514db8964c3c0bc`, based on main `df959f270ed95f3b2a3eb4e2293b45505a074823`. The three release documents contain the same live checkpoint and the 25-point table (25 rows; 3 Done / 15 In Progress / 7 Blocked).
+
+Exact-parent workflows for `9476bc2e35be562ffcb2a9e88514db8964c3c0bc` are terminal SUCCESS:
+- Validation [45740434435](https://github.com/milanradics89-beep/USEIT/actions/runs/45740434435): frontend, backend and iOS jobs all SUCCESS. Frontend typecheck, unit tests, Expo Doctor, Android export, Android Release build, emulator smoke and dependency audits passed; iOS native Release build and simulator smoke passed.
+- CodeQL [45740434499](https://github.com/milanradics89-beep/USEIT/actions/runs/45740434499): analyze SUCCESS.
+- Dependency Review [45740434552](https://github.com/milanradics89-beep/USEIT/actions/runs/45740434552): dependency-review SUCCESS.
+- Quality/Security [45740434503](https://github.com/milanradics89-beep/USEIT/actions/runs/45740434503): Fallow, zizmor, Gitleaks (including complete PR commit-range scan), and Semgrep jobs SUCCESS.
+
+These results belong only to parent `9476bc2e35be562ffcb2a9e88514db8964c3c0bc`. This checkpoint refresh creates a new commit on the same branch; that new SHA must receive its own exact-HEAD Validation, CodeQL, and Dependency Review. Parent results must not be transferred to the new SHA. PR #340 has no formal review submission or inline review thread. CodeRabbit's automatic review was skipped because the repository has fewer than 10 stars; human review remains required. Mainline release records remain unchanged until an approved, validated PR is merged.
 
 ### Release-document candidates and repository governance
 
