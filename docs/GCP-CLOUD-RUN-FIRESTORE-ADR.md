@@ -1,10 +1,11 @@
 # USEIT Google Cloud infrastructure ADR
 
-**Status:** Proposed, implementation not yet deployed  
-**Date:** 2026-11-24  
-**Owner-designated GCP project:** `fresh-weft-447913-u6`
+**Status:** Proposed, implementation not deployed; GCP provisioning blocked  
+**Date:** 2026-11-26  
+**Jointly agreed existing GCP project ID:** `useit-platform-2026`  
+**Project number previously recorded:** `386862694550` (reconfirm in Cloud Console before provisioning)
 
-Use the existing owner-designated `fresh-weft-447913-u6` project. Do not create a replacement project. Before provisioning, verify the intended billing account, project number, region and eligible SKUs in that project. No GCP resources have been created by this ADR.
+The project ID `useit-platform-2026` was jointly agreed for the existing USEIT GCP project. The previously recorded project number is `386862694550`; reconfirm the project metadata and billing linkage in Cloud Console before provisioning. This ADR remains planning-only until current billing, region, SKU eligibility, spend approval and resource configuration are checked. Do not create a replacement project or substitute another ID.
 
 ## Decision
 
@@ -116,7 +117,7 @@ Before enabling deployment:
 
 ## Cost guardrails
 
-A previously shared Cloud Console screenshot for `fresh-weft-447913-u6` showed a USD 300 welcome credit, USD 0.00 used at that time and an expiry date of 2027-02-23. This is historical evidence only, not a current balance or proof that every required SKU is covered. Re-check the remaining credit, billing linkage, expiry and eligible SKUs in Cloud Console before provisioning.
+The agreed target is `useit-platform-2026`. Previously discussed credit evidence showed a USD 300 welcome credit with a 2027-02-23 expiry; this is historical and must be refreshed in Cloud Console before provisioning. Verify current balance and SKU eligibility.
 
 Set a project-scoped budget only after the owner approves a budget amount based on a measured service/usage model. Suggested notification thresholds are 25/50/75/90/100 percent of that approved budget; notifications do not stop resources or prevent overage.
 
@@ -125,7 +126,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 ## Staged implementation sequence
 
 1. **Repository preparation:** container build, health/readiness contract, local integration tests, no secrets in image.
-2. **Identity and secrets design:** least-privilege runtime/deploy identities, Secret Manager references, WIF conditions. Do not create identities or secrets until the owner approves the exact project and scope.
+2. **Identity and secrets design:** define separate runtime and deployer identities only after a the agreed existing project is re-verified and provisioning is explicitly approved. The existence of service accounts, secrets, API enablement or IAM bindings is unverified; do not treat prior notes as current evidence or create them without approval.
 3. **Firestore adapter feasibility:** implement/test memory, rate-limit and challenge-store interfaces only after proving transaction, expiry, concurrency, privacy and cost properties. Keep current SQLite/Redis adapters until replacements are validated.
 4. **Staging approval gate:** verify project ID, project number, billing account, credit eligibility, region, approved budget, alerts, SKU list, estimated monthly cost and worst-case exposure; obtain explicit approval before provisioning.
 5. **Staging:** deploy Cloud Run staging revision only after approval; run API contract, security, concurrency, cost and failure-mode tests using synthetic data.
@@ -135,7 +136,8 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Acceptance checklist
 
-- [ ] Target project `fresh-weft-447913-u6`, project number, access and billing account verified in Cloud Console.
+- [ ] Jointly agreed target `useit-platform-2026` and previously recorded project number `386862694550` documented; current project metadata, access and billing must be re-verified.
+- [ ] Billing-account linkage, current credit balance/eligibility, region and approved spend verified.
 - [ ] Cloud Run container is stateless and deploys with a dedicated least-privilege runtime identity.
 - [ ] OpenAI key and all server secrets are read only from Secret Manager.
 - [ ] GitHub deployment uses OIDC/WIF; no service-account JSON key exists in GitHub secrets.
@@ -152,7 +154,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Open questions that require measured or external evidence
 
-- Verify that the owner-designated project ID `fresh-weft-447913-u6` exists, is accessible and is linked to the intended billing account; confirm its project number, region and eligible SKUs before provisioning.
+- Verify the exact valid existing project ID, project number, billing-account linkage, current credit balance/eligibility, approved region and eligible SKUs after confirming the existing `useit-platform-2026` project and current billing details.
 - Firestore database location and retention must follow the actual data residency/privacy assessment.
 - Firestore transaction contention and cost must be load-tested using realistic per-user/IP traffic.
 - The exact Cloud Run CPU/memory/concurrency/max-instance configuration must be selected from measured latency and cost, not guessed.
