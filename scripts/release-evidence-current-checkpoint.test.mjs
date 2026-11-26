@@ -54,6 +54,8 @@ describe('current release evidence checkpoint', () => {
       '45743617132', '45743617056', '45743617033', '45743617016',
       '790dcceedeb554638325f8127c68fe2a347c6e20',
       '45759191651', '45759191640', '45759191636', '45759191631',
+      '768e1d018bba7d5c1cdaaf2310a98fd086014473',
+      '45764030850', '45764030788', '45764030857', '45764030833',
     ]) expect(section).toContain(value);
     expect(section).toContain('Fallow on this exact HEAD is not clean:');
     expect(section).toContain('FALLOW_GATES_FAILED: audit-verdict');
@@ -62,6 +64,8 @@ describe('current release evidence checkpoint', () => {
     expect(section).toContain('no human APPROVED review');
     expect(section).toContain('395 passed / 1 failed');
     expect(section).toContain('Validation [45759191651]');
+    expect(section).toContain('all four exact-head workflows are terminal SUCCESS');
+    expect(section).toContain('396 passed across 81 test files');
   });
 
   it('contains exactly 25 rows with the canonical 3 / 15 / 7 distribution', () => {
