@@ -67,6 +67,43 @@ describe('UseitApiProvider boundary handling', () => {
     }
   });
 
+  it('forwards cancellation to the billable unified analysis request', async () => {
+    const controller = new AbortController();
+    let observedSignal: AbortSignal | undefined;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((_input, init) => {
+      return new Promise<Response>((_resolve, reject) => {
+        const signal = init?.signal;
+        if (!signal) {
+          reject(new Error('Expected the billable analysis request to receive an AbortSignal.'));
+          return;
+        }
+        observedSignal = signal;
+        const abort = () => reject(new DOMException('The operation was aborted.', 'AbortError'));
+        if (signal.aborted) abort();
+        else signal.addEventListener('abort', abort, { once: true });
+      });
+    });
+
+    const pending = provider().analyzeUseit(image, 'improve', {}, controller.signal);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    controller.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    expect(observedSignal?.aborted).toBe(true);
+  });
+
+  it('forwards the canonical shop mode to the unified API request', async () => {
+    const payload = { ...validUnified, intent: { name: 'shop', confidence: 0.9 } };
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }),
+    );
+
+    await provider().analyzeUseit(image, 'shop');
+
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(requestBody.userIntent).toBe('shop');
+  });
+
   it('rejects a missing API base URL before network access', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
     await expect(new UseitApiProvider('').analyzeImage(image)).rejects.toThrow('USEIT API base URL is required.');
