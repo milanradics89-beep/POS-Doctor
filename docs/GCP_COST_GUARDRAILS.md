@@ -6,13 +6,13 @@
 
 The owner specified `useit` as the GCP project identifier. The literal has five characters, but Google Cloud project IDs must be 6–30 lowercase letters, digits or hyphens, begin with a letter, and not end with a hyphen ([official project ID requirements](https://docs.cloud.google.com/resource-manager/reference/rest/v1/projects)). Therefore `useit` is not a valid Google Cloud project ID. The exact existing project ID, project number, access, billing-account linkage, remaining credit balance, credit eligibility and SKU coverage are unverified. Do not substitute another project, create a replacement project, or provision resources until the owner supplies the exact valid ID and verifies these facts in Cloud Console.
 
-No billing or credit evidence has been accepted for the owner-specified `useit` target. Any earlier screenshot for a different project is not transferable evidence. Re-check Billing Overview, remaining credit, expiry and covered SKUs for the exact owner-confirmed project before any provisioning.
+Previously discussed credit evidence for the agreed USEIT project showed a USD 300 welcome credit and 2027-02-23 expiry; this is historical, not a current balance. Re-check Billing Overview, remaining credit, expiry and covered SKUs before provisioning.
 
 A credit is not a hard spending cap. Budget notifications are alerts, not automatic shutdown controls. Usage not covered by an applicable credit or Free Tier may be charged to the linked payment method.
 
 ## Guardrail policy
 
-1. The only currently owner-specified identifier is `useit`; it is invalid as a Google Cloud project ID. Do not substitute another ID or create a replacement. No GCP command may run against another project. Provisioning remains blocked until the owner supplies a corrected valid existing project ID in a new approved instruction.
+1. Use only the jointly agreed existing project `useit-platform-2026`; do not substitute another ID or create a replacement. Verify current project and billing details before provisioning.
 2. Use only services required by the approved architecture: Cloud Run, Firestore, Secret Manager, Artifact Registry, Cloud Logging and Cloud Monitoring, plus GitHub Actions WIF.
 3. Prefer request-based Cloud Run billing, minimum instances 0, conservative maximum instances, bounded concurrency and request timeout, and no always-on compute.
 4. Do not create Cloud SQL, Memorystore, GKE/Kubernetes, Compute Engine VMs, GPUs, Cloud Storage buckets, or Marketplace resources for the initial deployment.
@@ -35,7 +35,7 @@ Review usage cost and applied credits/savings in the Billing report. Check daily
 
 ### Gate A: account and project
 
-- Confirm the exact valid project ID corresponding to owner-specified label `useit`, project number and owner access.
+- Confirm the agreed project ID `useit-platform-2026`, previously recorded project number `386862694550`, and current owner access.
 - Confirm billing-account linkage, billing-account type and payment responsibility.
 - Confirm current remaining credit, exact expiry, eligible services and restrictions for this exact project.
 - Confirm the project region and data-residency requirements.
@@ -78,7 +78,7 @@ Do not present Free Tier quotas as a guaranteed zero-cost bill until the project
 
 ## Current execution status
 
-- [x] Owner-specified GCP project label `useit` captured; exact valid project ID, project number, access and billing remain unverified.
+- [x] Jointly agreed project ID `useit-platform-2026` and previously recorded project number `386862694550` recorded; current access and billing re-verification remains open.
 - [ ] Confirm exact project number, billing account and current credit eligibility for each required SKU.
 - [ ] Approve monthly budget amount, cost exposure and alert recipients.
 - [ ] Approve region and initial staging resource configuration.
