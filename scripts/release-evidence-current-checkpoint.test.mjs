@@ -52,12 +52,16 @@ describe('current release evidence checkpoint', () => {
       '45743545603', '45743545596', '45743545518', '45743545623',
       '5d026cb62e0626e59e3fdf686fca0e7f6981d780',
       '45743617132', '45743617056', '45743617033', '45743617016',
+      '790dcceedeb554638325f8127c68fe2a347c6e20',
+      '45759191651', '45759191640', '45759191636', '45759191631',
     ]) expect(section).toContain(value);
     expect(section).toContain('Fallow on this exact HEAD is not clean:');
     expect(section).toContain('FALLOW_GATES_FAILED: audit-verdict');
     expect(section).toContain('fail-on-issues: false');
     expect(section).toContain('fail-on-issues: true');
     expect(section).toContain('no human APPROVED review');
+    expect(section).toContain('395 passed / 1 failed');
+    expect(section).toContain('Validation [45759191651]');
   });
 
   it('contains exactly 25 rows with the canonical 3 / 15 / 7 distribution', () => {
@@ -82,7 +86,7 @@ describe('current release evidence checkpoint', () => {
     expect(section).toContain('PR #340');
     expect(section).toContain('FALLOW_GATES_PASSED: audit-verdict');
     expect(section).toContain('fail-on-issues: true');
-    expect(section).toContain('semgrep scan --config p/ci --error');
+    expect(section).toContain('semgrep scan --config p/ci --error --metrics=off /src');
     expect(section).toContain('new child of validated parent');
   });
 
