@@ -33,7 +33,7 @@ describe('current release evidence checkpoint', () => {
     expect(section).toContain('53 conversation comments');
     expect(section).toContain('30 inline review comments');
     expect(section).toContain('26 formal review submissions');
-    expect(section).toContain('All 22/22 inline threads are resolved');
+    expect(section).toMatch(/(?:All 22\/22 inline threads are resolved|There are 22\/22 resolved inline threads and 0 unresolved)/);
     expect(section).toContain('tarlaci1984-sketch');
     expect(section).toContain('43098210284');
     expect(section).toContain('43098210473');
