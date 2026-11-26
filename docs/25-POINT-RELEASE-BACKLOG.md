@@ -1,6 +1,8 @@
 > **Repository identity:** The current product and source of truth are `milanradics89-beep/USEIT` (repository name: `USEIT`). POS-Doctor links and identifiers retained in this document are historical evidence from the predecessor repository; they are not current USEIT PRs, issues, workflows, or release evidence. Do not use them to infer current status.
+>
+> **Checkpoint scope:** Every date, PR/issue number, workflow run, count, status table, and release decision below belongs to the historical POS-Doctor predecessor repository. This file is not a live USEIT release-status report. Do not reuse its historical counts as current USEIT status; the current development checklist is [Issue #74](https://github.com/milanradics89-beep/USEIT/issues/74), and the 25-point release register remains a separate record.
 
-## Latest 25-point status checkpoint — 2026-11-13 18:49 CET
+## Historical predecessor-repository 25-point status checkpoint — 2026-11-13 18:49 CET
 
 Immediately before this integration commit, PR #41 exact HEAD was `b793a47f8f0a84155d1200fc797f191701f4eb92`. Validation [43463804114](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804114) failed at Expo Doctor after 285/285 frontend unit tests passed; backend and iOS jobs passed. CodeQL [43463804128](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804128) and Dependency Review [43463804149](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804149) passed on that exact pre-integration HEAD.
 
@@ -10,13 +12,13 @@ PR #41 review inventory before integration: **22/22 inline threads resolved; 25 
 
 Repository inventory: **57 branches, 33 open PRs, 0 published releases**. Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero**.
 
-**Current tally remains 3 Done / 15 In Progress / 7 Blocked.** The row-level register below remains authoritative. Do not promote a row based on another branch's CI or on simulator/emulator evidence where physical-device, production, or business acceptance is specified.
+**Historical predecessor tally at this checkpoint: 3 Done / 15 In Progress / 7 Blocked.** The row-level table below records only predecessor-repository history; it is not the current USEIT release register. Do not promote a row based on another branch's CI or on simulator/emulator evidence where physical-device, production, or business acceptance is specified.
 
 External blockers remain **#4 physical iPhone App Attest, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark and business acceptance, #21 production monitoring and alert delivery, #22 staged rollout/rollback approval, and #25 real-user pilot/business approval**.
 
 ---
 
-## Latest 25-point status checkpoint — 2026-11-11 21:40 CET
+## Historical predecessor-repository 25-point status checkpoint — 2026-11-11 21:40 CET
 
 PR #41 remains **open, unmerged, and non-draft** on fix/release-blockers-2026-10, targeting main. The fully validated parent immediately before this documentation repair is 4883c652d61b93236b7a604f124bf5708caa07e6. Exact-parent Validation [43090044324](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044324), CodeQL [43090044306](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044306), and Dependency Review [43090044397](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044397) all completed successfully. Validation jobs: backend [130764391957](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044324/job/130764391957), frontend/Android [130764391800](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044324/job/130764391800), and iOS [130764391399](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044324/job/130764391399), all success; CodeQL analyze [130764391156](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044306/job/130764391156) and Dependency Review [130764390843](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044397/job/130764390843) also succeeded. This file is committed as a documentation-only child of that validated parent; the child has separate exact-head checks and must not inherit the parent's green result.
 
@@ -52,7 +54,7 @@ The validated source/test baseline records 450 backend tests, 27 production-read
 | 24 | Release pipeline | **In Progress** | Pre-integration PR #41 exact-head Validation [43463804114](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804114) failed at Expo Doctor; CodeQL and Dependency Review passed. PR #65 candidate exact-head Validation/CodeQL/Dependency Review passed, and its tested tree is integrated by this checkpoint. The resulting PR #41 child requires all three checks on its own exact SHA; signing, store distribution, staged rollout, and rollback ownership remain open. |
 | 25 | Pilot/business validation | **Blocked** | Requires a real pilot cohort, documented success/stop thresholds, named business owner, participant safeguards, and explicit business/release approval. |
 
-**Current count: 3 Done / 15 In Progress / 7 Blocked.** All three required workflows passed for validated parent HEAD 4883c65. This documentation-only child has its own separate exact-head CI gate. Simulator/emulator evidence does not satisfy physical-device, production, or pilot acceptance.
+**Historical predecessor count at this checkpoint: 3 Done / 15 In Progress / 7 Blocked.** All three required workflows passed for validated parent HEAD 4883c65. This documentation-only child has its own separate exact-head CI gate. Simulator/emulator evidence does not satisfy physical-device, production, or pilot acceptance.
 
 ---
 
@@ -65,7 +67,7 @@ The validated source/test baseline records 450 backend tests, 27 production-read
 - Branch comparison at capture: **503 ahead / 0 behind** main at `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`; PR diff **98 files, 13,065 additions / 910 deletions**. Repository inventory: **32 branches, 19 open PRs, 4 open issues** (#46, #25, #24, #23). Last recorded Releases inventory: **0 published releases**; current release listing is not independently exposed in this run.
 - Review at capture: **14 inline threads total, 12 resolved and 2 open P2 documentation findings**; **19 review submissions, 0 APPROVED**. Both findings are corrected in this evidence refresh and their threads are resolved after push. Human approval and last-push approval remain mandatory.
 - Dependency Review passed with no high-or-higher vulnerable packages in the reviewed diff, but one unknown-license entry and two low Scorecard findings remain. The separate runtime npm audit still reports **four moderate** transitive `glob`/`minimatch` instances. Code Scanning, Dependabot, and Secret Scanning inventories are **unverified, not zero**.
-- **Current tally: 3 Done / 15 In Progress / 7 Blocked.** The row-level table below remains authoritative; do not promote an item without its stated evidence.
+- **Historical predecessor tally at this checkpoint: 3 Done / 15 In Progress / 7 Blocked.** The row-level table below remains authoritative; do not promote an item without its stated evidence.
 
 ### External blockers
 
@@ -174,7 +176,7 @@ Commits [`bc802a0`](https://github.com/milanradics89-beep/POS-Doctor/commit/bc80
 - Repository search returned 19 open PRs and 4 open issues. The branch inventory returned 33 branches across the paginated result. A release-list endpoint and the full Code Scanning, Dependabot, and Secret Scanning alert inventories are not exposed by the connected integration; release/security inventory is **unverified, not zero**.
 - Do not merge automatically or bypass required checks. The 97-file / 493-commit PR history still requires human review.
 
-### Current 25-point tally
+### Historical predecessor 25-point tally
 
 **3 Done / 15 In Progress / 7 Blocked.** The row-level register below remains the authoritative per-item table; its statuses are unchanged. Blocked external gates remain #4 physical iPhone App Attest with production entitlement, #5 Play-installed physical Android Play Integrity, #16 witnessed production backup/restore, #18 representative product-recognition benchmark and business acceptance, #21 production monitoring and alert delivery, #22 staged rollout and rollback approval, and #25 real-user pilot and business approval. Simulator/emulator CI does not satisfy these gates.
 
@@ -258,7 +260,7 @@ The new evidence-correction commit that contains this register is a child of `96
 | 24 | Release pipeline | **In Progress** | Exact parent HEAD 4883c65 passed Validation [43090044324](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044324), CodeQL [43090044306](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044306), and Dependency Review [43090044397](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044397). Android Release/emulator smoke, iOS Release simulator/smoke, Expo Doctor, and runtime audit steps passed. Signing, store distribution, promotion, staged rollout, and rollback ownership remain open. |
 | 25 | Pilot/business validation | **Blocked** | Requires a real pilot cohort, documented success/stop thresholds, named business owner, participant safeguards, and explicit business/release approval. |
 
-**Current count: 3 Done / 15 In Progress / 7 Blocked.** Do not promote an item based only on code presence or simulator/emulator evidence.
+**Historical predecessor count at this checkpoint: 3 Done / 15 In Progress / 7 Blocked.** Do not promote an item based only on code presence or simulator/emulator evidence.
 
 ---
 
@@ -1035,7 +1037,7 @@ Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/
 | 24 | Release pipeline | **In Progress** | Exact parent HEAD 4883c65 passed Validation [43090044324](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044324), CodeQL [43090044306](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044306), and Dependency Review [43090044397](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044397). Android Release/emulator smoke, iOS Release simulator/smoke, Expo Doctor, and runtime audit steps passed. Signing, store distribution, promotion, staged rollout, and rollback ownership remain open. |
 | 25 | Pilot/business validation | **Blocked** | A real pilot cohort, success/stop thresholds, named business owner, and documented business/release approval are required. |
 
-**Current count: 3 Done / 15 In Progress / 7 Blocked.** Source presence or simulator evidence alone does not satisfy an external acceptance gate.
+**Historical predecessor count at this checkpoint: 3 Done / 15 In Progress / 7 Blocked.** Source presence or simulator evidence alone does not satisfy an external acceptance gate.
 
 ## Required external hand-offs
 
@@ -1068,7 +1070,7 @@ Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/
 - [Issue #47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) remains open. `main` reports `protected=false`, the rulesets endpoint is empty, and the branch-protection read returns HTTP 403 to the integration; repository-admin action is still required.
 - The GitHub releases endpoint is empty. Complete code-scanning and Dependabot alert inventories are not exposed by the connected integration; their status remains unverified.
 
-## Latest engineering update (2026-11-01; exact PR head 5086e378)
+## Historical predecessor engineering update (2026-11-01; exact PR head 5086e378)
 
 - PR #41 head [5086e37](https://github.com/milanradics89-beep/POS-Doctor/commit/5086e378c29e338bb1bdaaffcce53030e30c9902) is a documentation-only evidence refresh; application source remains unchanged since [274fefb](https://github.com/milanradics89-beep/POS-Doctor/commit/274fefb6390b2324dfb37b8201279675bf26b481).
 - Exact-head [validation 41257943934](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41257943934) passed backend, frontend/Android, and iOS jobs. Backend job [124705008763](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41257943934/job/124705008763) passed **350 tests with 1 Starlette deprecation warning** using Redis 7.4.12. Frontend job [124705008632](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41257943934/job/124705008632) passed source-boundary guard, typecheck, unit tests, Expo Doctor, Android export/Release build, emulator install/launch, and runtime dependency audit. iOS job [124705008758](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/41257943934/job/124705008758) passed native generation, CocoaPods, Release simulator build, and simulator install/launch.

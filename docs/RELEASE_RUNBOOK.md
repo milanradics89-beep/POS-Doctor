@@ -1,10 +1,12 @@
 > **Repository identity:** The current product and source of truth are `milanradics89-beep/USEIT` (repository name: `USEIT`). POS-Doctor links and identifiers retained in this document are historical evidence from the predecessor repository; they are not current USEIT PRs, issues, workflows, or release evidence. Do not use them to infer current status.
+>
+> **Historical scope:** All checkpoints before `# USEIT release and production runbook` describe only the predecessor repository. PR #41, its review inventory, run IDs, and predecessor ruleset links are not current USEIT release gates.
 
-## Latest release checkpoint — 2026-11-13 18:49 CET
+## Historical predecessor-repository release checkpoint — 2026-11-13 18:49 CET
 
-### Pre-integration evidence for PR #41
+### Historical predecessor PR #41 pre-integration evidence
 
-PR #41 remains open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main`. Immediately before this integration commit, its exact HEAD was `b793a47f8f0a84155d1200fc797f191701f4eb92` (parent `e74a69a2fa1a4afd4e0c1cf5bf848d4acba2ede4`). The branch was 515 commits ahead and 0 behind main; the PR diff contained 98 files (+11,362 / -911).
+At that historical predecessor checkpoint, PR #41 was open, unmerged, and non-draft on `fix/release-blockers-2026-10`, targeting `main`. Immediately before the predecessor integration commit, its exact HEAD was `b793a47f8f0a84155d1200fc797f191701f4eb92` (parent `e74a69a2fa1a4afd4e0c1cf5bf848d4acba2ede4`). The branch was 515 commits ahead and 0 behind main; the PR diff contained 98 files (+11,362 / -911).
 
 Exact-head workflows for `b793a47f8f0a84155d1200fc797f191701f4eb92`:
 
@@ -35,11 +37,11 @@ This commit applies the validated candidate tree as a single child of the curren
 - Code Scanning, Dependabot, and Secret Scanning alert inventories remain **unverified, not zero** because their alert endpoints are not exposed by the connected GitHub interface.
 - The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. External blockers #4, #5, #16, #18, #21, #22, and #25 remain Blocked until physical-device, production, witnessed backup/restore, monitoring, rollout, and real-pilot evidence exists.
 
-**Release decision:** the pre-integration PR #41 HEAD did not pass Validation. The integration commit created by this checkpoint must pass all exact-head required workflows independently. Human approval and external production/pilot acceptance remain outstanding. Do not merge PR #41 automatically or bypass required checks.
+**Historical predecessor release decision:** the predecessor PR #41 pre-integration HEAD did not pass Validation. Its integration commit required its own exact-head checks. Human approval and external production/pilot acceptance remained outstanding. This decision does not describe the current USEIT release.
 
 ---
 
-## Latest release checkpoint — 2026-11-11 21:40 CET
+## Historical predecessor-repository release checkpoint — 2026-11-11 21:40 CET
 
 PR #41 remains **open, unmerged, and non-draft** on fix/release-blockers-2026-10, targeting main. The fully validated parent immediately before this documentation repair is 4883c652d61b93236b7a604f124bf5708caa07e6. This commit is a documentation-only child of that parent; its own exact-head Validation, CodeQL, and Dependency Review must pass independently. Do not reuse the parent runs as evidence for the child.
 
@@ -76,9 +78,9 @@ The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. External 
 
 ## 1. Required CI evidence and merge gate
 
-Before merge, require the current PR HEAD (not its parent) to pass all six ruleset contexts: CodeQL, analyze, backend, frontend, ios, and dependency-review. Confirm Validation's backend, frontend/Android, and iOS jobs all completed successfully. A successful parent commit does not validate a documentation-only child.
+Before merge, require the current USEIT PR HEAD (not its parent) to pass all six required contexts in the active [Protect main ruleset #26370589](https://github.com/milanradics89-beep/USEIT/rules/26370589): CodeQL, analyze, backend, frontend, ios, and dependency-review. Confirm Validation's backend, frontend/Android, and iOS jobs all completed successfully for that exact HEAD. A successful parent commit does not validate a documentation-only child.
 
-PR #41 also requires one human approving review, approval of the last push, and resolved review threads. Keep the PR open until those gates and the external acceptance gates below are met. Never bypass checks, weaken the ruleset, force-push, or merge automatically.
+The current USEIT ruleset also requires at least one independent human APPROVED review, approval of the last push, and resolution of every inline review thread. Apply these gates to the current USEIT PR and its exact HEAD. Historical predecessor PR #41 and its old run IDs are not current USEIT evidence. Do not treat mergeable=true as approval or CI. Never bypass checks, weaken the ruleset, force-push, or merge automatically.
 
 Simulator/emulator CI is not evidence of physical-device App Attest or Play Integrity. CI success is not production, store, pilot, or business approval.
 
