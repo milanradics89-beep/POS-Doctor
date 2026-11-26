@@ -67,7 +67,11 @@ jobs:
       - name: Validate Expo project health
         run: node node_modules/expo-doctor/bin/expo-doctor.js
       - name: Validate Android export
-        run: npx expo export --platform android --output-dir .expo-export
+        id: export_android
+        run: npx expo export --platform android --source-maps --no-bytecode --output-dir .expo-export/android
+      - name: Validate iOS export for bundle reachability
+        id: export_ios
+        run: npx expo export --platform ios --source-maps --no-bytecode --output-dir .expo-export/ios
       - name: Validate native Android release build
         run: |
           npx expo prebuild --platform android --no-install
@@ -279,6 +283,9 @@ jobs:
 
       - name: Runtime dependency audit
         run: npm audit --omit=dev --audit-level=high
+      - name: Audit picomatch mobile bundle reachability
+        if: ${{ always() && steps.export_android.outcome == 'success' && steps.export_ios.outcome == 'success' }}
+        run: node scripts/check-mobile-bundle-dependencies.mjs .expo-export picomatch
 
   ios:
     runs-on: macos-latest
