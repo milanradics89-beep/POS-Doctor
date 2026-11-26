@@ -8,10 +8,10 @@ describe('USEIT Home recovery-state integration', () => {
   it('uses a single-flight abortable analysis request and ignores stale completions', () => {
     expect(home).toContain('useRef');
     expect(home).toContain('const analysisControllerRef = useRef<AbortController | null>(null);');
-    expect(home).toContain('if (analysisControllerRef.current) return;');
+    expect(home).toContain('active: analysisControllerRef.current !== null,');
     expect(home).toContain('analysisControllerRef.current?.abort();');
     expect(home).toContain('signal: controller.signal');
-    expect(home).toContain('requestId !== analysisRequestIdRef.current');
+    expect(home).toContain('isAnalysisRequestCurrent(controller.signal, requestId, analysisRequestIdRef.current)');
   });
 
   it('validates camera and gallery data URLs through the same shared path', () => {
@@ -29,8 +29,8 @@ describe('USEIT Home recovery-state integration', () => {
   it('routes network failures to the offline panel with a retry for the same intent', () => {
     expect(analysis).toContain("import { requestFailureKind } from './requestFailure';");
     expect(analysis).toContain('const kind = requestFailureKind(error);');
-    expect(home).toContain('createAnalysisFailureNotice(error)');
-    expect(home).toContain('onAction: failureNotice.actionLabel ? () => { void analyze(intent); } : undefined');
+    expect(home).toContain('setNotice(createAnalysisFailureNotice(error, () => { void analyze(intent); }))');
+    expect(home).toContain('executeHomeAnalysis(');
   });
 
   it('routes exhausted camera and gallery permissions to the permission-denied panel', () => {
@@ -53,7 +53,8 @@ describe('USEIT Home recovery-state integration', () => {
   it('reuses an idempotency key for the same photo and intent retry, then clears it on success or new input', () => {
     expect(home).toContain('analysisIdempotencyRef');
     expect(analysis).toContain('existing?.photo === photo && existing.intent === intent');
-    expect(home).toContain('resolveAnalysisIdempotencyKey(');
+    expect(home).toContain('prepareAnalysisStart(');
+    expect(home).toContain('analysisIdempotencyRef.current = start.idempotencyState;');
     expect(home).toContain('idempotencyKey');
     expect(home).toContain('analysisIdempotencyRef.current = null;');
     expect(analysis).toContain('error instanceof UseitApiError && error.status === 409');

@@ -13,7 +13,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
-import { createAnalysisFailureNotice, resolveAnalysisIdempotencyKey } from '../src/ui/homeAnalysis';
+import { createAnalysisFailureNotice, executeHomeAnalysis, isAnalysisRequestCurrent, prepareAnalysisStart } from '../src/ui/homeAnalysis';
 import { createIdempotencyKey } from '../src/core/intelligence/idempotencyKey';
 import type { ConsumerIntent, ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
@@ -144,9 +144,32 @@ export default function Home() {
     }
   }
 
+  function applyAnalysisSuccess(response: ConsumerAnalysis, idempotencyKey: string) {
+    if (analysisIdempotencyRef.current?.key === idempotencyKey) analysisIdempotencyRef.current = null;
+    setResult(response);
+  }
+
+  function applyAnalysisFailure(error: unknown, intent?: ConsumerIntent) {
+    setNotice(createAnalysisFailureNotice(error, () => { void analyze(intent); }));
+  }
+
+  function finishAnalysis(requestId: number) {
+    if (requestId !== analysisRequestIdRef.current) return;
+    analysisControllerRef.current = null;
+    setBusy(false);
+  }
+
   async function analyze(intent?: ConsumerIntent) {
-    if (analysisControllerRef.current) return;
-    if (!API_URL) {
+    const start = prepareAnalysisStart({
+      active: analysisControllerRef.current !== null,
+      apiUrl: API_URL,
+      photo,
+      intent,
+      existing: analysisIdempotencyRef.current,
+      createKey: createIdempotencyKey,
+    });
+    if (start.kind === 'busy' || start.kind === 'missing-photo') return;
+    if (start.kind === 'missing-api') {
       setNotice({
         kind: 'error',
         title: 'USEIT is not connected',
@@ -155,16 +178,7 @@ export default function Home() {
       return;
     }
 
-    if (!photo) return;
-
-    const idempotencyKey = resolveAnalysisIdempotencyKey(
-      analysisIdempotencyRef.current,
-      photo,
-      intent,
-      createIdempotencyKey,
-    );
-    analysisIdempotencyRef.current = { photo, intent, key: idempotencyKey };
-
+    analysisIdempotencyRef.current = start.idempotencyState;
     const controller = new AbortController();
     const requestId = ++analysisRequestIdRef.current;
     analysisControllerRef.current = controller;
@@ -172,30 +186,18 @@ export default function Home() {
     setRendered(null);
     setNotice(null);
 
-    try {
-      const response = await analyzeForConsumer(
+    await executeHomeAnalysis(
+      () => analyzeForConsumer(
         new UseitApiProvider(API_URL),
-        photo,
-        intent,
-        { signal: controller.signal, idempotencyKey }
-      );
-      if (controller.signal.aborted || requestId !== analysisRequestIdRef.current) return;
-      if (analysisIdempotencyRef.current?.key === idempotencyKey) analysisIdempotencyRef.current = null;
-      setResult(response);
-    } catch (error) {
-      if (controller.signal.aborted || requestId !== analysisRequestIdRef.current) return;
-      const failureNotice = createAnalysisFailureNotice(error);
-      if (!failureNotice) return;
-      setNotice({
-        ...failureNotice,
-        onAction: failureNotice.actionLabel ? () => { void analyze(intent); } : undefined,
-      });
-    } finally {
-      if (requestId === analysisRequestIdRef.current) {
-        analysisControllerRef.current = null;
-        setBusy(false);
-      }
-    }
+        start.photo,
+        start.intent,
+        { signal: controller.signal, idempotencyKey: start.idempotencyState.key },
+      ),
+      () => isAnalysisRequestCurrent(controller.signal, requestId, analysisRequestIdRef.current),
+      (response) => applyAnalysisSuccess(response, start.idempotencyState.key),
+      (error) => applyAnalysisFailure(error, intent),
+      () => finishAnalysis(requestId),
+    );
   }
 
   async function createVisualConcept() {
