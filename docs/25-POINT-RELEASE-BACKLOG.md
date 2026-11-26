@@ -1,3 +1,5 @@
+> **Repository identity:** The current product and source of truth are `milanradics89-beep/USEIT` (repository name: `USEIT`). POS-Doctor links and identifiers retained in this document are historical evidence from the predecessor repository; they are not current USEIT PRs, issues, workflows, or release evidence. Do not use them to infer current status.
+
 ## Latest 25-point status checkpoint — 2026-11-13 18:49 CET
 
 Immediately before this integration commit, PR #41 exact HEAD was `b793a47f8f0a84155d1200fc797f191701f4eb92`. Validation [43463804114](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804114) failed at Expo Doctor after 285/285 frontend unit tests passed; backend and iOS jobs passed. CodeQL [43463804128](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804128) and Dependency Review [43463804149](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804149) passed on that exact pre-integration HEAD.

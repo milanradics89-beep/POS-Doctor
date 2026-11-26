@@ -1,3 +1,5 @@
+> **Repository identity:** The current product and source of truth are `milanradics89-beep/USEIT` (repository name: `USEIT`). POS-Doctor links and identifiers retained in this document are historical evidence from the predecessor repository; they are not current USEIT PRs, issues, workflows, or release evidence. Do not use them to infer current status.
+
 ## Latest release checkpoint — 2026-11-13 18:49 CET
 
 ### Pre-integration evidence for PR #41
