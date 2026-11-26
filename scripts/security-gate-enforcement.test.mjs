@@ -19,6 +19,13 @@ function jobBlock(source, name) {
   return lines.slice(start + 1, end).join('\n');
 }
 
+function assertActiveSemgrepGate(source) {
+  const frontend = jobBlock(source, 'frontend');
+  const requiredCommand = 'semgrep scan --config p/ci --error --metrics=off /src';
+  if (!frontend.includes(requiredCommand)) {
+    throw new Error('Required Semgrep command is missing from the active frontend job.');
+  }
+}
 describe('security workflow enforcement', () => {
   it('wires the actual Fallow audit verdict to a fail-closed gate', () => {
     const frontend = jobBlock(validation, 'frontend');
@@ -52,8 +59,7 @@ describe('security workflow enforcement', () => {
   });
 
   it('runs Semgrep with the error exit policy in the active job', () => {
-    const frontend = jobBlock(validation, 'frontend');
-    expect(frontend).toContain('semgrep scan --config p/ci --error --metrics=off /src');
+    expect(() => assertActiveSemgrepGate(validation)).not.toThrow();
     expect(jobBlock(security, 'semgrep')).toBe('');
   });
 
@@ -68,7 +74,10 @@ describe('security workflow enforcement', () => {
         run: ${requiredCommand}
 `;
 
-    expect(jobBlock(laterOnly, 'semgrep')).not.toContain(requiredCommand);
+    expect(() => assertActiveSemgrepGate(laterOnly)).toThrow(
+      'Required Semgrep command is missing from the active frontend job.',
+    );
+    expect(jobBlock(laterOnly, 'frontend')).not.toContain(requiredCommand);
     expect(jobBlock(laterOnly, 'semgrep_fallback')).toContain(requiredCommand);
   });
 
