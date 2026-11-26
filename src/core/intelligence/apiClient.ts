@@ -82,7 +82,7 @@ export type ConsumerIntent = OpportunityKind | 'shop';
 export type ConsumerIntelligence = {
   action: { type: string; title: string };
   need: { kind: string };
-  rankedCandidates: Array<{ id: string; title: string; category: string; source: string; priceHuf: number; url: string }>;
+  rankedCandidates: Array<{ id: string; title: string; category: string; source: string; priceHuf?: number; brand?: string; currency?: string; availability?: string; url: string }>;
   intentConfidence: number;
   clarificationRequired: boolean;
 };
@@ -104,14 +104,30 @@ function toConsumerIntelligence(run: IntelligenceRun): ConsumerIntelligence {
   const goal = run.task.goal;
   const actionType = goal === 'food_recipe' ? 'recipe' : goal === 'wardrobe_styling' ? 'style' : goal === 'object_repair' ? 'repair_guide' : goal === 'room_redesign' || goal === 'room_shopping' ? 'visualize' : run.task.shoppingRequired ? 'shop' : 'recommend';
   const actionTitle = actionType === 'visualize' ? 'Create the redesigned view' : actionType === 'recipe' ? 'Build a recipe from the visible ingredients' : actionType === 'style' ? 'Complete the outfit' : actionType === 'repair_guide' ? 'Show the repair path' : actionType === 'shop' ? 'Show the best matching options' : 'Show recommendations';
-  const ranked = (run.ranked ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.title, category: candidate.category, source: candidate.source, priceHuf: candidate.priceHuf ?? 0, url: candidate.url }));
+  const ranked = (run.ranked ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.title, category: candidate.category, source: candidate.source, priceHuf: candidate.priceHuf ?? undefined, url: candidate.url }));
   return { action: { type: actionType, title: actionTitle }, need: { kind: goal }, rankedCandidates: ranked, intentConfidence: run.clarification.needsClarification ? 0.5 : 1, clarificationRequired: run.clarification.needsClarification };
 }
+function priceHufForCandidate(candidate: NonNullable<UseitAnalyzeResponse['shopping']>['candidates'][number]): number | undefined {
+  if (typeof candidate.priceHuf === 'number') return candidate.priceHuf;
+  if (candidate.currency?.toUpperCase() === 'HUF' && typeof candidate.price === 'number') return candidate.price;
+  return undefined;
+}
+
 function toUnifiedConsumerIntelligence(result: UseitAnalyzeResponse): ConsumerIntelligence {
   const intent = result.intent.name;
   const actionType = intent === 'cook' ? 'recipe' : intent === 'fix' ? 'repair_guide' : intent === 'improve' || intent === 'create' ? 'visualize' : intent === 'shop' ? 'shop' : 'recommend';
   const actionTitle = actionType === 'visualize' ? 'Create the redesigned view' : actionType === 'recipe' ? 'Build a recipe from the visible ingredients' : actionType === 'repair_guide' ? 'Show the repair path' : actionType === 'shop' ? 'Show the best matching options' : 'Show recommendations';
-  const ranked = (result.shopping?.candidates ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.name, category: candidate.category ?? 'general', source: candidate.retailer ?? 'USEIT', priceHuf: candidate.price ?? 0, url: candidate.url }));
+  const ranked = (result.shopping?.candidates ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({
+    id: candidate.id,
+    title: candidate.name,
+    category: candidate.category ?? 'general',
+    source: candidate.retailer ?? 'USEIT',
+    priceHuf: priceHufForCandidate(candidate),
+    brand: candidate.brand ?? undefined,
+    currency: candidate.currency ?? undefined,
+    availability: candidate.availability ?? undefined,
+    url: candidate.url,
+  }));
   return { action: { type: actionType, title: actionTitle }, need: { kind: intent }, rankedCandidates: ranked, intentConfidence: result.intent.confidence ?? 0.5, clarificationRequired: (result.intent.confidence ?? 0.5) < 0.6 };
 }
 function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel): RedesignPlan | undefined {
@@ -127,7 +143,7 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
       category: candidate.category?.trim() || 'general',
       productId: candidate.id,
       title: candidate.name,
-      priceHuf: candidate.price ?? undefined,
+      priceHuf: priceHufForCandidate(candidate),
       url: candidate.url,
     }));
 
