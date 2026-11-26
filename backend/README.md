@@ -31,3 +31,37 @@ during connected-peer validation. Malformed, non-global, unsupported, or invalid
 Every network-specific translator prefix used by production egress must be listed.
 Do not enable DNS64/NAT64 for product-page egress until this setting has been verified
 against the deployment's actual translator configuration.
+
+
+## Container image
+
+Build the backend image from the repository root so Docker can copy the complete
+`backend` Python package:
+
+```bash
+docker build --pull --file backend/Dockerfile --tag useit-backend:local .
+```
+
+The image runs Uvicorn on the Cloud Run-provided `PORT` (default `8080`) as a
+non-root user. The build does not receive, copy, or bake runtime secrets into the
+image. The root `.dockerignore` excludes environment files, tests, local tooling,
+and frontend assets from the build context.
+
+A GitHub Actions workflow builds the image on pull requests and mainline changes
+that affect the backend/container definition. It builds only and does not publish
+to Artifact Registry or authenticate to Google Cloud.
+
+## Cloud Run deployment gate
+
+A successful container build is not deployment acceptance. The current production
+backend still requires shared TLS Redis for distributed rate limiting and may use
+Redis for one-time attestation challenges; personal memory currently uses encrypted
+SQLite. These process/local-disk and shared-state dependencies must be migrated
+and validated against the approved Firestore design before a stateless multi-instance
+Cloud Run deployment. Do not set production to memory rate limiting, use local SQLite
+as persistent storage, add Memorystore, or silently bypass production security checks.
+
+The confirmed Google Cloud project is `useit-platform-2026` (display name
+`USEIT`, project number `386862694550`). Staging deployment remains gated on
+the Firestore adapter tests, least-privilege deployment IAM/WIF verification,
+billing/region/cost approval, and a reviewed Cloud Run configuration.
