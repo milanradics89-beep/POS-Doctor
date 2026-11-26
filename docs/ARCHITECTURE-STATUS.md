@@ -2,7 +2,7 @@
 
 ## Repository decision
 
-The repository is intentionally still named `POS-Doctor`, but the application has been repurposed as USEIT. The historical POS Doctor product is not a separate runtime in this repository. The original conversion is recorded in commit `3b039d4442128d3c7d4aebfbd96e36f222e18ef7` (`Replace POS-Doctor with USEIT foundation`).
+The canonical repository is `milanradics89-beep/USEIT`, and its repository name is **USEIT**. POS-Doctor is a historical predecessor only, not a current application or runtime. The conversion to the USEIT foundation is recorded in commit `3b039d4442128d3c7d4aebfbd96e36f222e18ef7` (`Replace POS-Doctor with USEIT foundation`).
 
 ## Canonical runtime path today
 
