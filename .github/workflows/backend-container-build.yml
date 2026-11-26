@@ -39,6 +39,10 @@ jobs:
       - name: Build container image
         run: docker build --pull --file backend/Dockerfile --tag useit-backend:ci .
 
+      - name: Verify non-root default personal-memory SQLite path
+        run: |
+          docker run --rm --entrypoint python useit-backend:ci -c 'import os, sqlite3; assert os.getuid() == 10001; db = sqlite3.connect("data/useit_memory.sqlite3"); db.close()'
+
       - name: Smoke test container health and readiness
         shell: bash
         run: |

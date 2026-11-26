@@ -4,12 +4,12 @@ USEIT is a camera-first consumer AI app: photograph almost anything and discover
 
 ## Repository identity
 
-The canonical GitHub repository is `milanradics89-beep/USEIT` and its repository name is **USEIT**. POS-Doctor is a historical predecessor only; it is not the current product, application identifier, runtime, or development target. Do not create new POS-Doctor product code or use the former repository as the source of truth.
+The only current repository is `milanradics89-beep/USEIT` (repository name: **USEIT**). POS-Doctor is a historical predecessor product only. Do not access or use a former POS-Doctor repository path, branch, pull request, workflow, or issue as a current development source. Do not reintroduce POS-terminal, diagnostic, or ADB functionality. Historical references retained inside USEIT are archival context only.
 
 ## Product principle
 SEE → UNDERSTAND → IMAGINE → PLAN → DO
 
-This repository is the new USEIT foundation. The previous POS-Doctor application is intentionally replaced.
+This repository is the USEIT foundation. The previous POS-Doctor product has been replaced by the camera-first consumer AI product described above.
 
 ## Release readiness
 

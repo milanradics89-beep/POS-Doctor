@@ -12,7 +12,8 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
     && python -m pip install --no-cache-dir -r /app/requirements.txt
 
 RUN groupadd --system --gid 10001 useit \
-    && useradd --system --uid 10001 --gid useit --home-dir /app --no-create-home useit
+    && useradd --system --uid 10001 --gid useit --home-dir /app --no-create-home useit \
+    && install -d --owner=10001 --group=10001 /app/data
 
 COPY --chown=10001:10001 backend/ /app/backend/
 
