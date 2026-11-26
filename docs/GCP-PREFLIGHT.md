@@ -6,7 +6,7 @@ Status: prepared for owner-operated verification. This document and its script d
 
 The owner-specified GCP project label is `useit`. The literal `useit` has five characters, but Google Cloud project IDs must be 6–30 lowercase letters, digits or hyphens, begin with a letter, and not end with a hyphen ([official project ID requirements](https://docs.cloud.google.com/resource-manager/reference/rest/v1/projects)). Therefore `useit` is not a valid Google Cloud project ID. The exact existing project ID is unverified and provisioning is blocked. Do not substitute another project or create a replacement.
 
-The script does not default to any project ID. It deliberately fails before invoking `gcloud` when `USEIT_GCP_PROJECT_ID` is absent or invalid. Run it only after the owner confirms the exact valid ID of the existing intended project, by setting `USEIT_GCP_PROJECT_ID` explicitly.
+The script defaults to the jointly agreed `useit-platform-2026` project ID. `USEIT_GCP_PROJECT_ID` may explicitly override it only for an owner-authorized reason. The script validates the ID before invoking `gcloud`.
 
 ## Run the read-only inventory
 
@@ -24,7 +24,7 @@ It never reads secret versions or secret payloads. It does not call create, enab
 
 ## Required owner Console checks
 
-1. Select the exact existing project ID confirmed by the owner for the `useit` label. Confirm the project ID, project number, lifecycle state, and owner access. Do not infer a project ID from its display name.
+1. Select the existing `useit-platform-2026` project. Confirm the project ID, project number, lifecycle state, and owner access. Do not infer a project ID from its display name.
 2. Open Billing > My projects. Confirm the linked billing account and who is financially responsible.
 3. Open Billing > Credits and Billing reports. Verify the current remaining credit, expiry date, and exact eligible SKUs for Cloud Run, Firestore, Secret Manager, Artifact Registry, Logging, Monitoring, and any required network usage. A historical credit screenshot is not current evidence.
 4. Agree and record the monthly budget amount, worst-case exposure, notification recipients, and thresholds before enabling billing-sensitive services or creating resources. Budget alerts notify; they do not cap spend.
