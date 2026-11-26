@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -28,6 +29,26 @@ jobs:
           cache: npm
       - name: Install dependencies reproducibly
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Enforce Fallow audit gate (required frontend check)
+        id: fallow-audit
+        uses: fallow-rs/fallow@71369f80d099e25726ad04382f15aef14a251abc # v3.31.0
+        with:
+          version: 3.31.0
+          command: audit
+          format: human
+          fail-on-issues: true
+          sarif: false
+          comment: false
+      - name: Enforce clean Fallow audit verdict
+        env:
+          FALLOW_AUDIT_VERDICT: ${{ steps.fallow-audit.outputs.verdict }}
+        run: node scripts/assert-fallow-audit-verdict.mjs
+      - name: Run Semgrep Community security gate (required frontend check)
+        run: |
+          docker run --rm \
+            --volume "${PWD}:/src" \
+            semgrep/semgrep@sha256:6e1b04340e60e910fbb4ddbf3c857ab0918f064417ad5ac530014ccb3cf8c8f1 \
+            semgrep scan --config p/ci --error --metrics=off /src
       - name: Enforce USEIT source boundary
         run: npm run guard:useit
       - name: Typecheck
