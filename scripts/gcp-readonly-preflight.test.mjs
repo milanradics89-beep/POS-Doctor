@@ -10,7 +10,6 @@ describe('USEIT GCP read-only preflight', () => {
     expect(script).toContain('Agreed USEIT target project ID: %s');
     expect(script).toContain('useit-platform-2026');
     expect(script).not.toContain('readonly PROJECT_ID="useit"');
-    expect(script).not.toContain('useit-platform-2026');
     expect(script).not.toContain('fresh-weft-447913-u6');
   });
 
