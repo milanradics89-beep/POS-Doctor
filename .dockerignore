@@ -20,3 +20,16 @@ app
 src
 vendor
 modules
+
+# Never send backend-local credentials, keys, certificates, or databases to Docker.
+backend/**/credentials/
+backend/**/secrets/
+backend/**/*.json
+backend/**/*.pem
+backend/**/*.key
+backend/**/*.p12
+backend/**/*.pfx
+backend/**/*.db
+backend/**/*.sqlite
+backend/**/*.sqlite3
+backend/**/*.secret
