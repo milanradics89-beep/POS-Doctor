@@ -4,15 +4,13 @@
 
 ## Target project and billing facts
 
-The owner-designated target project is `fresh-weft-447913-u6`. Its current project number, access, billing-account linkage, remaining credit balance, credit eligibility and SKU coverage have **not** been independently verified through Google Cloud API/Console in this work. Do not create a replacement project or provision resources until these facts are verified in Cloud Console.
-
-A previously shared Google Cloud Console screenshot for this same project showed a USD 300 welcome credit, USD 0 used at that time and an expiry date of 2027-02-23. This is historical evidence only, not a current balance or proof that every required SKU is covered. Re-check Billing Overview, remaining credit, expiry and covered SKUs immediately before any provisioning.
+The owner-provided target label is `useit`, but the exact valid Google Cloud project ID and project number are unresolved. A repository-owner review explicitly blocks substituting another project ID. Because `useit` alone is not a valid Google Cloud project ID, no GCP operation is authorized until the owner reconfirms the exact existing ID in current approved instructions. Billing-account linkage, remaining credit balance, credit expiry, eligible SKUs and payment responsibility are also unverified.
 
 A credit is not a hard spending cap. Budget notifications are alerts, not automatic shutdown controls. Usage not covered by an applicable credit or Free Tier may be charged to the linked payment method.
 
 ## Guardrail policy
 
-1. Use only the owner-designated existing target project `fresh-weft-447913-u6`, after verifying its existence, access and billing link. Do not create duplicate projects.
+1. Use only the owner-provided target label `useit`. The actual valid project ID is unresolved. Do not substitute any remembered or historical project ID, create a project, or perform GCP operations until the owner confirms the exact existing project ID.
 2. Use only services required by the approved architecture: Cloud Run, Firestore, Secret Manager, Artifact Registry, Cloud Logging and Cloud Monitoring, plus GitHub Actions WIF.
 3. Prefer request-based Cloud Run billing, minimum instances 0, conservative maximum instances, bounded concurrency and request timeout, and no always-on compute.
 4. Do not create Cloud SQL, Memorystore, GKE/Kubernetes, Compute Engine VMs, GPUs, Cloud Storage buckets, or Marketplace resources for the initial deployment.
@@ -35,7 +33,7 @@ Review usage cost and applied credits/savings in the Billing report. Check daily
 
 ### Gate A: account and project
 
-- Confirm project ID `fresh-weft-447913-u6`, project number and owner access.
+- [ ] Owner reconfirms the exact valid existing GCP project ID, project number and access for target label `useit` in current approved instructions.
 - Confirm billing-account linkage, billing-account type and payment responsibility.
 - Confirm current remaining credit, exact expiry, eligible services and restrictions for this exact project.
 - Confirm the project region and data-residency requirements.
@@ -78,7 +76,8 @@ Do not present Free Tier quotas as a guaranteed zero-cost bill until the project
 
 ## Current execution status
 
-- [x] Owner designated target project ID `fresh-weft-447913-u6` (Cloud Console existence/access/billing not yet verified).
+- [ ] Exact valid existing GCP project ID and project number reconfirmed by the owner in current approved instructions.
+- [ ] Verify billing-account linkage, current credits/expiry, eligible SKUs, payment responsibility and approved region.
 - [ ] Confirm exact project number, billing account and current credit eligibility for each required SKU.
 - [ ] Approve monthly budget amount, cost exposure and alert recipients.
 - [ ] Approve region and initial staging resource configuration.

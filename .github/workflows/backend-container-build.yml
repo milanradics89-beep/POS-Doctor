@@ -1,0 +1,70 @@
+name: Backend container build
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "backend/Dockerfile"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".github/workflows/backend-container-build.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "backend/Dockerfile"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".github/workflows/backend-container-build.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-container-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build backend image (no push)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build container image
+        run: docker build --pull --file backend/Dockerfile --tag useit-backend:ci .
+
+      - name: Smoke test container health and readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          cleanup() {
+            docker logs useit-backend-smoke 2>/dev/null || true
+            docker rm --force useit-backend-smoke >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run --detach --rm --name useit-backend-smoke \
+            --publish 127.0.0.1:18080:8080 \
+            --env USEIT_ENV=development \
+            --env OPENAI_API_KEY=ci-placeholder-not-a-secret \
+            useit-backend:ci
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18080/health >/dev/null; then
+              break
+            fi
+            if [[ "$attempt" -eq 30 ]]; then
+              echo "Backend /health did not become available."
+              exit 1
+            fi
+            sleep 2
+          done
+
+          curl --fail --silent http://127.0.0.1:18080/health
+          curl --fail --silent http://127.0.0.1:18080/ready
