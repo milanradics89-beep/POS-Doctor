@@ -4,20 +4,21 @@ import { describe, expect, it } from 'vitest';
 const script = readFileSync(new URL('./gcp-readonly-preflight.sh', import.meta.url), 'utf8');
 
 describe('USEIT GCP read-only preflight', () => {
-  it('keeps the owner-specified label and requires an explicit valid project ID', () => {
+  it('pins only the owner-specified identifier and never substitutes a project', () => {
     expect(script).toContain('readonly OWNER_PROJECT_LABEL="useit"');
-    expect(script).toContain('readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-useit}"');
-    expect(script).toContain('Google Cloud project IDs must be 6 to 30 lowercase letters');
-    expect(script).toContain('gcloud auth list --filter=status:ACTIVE');
-    expect(script).toContain('No active gcloud credential');
+    expect(script).toContain('readonly PROJECT_ID="useit"');
+    expect(script).not.toContain('USEIT_GCP_PROJECT_ID');
+    expect(script).not.toContain('useit-platform-2026');
+    expect(script).not.toContain('fresh-weft-447913-u6');
   });
 
-  it('rejects the five-character label before invoking any gcloud command', () => {
+  it('rejects the five-character identifier before checking or invoking gcloud', () => {
     const projectIdGuard = script.indexOf('if [[ ! "$PROJECT_ID" =~');
-    const firstGcloudCall = script.indexOf('command -v gcloud');
+    const gcloudAvailabilityCheck = script.indexOf('command -v gcloud');
     expect(projectIdGuard).toBeGreaterThan(-1);
-    expect(projectIdGuard).toBeLessThan(firstGcloudCall);
-    expect(script).not.toContain('fresh-weft-447913-u6');
+    expect(projectIdGuard).toBeLessThan(gcloudAvailabilityCheck);
+    expect(script).toContain('Google Cloud project IDs must be 6 to 30 lowercase letters');
+    expect(script).toContain('No gcloud command was executed');
   });
 
   it('supports the macOS system Bash 3.2 without Bash-4-only array helpers', () => {
@@ -26,7 +27,7 @@ describe('USEIT GCP read-only preflight', () => {
     expect(script).not.toMatch(/\b(?:mapfile|readarray)\b/);
   });
 
-  it('inventories the approved infrastructure without reading secret values', () => {
+  it('contains the approved read-only inventory commands without reading secret values', () => {
     for (const command of [
       'gcloud billing projects describe',
       'gcloud services list --enabled',
@@ -62,7 +63,7 @@ describe('USEIT GCP read-only preflight', () => {
     }
   });
 
-  it('does not invent a region and reports credits and SKU eligibility as manual checks', () => {
+  it('does not invent a region and reports billing eligibility as a manual check', () => {
     expect(script).toContain('USEIT_GCP_REGION');
     expect(script).toContain('Choose and approve a region');
     expect(script).toContain('Current credit balance, expiry, and eligible SKUs are not established');

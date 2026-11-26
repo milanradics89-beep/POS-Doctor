@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly OWNER_PROJECT_LABEL="USEIT"
-readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-useit-platform-2026}"
+readonly OWNER_PROJECT_LABEL="useit"
+readonly PROJECT_ID="useit"
 READ_FAILURES=0
 
 fail() {
@@ -11,11 +11,7 @@ fail() {
 }
 
 if [[ ! "$PROJECT_ID" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]; then
-  fail "The configured project ID '${PROJECT_ID}' is not a valid Google Cloud project ID. Set USEIT_GCP_PROJECT_ID only to the owner-confirmed existing project ID; no alternative project will be selected." 2
-fi
-
-if [[ "$PROJECT_ID" != "useit-platform-2026" ]]; then
-  fail "Refusing to inspect '${PROJECT_ID}'. USEIT is authorized to use only the owner-confirmed project 'useit-platform-2026'." 2
+  fail "The owner-specified project ID '${PROJECT_ID}' is invalid: Google Cloud project IDs must be 6 to 30 lowercase letters, digits or hyphens, start with a letter, and not end with a hyphen. No gcloud command was executed. Do not substitute another project ID; provisioning remains blocked until a corrected valid existing project ID is supplied in a new approved instruction." 2
 fi
 
 run_inventory() {

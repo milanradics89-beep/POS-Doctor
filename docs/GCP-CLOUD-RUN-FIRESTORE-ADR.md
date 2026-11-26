@@ -1,12 +1,11 @@
 # USEIT Google Cloud infrastructure ADR
 
-**Status:** Proposed, implementation not yet deployed  
+**Status:** Proposed, implementation not deployed; GCP provisioning blocked  
 **Date:** 2026-11-26  
-**Owner-designated GCP project:** `useit-platform-2026`  
-**Project display name:** `USEIT`  
-**Project number:** `386862694550`
+**Owner-specified GCP project ID:** `useit`  
+**Verified GCP project number:** unresolved
 
-The owner confirmed the exact existing project ID `useit-platform-2026` and project number `386862694550` in the Google Cloud Console during the 2026-11-26 setup. Use this project exclusively; `fresh-weft-447913-u6` is unrelated and must not be used. The screenshots confirm the project identity, the creation of the `useit-cloud-run-runtime` and `useit-github-deployer` service accounts, the `openai-api-key` secret, and enablement of the Cloud Run Admin and Artifact Registry APIs. Billing-account linkage, current credit balance/eligibility, region selection and approved spend remain unverified. No application container has been deployed.
+The current owner instruction names `useit` as the only permitted GCP project identifier. Google Cloud project IDs must be 6–30 lowercase letters, digits or hyphens, start with a letter, and must not end with a hyphen ([official Google Cloud requirement](https://docs.cloud.google.com/resource-manager/reference/rest/v3/projects)). The literal `useit` is five characters and therefore invalid as a project ID. Do not reinterpret it as a display name, use a previously mentioned project ID, substitute another project, or create a replacement. No valid existing project ID or project number is approved in the current instruction. Consequently this ADR remains planning-only: do not run `gcloud` inventory against another project, create resources, enable APIs, change IAM/billing, add secrets, or deploy. Any earlier claim about project identity, project number, service accounts, secret creation or API enablement is not accepted as current USEIT evidence and must not be used to authorize an operation.
 
 ## Decision
 
@@ -127,7 +126,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 ## Staged implementation sequence
 
 1. **Repository preparation:** container build, health/readiness contract, local integration tests, no secrets in image.
-2. **Identity and secrets design:** the owner has created `useit-cloud-run-runtime` and `useit-github-deployer`, created `openai-api-key`, granted the runtime identity Secret Manager Secret Accessor on that secret, and enabled Cloud Run Admin and Artifact Registry APIs in the confirmed project. Still verify deployer WIF principal conditions and least-privilege IAM bindings before deployment. Do not create additional identities or secrets without a defined need.
+2. **Identity and secrets design:** define separate runtime and deployer identities only after a valid existing project ID is confirmed and provisioning is explicitly approved. The existence of service accounts, secrets, API enablement or IAM bindings is unverified; do not treat prior notes as current evidence or create them without approval.
 3. **Firestore adapter feasibility:** implement/test memory, rate-limit and challenge-store interfaces only after proving transaction, expiry, concurrency, privacy and cost properties. Keep current SQLite/Redis adapters until replacements are validated.
 4. **Staging approval gate:** verify project ID, project number, billing account, credit eligibility, region, approved budget, alerts, SKU list, estimated monthly cost and worst-case exposure; obtain explicit approval before provisioning.
 5. **Staging:** deploy Cloud Run staging revision only after approval; run API contract, security, concurrency, cost and failure-mode tests using synthetic data.
@@ -137,7 +136,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Acceptance checklist
 
-- [x] Target project ID `useit-platform-2026`, display name `USEIT`, project number `386862694550`, and owner access confirmed in Cloud Console.  
+- [ ] Owner-specified identifier `useit` recorded; its validity as a Google Cloud project ID fails the 6–30 character requirement. Exact existing project ID, project number, access and billing remain blocked/unverified.
 - [ ] Billing-account linkage, current credit balance/eligibility, region and approved spend verified.
 - [ ] Cloud Run container is stateless and deploys with a dedicated least-privilege runtime identity.
 - [ ] OpenAI key and all server secrets are read only from Secret Manager.
@@ -155,7 +154,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Open questions that require measured or external evidence
 
-- Verify the billing-account linkage, current credit balance/eligibility, approved region and eligible SKUs for the confirmed project `useit-platform-2026` (project number `386862694550`) before provisioning.
+- Verify the exact valid existing project ID, project number, billing-account linkage, current credit balance/eligibility, approved region and eligible SKUs only after the owner supplies a corrected project ID in a new approved instruction.
 - Firestore database location and retention must follow the actual data residency/privacy assessment.
 - Firestore transaction contention and cost must be load-tested using realistic per-user/IP traffic.
 - The exact Cloud Run CPU/memory/concurrency/max-instance configuration must be selected from measured latency and cost, not guessed.

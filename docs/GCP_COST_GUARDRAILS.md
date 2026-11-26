@@ -12,7 +12,7 @@ A credit is not a hard spending cap. Budget notifications are alerts, not automa
 
 ## Guardrail policy
 
-1. Use only the exact existing project ID explicitly confirmed by the owner for the `useit` label. The literal `useit` is not a valid GCP project ID; do not substitute another project or create a replacement.
+1. The only currently owner-specified identifier is `useit`; it is invalid as a Google Cloud project ID. Do not substitute another ID or create a replacement. No GCP command may run against another project. Provisioning remains blocked until the owner supplies a corrected valid existing project ID in a new approved instruction.
 2. Use only services required by the approved architecture: Cloud Run, Firestore, Secret Manager, Artifact Registry, Cloud Logging and Cloud Monitoring, plus GitHub Actions WIF.
 3. Prefer request-based Cloud Run billing, minimum instances 0, conservative maximum instances, bounded concurrency and request timeout, and no always-on compute.
 4. Do not create Cloud SQL, Memorystore, GKE/Kubernetes, Compute Engine VMs, GPUs, Cloud Storage buckets, or Marketplace resources for the initial deployment.
