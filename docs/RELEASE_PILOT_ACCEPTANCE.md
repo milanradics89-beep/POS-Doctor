@@ -1,18 +1,20 @@
-> **Repository identity:** The current product and source of truth are `milanradics89-beep/USEIT` (repository name: `USEIT`). POS-Doctor links and identifiers retained in this document are historical evidence from the predecessor repository; they are not current USEIT PRs, issues, workflows, or release evidence. Do not use them to infer current status.
+> **Repository identity:** The current product and source of truth are `milanradics89-beep/USEIT` (repository name: `USEIT`). POS-Doctor links and identifiers retained below are historical predecessor-repository evidence only; they are not USEIT PRs, issues, workflows, releases, security status, or acceptance evidence. Do not use them to infer current USEIT status.
+>
+> **Historical scope:** Every checkpoint below applies only to the predecessor repository and its state on the date shown. None of the historical branch, PR, issue, ruleset, release, CI, or acceptance statements describes the current USEIT repository.
 
-## Latest acceptance checkpoint — 2026-11-13 18:49 CET
+## Historical predecessor-repository acceptance checkpoint — 2026-11-13 18:49 CET
 
-**Pilot/production acceptance: NOT GRANTED.**
+**Predecessor-repository pilot/production acceptance at this historical checkpoint: NOT GRANTED.**
 
-Immediately before the current integration commit, PR #41 exact HEAD was `b793a47f8f0a84155d1200fc797f191701f4eb92`. Its exact-head Validation [#43463804114](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804114) failed in the frontend job after 285/285 unit tests passed. Expo Doctor passed 20/21 checks but reported four Expo SDK 57 patch mismatches. Backend and iOS Validation jobs passed; CodeQL [#43463804128](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804128) and Dependency Review [#43463804149](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804149) passed on that exact pre-integration HEAD.
+At the historical predecessor-repository integration checkpoint, PR #41 exact HEAD was `b793a47f8f0a84155d1200fc797f191701f4eb92`. Its exact-head Validation [#43463804114](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804114) failed in the frontend job after 285/285 unit tests passed. Expo Doctor passed 20/21 checks but reported four Expo SDK 57 patch mismatches. Backend and iOS Validation jobs passed; CodeQL [#43463804128](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804128) and Dependency Review [#43463804149](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43463804149) passed on that exact pre-integration HEAD.
 
-The remediation candidate in draft PR [#65](https://github.com/milanradics89-beep/POS-Doctor/pull/65), exact HEAD `678fe7fde32f4dc785288d5a8ac939f1ac6478f0`, passed its own Validation [#43452488602](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43452488602), CodeQL [#43452493289](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43452493289), and Dependency Review [#43452488754](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43452488754). Its tested dependency, workflow, and regression-test changes are included in this integration commit. **The integration commit has a new exact-head CI gate and is not accepted until all required checks pass for that resulting SHA.** Parent and candidate CI results are not substituted for the integration commit's own results. PR #65 remains draft/open and has not been merged.
+The remediation candidate in draft PR [#65](https://github.com/milanradics89-beep/POS-Doctor/pull/65), exact HEAD `678fe7fde32f4dc785288d5a8ac939f1ac6478f0`, passed its own Validation [#43452488602](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43452488602), CodeQL [#43452493289](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43452493289), and Dependency Review [#43452488754](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43452488754). Its tested dependency, workflow, and regression-test changes were included in that predecessor-repository integration commit. **That predecessor-repository integration commit had its own exact-head CI gate and was not accepted until all required checks passed for its resulting SHA.** Parent and candidate CI results are not substituted for the integration commit's own results. PR #65 remains draft/open and has not been merged.
 
-PR #41 remains open and unmerged. Its current review inventory before this integration was 22/22 inline threads resolved, 25 review submissions, and **0 human APPROVED**. The active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires six strict status checks, one approving review, approval of the last push, and resolved review threads. Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed.
+At that historical checkpoint, predecessor-repository PR #41 was open and unmerged. Its review inventory recorded before that integration was 22/22 inline threads resolved, 25 review submissions, and **0 human APPROVED**. The predecessor repository's main ruleset [26370589] at that checkpoint(https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) requires six strict status checks, one approving review, approval of the last push, and resolved review threads. Predecessor-repository issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed.
 
-Issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) remains open. DNS-pinning PR #70 and redirect-chain fix PR #79 each passed their own exact-head Validation, CodeQL, and Dependency Review. Human review and integration are still required; no production deployment or exploit is claimed.
+Predecessor-repository issue [#64](https://github.com/milanradics89-beep/POS-Doctor/issues/64) was open. DNS-pinning PR #70 and redirect-chain fix PR #79 each passed their own exact-head Validation, CodeQL, and Dependency Review. Human review and integration are still required; no production deployment or exploit is claimed.
 
-The repository has **0 published GitHub releases**. Code Scanning, Dependabot, and Secret Scanning alert inventories are **unverified, not zero** because the connected integration does not expose those endpoints.
+The predecessor repository had **0 published GitHub releases** at that historical checkpoint. Code Scanning, Dependabot, and Secret Scanning alert inventories are **unverified, not zero** because the connected integration does not expose those endpoints.
 
 ### External acceptance requirements remain blocked
 
@@ -24,15 +26,15 @@ The repository has **0 published GitHub releases**. Code Scanning, Dependabot, a
 - **#22 Rollout:** approved staged rollout gates, monitoring thresholds, named rollback owner, and tested rollback.
 - **#25 Pilot:** real-user cohort, measured acceptance criteria, participant safeguards, and business sign-off.
 
-The 25-point register remains **3 Done / 15 In Progress / 7 Blocked**. Simulator/emulator evidence does not satisfy physical-device, production, backup/restore, monitoring, rollout, pilot, or business acceptance.
+The predecessor repository's 25-point register was **3 Done / 15 In Progress / 7 Blocked** at that historical checkpoint. Simulator/emulator evidence does not satisfy physical-device, production, backup/restore, monitoring, rollout, pilot, or business acceptance.
 
 ---
 
-## Latest acceptance checkpoint — 2026-11-11 21:40 CET
+## Historical predecessor-repository acceptance checkpoint — 2026-11-11 21:40 CET
 
-**Automated CI acceptance for validated parent PR #41 HEAD 4883c652d61b93236b7a604f124bf5708caa07e6: PASSED. The documentation-only child created by this checkpoint has its own exact-head CI gate. Pilot/production acceptance: NOT GRANTED.**
+**Predecessor-repository automated CI acceptance for validated parent PR #41 HEAD 4883c652d61b93236b7a604f124bf5708caa07e6: PASSED. The documentation-only child created by that historical checkpoint had its own exact-head CI gate. Predecessor-repository pilot/production acceptance: NOT GRANTED.**
 
-PR #41 remains open, unmerged, and non-draft on fix/release-blockers-2026-10, targeting main.
+At that historical checkpoint, predecessor-repository PR #41 was open, unmerged, and non-draft on fix/release-blockers-2026-10, targeting main.
 
 ### Exact-head automated evidence for parent 4883c65
 
@@ -45,7 +47,7 @@ All three required workflows completed successfully for the same exact SHA:
 - CodeQL [#43090044306](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044306), analyze [130764391156](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044306/job/130764391156): success.
 - Dependency Review [#43090044397](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044397), job [130764390843](https://github.com/milanradics89-beep/POS-Doctor/actions/runs/43090044397/job/130764390843): success; no high-or-higher vulnerable package in the reviewed diff and no denied package.
 
-The unchanged validated source/test baseline 2faa49c records 450 backend tests, 27 production-readiness checks, 78 security/privacy checks, 285 frontend tests across 58 files, Expo Doctor 21/21, Android Release/emulator smoke, and iOS Release simulator/smoke. Those detailed counts belong to the unchanged source/test baseline; the exact 4883c65 documentation descendant independently reran all three workflows successfully.
+The unchanged validated predecessor-repository source/test baseline 2faa49c recorded 450 backend tests, 27 production-readiness checks, 78 security/privacy checks, 285 frontend tests across 58 files, Expo Doctor 21/21, Android Release/emulator smoke, and iOS Release simulator/smoke. Those detailed counts belong to the unchanged source/test baseline; the exact 4883c65 documentation descendant independently reran all three workflows successfully.
 
 ### Remaining dependency and security findings
 
@@ -57,7 +59,7 @@ The unchanged validated source/test baseline 2faa49c records 450 backend tests, 
 ### Review and governance
 
 - The Codex review of 4883c65 raised two P2 documentation findings. This child restores the operational release procedures and distinguishes the validated parent from the new documentation HEAD; both corresponding threads are resolved after the push.
-- At pre-write capture: 20 inline threads total, 18 resolved and 2 open; 24 review submissions, 0 APPROVED. A fresh Codex review is requested for this documentation child. Human approving review and last-push approval remain mandatory.
+- At the historical pre-write capture: 20 inline threads total, 18 resolved and 2 open; 24 review submissions, 0 APPROVED. A fresh Codex review is requested for this documentation child. Human approving review and last-push approval remain mandatory.
 - Issue [#47](https://github.com/milanradics89-beep/POS-Doctor/issues/47) is closed. Active main ruleset [26370589](https://github.com/milanradics89-beep/POS-Doctor/rules/26370589) enforces six strict checks, one approval, last-push approval, resolved-thread enforcement, deletion/non-fast-forward protection, and no bypass actors.
 - Main HEAD: 7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0. The release branch was 512 commits ahead and 0 behind immediately before this documentation-only child.
 - Repository inventory: 32 branches, 19 open PRs, 4 open non-PR issues (#46, #25, #24, #23). GitHub Releases API returns 0 published releases.
