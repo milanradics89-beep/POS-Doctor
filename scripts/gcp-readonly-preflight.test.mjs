@@ -6,19 +6,18 @@ const script = readFileSync(new URL('./gcp-readonly-preflight.sh', import.meta.u
 describe('USEIT GCP read-only preflight', () => {
   it('keeps the owner-specified label separate from the exact project ID', () => {
     expect(script).toContain('readonly OWNER_PROJECT_LABEL="useit"');
-    expect(script).toContain('readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"');
-    expect(script).toContain('USEIT_GCP_PROJECT_ID only after the owner explicitly confirms');
+    expect(script).toContain('readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-useit-platform-2026}"');
+    expect(script).toContain('Agreed USEIT target project ID: %s');
+    expect(script).toContain('useit-platform-2026');
     expect(script).not.toContain('readonly PROJECT_ID="useit"');
     expect(script).not.toContain('useit-platform-2026');
     expect(script).not.toContain('fresh-weft-447913-u6');
   });
 
-  it('fails closed when the exact project ID is absent, before any gcloud invocation', () => {
-    const missingIdGuard = script.indexOf('if [[ -z "$PROJECT_ID" ]]');
+  it('validates the agreed default project ID before any gcloud invocation', () => {
     const projectIdGuard = script.indexOf('if [[ ! "$PROJECT_ID" =~');
     const gcloudAvailabilityCheck = script.indexOf('command -v gcloud');
-    expect(missingIdGuard).toBeGreaterThan(-1);
-    expect(missingIdGuard).toBeLessThan(projectIdGuard);
+    expect(projectIdGuard).toBeGreaterThan(-1);
     expect(projectIdGuard).toBeLessThan(gcloudAvailabilityCheck);
     expect(script).toContain('No gcloud command was executed');
   });
