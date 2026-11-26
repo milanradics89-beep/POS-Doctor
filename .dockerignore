@@ -39,3 +39,9 @@ backend/**/*.db
 backend/**/*.sqlite
 backend/**/*.sqlite3
 backend/**/*.secret
+backend/**/*.token
+backend/**/*.credentials
+backend/**/token.txt
+backend/**/secret.txt
+backend/**/secrets.txt
+backend/**/credentials.txt
