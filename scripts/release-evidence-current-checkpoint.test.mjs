@@ -53,7 +53,8 @@ describe('current release evidence checkpoint', () => {
       '5d026cb62e0626e59e3fdf686fca0e7f6981d780',
       '45743617132', '45743617056', '45743617033', '45743617016',
     ]) expect(section).toContain(value);
-    expect(section).toContain('failed audit verdict');
+    expect(section).toContain('Fallow on this exact HEAD is not clean:');
+    expect(section).toContain('FALLOW_GATES_FAILED: audit-verdict');
     expect(section).toContain('fail-on-issues: false');
     expect(section).toContain('fail-on-issues: true');
     expect(section).toContain('no human APPROVED review');
@@ -76,7 +77,7 @@ describe('current release evidence checkpoint', () => {
 
   it('records the stacked Home refactor and validated documentation candidate on their own exact heads', () => {
     const section = sections[0];
-    expect(section).toContain('stacked child PR #339');
+    expect(section).toContain('Stacked child PR #339 addresses the changed Home path');
     expect(section).toContain('PR #339');
     expect(section).toContain('PR #340');
     expect(section).toContain('FALLOW_GATES_PASSED: audit-verdict');
