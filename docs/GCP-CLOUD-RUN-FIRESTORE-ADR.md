@@ -2,10 +2,10 @@
 
 **Status:** Proposed, implementation not deployed; GCP provisioning blocked  
 **Date:** 2026-11-26  
-**Owner-specified GCP project ID:** `useit`  
-**Verified GCP project number:** unresolved
+**Jointly agreed existing GCP project ID:** `useit-platform-2026`  
+**Project number previously recorded:** `386862694550` (reconfirm in Cloud Console before provisioning)
 
-The current owner instruction names `useit` as the only permitted GCP project identifier. Google Cloud project IDs must be 6–30 lowercase letters, digits or hyphens, start with a letter, and must not end with a hyphen ([official Google Cloud requirement](https://docs.cloud.google.com/resource-manager/reference/rest/v3/projects)). The literal `useit` is five characters and therefore invalid as a project ID. Do not reinterpret it as a display name, use a previously mentioned project ID, substitute another project, or create a replacement. No valid existing project ID or project number is approved in the current instruction. Consequently this ADR remains planning-only: do not run `gcloud` inventory against another project, create resources, enable APIs, change IAM/billing, add secrets, or deploy. Any earlier claim about project identity, project number, service accounts, secret creation or API enablement is not accepted as current USEIT evidence and must not be used to authorize an operation.
+The project ID `useit-platform-2026` was jointly agreed for the existing USEIT GCP project. The previously recorded project number is `386862694550`; reconfirm the project metadata and billing linkage in Cloud Console before provisioning. This ADR remains planning-only until current billing, region, SKU eligibility, spend approval and resource configuration are checked. Do not create a replacement project or substitute another ID.
 
 ## Decision
 
@@ -117,7 +117,7 @@ Before enabling deployment:
 
 ## Cost guardrails
 
-No billing, credit-balance, expiry or SKU-eligibility evidence has been accepted for the owner-specified `useit` target. Any earlier screenshot for a different project is not transferable evidence. Verify the exact existing project in Cloud Console before provisioning.
+The agreed target is `useit-platform-2026`. Previously discussed credit evidence showed a USD 300 welcome credit with a 2027-02-23 expiry; this is historical and must be refreshed in Cloud Console before provisioning. Verify current balance and SKU eligibility.
 
 Set a project-scoped budget only after the owner approves a budget amount based on a measured service/usage model. Suggested notification thresholds are 25/50/75/90/100 percent of that approved budget; notifications do not stop resources or prevent overage.
 
@@ -126,7 +126,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 ## Staged implementation sequence
 
 1. **Repository preparation:** container build, health/readiness contract, local integration tests, no secrets in image.
-2. **Identity and secrets design:** define separate runtime and deployer identities only after a valid existing project ID is confirmed and provisioning is explicitly approved. The existence of service accounts, secrets, API enablement or IAM bindings is unverified; do not treat prior notes as current evidence or create them without approval.
+2. **Identity and secrets design:** define separate runtime and deployer identities only after a the agreed existing project is re-verified and provisioning is explicitly approved. The existence of service accounts, secrets, API enablement or IAM bindings is unverified; do not treat prior notes as current evidence or create them without approval.
 3. **Firestore adapter feasibility:** implement/test memory, rate-limit and challenge-store interfaces only after proving transaction, expiry, concurrency, privacy and cost properties. Keep current SQLite/Redis adapters until replacements are validated.
 4. **Staging approval gate:** verify project ID, project number, billing account, credit eligibility, region, approved budget, alerts, SKU list, estimated monthly cost and worst-case exposure; obtain explicit approval before provisioning.
 5. **Staging:** deploy Cloud Run staging revision only after approval; run API contract, security, concurrency, cost and failure-mode tests using synthetic data.
@@ -136,7 +136,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Acceptance checklist
 
-- [ ] Owner-specified identifier `useit` recorded; its validity as a Google Cloud project ID fails the 6–30 character requirement. Exact existing project ID, project number, access and billing remain blocked/unverified.
+- [ ] Jointly agreed target `useit-platform-2026` and previously recorded project number `386862694550` documented; current project metadata, access and billing must be re-verified.
 - [ ] Billing-account linkage, current credit balance/eligibility, region and approved spend verified.
 - [ ] Cloud Run container is stateless and deploys with a dedicated least-privilege runtime identity.
 - [ ] OpenAI key and all server secrets are read only from Secret Manager.
@@ -154,7 +154,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Open questions that require measured or external evidence
 
-- Verify the exact valid existing project ID, project number, billing-account linkage, current credit balance/eligibility, approved region and eligible SKUs only after the owner supplies a corrected project ID in a new approved instruction.
+- Verify the exact valid existing project ID, project number, billing-account linkage, current credit balance/eligibility, approved region and eligible SKUs after confirming the existing `useit-platform-2026` project and current billing details.
 - Firestore database location and retention must follow the actual data residency/privacy assessment.
 - Firestore transaction contention and cost must be load-tested using realistic per-user/IP traffic.
 - The exact Cloud Run CPU/memory/concurrency/max-instance configuration must be selected from measured latency and cost, not guessed.
