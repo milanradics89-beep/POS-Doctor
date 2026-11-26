@@ -2,9 +2,10 @@
 
 **Status:** Proposed, implementation not yet deployed  
 **Date:** 2026-11-24  
-**Owner-designated GCP project:** `fresh-weft-447913-u6`
+**Owner-specified GCP project label:** `useit`  
+**Exact Google Cloud project ID:** BLOCKED / not verified
 
-Use the existing owner-designated `fresh-weft-447913-u6` project. Do not create a replacement project. Before provisioning, verify the intended billing account, project number, region and eligible SKUs in that project. No GCP resources have been created by this ADR.
+The owner specified `useit` as the GCP project identifier. The literal has five characters, but Google Cloud project IDs must be 6–30 lowercase letters, digits or hyphens, begin with a letter, and not end with a hyphen ([official project ID requirements](https://docs.cloud.google.com/resource-manager/reference/rest/v1/projects)). Therefore `useit` is not a valid Google Cloud project ID. The exact existing project ID is unverified. Do not substitute another project or create a replacement. No GCP resource, billing, IAM or deployment action may proceed until the owner supplies the exact valid ID and confirms project number, billing linkage, region and eligible SKUs. No GCP resources have been created by this ADR.
 
 ## Decision
 
@@ -116,7 +117,7 @@ Before enabling deployment:
 
 ## Cost guardrails
 
-A previously shared Cloud Console screenshot for `fresh-weft-447913-u6` showed a USD 300 welcome credit, USD 0.00 used at that time and an expiry date of 2027-02-23. This is historical evidence only, not a current balance or proof that every required SKU is covered. Re-check the remaining credit, billing linkage, expiry and eligible SKUs in Cloud Console before provisioning.
+No billing, credit-balance, expiry or SKU-eligibility evidence has been accepted for the owner-specified `useit` target. Any earlier screenshot for a different project is not transferable evidence. Verify the exact existing project in Cloud Console before provisioning.
 
 Set a project-scoped budget only after the owner approves a budget amount based on a measured service/usage model. Suggested notification thresholds are 25/50/75/90/100 percent of that approved budget; notifications do not stop resources or prevent overage.
 
@@ -135,7 +136,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Acceptance checklist
 
-- [ ] Target project `fresh-weft-447913-u6`, project number, access and billing account verified in Cloud Console.
+- [ ] Exact valid GCP project ID for the owner-specified `useit` label, project number, access and billing account verified in Cloud Console.
 - [ ] Cloud Run container is stateless and deploys with a dedicated least-privilege runtime identity.
 - [ ] OpenAI key and all server secrets are read only from Secret Manager.
 - [ ] GitHub deployment uses OIDC/WIF; no service-account JSON key exists in GitHub secrets.
@@ -152,7 +153,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Open questions that require measured or external evidence
 
-- Verify that the owner-designated project ID `fresh-weft-447913-u6` exists, is accessible and is linked to the intended billing account; confirm its project number, region and eligible SKUs before provisioning.
+- Verify the exact valid GCP project ID corresponding to the owner-specified `useit` label; confirm project number, access, billing linkage, region and eligible SKUs before provisioning.
 - Firestore database location and retention must follow the actual data residency/privacy assessment.
 - Firestore transaction contention and cost must be load-tested using realistic per-user/IP traffic.
 - The exact Cloud Run CPU/memory/concurrency/max-instance configuration must be selected from measured latency and cost, not guessed.

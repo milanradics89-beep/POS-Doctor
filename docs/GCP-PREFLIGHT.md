@@ -2,9 +2,11 @@
 
 Status: prepared for owner-operated verification. This document and its script do not provision resources, enable APIs, alter IAM, create secrets, change billing, or deploy the service.
 
-## Fixed target
+## Owner-specified project label and exact ID gate
 
-Use only the owner-designated project: fresh-weft-447913-u6. Do not create a replacement project.
+The owner-specified GCP project label is `useit`. The literal `useit` has five characters, but Google Cloud project IDs must be 6–30 lowercase letters, digits or hyphens, begin with a letter, and not end with a hyphen ([official project ID requirements](https://docs.cloud.google.com/resource-manager/reference/rest/v1/projects)). Therefore `useit` is not a valid Google Cloud project ID. The exact existing project ID is unverified and provisioning is blocked. Do not substitute another project or create a replacement.
+
+The script defaults to `useit` and deliberately fails before invoking `gcloud`. Run it only after the owner confirms the exact valid ID of the existing intended project, by setting `USEIT_GCP_PROJECT_ID` explicitly.
 
 ## Run the read-only inventory
 
@@ -14,7 +16,7 @@ Requirements: Google Cloud CLI, an interactively authenticated account with read
 
 If a region has already been selected and approved, set it explicitly:
 
-    USEIT_GCP_REGION=YOUR_APPROVED_REGION bash scripts/gcp-readonly-preflight.sh
+    USEIT_GCP_PROJECT_ID=OWNER_CONFIRMED_PROJECT_ID USEIT_GCP_REGION=YOUR_APPROVED_REGION bash scripts/gcp-readonly-preflight.sh
 
 The script reads project metadata, billing linkage, enabled APIs, Firestore databases, Secret Manager secret names, Workload Identity Federation pools, Artifact Registry repositories, Logging sinks, Monitoring notification channels, and (only when a region is supplied) Cloud Run services.
 
@@ -22,7 +24,7 @@ It never reads secret versions or secret payloads. It does not call create, enab
 
 ## Required owner Console checks
 
-1. Select project fresh-weft-447913-u6 in Google Cloud Console. Confirm the project ID, project number, lifecycle state, and owner access.
+1. Select the exact existing project ID confirmed by the owner for the `useit` label. Confirm the project ID, project number, lifecycle state, and owner access. Do not infer a project ID from its display name.
 2. Open Billing > My projects. Confirm the linked billing account and who is financially responsible.
 3. Open Billing > Credits and Billing reports. Verify the current remaining credit, expiry date, and exact eligible SKUs for Cloud Run, Firestore, Secret Manager, Artifact Registry, Logging, Monitoring, and any required network usage. A historical credit screenshot is not current evidence.
 4. Agree and record the monthly budget amount, worst-case exposure, notification recipients, and thresholds before enabling billing-sensitive services or creating resources. Budget alerts notify; they do not cap spend.

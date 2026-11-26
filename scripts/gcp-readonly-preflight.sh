@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly PROJECT_ID="fresh-weft-447913-u6"
+readonly OWNER_PROJECT_LABEL="useit"
+readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-useit}"
 READ_FAILURES=0
 
 fail() {
   printf 'BLOCKED: %s\n' "$1" >&2
   exit "${2:-2}"
 }
+
+if [[ ! "$PROJECT_ID" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]; then
+  fail "The owner-specified project label '${OWNER_PROJECT_LABEL}' is five characters; Google Cloud project IDs must be 6 to 30 lowercase letters, digits or hyphens, start with a letter, and not end with a hyphen. Set USEIT_GCP_PROJECT_ID only to the exact existing project ID confirmed by the owner. No alternative project will be selected." 2
+fi
 
 run_inventory() {
   local label="$1"
@@ -31,7 +36,8 @@ done < <(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/de
 [[ -n "${ACTIVE_ACCOUNTS[0]}" ]] || fail "No active gcloud credential. Authenticate interactively, then rerun this read-only preflight."
 
 printf 'USEIT GCP READ-ONLY PREFLIGHT\n'
-printf 'Target project: %s\n' "$PROJECT_ID"
+printf 'Owner-specified project label: %s\n' "$OWNER_PROJECT_LABEL"
+printf 'Verified target project ID: %s\n' "$PROJECT_ID"
 printf 'Active account: %s\n' "${ACTIVE_ACCOUNTS[0]}"
 printf 'Configured gcloud project: '
 gcloud config get-value project 2>/dev/null || true
