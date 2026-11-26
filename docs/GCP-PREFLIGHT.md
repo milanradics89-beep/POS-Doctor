@@ -6,7 +6,7 @@ Status: prepared for owner-operated verification. This document and its script d
 
 The owner-specified GCP project label is `useit`. The literal `useit` has five characters, but Google Cloud project IDs must be 6–30 lowercase letters, digits or hyphens, begin with a letter, and not end with a hyphen ([official project ID requirements](https://docs.cloud.google.com/resource-manager/reference/rest/v1/projects)). Therefore `useit` is not a valid Google Cloud project ID. The exact existing project ID is unverified and provisioning is blocked. Do not substitute another project or create a replacement.
 
-The script defaults to `useit` and deliberately fails before invoking `gcloud`. Run it only after the owner confirms the exact valid ID of the existing intended project, by setting `USEIT_GCP_PROJECT_ID` explicitly.
+The script does not default to any project ID. It deliberately fails before invoking `gcloud` when `USEIT_GCP_PROJECT_ID` is absent or invalid. Run it only after the owner confirms the exact valid ID of the existing intended project, by setting `USEIT_GCP_PROJECT_ID` explicitly.
 
 ## Run the read-only inventory
 
