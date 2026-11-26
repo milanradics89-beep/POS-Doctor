@@ -4,13 +4,13 @@
 
 ## Target project and billing facts
 
-The owner confirmed the existing target project in Google Cloud Console: display name `USEIT`, project ID `useit-platform-2026`, project number `386862694550`. This project identity and owner access are confirmed by the current setup screenshots. Billing-account linkage, remaining credit balance, credit expiry, eligible SKUs and payment responsibility have **not** been verified. Do not transfer credit or billing assumptions from another project. Verify Billing Overview, current credits, expiry and covered SKUs immediately before provisioning.
+The owner-provided target label is `useit`, but the exact valid Google Cloud project ID and project number are unresolved. A repository-owner review explicitly blocks substituting another project ID. Because `useit` alone is not a valid Google Cloud project ID, no GCP operation is authorized until the owner reconfirms the exact existing ID in current approved instructions. Billing-account linkage, remaining credit balance, credit expiry, eligible SKUs and payment responsibility are also unverified.
 
 A credit is not a hard spending cap. Budget notifications are alerts, not automatic shutdown controls. Usage not covered by an applicable credit or Free Tier may be charged to the linked payment method.
 
 ## Guardrail policy
 
-1. Use only the owner-designated existing target project `useit-platform-2026` (project number `386862694550`). Do not use `fresh-weft-447913-u6` or create a duplicate project.
+1. Use only the owner-provided target label `useit`. The actual valid project ID is unresolved. Do not substitute any remembered or historical project ID, create a project, or perform GCP operations until the owner confirms the exact existing project ID.
 2. Use only services required by the approved architecture: Cloud Run, Firestore, Secret Manager, Artifact Registry, Cloud Logging and Cloud Monitoring, plus GitHub Actions WIF.
 3. Prefer request-based Cloud Run billing, minimum instances 0, conservative maximum instances, bounded concurrency and request timeout, and no always-on compute.
 4. Do not create Cloud SQL, Memorystore, GKE/Kubernetes, Compute Engine VMs, GPUs, Cloud Storage buckets, or Marketplace resources for the initial deployment.
@@ -33,7 +33,7 @@ Review usage cost and applied credits/savings in the Billing report. Check daily
 
 ### Gate A: account and project
 
-- Project ID `useit-platform-2026`, project number `386862694550`, display name `USEIT` and owner access are confirmed. Verify billing linkage and payment responsibility.
+- [ ] Owner reconfirms the exact valid existing GCP project ID, project number and access for target label `useit` in current approved instructions.
 - Confirm billing-account linkage, billing-account type and payment responsibility.
 - Confirm current remaining credit, exact expiry, eligible services and restrictions for this exact project.
 - Confirm the project region and data-residency requirements.
@@ -76,7 +76,7 @@ Do not present Free Tier quotas as a guaranteed zero-cost bill until the project
 
 ## Current execution status
 
-- [x] Owner confirmed target project ID `useit-platform-2026`, display name `USEIT`, project number `386862694550`, and owner access in Cloud Console.
+- [ ] Exact valid existing GCP project ID and project number reconfirmed by the owner in current approved instructions.
 - [ ] Verify billing-account linkage, current credits/expiry, eligible SKUs, payment responsibility and approved region.
 - [ ] Confirm exact project number, billing account and current credit eligibility for each required SKU.
 - [ ] Approve monthly budget amount, cost exposure and alert recipients.
