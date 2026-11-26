@@ -1,3 +1,87 @@
+## Latest live release-watch checkpoint — 2026-11-26 09:56 CET
+
+**Canonical repository:** [milanradics89-beep/USEIT](https://github.com/milanradics89-beep/USEIT). The legacy `milanradics89-beep/POS-Doctor` path redirects here.
+**Main HEAD:** `df959f270ed95f3b2a3eb4e2293b45505a074823`.
+**Release decision: NOT READY. Production/pilot acceptance: NOT GRANTED.**
+
+### PR #41 — merged release-blocker baseline
+
+PR [#41](https://github.com/milanradics89-beep/USEIT/pull/41) is CLOSED/MERGED on `fix/release-blockers-2026-10`, targeting `main`. Exact HEAD: `68b380e73ca3c870048035197beef8febbf90ef1`; live branch ref matches. Merge commit: `f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1`.
+
+- Branch comparison: 517 commits ahead / 33 behind main; merge base `7ef22a6114d88c4a7e7aff7f9ab48544c7d18bf0`. The retained feature branch is diverged; this does not change the merged PR state.
+- PR diff: 100 files, +11,887 / -2,005.
+- Exact-head Validation [43492153234](https://github.com/milanradics89-beep/USEIT/actions/runs/43492153234): SUCCESS; frontend job `132115828836`, backend `132115829214`, iOS `132115829399` all SUCCESS.
+- Exact-head CodeQL [43492153161](https://github.com/milanradics89-beep/USEIT/actions/runs/43492153161), job `132115827817`: SUCCESS.
+- Exact-head Dependency Review [43492153021](https://github.com/milanradics89-beep/USEIT/actions/runs/43492153021), job `132115827187`: SUCCESS.
+- PR discussion/review inventory: 109 combined records = 53 conversation comments, 30 inline review comments, and 26 formal review submissions (25 COMMENTED, 1 APPROVED). There are 22/22 resolved inline threads and 0 unresolved.
+- The sole APPROVED review is by `tarlaci1984-sketch`, with an empty body. It is not independent security-owner acceptance.
+- Three historical runs remain QUEUED with zero jobs on stale SHA `b46c5b8082ecbebd263a86cd53b1321a86e570d1`: Validation [43098210284](https://github.com/milanradics89-beep/USEIT/actions/runs/43098210284), CodeQL [43098210473](https://github.com/milanradics89-beep/USEIT/actions/runs/43098210473), and Dependency Review [43098210255](https://github.com/milanradics89-beep/USEIT/actions/runs/43098210255). These are not current-head results; manual administrator cancellation remains required.
+- PR #41's body still contains a superseded open/unmerged description. Live PR metadata is authoritative; no merged-PR edit was made.
+
+### Main branch and governance
+
+Main is `df959f270ed95f3b2a3eb4e2293b45505a074823`, and the branch API reports `protected: true`. Eight exact-main-SHA runs are completed SUCCESS: Validation [45664649912](https://github.com/milanradics89-beep/USEIT/actions/runs/45664649912), CodeQL [45664649859](https://github.com/milanradics89-beep/USEIT/actions/runs/45664649859), Quality/Security [45664649952](https://github.com/milanradics89-beep/USEIT/actions/runs/45664649952), four dependency automation runs [45664944154](https://github.com/milanradics89-beep/USEIT/actions/runs/45664944154), [45664919031](https://github.com/milanradics89-beep/USEIT/actions/runs/45664919031), [45664918007](https://github.com/milanradics89-beep/USEIT/actions/runs/45664918007), [45664913984](https://github.com/milanradics89-beep/USEIT/actions/runs/45664913984), and main dynamic run [45664648186](https://github.com/milanradics89-beep/USEIT/actions/runs/45664648186).
+
+Active ruleset [Protect main #26370589](https://github.com/milanradics89-beep/USEIT/rules/26370589) targets the default branch and requires six strict checks (CodeQL, backend, frontend, ios, analyze, dependency-review), one approval, last-push approval, stale-approval dismissal, resolved review threads, deletion protection, non-fast-forward protection, and zero bypass actors.
+
+### Engineering candidates
+
+- PR [#333](https://github.com/milanradics89-beep/USEIT/pull/333), HEAD `f0c7d4561f449ce640bcaa813e84d0bd0a5b275e`: Validation [45748693636](https://github.com/milanradics89-beep/USEIT/actions/runs/45748693636), CodeQL [45748693477](https://github.com/milanradics89-beep/USEIT/actions/runs/45748693477), Dependency Review [45748693458](https://github.com/milanradics89-beep/USEIT/actions/runs/45748693458), Quality/Security [45748693481](https://github.com/milanradics89-beep/USEIT/actions/runs/45748693481): all exact-head SUCCESS. Human approval remains outstanding. This is the fail-closed Fallow/Semgrep candidate.
+- PR [#337](https://github.com/milanradics89-beep/USEIT/pull/337), HEAD `0a907e820b396111a15f42c48ce7ce4b4053be13`: all four exact-head workflows SUCCESS (45723475105, 45723475050, 45723475048, 45723475166). Human approval remains outstanding.
+- PR [#338](https://github.com/milanradics89-beep/USEIT/pull/338), HEAD `809b97744abbb5075ec896d02e79b31ebd23706c`: all four workflow conclusions are SUCCESS, but the Fallow job log is a real failed audit. Job `139567772987` in run `45717661069` reports `FALLOW_GATES_FAILED: audit-verdict`; `Home` CRAP 283.7, `analyze` 126.5, `analyzeUseit` 37.1 (threshold 30). The workflow source `.github/workflows/code-quality-security.yml` sets `fail-on-issues: false`, so the overall green conclusion does not prove the Fallow audit passed. Remediation and fail-closed enforcement remain required.
+- PR [#339](https://github.com/milanradics89-beep/USEIT/pull/339), HEAD `707b4bbd7163aa36e73ca8fb2210cca2cb1e7d81`: all four exact-head workflows SUCCESS (45743545603, 45743545596, 45743545518, 45743545623). It is draft and stacked on PR #338's branch `feat/firestore-analysis-idempotency-mainline-20261125`, not directly on main; reconcile the base before integration.
+
+### PR #340 — current documentation candidate
+
+PR [#340](https://github.com/milanradics89-beep/USEIT/pull/340) remains OPEN/DRAFT on `docs/release-evidence-current-main-20261126-run11`, targeting main. Validated parent HEAD: `03dab853a18d93311d2c8457776b738df0ce475b` (8 commits, 4 changed files, +528 / 0). Requested reviewer: `milanzoltanradics`.
+
+All four workflows for exact HEAD `03dab853a18d93311d2c8457776b738df0ce475b` are terminal SUCCESS:
+- Validation [45781957289](https://github.com/milanradics89-beep/USEIT/actions/runs/45781957289): backend job `139779320516`, frontend `139779320864`, and iOS `139779321024` all SUCCESS. Frontend steps include unit tests, Expo Doctor, Android export, native Android Release build and emulator install/launch smoke; iOS native Release build and simulator install/launch smoke also passed.
+- CodeQL [45781957272](https://github.com/milanradics89-beep/USEIT/actions/runs/45781957272), Analyze job `139779320586`: SUCCESS.
+- Dependency Review [45781957232](https://github.com/milanradics89-beep/USEIT/actions/runs/45781957232), job `139779319745`: SUCCESS.
+- Quality/Security [45781957343](https://github.com/milanradics89-beep/USEIT/actions/runs/45781957343): Gitleaks, zizmor, Semgrep, and Fallow jobs all SUCCESS. This docs-only Fallow pass does not resolve the separate PR #338 failed Fallow audit.
+- PR #340 currently has 0 formal review submissions and 0 inline threads; human approval remains outstanding.
+
+This checkpoint update is a new documentation-only child of `03dab853a18d93311d2c8457776b738df0ce475b`. Its resulting SHA must receive its own exact-head Validation, CodeQL, Dependency Review, and Quality/Security checks. The successful parent results above are not attributed to the new child.
+
+### Issues, releases, and security inventory
+
+- Issue [#47](https://github.com/milanradics89-beep/USEIT/issues/47) is CLOSED with 11 comments. Its body retains a stale owner-action paragraph, but the November 18 comment and live branch/ruleset API verify current main protection.
+- Issue [#64](https://github.com/milanradics89-beep/USEIT/issues/64) remains OPEN with 139 comments (last updated 2026-11-24). PR [#200](https://github.com/milanradics89-beep/USEIT/pull/200) is CLOSED/MERGED, HEAD `fd0424f1f1ba1b8aabefc3c5dabae6df59a3f67a`, merge commit `3a262358552a9650d865aa5bd3c92905f1e863cb`. Production acceptance still requires independent authorized security-owner approval, complete production NAT64/DNS64 prefix inventory, verification of deployed `USEIT_NAT64_PREFIXES`, and staging plus production egress evidence.
+- GitHub Releases API returns 0 published releases.
+- Code Scanning, Dependabot, and Secret Scanning alert inventories are unavailable through the connected GitHub endpoints. They are UNVERIFIED, NOT EMPTY; no zero-alert claim is made.
+
+### Canonical 25-point release register
+
+**Current distribution: 3 Done / 15 In Progress / 7 Blocked (25 total).** The detailed evidence-bearing item descriptions remain in the register below in this backlog and in the corresponding sections of the runbook and pilot acceptance record.
+
+- **Done:** #1, #2, #6.
+- **In Progress:** #3, #7, #8, #9, #10, #11, #12, #13, #14, #15, #17, #19, #20, #23, #24.
+- **Blocked:** #4, #5, #16, #18, #21, #22, #25.
+
+External blockers remain unchanged:
+- #4 physical iPhone App Attest production entitlement and provider-backed verification.
+- #5 Play-installed physical Android Play Integrity verification.
+- #16 witnessed production backup/restore.
+- #18 representative product-recognition benchmark and business acceptance.
+- #21 production monitoring workspace and witnessed alert delivery.
+- #22 approved staged rollout and tested rollback.
+- #25 real-user pilot and explicit business sign-off.
+
+External console setup, physical-device verification, production cloud access, witnessed backup/restore, staged rollout approvals, and real-user/business acceptance remain BLOCKED until evidence is recorded. Automated CI does not substitute for these gates.
+
+### Human actions and release decision
+
+1. Repository administrator: cancel historical queued PR #41 runs `43098210284`, `43098210473`, and `43098210255` on stale SHA `b46c5b8`.
+2. Human reviewers: review PRs #340, #333, and #337; required approval has not been supplied.
+3. Engineering: remediate PR #338's three Fallow complexity findings and enforce the audit as a blocking check; do not suppress findings or weaken checks.
+4. Reconcile PR #339's stacked base before integration.
+5. Keep all seven external acceptance blockers blocked until independent evidence exists.
+
+**Release decision: NOT READY. Production security acceptance, production release, and real-user pilot/business approval: NOT GRANTED.**
+
+---
+
 ## Latest live release-watch checkpoint — 2026-11-26 09:10 CET
 
 **Canonical repository:** [milanradics89-beep/USEIT](https://github.com/milanradics89-beep/USEIT) (the legacy POS-Doctor repository path resolves here).  
