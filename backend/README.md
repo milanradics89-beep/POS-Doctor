@@ -31,3 +31,44 @@ during connected-peer validation. Malformed, non-global, unsupported, or invalid
 Every network-specific translator prefix used by production egress must be listed.
 Do not enable DNS64/NAT64 for product-page egress until this setting has been verified
 against the deployment's actual translator configuration.
+
+
+## Container image
+
+Build the backend image from the repository root so Docker can copy the complete
+`backend` Python package:
+
+```bash
+docker build --pull --file backend/Dockerfile --tag useit-backend:local .
+```
+
+The image runs Uvicorn on the Cloud Run-provided `PORT` (default `8080`) as a
+non-root user. The root `.dockerignore` excludes common secret-bearing patterns,
+including environment files, credential/secret directories, JSON credential files,
+private keys, certificates, token/credential text files, and local database files.
+These exclusions are a defence-in-depth filter, not a guarantee that arbitrary
+secret files are detected. **Never place runtime credentials anywhere inside the
+Docker build context or repository.** Supply them at runtime through the approved
+secret manager; inspect the build context before any local image is shared.
+
+A GitHub Actions workflow builds the image on pull requests and mainline changes
+that affect the backend/container definition. It builds only and does not publish
+to Artifact Registry or authenticate to Google Cloud.
+
+## Cloud Run deployment gate
+
+A successful container build is not deployment acceptance. The current production
+backend still requires shared TLS Redis for distributed rate limiting and may use
+Redis for one-time attestation challenges; personal memory currently uses encrypted
+SQLite. These process/local-disk and shared-state dependencies must be migrated
+and validated against the approved Firestore design before a stateless multi-instance
+Cloud Run deployment. Do not set production to memory rate limiting, use local SQLite
+as persistent storage, add Memorystore, or silently bypass production security checks.
+
+The owner-provided target label is `useit`, but the exact valid Google Cloud
+project ID and project number are currently unresolved. Do not substitute a
+remembered or historical project ID, create a project, change IAM or billing,
+enable paid services, or deploy until the owner reconfirms the exact existing
+project ID in current approved instructions. Staging deployment also remains
+gated on Firestore adapter tests, least-privilege deployment IAM/WIF verification,
+billing/region/cost approval, and a reviewed Cloud Run configuration.
