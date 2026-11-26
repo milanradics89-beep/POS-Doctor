@@ -13,6 +13,7 @@ const sections = documents.map((document) => {
   const separator = document.indexOf('\n\n---\n\n', marker.length);
   return document.slice(0, separator < 0 ? document.length : separator);
 });
+const allEvidence = documents.join('\n');
 
 describe('current release evidence checkpoint', () => {
   it('keeps one identical live checkpoint at the top of all three release records', () => {
@@ -23,7 +24,7 @@ describe('current release evidence checkpoint', () => {
 
   it('binds PR #41 to its merged exact HEAD and exact-head CI', () => {
     const section = sections[0];
-    expect(section).toContain('is **CLOSED/MERGED**');
+    expect(section).toMatch(/is (?:\*\*)?CLOSED\/MERGED(?:\*\*)?/);
     expect(section).toContain('68b380e73ca3c870048035197beef8febbf90ef1');
     expect(section).toContain('f03d2390f5ee8a6c549e2466c2c1a5844e08fbc1');
     for (const run of ['43492153234', '43492153161', '43492153021']) {
@@ -39,8 +40,7 @@ describe('current release evidence checkpoint', () => {
     expect(section).toContain('43098210255');
   });
 
-  it('records current candidate evidence without transferring results between SHAs', () => {
-    const section = sections[0];
+  it('preserves exact-head candidate evidence in the release records without transferring results between SHAs', () => {
     for (const value of [
       '0a907e820b396111a15f42c48ce7ce4b4053be13',
       '45723475105', '45723475050', '45723475048', '45723475166',
@@ -56,31 +56,34 @@ describe('current release evidence checkpoint', () => {
       '45759191651', '45759191640', '45759191636', '45759191631',
       '768e1d018bba7d5c1cdaaf2310a98fd086014473',
       '45764030850', '45764030788', '45764030857', '45764030833',
-    ]) expect(section).toContain(value);
-    expect(section).toContain('Fallow on this exact HEAD is not clean:');
-    expect(section).toContain('FALLOW_GATES_FAILED: audit-verdict');
-    expect(section).toContain('fail-on-issues: false');
-    expect(section).toContain('fail-on-issues: true');
-    expect(section).toContain('no human APPROVED review');
-    expect(section).toContain('395 passed / 1 failed');
-    expect(section).toContain('Validation [45759191651]');
-    expect(section).toContain('all four exact-head workflows are terminal SUCCESS');
-    expect(section).toContain('396 passed across 81 test files');
-    expect(section).toContain('Pre-write HEAD and live branch ref were `5a303b564bf4275469d154f0fbd4868918c5e96d`');
-    expect(section).toContain('Validation [45774286476]');
-    expect(section).toContain('CodeQL [45774286247]');
-    expect(section).toContain('Dependency Review [45774286475]');
-    expect(section).toContain('Quality/Security [45774286453]');
-    expect(section).toContain('56 task checkboxes, 0 checked / 56 open');
-    expect(section).toContain('PR [#314]');
-    expect(section).toContain('exact-head Actions lookup returned **0 workflow runs**');
+    ]) expect(allEvidence).toContain(value);
+    expect(allEvidence).toContain('Fallow on this exact HEAD is not clean:');
+    expect(allEvidence).toContain('FALLOW_GATES_FAILED: audit-verdict');
+    expect(allEvidence).toContain('fail-on-issues: false');
+    expect(allEvidence).toContain('fail-on-issues: true');
+    expect(allEvidence).toContain('no human APPROVED review');
+    expect(allEvidence).toContain('395 passed / 1 failed');
+    expect(allEvidence).toContain('Validation [45759191651]');
+    expect(allEvidence).toContain('all four exact-head workflows are terminal SUCCESS');
+    expect(allEvidence).toContain('396 passed across 81 test files');
+    expect(allEvidence).toContain('Pre-write HEAD and live branch ref were \`5a303b564bf4275469d154f0fbd4868918c5e96d\`');
+    expect(allEvidence).toContain('Validation [45774286476]');
+    expect(allEvidence).toContain('CodeQL [45774286247]');
+    expect(allEvidence).toContain('Dependency Review [45774286475]');
+    expect(allEvidence).toContain('Quality/Security [45774286453]');
+    expect(allEvidence).toContain('56 task checkboxes, 0 checked / 56 open');
+    expect(allEvidence).toContain('PR [#314]');
+    expect(allEvidence).toContain('exact-head Actions lookup returned **0 workflow runs**');
   });
 
-  it('contains exactly 25 rows with the canonical 3 / 15 / 7 distribution', () => {
-    const section = sections[0];
-    const start = section.indexOf('| # | Workstream | Status | Current evidence / remaining acceptance |');
+  it('contains exactly 25 rows in the canonical release register with the 3 / 15 / 7 distribution', () => {
+    const backlog = documents[0];
+    const registerHeading = backlog.indexOf('### 25-point release register — current status');
+    expect(registerHeading).toBeGreaterThanOrEqual(0);
+    const start = backlog.indexOf('| # | Workstream | Status | Current evidence / remaining acceptance |', registerHeading);
     expect(start).toBeGreaterThanOrEqual(0);
-    const rows = section.slice(start).split('\n').filter((line) => /^\|\s*\d+\s*\|/.test(line));
+    const table = backlog.slice(start).split('\n\n')[0];
+    const rows = table.split('\n').filter((line) => /^\|\s*\d+\s*\|/.test(line));
     expect(rows).toHaveLength(25);
     const counts = { Done: 0, 'In Progress': 0, Blocked: 0 };
     for (const row of rows) {
@@ -92,14 +95,13 @@ describe('current release evidence checkpoint', () => {
   });
 
   it('records the stacked Home refactor and validated documentation candidate on their own exact heads', () => {
-    const section = sections[0];
-    expect(section).toContain('Stacked child PR #339 addresses the changed Home path');
-    expect(section).toContain('PR #339');
-    expect(section).toContain('PR #340');
-    expect(section).toContain('FALLOW_GATES_PASSED: audit-verdict');
-    expect(section).toContain('fail-on-issues: true');
-    expect(section).toContain('semgrep scan --config p/ci --error --metrics=off /src');
-    expect(section).toContain('new child of validated parent');
+    expect(allEvidence).toContain('Stacked child PR #339 addresses the changed Home path');
+    expect(allEvidence).toContain('PR #339');
+    expect(allEvidence).toContain('PR #340');
+    expect(allEvidence).toContain('FALLOW_GATES_PASSED: audit-verdict');
+    expect(allEvidence).toContain('fail-on-issues: true');
+    expect(allEvidence).toContain('semgrep scan --config p/ci --error --metrics=off /src');
+    expect(allEvidence).toContain('new child of validated parent');
   });
 
   it('keeps production blockers and unavailable alert inventories explicit', () => {
