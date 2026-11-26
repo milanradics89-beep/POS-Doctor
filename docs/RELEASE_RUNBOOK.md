@@ -1,6 +1,8 @@
 > **Repository identity:** The current product and source of truth are `milanradics89-beep/USEIT` (repository name: `USEIT`). POS-Doctor links and identifiers retained in this document are historical evidence from the predecessor repository; they are not current USEIT PRs, issues, workflows, or release evidence. Do not use them to infer current status.
 >
-> **Historical scope:** All checkpoints before `# USEIT release and production runbook` describe only the predecessor repository. PR #41, its review inventory, run IDs, and predecessor ruleset links are not current USEIT release gates.
+> **Historical scope:** All checkpoints before `# USEIT release and production runbook
+
+> **Current USEIT gate:** This section applies only to pull requests in `milanradics89-beep/USEIT`. No predecessor-repository PR number (including PR #41) is an active USEIT approval gate. The active gate is [Protect main #26370589](https://github.com/milanradics89-beep/USEIT/rules/26370589) applied to the current USEIT PR's exact HEAD, with all required checks, independent human approval, last-push approval, and resolved review threads.` describe only the predecessor repository. PR #41, its review inventory, run IDs, and predecessor ruleset links are not current USEIT release gates.
 
 ## Historical predecessor-repository release checkpoint — 2026-11-13 18:49 CET
 
