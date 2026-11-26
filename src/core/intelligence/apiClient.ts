@@ -19,6 +19,43 @@ import type { SceneModel } from './sceneModel';
 
 export type UseitApiClientOptions = { apiKey?: string };
 
+type UseitAnalyzeOptions = {
+  budgetHuf?: number;
+  preferredStyles?: string[];
+  preferredColors?: string[];
+  discoverProducts?: boolean;
+  productLimit?: number;
+  idempotencyKey?: string;
+};
+
+function buildUseitAnalyzePayload(
+  imageUri: string,
+  intent: OpportunityKind | 'shop' | undefined,
+  options: UseitAnalyzeOptions,
+) {
+  const policyIntent = intent === 'shop' ? undefined : intent;
+  const policy = createPromptPolicy(policyIntent, 'hu-HU');
+  return {
+    imageUri,
+    userIntent: intent ?? policy.intent,
+    prompt: policy.system,
+    locale: policy.locale,
+    budgetHuf: options.budgetHuf,
+    preferredStyles: options.preferredStyles ?? [],
+    preferredColors: options.preferredColors ?? [],
+    discoverProducts: options.discoverProducts ?? true,
+    productLimit: options.productLimit ?? 8,
+  };
+}
+
+function buildUseitAnalyzeHeaders(
+  headers: Record<string, string>,
+  idempotencyKey?: string,
+): Record<string, string> {
+  if (!idempotencyKey) return headers;
+  return { ...headers, 'Idempotency-Key': idempotencyKey };
+}
+
 export class UseitApiError extends Error {
   constructor(message: string, readonly status: number) {
     super(message);
@@ -59,15 +96,24 @@ export class UseitApiProvider implements IntelligenceProvider {
     if (!checked.ok) throw new Error(`USEIT API returned an invalid analysis: ${checked.issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
     return normalizeAnalysis(checked.data);
   }
-  async analyzeUseit(imageUri: string, intent?: OpportunityKind | 'shop', options: { budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; discoverProducts?: boolean; productLimit?: number; idempotencyKey?: string } = {}, signal?: AbortSignal): Promise<UseitAnalyzeResponse> {
+  async analyzeUseit(imageUri: string, intent?: OpportunityKind | 'shop', options: UseitAnalyzeOptions = {}, signal?: AbortSignal): Promise<UseitAnalyzeResponse> {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
-    const policy = createPromptPolicy(intent === 'shop' ? undefined : intent, 'hu-HU');
-    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/useit/analyze`, { method: 'POST', headers: { ...(await this.headers()), ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}) }, body: JSON.stringify({ imageUri, userIntent: intent ?? policy.intent, prompt: policy.system, locale: policy.locale, budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles ?? [], preferredColors: options.preferredColors ?? [], discoverProducts: options.discoverProducts ?? true, productLimit: options.productLimit ?? 8 }), signal }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS });
-    if (!response.ok) throw new UseitApiError(`USEIT unified analysis failed (${response.status}).`, response.status);
-    if (parseError) throw new Error('USEIT unified analysis returned malformed JSON.');
-    const checked = validateUseitAnalyzeResponse(payload);
-    if (!checked.ok) throw new Error(`USEIT unified analysis returned an invalid response: ${checked.issues.join('; ')}`);
+    const body = buildUseitAnalyzePayload(imageUri, intent, options);
+    const headers = buildUseitAnalyzeHeaders(await this.headers(), options.idempotencyKey);
+    const request = await fetchJsonWithPolicy(
+      `${base}/v1/useit/analyze`,
+      { method: 'POST', headers, body: JSON.stringify(body), signal },
+      { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS },
+    );
+    if (!request.response.ok) {
+      throw new UseitApiError(`USEIT unified analysis failed (${request.response.status}).`, request.response.status);
+    }
+    if (request.parseError) throw new Error('USEIT unified analysis returned malformed JSON.');
+    const checked = validateUseitAnalyzeResponse(request.payload);
+    if (!checked.ok) {
+      throw new Error(`USEIT unified analysis returned an invalid response: ${checked.issues.join('; ')}`);
+    }
     return checked.data;
   }
   async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; url: string; id?: string; confidence?: number }>): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {

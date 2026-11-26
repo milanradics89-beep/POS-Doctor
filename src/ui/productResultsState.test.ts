@@ -29,9 +29,10 @@ describe('empty product result state', () => {
     expect(shouldShowEmptyProductPanel('shop', 'shop', 2)).toBe(false);
   });
 
-  it('wires the Home result panel to the requested intent and candidate count', () => {
+  it('wires the Home result panel to the normalized candidate count', () => {
     expect(appSource).toContain('shouldShowEmptyProductPanel(');
     expect(appSource).toContain('result.unified?.intent.name');
-    expect(appSource).toContain('result.intelligence?.rankedCandidates?.length');
+    expect(appSource).toContain('const rankedCandidates = result.intelligence?.rankedCandidates ?? [];');
+    expect(appSource).toContain('rankedCandidates.length,');
   });
 });

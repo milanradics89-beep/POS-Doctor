@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UseitApiError, UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
+import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
+import { createAnalysisFailureNotice, executeHomeAnalysis, isAnalysisRequestCurrent, prepareAnalysisStart } from '../src/ui/homeAnalysis';
 import { createIdempotencyKey } from '../src/core/intelligence/idempotencyKey';
 import type { ConsumerIntent, ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import type { OpportunityKind } from '../src/core/intelligence/types';
@@ -21,7 +22,6 @@ import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
 import { BrandMark, FadeIn, ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
-import { requestFailureKind } from '../src/ui/requestFailure';
 import { validateImageUri } from '../src/core/intelligence/imageInput';
 import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';
 
@@ -144,9 +144,32 @@ export default function Home() {
     }
   }
 
+  function applyAnalysisSuccess(response: ConsumerAnalysis, idempotencyKey: string) {
+    if (analysisIdempotencyRef.current?.key === idempotencyKey) analysisIdempotencyRef.current = null;
+    setResult(response);
+  }
+
+  function applyAnalysisFailure(error: unknown, intent?: ConsumerIntent) {
+    setNotice(createAnalysisFailureNotice(error, () => { void analyze(intent); }));
+  }
+
+  function finishAnalysis(requestId: number) {
+    if (requestId !== analysisRequestIdRef.current) return;
+    analysisControllerRef.current = null;
+    setBusy(false);
+  }
+
   async function analyze(intent?: ConsumerIntent) {
-    if (analysisControllerRef.current) return;
-    if (!API_URL) {
+    const start = prepareAnalysisStart({
+      active: analysisControllerRef.current !== null,
+      apiUrl: API_URL,
+      photo,
+      intent,
+      existing: analysisIdempotencyRef.current,
+      createKey: createIdempotencyKey,
+    });
+    if (start.kind === 'busy' || start.kind === 'missing-photo') return;
+    if (start.kind === 'missing-api') {
       setNotice({
         kind: 'error',
         title: 'USEIT is not connected',
@@ -155,14 +178,7 @@ export default function Home() {
       return;
     }
 
-    if (!photo) return;
-
-    const existingIdempotency = analysisIdempotencyRef.current;
-    const idempotencyKey = existingIdempotency?.photo === photo && existingIdempotency.intent === intent
-      ? existingIdempotency.key
-      : createIdempotencyKey();
-    analysisIdempotencyRef.current = { photo, intent, key: idempotencyKey };
-
+    analysisIdempotencyRef.current = start.idempotencyState;
     const controller = new AbortController();
     const requestId = ++analysisRequestIdRef.current;
     analysisControllerRef.current = controller;
@@ -170,45 +186,18 @@ export default function Home() {
     setRendered(null);
     setNotice(null);
 
-    try {
-      const response = await analyzeForConsumer(
+    await executeHomeAnalysis(
+      () => analyzeForConsumer(
         new UseitApiProvider(API_URL),
-        photo,
-        intent,
-        { signal: controller.signal, idempotencyKey }
-      );
-      if (controller.signal.aborted || requestId !== analysisRequestIdRef.current) return;
-      if (analysisIdempotencyRef.current?.key === idempotencyKey) analysisIdempotencyRef.current = null;
-      setResult(response);
-    } catch (error) {
-      if (controller.signal.aborted || requestId !== analysisRequestIdRef.current || (error instanceof Error && error.name === 'AbortError')) return;
-      if (error instanceof UseitApiError && error.status === 409) {
-        setNotice({
-          kind: 'error',
-          title: 'Analysis already received',
-          description: 'This analysis request has already been accepted or is still processing. Choose a new photo or a different action to start another analysis.',
-        });
-        return;
-      }
-      const kind = requestFailureKind(error);
-      setNotice({
-        kind,
-        title: kind === 'offline' ? 'No connection' : 'Could not understand the image',
-        description: kind === 'offline'
-          ? 'Check your internet connection, then retry the analysis.'
-          : error instanceof Error
-            ? error.message
-            : 'Please try again with a clearer photo.',
-        actionLabel: 'TRY AGAIN',
-        actionAccessibilityHint: 'Retries image analysis for the selected photo.',
-        onAction: () => { void analyze(intent); },
-      });
-    } finally {
-      if (requestId === analysisRequestIdRef.current) {
-        analysisControllerRef.current = null;
-        setBusy(false);
-      }
-    }
+        start.photo,
+        start.intent,
+        { signal: controller.signal, idempotencyKey: start.idempotencyState.key },
+      ),
+      () => isAnalysisRequestCurrent(controller.signal, requestId, analysisRequestIdRef.current),
+      (response) => applyAnalysisSuccess(response, start.idempotencyState.key),
+      (error) => applyAnalysisFailure(error, intent),
+      () => finishAnalysis(requestId),
+    );
   }
 
   async function createVisualConcept() {
@@ -350,250 +339,357 @@ export default function Home() {
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView contentContainerStyle={s.page}>
-        {!photo ? (
-          <FadeIn delay={40}>
-          <>
-            <View style={s.brandRow}>
-              <BrandMark />
-              <Text style={s.logo}>USEIT</Text>
-            </View>
-
-            <Text style={s.kicker}>SEE WHAT’S POSSIBLE</Text>
-
-            <Text style={s.hero}>
-              Show me what{`\n`}you have.
-            </Text>
-
-            <Text style={s.sub}>
-              Point your camera at almost anything. USEIT helps you discover what you can do with it.
-            </Text>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Take a photo"
-              accessibilityHint="Opens the camera to take a photo for analysis."
-              onPress={capture}
-              style={s.capture}
-            >
-              <LinearGradient colors={[theme.colors.ink, theme.colors.captureEnd]} style={s.grad}>
-                <Text style={s.cam}>⌾</Text>
-                <Text style={s.cta}>SHOW ME</Text>
-                <Text style={s.hint}>Take a photo</Text>
-              </LinearGradient>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Choose a photo from your gallery"
-              accessibilityHint="Opens your photo library."
-              onPress={chooseGallery}
-              style={s.gallery}
-            >
-              <Text style={s.galleryTitle}>▣  CHOOSE FROM GALLERY</Text>
-              <Text style={s.galleryHint}>Use a photo you already have</Text>
-            </Pressable>
-
-            <View style={s.tags}>
-              {['ROOMS', 'OBJECTS', 'FOOD', 'MATERIALS'].map((x) => (
-                <Text style={s.tag} key={x}>
-                  {x}
-                </Text>
-              ))}
-            </View>
-            {noticePanel}
-          </>
-          </FadeIn>
+        {photo ? (
+          <HomeWorkspace
+            photo={photo}
+            rendered={rendered}
+            redesign={redesign}
+            busy={busy}
+            rendering={rendering}
+            result={result}
+            noticePanel={noticePanel}
+            onReset={reset}
+            onOpenProductLink={openProductLink}
+            onCreateVisualConcept={createVisualConcept}
+            onAnalyze={analyze}
+          />
         ) : (
-          <>
-            <View style={s.top}>
-              <View style={s.brandRow}>
-                <BrandMark compact />
-                <Text style={s.small}>USEIT</Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Choose another photo"
-                accessibilityHint="Returns to photo selection."
-                onPress={reset}
-              >
-                <Text style={s.close}>✕</Text>
-              </Pressable>
-            </View>
-
-            {rendered ? (
-              <>
-                <Text style={s.kicker}>VISUAL CONCEPT</Text>
-                <Image source={{ uri: rendered }} style={s.rendered} />
-                <Text style={s.disclosure}>
-                  {redesign?.disclosure}
-                </Text>
-              </>
-            ) : (
-              <Image source={{ uri: photo }} style={s.photo} />
-            )}
-
-            {busy ? (
-              <FadeIn>
-              <StatePanel
-                kind="loading"
-                title="Understanding your photo"
-                description="USEIT is analyzing the image and preparing your next step."
-              />
-              </FadeIn>
-            ) : rendering ? (
-              <FadeIn>
-              <StatePanel
-                kind="loading"
-                title="Creating your visual concept"
-                description="USEIT is preparing a visual version of the selected redesign."
-              />
-              </FadeIn>
-            ) : result ? (
-              <>
-                {noticePanel}
-                <Text style={s.kicker}>ONE IDEA</Text>
-
-                <Text style={s.title}>
-                  {result.hero?.title ||
-                    result.intelligence?.action?.title ||
-                    'Here is what I found'}
-                </Text>
-
-                <Text style={s.sub}>
-                  {result.hero?.description ||
-                    'USEIT has turned the scene into a concrete next action.'}
-                </Text>
-
-                {result.intelligence?.clarificationRequired ? (
-                  <View style={s.notice}>
-                    <Text style={s.noticeTitle}>ONE THING TO CLARIFY</Text>
-                    <Text style={s.noticeText}>
-                      I am not confident enough to make a consequential recommendation yet.
-                    </Text>
-                  </View>
-                ) : null}
-
-                <Text style={s.section}>NEXT ACTION</Text>
-
-                <View style={s.action}>
-                  <Text style={s.actionType}>
-                    {result.intelligence?.action?.type?.toUpperCase() || 'ACTION'}
-                  </Text>
-
-                  <Text style={s.actionTitle}>
-                    {result.intelligence?.action?.title || 'Next Step'}
-                  </Text>
-
-                  <Text style={s.actionMeta}>
-                    {result.intelligence?.need?.kind?.toUpperCase() || 'GENERAL'}
-                    {' · '}
-                    {Math.round((result.intelligence?.intentConfidence || 0) * 100)}% CONFIDENCE
-                  </Text>
-                </View>
-
-                {redesign ? (
-                  <>
-                    <SectionHeader eyebrow="REDESIGN SOLUTION" />
-
-                    <View style={s.solution}>
-                      <Text style={s.solutionTitle}>
-                        {redesign.products.length} selected products
-                      </Text>
-
-                      <Text style={s.solutionText}>
-                        {redesign.actions
-                          .filter((x) => x.type === 'add')
-                          .map((x) => x.target)
-                          .join(' · ') ||
-                          'Existing scene preserved with the selected redesign plan.'}
-                      </Text>
-                    </View>
-                  </>
-                ) : null}
-
-                {(result.intelligence?.rankedCandidates?.length ?? 0) > 0 ? (
-                  <>
-                    <SectionHeader eyebrow="MATCHING OPTIONS" />
-
-                    {result.intelligence.rankedCandidates
-                      .slice(0, 5)
-                      .map((x) => (
-                        <ProductCard
-                          key={x.id}
-                          title={x.title}
-                          category={x.category}
-                          source={x.source}
-                          price={typeof x.priceHuf === 'number' ? x.priceHuf : undefined}
-                          onPress={() => { void openProductLink(x.url); }}
-                        />
-                      ))}
-                  </>
-                ) : null}
-
-                {shouldShowEmptyProductPanel(
-                  result.unified?.intent.name,
-                  result.intelligence?.action?.type,
-                  result.intelligence?.rankedCandidates?.length
-                ) ? (
-                  <StatePanel
-                    kind="empty"
-                    title="No matching products yet"
-                    description="The shopping search is complete, but no safe product match was found. You can still use the next action above."
-                    actionLabel="TRY ANOTHER PHOTO"
-                    actionAccessibilityHint="Returns to photo selection."
-                    onAction={reset}
-                  />
-                ) : null}
-
-                {redesign ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Create visual concept"
-                    accessibilityHint="Generates a visual redesign from the selected photo."
-                    style={s.primary}
-                    onPress={createVisualConcept}
-                  >
-                    <Text style={s.primaryText}>CREATE VISUAL CONCEPT</Text>
-                  </Pressable>
-                ) : null}
-
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Try another photo"
-                  accessibilityHint="Returns to photo selection."
-                  style={s.secondary}
-                  onPress={reset}
-                >
-                  <Text style={s.secondaryText}>TRY ANOTHER PHOTO</Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                {noticePanel}
-                <Text style={s.title}>What should I do with this?</Text>
-
-                {modes.map(([a, b]) => (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`${a.toUpperCase()} mode`}
-                    accessibilityHint={b}
-                    key={a}
-                    style={s.mode}
-                    onPress={() => analyze(a)}
-                  >
-                    <Text style={s.modeTitle}>{a.toUpperCase()}</Text>
-
-                    <Text style={s.modeDesc}>{b}</Text>
-
-                    <Text style={s.arrow}>›</Text>
-                  </Pressable>
-                ))}
-              </>
-            )}
-          </>
+          <HomeLanding
+            noticePanel={noticePanel}
+            onCapture={capture}
+            onChooseGallery={chooseGallery}
+          />
         )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+
+type HomeNoticePanelProps = { noticePanel: React.ReactNode };
+
+function HomeLanding({ noticePanel, onCapture, onChooseGallery }: HomeNoticePanelProps & {
+  onCapture: () => void;
+  onChooseGallery: () => void;
+}) {
+  return (
+    <FadeIn delay={40}>
+      <>
+        <View style={s.brandRow}>
+          <BrandMark />
+          <Text style={s.logo}>USEIT</Text>
+        </View>
+        <Text style={s.kicker}>SEE WHAT’S POSSIBLE</Text>
+        <Text style={s.hero}>Show me what{`\n`}you have.</Text>
+        <Text style={s.sub}>
+          Point your camera at almost anything. USEIT helps you discover what you can do with it.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Take a photo"
+          accessibilityHint="Opens the camera to take a photo for analysis."
+          onPress={onCapture}
+          style={s.capture}
+        >
+          <LinearGradient colors={[theme.colors.ink, theme.colors.captureEnd]} style={s.grad}>
+            <Text style={s.cam}>⌾</Text>
+            <Text style={s.cta}>SHOW ME</Text>
+            <Text style={s.hint}>Take a photo</Text>
+          </LinearGradient>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Choose a photo from your gallery"
+          accessibilityHint="Opens your photo library."
+          onPress={onChooseGallery}
+          style={s.gallery}
+        >
+          <Text style={s.galleryTitle}>▣  CHOOSE FROM GALLERY</Text>
+          <Text style={s.galleryHint}>Use a photo you already have</Text>
+        </Pressable>
+        <View style={s.tags}>
+          {['ROOMS', 'OBJECTS', 'FOOD', 'MATERIALS'].map((x) => (
+            <Text style={s.tag} key={x}>{x}</Text>
+          ))}
+        </View>
+        {noticePanel}
+      </>
+    </FadeIn>
+  );
+}
+
+function HomeHeader({ onReset }: { onReset: () => void }) {
+  return (
+    <View style={s.top}>
+      <View style={s.brandRow}>
+        <BrandMark compact />
+        <Text style={s.small}>USEIT</Text>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Choose another photo"
+        accessibilityHint="Returns to photo selection."
+        onPress={onReset}
+      >
+        <Text style={s.close}>✕</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function PhotoPreview({ photo, rendered, redesign }: {
+  photo: string;
+  rendered: string | null;
+  redesign: ConsumerAnalysis['redesign'];
+}) {
+  if (!rendered) return <Image source={{ uri: photo }} style={s.photo} />;
+  return (
+    <>
+      <Text style={s.kicker}>VISUAL CONCEPT</Text>
+      <Image source={{ uri: rendered }} style={s.rendered} />
+      <Text style={s.disclosure}>{redesign?.disclosure}</Text>
+    </>
+  );
+}
+
+function HomeResultSummary({ result }: { result: ConsumerAnalysis }) {
+  return (
+    <>
+      <Text style={s.kicker}>ONE IDEA</Text>
+      <Text style={s.title}>
+        {result.hero?.title || result.intelligence?.action?.title || 'Here is what I found'}
+      </Text>
+      <Text style={s.sub}>
+        {result.hero?.description || 'USEIT has turned the scene into a concrete next action.'}
+      </Text>
+      {result.intelligence?.clarificationRequired ? (
+        <View style={s.notice}>
+          <Text style={s.noticeTitle}>ONE THING TO CLARIFY</Text>
+          <Text style={s.noticeText}>
+            I am not confident enough to make a consequential recommendation yet.
+          </Text>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
+function NextActionCard({ result }: { result: ConsumerAnalysis }) {
+  return (
+    <>
+      <Text style={s.section}>NEXT ACTION</Text>
+      <View style={s.action}>
+        <Text style={s.actionType}>
+          {result.intelligence?.action?.type?.toUpperCase() || 'ACTION'}
+        </Text>
+        <Text style={s.actionTitle}>
+          {result.intelligence?.action?.title || 'Next Step'}
+        </Text>
+        <Text style={s.actionMeta}>
+          {result.intelligence?.need?.kind?.toUpperCase() || 'GENERAL'}
+          {' · '}
+          {Math.round((result.intelligence?.intentConfidence || 0) * 100)}% CONFIDENCE
+        </Text>
+      </View>
+    </>
+  );
+}
+
+function HomeResultSupplemental({ result, redesign, onReset, onOpenProductLink, onCreateVisualConcept }: {
+  result: ConsumerAnalysis;
+  redesign: ConsumerAnalysis['redesign'];
+  onReset: () => void;
+  onOpenProductLink: (url: string) => void;
+  onCreateVisualConcept: () => void;
+}) {
+  const rankedCandidates = result.intelligence?.rankedCandidates ?? [];
+  const showEmptyProducts = shouldShowEmptyProductPanel(
+    result.unified?.intent.name,
+    result.intelligence?.action?.type,
+    rankedCandidates.length,
+  );
+  const addedActions = redesign?.actions.filter((action) => action.type === 'add').map((action) => action.target).join(' · ');
+
+  return (
+    <>
+      {redesign ? (
+        <>
+          <SectionHeader eyebrow="REDESIGN SOLUTION" />
+          <View style={s.solution}>
+            <Text style={s.solutionTitle}>{redesign.products.length} selected products</Text>
+            <Text style={s.solutionText}>
+              {addedActions || 'Existing scene preserved with the selected redesign plan.'}
+            </Text>
+          </View>
+        </>
+      ) : null}
+      {rankedCandidates.length > 0 ? (
+        <>
+          <SectionHeader eyebrow="MATCHING OPTIONS" />
+          {rankedCandidates.slice(0, 5).map((candidate) => (
+            <ProductCard
+              key={candidate.id}
+              title={candidate.title}
+              category={candidate.category}
+              source={candidate.source}
+              price={typeof candidate.priceHuf === 'number' ? candidate.priceHuf : undefined}
+              onPress={() => { void onOpenProductLink(candidate.url); }}
+            />
+          ))}
+        </>
+      ) : null}
+      {showEmptyProducts ? (
+        <StatePanel
+          kind="empty"
+          title="No matching products yet"
+          description="The shopping search is complete, but no safe product match was found. You can still use the next action above."
+          actionLabel="TRY ANOTHER PHOTO"
+          actionAccessibilityHint="Returns to photo selection."
+          onAction={onReset}
+        />
+      ) : null}
+      {redesign ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Create visual concept"
+          accessibilityHint="Generates a visual redesign from the selected photo."
+          style={s.primary}
+          onPress={onCreateVisualConcept}
+        >
+          <Text style={s.primaryText}>CREATE VISUAL CONCEPT</Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+}
+
+function HomeResultView({ result, redesign, noticePanel, onReset, onOpenProductLink, onCreateVisualConcept }: {
+  result: ConsumerAnalysis;
+  redesign: ConsumerAnalysis['redesign'];
+  noticePanel: React.ReactNode;
+  onReset: () => void;
+  onOpenProductLink: (url: string) => void;
+  onCreateVisualConcept: () => void;
+}) {
+  return (
+    <>
+      {noticePanel}
+      <HomeResultSummary result={result} />
+      <NextActionCard result={result} />
+      <HomeResultSupplemental
+        result={result}
+        redesign={redesign}
+        onReset={onReset}
+        onOpenProductLink={onOpenProductLink}
+        onCreateVisualConcept={onCreateVisualConcept}
+      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Try another photo"
+        accessibilityHint="Returns to photo selection."
+        style={s.secondary}
+        onPress={onReset}
+      >
+        <Text style={s.secondaryText}>TRY ANOTHER PHOTO</Text>
+      </Pressable>
+    </>
+  );
+}
+
+function HomeModePicker({ noticePanel, onAnalyze }: HomeNoticePanelProps & {
+  onAnalyze: (intent?: ConsumerIntent) => void;
+}) {
+  return (
+    <>
+      {noticePanel}
+      <Text style={s.title}>What should I do with this?</Text>
+      {modes.map(([intent, description]) => (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${intent.toUpperCase()} mode`}
+          accessibilityHint={description}
+          key={intent}
+          style={s.mode}
+          onPress={() => onAnalyze(intent)}
+        >
+          <Text style={s.modeTitle}>{intent.toUpperCase()}</Text>
+          <Text style={s.modeDesc}>{description}</Text>
+          <Text style={s.arrow}>›</Text>
+        </Pressable>
+      ))}
+    </>
+  );
+}
+
+function HomeWorkflowContent({ busy, rendering, result, redesign, noticePanel, onReset, onOpenProductLink, onCreateVisualConcept, onAnalyze }: {
+  busy: boolean;
+  rendering: boolean;
+  result: ConsumerAnalysis | null;
+  redesign: ConsumerAnalysis['redesign'];
+  noticePanel: React.ReactNode;
+  onReset: () => void;
+  onOpenProductLink: (url: string) => void;
+  onCreateVisualConcept: () => void;
+  onAnalyze: (intent?: ConsumerIntent) => void;
+}) {
+  if (busy) {
+    return (
+      <FadeIn>
+        <StatePanel kind="loading" title="Understanding your photo" description="USEIT is analyzing the image and preparing your next step." />
+      </FadeIn>
+    );
+  }
+  if (rendering) {
+    return (
+      <FadeIn>
+        <StatePanel kind="loading" title="Creating your visual concept" description="USEIT is preparing a visual version of the selected redesign." />
+      </FadeIn>
+    );
+  }
+  if (result) {
+    return (
+      <HomeResultView
+        result={result}
+        redesign={redesign}
+        noticePanel={noticePanel}
+        onReset={onReset}
+        onOpenProductLink={onOpenProductLink}
+        onCreateVisualConcept={onCreateVisualConcept}
+      />
+    );
+  }
+  return <HomeModePicker noticePanel={noticePanel} onAnalyze={onAnalyze} />;
+}
+
+function HomeWorkspace({ photo, rendered, redesign, busy, rendering, result, noticePanel, onReset, onOpenProductLink, onCreateVisualConcept, onAnalyze }: {
+  photo: string;
+  rendered: string | null;
+  redesign: ConsumerAnalysis['redesign'];
+  busy: boolean;
+  rendering: boolean;
+  result: ConsumerAnalysis | null;
+  noticePanel: React.ReactNode;
+  onReset: () => void;
+  onOpenProductLink: (url: string) => void;
+  onCreateVisualConcept: () => void;
+  onAnalyze: (intent?: ConsumerIntent) => void;
+}) {
+  return (
+    <>
+      <HomeHeader onReset={onReset} />
+      <PhotoPreview photo={photo} rendered={rendered} redesign={redesign} />
+      <HomeWorkflowContent
+        busy={busy}
+        rendering={rendering}
+        result={result}
+        redesign={redesign}
+        noticePanel={noticePanel}
+        onReset={onReset}
+        onOpenProductLink={onOpenProductLink}
+        onCreateVisualConcept={onCreateVisualConcept}
+        onAnalyze={onAnalyze}
+      />
+    </>
   );
 }
 
