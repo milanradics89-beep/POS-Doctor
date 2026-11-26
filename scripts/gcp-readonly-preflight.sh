@@ -2,7 +2,7 @@
 set -euo pipefail
 
 readonly OWNER_PROJECT_LABEL="useit"
-readonly PROJECT_ID="useit"
+readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"
 READ_FAILURES=0
 
 fail() {
@@ -10,8 +10,12 @@ fail() {
   exit "${2:-2}"
 }
 
+if [[ -z "$PROJECT_ID" ]]; then
+  fail "The owner-specified label '${OWNER_PROJECT_LABEL}' is not a project ID. Set USEIT_GCP_PROJECT_ID only after the owner explicitly confirms the exact valid ID of the existing intended project. No gcloud command was executed." 2
+fi
+
 if [[ ! "$PROJECT_ID" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]; then
-  fail "The owner-specified project ID '${PROJECT_ID}' is invalid: Google Cloud project IDs must be 6 to 30 lowercase letters, digits or hyphens, start with a letter, and not end with a hyphen. No gcloud command was executed. Do not substitute another project ID; provisioning remains blocked until a corrected valid existing project ID is supplied in a new approved instruction." 2
+  fail "The supplied project ID '${PROJECT_ID}' is invalid: Google Cloud project IDs must be 6 to 30 lowercase letters, digits or hyphens, start with a letter, and not end with a hyphen. No gcloud command was executed. Do not substitute another project ID." 2
 fi
 
 run_inventory() {
@@ -37,7 +41,7 @@ done < <(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/de
 
 printf 'USEIT GCP READ-ONLY PREFLIGHT\n'
 printf 'Owner-specified project label: %s\n' "$OWNER_PROJECT_LABEL"
-printf 'Verified target project ID: %s\n' "$PROJECT_ID"
+printf 'Owner-confirmed target project ID: %s\n' "$PROJECT_ID"
 printf 'Active account: %s\n' "${ACTIVE_ACCOUNTS[0]}"
 printf 'Configured gcloud project: '
 gcloud config get-value project 2>/dev/null || true
