@@ -4,21 +4,28 @@ import { describe, expect, it } from 'vitest';
 const script = readFileSync(new URL('./gcp-readonly-preflight.sh', import.meta.url), 'utf8');
 
 describe('USEIT GCP read-only preflight', () => {
-  it('pins only the owner-specified identifier and never substitutes a project', () => {
+  it('keeps the owner-specified label separate from the exact project ID', () => {
     expect(script).toContain('readonly OWNER_PROJECT_LABEL="useit"');
-    expect(script).toContain('readonly PROJECT_ID="useit"');
-    expect(script).not.toContain('USEIT_GCP_PROJECT_ID');
+    expect(script).toContain('readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"');
+    expect(script).toContain('USEIT_GCP_PROJECT_ID only after the owner explicitly confirms');
+    expect(script).not.toContain('readonly PROJECT_ID="useit"');
     expect(script).not.toContain('useit-platform-2026');
     expect(script).not.toContain('fresh-weft-447913-u6');
   });
 
-  it('rejects the five-character identifier before checking or invoking gcloud', () => {
+  it('fails closed when the exact project ID is absent, before any gcloud invocation', () => {
+    const missingIdGuard = script.indexOf('if [[ -z "$PROJECT_ID" ]]');
     const projectIdGuard = script.indexOf('if [[ ! "$PROJECT_ID" =~');
     const gcloudAvailabilityCheck = script.indexOf('command -v gcloud');
-    expect(projectIdGuard).toBeGreaterThan(-1);
+    expect(missingIdGuard).toBeGreaterThan(-1);
+    expect(missingIdGuard).toBeLessThan(projectIdGuard);
     expect(projectIdGuard).toBeLessThan(gcloudAvailabilityCheck);
-    expect(script).toContain('Google Cloud project IDs must be 6 to 30 lowercase letters');
     expect(script).toContain('No gcloud command was executed');
+  });
+
+  it('validates a supplied project ID against Google Cloud project ID syntax', () => {
+    expect(script).toContain('^[a-z][a-z0-9-]{4,28}[a-z0-9]$');
+    expect(script).toContain('Google Cloud project IDs must be 6 to 30 lowercase letters');
   });
 
   it('supports the macOS system Bash 3.2 without Bash-4-only array helpers', () => {
