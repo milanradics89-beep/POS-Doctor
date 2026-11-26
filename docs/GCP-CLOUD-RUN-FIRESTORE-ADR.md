@@ -2,11 +2,11 @@
 
 **Status:** Proposed, implementation not yet deployed  
 **Date:** 2026-11-26  
-**Owner-designated GCP project:** `useit-platform-2026`  
-**Project display name:** `USEIT`  
-**Project number:** `386862694550`
+**Owner-provided target label:** `useit`  
+**Actual Google Cloud project ID:** unresolved / blocked  
+**Project number:** unverified
 
-The owner confirmed the exact existing project ID `useit-platform-2026` and project number `386862694550` in the Google Cloud Console during the 2026-11-26 setup. Use this project exclusively; `fresh-weft-447913-u6` is unrelated and must not be used. The screenshots confirm the project identity, the creation of the `useit-cloud-run-runtime` and `useit-github-deployer` service accounts, the `openai-api-key` secret, and enablement of the Cloud Run Admin and Artifact Registry APIs. Billing-account linkage, current credit balance/eligibility, region selection and approved spend remain unverified. No application container has been deployed.
+The latest repository-owner review instruction permits only the label `useit` and explicitly says not to substitute another project ID. Because `useit` alone is not a valid Google Cloud project ID, the exact existing project ID must be reconfirmed by the owner in the current approved instructions before any GCP operation. Earlier project identifiers and screenshots are not treated as authorization in this ADR until that conflict is resolved. Do not create resources, enable APIs, change IAM/billing, or deploy while the project ID remains unresolved. No application container has been deployed.
 
 ## Decision
 
@@ -118,7 +118,7 @@ Before enabling deployment:
 
 ## Cost guardrails
 
-The current setup screenshots do not establish the billing-account linkage, remaining credits, credit expiry or SKU eligibility for `useit-platform-2026`. Do not transfer billing or credit assumptions from another project. Verify these items in the Billing console before creating billable resources.
+The actual project ID is unresolved, so billing-account linkage, remaining credits, credit expiry and SKU eligibility cannot yet be verified for the authorized target. Do not transfer billing or credit assumptions from another project. Verify these items only after the owner confirms the exact project ID.
 
 Set a project-scoped budget only after the owner approves a budget amount based on a measured service/usage model. Suggested notification thresholds are 25/50/75/90/100 percent of that approved budget; notifications do not stop resources or prevent overage.
 
@@ -137,7 +137,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Acceptance checklist
 
-- [x] Target project ID `useit-platform-2026`, display name `USEIT`, project number `386862694550`, and owner access confirmed in Cloud Console.  
+- [ ] Exact valid Google Cloud project ID and project number confirmed by the owner in current approved instructions.  
 - [ ] Billing-account linkage, current credit balance/eligibility, region and approved spend verified.
 - [ ] Cloud Run container is stateless and deploys with a dedicated least-privilege runtime identity.
 - [ ] OpenAI key and all server secrets are read only from Secret Manager.
@@ -155,7 +155,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Open questions that require measured or external evidence
 
-- Verify the billing-account linkage, current credit balance/eligibility, approved region and eligible SKUs for the confirmed project `useit-platform-2026` (project number `386862694550`) before provisioning.
+- Verify billing-account linkage, current credit balance/eligibility, approved region and eligible SKUs only after the exact authorized project ID is confirmed.
 - Firestore database location and retention must follow the actual data residency/privacy assessment.
 - Firestore transaction contention and cost must be load-tested using realistic per-user/IP traffic.
 - The exact Cloud Run CPU/memory/concurrency/max-instance configuration must be selected from measured latency and cost, not guessed.
