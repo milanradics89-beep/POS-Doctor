@@ -4,15 +4,14 @@ import { describe, expect, it } from 'vitest';
 const script = readFileSync(new URL('./gcp-readonly-preflight.sh', import.meta.url), 'utf8');
 
 describe('USEIT GCP read-only preflight', () => {
-  it('pins the only permitted project ID to the owner-specified literal', () => {
+  it('pins the only permitted project ID to the owner-confirmed canonical ID', () => {
     expect(script).toContain('readonly OWNER_PROJECT_ID="useit-platform-2026"');
     expect(script).toContain('readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"');
     expect(script).not.toContain('OWNER_PROJECT_NAME');
     expect(script).not.toContain('fresh-weft-447913-u6');
-    expect(script).not.toContain('fresh-weft-447913-u6');
   });
 
-  it('rejects every project ID other than the exact owner-specified literal before gcloud', () => {
+  it('rejects every project ID other than the exact owner-confirmed ID before gcloud', () => {
     const ownerGuard = script.indexOf('if [[ "$PROJECT_ID" != "$OWNER_PROJECT_ID" ]]');
     const syntaxGuard = script.indexOf('if [[ ! "$PROJECT_ID" =~');
     const gcloudAvailabilityCheck = script.indexOf('command -v gcloud');
