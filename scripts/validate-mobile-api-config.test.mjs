@@ -8,24 +8,36 @@ import {
   verifyBackendReady,
 } from './validate-mobile-api-config.mjs';
 
+function emitMockRequestError(request, error) {
+  if (error) {
+    queueMicrotask(function emitError() {
+      request.emit('error', error);
+    });
+  }
+}
+
+function finishMockResponse(response, next) {
+  if (next?.leaveOpen) {
+    if (next.partialBody) response.write(next.partialBody);
+    return;
+  }
+  response.end(next?.body ?? JSON.stringify(next?.payload ?? { status: 'ok' }));
+}
+
 function createRequestMock(responses) {
   const requests = [];
-  const requestImpl = vi.fn((options, onResponse) => {
+  const requestImpl = vi.fn(function mockRequest(options, onResponse) {
     const request = new EventEmitter();
     request.setTimeout = vi.fn();
-    request.destroy = vi.fn((error) => {
-      if (error) queueMicrotask(() => request.emit('error', error));
+    request.destroy = vi.fn(function mockDestroy(error) {
+      emitMockRequestError(request, error);
     });
-    request.end = vi.fn(() => {
+    request.end = vi.fn(function mockEnd() {
       const next = responses.shift();
       const response = new PassThrough();
       response.statusCode = next?.statusCode ?? 200;
       onResponse(response);
-      if (next?.leaveOpen) {
-        if (next.partialBody) response.write(next.partialBody);
-      } else {
-        response.end(next?.body ?? JSON.stringify(next?.payload ?? { status: 'ok' }));
-      }
+      finishMockResponse(response, next);
     });
     requests.push({ options, request });
     return request;
