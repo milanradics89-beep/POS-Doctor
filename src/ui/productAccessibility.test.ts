@@ -60,9 +60,21 @@ describe('ProductCard accessible name', () => {
 describe('Hungarian product categories', () => {
   it.each([
     ['Shoes', 'Cipők'],
+    ['sofa', 'Kanapé'],
+    ['coffee_table', 'Dohányzóasztal'],
+    ['ingredient', 'Hozzávalók'],
+    ['top', 'Felsők'],
+    ['bottom', 'Alsóruházat'],
+    ['accessory', 'Kiegészítők'],
+    ['repair_part', 'Javítóalkatrészek'],
+    ['replacement', 'Pótlás'],
     ['Lighting', 'Világítás'],
     ['Home & Kitchen', 'Otthon és konyha'],
     ['Kerti eszközök', 'Kerti eszközök'],
+    ['Otthon', 'Otthon'],
+    ['Kert', 'Kert'],
+    ['Iroda', 'Iroda'],
+    ['Sport', 'Sport'],
     ['Unmapped provider category', 'Egyéb'],
   ])('localizes %s as %s', (input, expected) => {
     expect(localizeProductCategory(input)).toBe(expected);
