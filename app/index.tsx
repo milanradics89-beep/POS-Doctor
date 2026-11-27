@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Image,
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { UseitApiProvider, UseitApiError, analyzeForConsumer } from '../src/core/intelligence/apiClient';
 import type { ConsumerIntent, ConsumerAnalysis } from '../src/core/intelligence/apiClient';
@@ -759,8 +759,19 @@ type PhotoStageProps = {
 
 function PhotoStage(props: PhotoStageProps) {
   const { photo, preparing, noticePanel, reset } = props;
+  const insets = useSafeAreaInsets();
   return (
-    <SafeAreaView style={s.safe}>
+    <View
+      style={[
+        s.safe,
+        {
+          paddingTop: insets.top,
+          paddingRight: insets.right,
+          paddingBottom: insets.bottom,
+          paddingLeft: insets.left,
+        },
+      ]}
+    >
       <ScrollView contentContainerStyle={s.page}>
         {preparing ? (
           <StatePanel kind="loading" title={hu.progress.preparingTitle}
@@ -772,7 +783,7 @@ function PhotoStage(props: PhotoStageProps) {
           <PhotoWelcome capture={() => { void props.pickPhoto('camera'); }} chooseGallery={() => { void props.pickPhoto('gallery'); }} noticePanel={noticePanel} />
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

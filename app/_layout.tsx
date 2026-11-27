@@ -1,5 +1,6 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { StatePanel } from '../src/ui/components';
 import { theme } from '../src/ui/theme';
