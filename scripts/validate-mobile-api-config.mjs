@@ -95,7 +95,7 @@ async function resolveDnsFamily(resolver, method, hostname, family) {
     const addresses = await resolver[method](hostname);
     return addresses.map((address) => ({ address, family }));
   } catch (error) {
-    if (error?.code === 'ENODATA' || error?.code === 'ENOTFOUND') return [];
+    if (error?.code === 'ENODATA') return [];
     throw error;
   }
 }
