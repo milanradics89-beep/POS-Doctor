@@ -250,6 +250,38 @@ class FirestoreIdempotencyStore:
                     raise
                 await asyncio.sleep(0.01 * 2**attempt)
                 continue
+            except Exception as update_error:
+                # Replacing an expired completed record is also a claim write.
+                # Its acknowledgement can be lost after commit, so confirm the
+                # exact lease before returning an error to the API caller.
+                try:
+                    confirmation = await reference.get()
+                except Exception as read_error:
+                    raise update_error from read_error
+                confirmed = confirmation.to_dict() or {} if confirmation.exists else {}
+                confirmed_token = confirmed.get("lease_token")
+                confirmed_hash = confirmed.get("request_hash")
+                owns_claim = (
+                    confirmation.exists
+                    and confirmed.get("status") == "processing"
+                    and isinstance(confirmed_token, str)
+                    and hmac.compare_digest(confirmed_token, lease_token)
+                    and isinstance(confirmed_hash, str)
+                    and hmac.compare_digest(confirmed_hash, request_hash)
+                )
+                if owns_claim:
+                    return IdempotencyClaimResult(
+                        decision=IdempotencyDecision.CLAIMED,
+                        claim=IdempotencyClaim(document_id=document_id, lease_token=lease_token),
+                    )
+                if (
+                    confirmation.exists
+                    and confirmation.update_time != snapshot.update_time
+                    and attempt < 4
+                ):
+                    await asyncio.sleep(0.01 * 2**attempt)
+                    continue
+                raise update_error
             return IdempotencyClaimResult(
                 decision=IdempotencyDecision.CLAIMED,
                 claim=IdempotencyClaim(document_id=document_id, lease_token=lease_token),

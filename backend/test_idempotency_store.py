@@ -345,3 +345,49 @@ async def test_claim_confirms_ownership_when_firestore_create_acknowledgement_is
     assert result.claim is not None
     assert state["status"] == "processing"
     assert state["lease_token"] == result.claim.lease_token
+
+
+@pytest.mark.asyncio
+async def test_claim_confirms_ownership_when_expired_record_update_acknowledgement_is_lost():
+    now = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
+    state = {
+        "status": "completed",
+        "request_hash": "old-request-hash",
+        "expires_at": now - timedelta(seconds=1),
+    }
+    initial_version = object()
+    committed_version = object()
+
+    class Snapshot:
+        def __init__(self, data, version):
+            self.exists = True
+            self._data = dict(data)
+            self.update_time = version
+
+        def to_dict(self):
+            return self._data
+
+    class Document:
+        async def get(self):
+            version = committed_version if "lease_token" in state else initial_version
+            return Snapshot(state, version)
+
+        async def update(self, data, option=None, retry=None):
+            state.update(data)
+            state.pop("expires_at", None)
+            raise TimeoutError("simulated lost Firestore update acknowledgement")
+
+    document = Document()
+    client = SimpleNamespace(
+        collection=lambda _name: SimpleNamespace(document=lambda _id: document),
+        write_option=lambda **_kwargs: object(),
+    )
+    store = FirestoreIdempotencyStore(client, SECRET, clock=lambda: now)
+
+    result = await store.claim("analysis-ambiguous-update-1234", b"synthetic-request")
+
+    assert result.decision is IdempotencyDecision.CLAIMED
+    assert result.claim is not None
+    assert state["status"] == "processing"
+    assert state["lease_token"] == result.claim.lease_token
+    assert "expires_at" not in state
