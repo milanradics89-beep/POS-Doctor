@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 from typing import Callable
 
+from google.cloud.firestore_v1 import DELETE_FIELD
 from google.cloud.firestore_v1.async_client import AsyncClient
 from google.cloud.firestore_v1.async_transaction import async_transactional
 
@@ -48,7 +49,8 @@ class FirestoreIdempotencyStore:
 
     Only HMAC digests and lifecycle metadata are persisted. Raw idempotency keys,
     request bodies, image data, prompts and model responses are never stored.
-    Firestore TTL is cleanup only; every claim checks expires_at in the transaction.
+    Processing claims deliberately have no TTL field; only terminal records expire.
+    Firestore TTL is cleanup only, and terminal claims check expires_at transactionally.
     """
 
     def __init__(
@@ -103,7 +105,6 @@ class FirestoreIdempotencyStore:
             raise ValueError("Idempotency request fingerprint must be non-empty bytes.")
 
         now = self._now()
-        expires_at = now + timedelta(seconds=self._ttl_seconds)
         document_id = self._digest(b"useit:idempotency-key:v1", key_bytes)
         request_hash = self._digest(b"useit:request-fingerprint:v1", request_payload)
         lease_token = secrets.token_urlsafe(32)
@@ -114,10 +115,25 @@ class FirestoreIdempotencyStore:
             snapshot = await reference.get(transaction=transaction)
             if snapshot.exists:
                 existing = snapshot.to_dict() or {}
+                status = existing.get("status")
+                if status == "processing":
+                    # Migrate legacy processing records away from TTL cleanup.
+                    # An in-flight provider call must never lose its claim by age.
+                    if "expires_at" in existing:
+                        transaction.update(reference, {"expires_at": DELETE_FIELD})
+                    stored_hash = existing.get("request_hash")
+                    if not isinstance(stored_hash, str):
+                        return IdempotencyDecision.DUPLICATE
+                    if not hmac.compare_digest(stored_hash, request_hash):
+                        return IdempotencyDecision.PAYLOAD_MISMATCH
+                    return IdempotencyDecision.DUPLICATE
+
+                if status not in {"completed", "outcome_unknown"}:
+                    return IdempotencyDecision.DUPLICATE
+
                 existing_expiry = existing.get("expires_at")
                 if not isinstance(existing_expiry, datetime):
-                    # Unknown/corrupt records fail closed rather than permitting
-                    # a second billable request.
+                    # Unknown/corrupt terminal records fail closed.
                     return IdempotencyDecision.DUPLICATE
                 if existing_expiry.tzinfo is None:
                     existing_expiry = existing_expiry.replace(tzinfo=timezone.utc)
@@ -136,7 +152,6 @@ class FirestoreIdempotencyStore:
                     "lease_token": lease_token,
                     "created_at": now,
                     "updated_at": now,
-                    "expires_at": expires_at,
                 },
             )
             return IdempotencyDecision.CLAIMED
@@ -202,6 +217,7 @@ class FirestoreIdempotencyStore:
                     "status": status,
                     "lease_token": None,
                     "updated_at": now,
+                    "expires_at": now + timedelta(seconds=self._ttl_seconds),
                 },
             )
             return True

@@ -1,15 +1,17 @@
 import base64
 import io
 import json
+import logging
 import os
 from typing import Annotated, Optional
 from fastapi import APIRouter, Header, HTTPException, Request
 from openai import AsyncOpenAI
 from backend.ai_budget import reserve_units
-from backend.idempotency_store import IdempotencyDecision
+from backend.idempotency_store import IdempotencyClaim, IdempotencyDecision
 from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 IMAGE_MODEL = os.environ.get("USEIT_IMAGE_MODEL", "gpt-image-2")
 MAX_SOURCE_BYTES = 6_000_000
 
@@ -74,7 +76,7 @@ def _image_file(image_uri: str) -> tuple[io.BytesIO, str]:
         raise HTTPException(413, "Redesign image is too large.")
     return io.BytesIO(raw), extension
 
-async def claim_redesign(http_request: Request, request: RedesignRequest, key: str | None, retry_request: bool):
+async def claim_redesign(http_request: Request, request: RedesignRequest, key: str | None, retry_request: bool) -> IdempotencyClaim | None:
     store = getattr(http_request.app.state, "idempotency_store", None)
     if retry_request and (store is None or key is None):
         raise HTTPException(409, "A safe retry cannot be guaranteed for this request.")
@@ -95,8 +97,7 @@ async def claim_redesign(http_request: Request, request: RedesignRequest, key: s
         raise HTTPException(409, "This image request was already accepted.")
     if decision.claim is None:
         raise HTTPException(503, "Image request protection could not claim this request.")
-    # Keep the claim until its normal expiry even if the provider outcome is
-    # unknown. Do not persist generated photos or response data.
+    return decision.claim
 
 
 @router.post("/v1/redesign")
@@ -122,20 +123,62 @@ async def redesign(
             f"REDESIGN PLAN:\n{request.prompt}\n\nSELECTED PRODUCTS:\n{selected or 'None'}"
         )
         provider = _client(http_request)
-        await claim_redesign(http_request, request, idempotency_key, retry_request)
-        await reserve_units(http_request.app, 5)
-        result = await provider.images.edit(
-            model=IMAGE_MODEL,
-            image=(f"source.{extension}", image_file, "image/jpeg" if extension == "jpg" else f"image/{extension}"),
-            prompt=prompt,
-        )
-        if not result.data or not getattr(result.data[0], "b64_json", None):
-            raise HTTPException(502, "Image generation returned no image.")
-        return {
-            "imageDataUrl": f"data:image/png;base64,{result.data[0].b64_json}",
-            "disclosure": "AI-generated visualization. Product appearance, scale, color and placement may differ from the real item. Verify product details on the linked retailer page.",
-            "products": [product.model_dump(exclude={"sourcePrice", "currency"} - product.model_fields_set) for product in request.products],
-        }
+        store = getattr(http_request.app.state, "idempotency_store", None)
+        claim = await claim_redesign(http_request, request, idempotency_key, retry_request)
+
+        try:
+            await reserve_units(http_request.app, 5)
+        except Exception as exc:
+            if claim is not None:
+                try:
+                    await store.release_before_provider_start(claim)
+                except Exception as release_exc:
+                    logger.warning(
+                        "Redesign idempotency pre-provider release failed (exception_type=%s)",
+                        type(release_exc).__name__,
+                    )
+            if isinstance(exc, HTTPException):
+                raise
+            logger.warning(
+                "Redesign budget reservation failed before provider start (exception_type=%s)",
+                type(exc).__name__,
+            )
+            raise HTTPException(503, "AI budget protection is temporarily unavailable.") from exc
+
+        try:
+            result = await provider.images.edit(
+                model=IMAGE_MODEL,
+                image=(f"source.{extension}", image_file, "image/jpeg" if extension == "jpg" else f"image/{extension}"),
+                prompt=prompt,
+            )
+            if not result.data or not getattr(result.data[0], "b64_json", None):
+                raise HTTPException(502, "Image generation returned no image.")
+            if claim is not None:
+                try:
+                    completed = await store.mark_completed(claim)
+                except Exception as exc:
+                    logger.warning(
+                        "Redesign idempotency completion failed (exception_type=%s)",
+                        type(exc).__name__,
+                    )
+                    raise HTTPException(503, "Image request state could not be finalized.") from exc
+                if not completed:
+                    raise HTTPException(503, "Image request state could not be finalized.")
+            return {
+                "imageDataUrl": f"data:image/png;base64,{result.data[0].b64_json}",
+                "disclosure": "AI-generated visualization. Product appearance, scale, color and placement may differ from the real item. Verify product details on the linked retailer page.",
+                "products": [product.model_dump(exclude={"sourcePrice", "currency"} - product.model_fields_set) for product in request.products],
+            }
+        except Exception:
+            if claim is not None:
+                try:
+                    await store.mark_outcome_unknown(claim)
+                except Exception as state_exc:
+                    logger.warning(
+                        "Redesign idempotency outcome could not be recorded (exception_type=%s)",
+                        type(state_exc).__name__,
+                    )
+            raise
     except HTTPException:
         raise
     except Exception as exc:

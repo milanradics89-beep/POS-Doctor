@@ -135,6 +135,7 @@ def _patch_useit_response(monkeypatch, scene=None):
     monkeypatch.setattr(main, "derive_scene_facts", lambda *_: [])
     monkeypatch.setattr(main, "derive_scene_reasoning", lambda *_: [])
     monkeypatch.setattr(main, "build_specialist_context", lambda *_: {"profile": "home-design"})
+    monkeypatch.setattr(main, "reserve_units", AsyncMock(return_value=None))
 
 
 def _idempotent_analysis_request():
@@ -209,6 +210,31 @@ def test_useit_analyze_releases_claim_when_openai_client_is_not_configured(monke
         json=_idempotent_analysis_request(),
     )
     assert response.status_code == 503
+    store.release_before_provider_start.assert_awaited_once()
+    store.mark_outcome_unknown.assert_not_awaited()
+
+
+@pytest.mark.parametrize("status_code", [429, 503])
+def test_useit_analyze_releases_claim_when_budget_reservation_fails(monkeypatch, status_code):
+    from fastapi import HTTPException
+
+    store = FakeIdempotencyStore()
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr(main, "_get_client", lambda: Mock())
+    reserve = AsyncMock(side_effect=HTTPException(status_code=status_code, detail="budget unavailable"))
+    monkeypatch.setattr(main, "reserve_units", reserve)
+    analyze = AsyncMock()
+    monkeypatch.setattr(main, "_analyze", analyze)
+
+    response = client.post(
+        "/v1/useit/analyze",
+        headers={"Idempotency-Key": "analysis-test-key-123456"},
+        json=_idempotent_analysis_request(),
+    )
+
+    assert response.status_code == status_code
+    reserve.assert_awaited_once_with(main.app, 1)
+    analyze.assert_not_awaited()
     store.release_before_provider_start.assert_awaited_once()
     store.mark_outcome_unknown.assert_not_awaited()
 

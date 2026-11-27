@@ -293,7 +293,7 @@ def _get_client() -> AsyncOpenAI:
         raise HTTPException(503, detail)
     return client
 
-async def _analyze(request: AnalyzeRequest, client: AsyncOpenAI | None = None):
+async def _analyze(request: AnalyzeRequest, client: AsyncOpenAI | None = None, *, reserve_budget: bool = True):
     if request.responseFormat != "scene_analysis_v1": raise HTTPException(400, "Unsupported response format.")
     try:
         instructions = BASE_SYSTEM
@@ -306,7 +306,8 @@ async def _analyze(request: AnalyzeRequest, client: AsyncOpenAI | None = None):
             instructions += actionable_instructions(mode)
             user_text += "\nRefinement: " + json.dumps({"note": request.refinement, "previousSuggestion": request.refinementTarget}, ensure_ascii=False)
         provider = client or _get_client()
-        await reserve_units(app, 1)
+        if reserve_budget:
+            await reserve_units(app, 1)
         response = await provider.chat.completions.create(
             model=MODEL,
             max_completion_tokens=VISION_MAX_COMPLETION_TOKENS,
@@ -552,11 +553,12 @@ async def useit_analyze(
         if claim is None:
             raise HTTPException(status_code=503, detail="Analysis request protection could not claim this request.")
 
-        try:
-            # Resolve configuration before provider start. A failure here is safe
-            # to release because no billable OpenAI request has been attempted.
-            provider_client = _get_client()
-        except Exception as exc:
+    try:
+        # Resolve the provider before reserving budget so configuration failures
+        # cannot consume the daily allowance or strand a keyed claim.
+        provider_client = _get_client()
+    except Exception as exc:
+        if claim is not None:
             try:
                 await store.release_before_provider_start(claim)
             except Exception as release_exc:
@@ -564,10 +566,29 @@ async def useit_analyze(
                     "Analysis idempotency pre-provider release failed (exception_type=%s)",
                     type(release_exc).__name__,
                 )
-            raise HTTPException(status_code=503, detail="Vision service is not configured.") from exc
+        raise HTTPException(status_code=503, detail="Vision service is not configured.") from exc
 
     try:
-        scene = await _analyze(request, client=provider_client) if provider_client is not None else await _analyze(request)
+        await reserve_units(app, 1)
+    except Exception as exc:
+        if claim is not None:
+            try:
+                await store.release_before_provider_start(claim)
+            except Exception as release_exc:
+                logger.warning(
+                    "Analysis idempotency pre-provider release failed (exception_type=%s)",
+                    type(release_exc).__name__,
+                )
+        if isinstance(exc, HTTPException):
+            raise
+        logger.warning(
+            "Analysis budget reservation failed before provider start (exception_type=%s)",
+            type(exc).__name__,
+        )
+        raise HTTPException(status_code=503, detail="AI budget protection is temporarily unavailable.") from exc
+
+    try:
+        scene = await _analyze(request, client=provider_client, reserve_budget=False)
         intent = classify_intent(request.userIntent, request.prompt)
         context = {"preferredStyles": request.preferredStyles, "preferredColors": request.preferredColors, "budgetHuf": request.budgetHuf}
         ranked = rank_opportunities(scene, intent, context=context)

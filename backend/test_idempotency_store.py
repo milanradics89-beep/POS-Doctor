@@ -101,9 +101,9 @@ async def test_pre_provider_failure_can_release_claim_for_a_safe_retry():
 
 
 @pytest.mark.asyncio
-async def test_expired_record_can_be_reclaimed_without_waiting_for_ttl_cleanup():
+async def test_expired_processing_claim_remains_blocked_and_is_migrated_off_ttl():
     initial_time = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
-    collection, first_client, second_client, first, second = await _new_pair(
+    collection, first_client, second_client, first, _ = await _new_pair(
         ttl_seconds=60,
         clock=lambda: initial_time,
     )
@@ -115,10 +115,47 @@ async def test_expired_record_can_be_reclaimed_without_waiting_for_ttl_cleanup()
         clock=lambda: initial_time + timedelta(seconds=61),
     )
     key = f"analysis-{uuid.uuid4().hex}"
-    payload = b"expired-record"
+    payload = b"still-processing"
     try:
         first_claim = await first.claim(key, payload)
-        assert first_claim.decision is IdempotencyDecision.CLAIMED
+        assert first_claim.claim is not None
+        reference = first_client.collection(collection).document(first_claim.claim.document_id)
+        # Simulate a legacy processing document created before terminal-only TTL.
+        await reference.update({"expires_at": initial_time + timedelta(seconds=60)})
+
+        retry = await second.claim(key, payload)
+        assert retry.decision is IdempotencyDecision.DUPLICATE
+        stored = (await reference.get()).to_dict() or {}
+        assert stored["status"] == "processing"
+        assert "expires_at" not in stored
+    finally:
+        await _close_pair(collection, first_client, second_client)
+
+
+@pytest.mark.asyncio
+async def test_expired_terminal_record_can_be_reclaimed_without_waiting_for_ttl_cleanup():
+    initial_time = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
+    collection, first_client, second_client, first, _ = await _new_pair(
+        ttl_seconds=60,
+        clock=lambda: initial_time,
+    )
+    second = FirestoreIdempotencyStore(
+        second_client,
+        SECRET,
+        ttl_seconds=60,
+        collection=collection,
+        clock=lambda: initial_time + timedelta(seconds=61),
+    )
+    key = f"analysis-{uuid.uuid4().hex}"
+    payload = b"completed-record"
+    try:
+        first_claim = await first.claim(key, payload)
+        assert first_claim.claim is not None
+        assert await first.mark_completed(first_claim.claim) is True
+        terminal = (await first_client.collection(collection).document(first_claim.claim.document_id).get()).to_dict() or {}
+        assert terminal["status"] == "completed"
+        assert terminal["expires_at"] == initial_time + timedelta(seconds=60)
+
         second_claim = await second.claim(key, payload)
         assert second_claim.decision is IdempotencyDecision.CLAIMED
     finally:
@@ -146,7 +183,6 @@ async def test_firestore_document_contains_only_hmacs_and_lifecycle_metadata():
             "lease_token",
             "created_at",
             "updated_at",
-            "expires_at",
         }
         assert stored["status"] == "processing"
     finally:
