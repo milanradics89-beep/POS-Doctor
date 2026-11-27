@@ -15,6 +15,10 @@ describe('product discovery review boundary', () => {
     expect(source).toContain('const requestQuery = normalizeReviewedProductSearchQuery(query);');
     expect(source).toContain('discoverProducts(\n        requestQuery,');
     expect(source).not.toContain('discoverProducts(\n        query,');
+    expect(source).not.toContain('result.unified?.shopping');
+    expect(source).not.toContain('initialShopping');
+    expect(source).toContain('useState<NonNullable<UseitShopping> | null>(null)');
+    expect(source).toContain('useState<string | null>(null)');
   });
 
   it('only renders shopping results for the query that produced them', () => {

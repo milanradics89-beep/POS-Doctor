@@ -133,12 +133,11 @@ function ProductResults({ shopping, onOpenProduct, onRetry }: {
 function useProductDiscovery(result: ConsumerAnalysis) {
   const need = result.unified?.actionable?.shoppingNeed;
   const initialQuery = normalizeReviewedProductSearchQuery(need?.searchTerms.join(" ") ?? "");
-  const initialShopping = result.unified?.shopping ?? null;
   const [query, setQuery] = useState(initialQuery);
-  const [shopping, setShopping] = useState<NonNullable<UseitShopping> | null>(initialShopping);
-  const [submittedQuery, setSubmittedQuery] = useState<string | null>(
-    initialShopping ? normalizeReviewedProductSearchQuery(initialShopping.query) : null,
-  );
+  // Never surface legacy/analysis-embedded shopping results: only a separate
+  // request using the user's currently reviewed query may populate this state.
+  const [shopping, setShopping] = useState<NonNullable<UseitShopping> | null>(null);
+  const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
