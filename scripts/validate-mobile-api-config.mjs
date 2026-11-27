@@ -229,7 +229,7 @@ function requestJson(url, hostname, records, requestImpl = httpsRequest, timeout
       method: 'GET',
       agent: false,
       path: url.pathname + url.search,
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', 'Accept-Encoding': 'identity', Host: url.host },
       servername: hostname,
       lookup: createPinnedLookup(hostname, records),
     };
@@ -251,6 +251,14 @@ function requestJson(url, hostname, records, requestImpl = httpsRequest, timeout
 
     try {
       request = requestImpl(options, (response) => {
+        const statusCode = response.statusCode ?? 0;
+        if (statusCode < 200 || statusCode >= 300) {
+          finish(null, { statusCode, body: '' });
+          response.destroy();
+          request.destroy();
+          return;
+        }
+
         const chunks = [];
         let totalBytes = 0;
 
@@ -333,8 +341,7 @@ async function verifyBackendReady(baseUrl, dependencies = {}) {
 
 if (import.meta.url === new URL(process.argv[1], 'file:').href) {
   try {
-    const apiUrl = validateMobileApiConfig(raw);
-    await verifyBackendReady(apiUrl);
+    await verifyBackendReady(raw);
     process.stdout.write('Remote USEIT API configuration and backend readiness are valid.\n');
   } catch (error) {
     process.stderr.write('Mobile build configuration error: ' + error.message + '\n');

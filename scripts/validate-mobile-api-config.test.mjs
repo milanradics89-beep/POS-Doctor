@@ -413,4 +413,86 @@ describe('pinned backend readiness probes', () => {
     expect(dns.instances[0].cancel).toHaveBeenCalledTimes(1);
     expect(requestImpl).not.toHaveBeenCalled();
   });
+
+  it('preserves the configured Host authority and requests identity encoding', async () => {
+    const dns = createResolverFactory({ ipv4: ['93.184.216.34'] });
+    const { requestImpl, requests } = createRequestMock([
+      { payload: { status: 'ok' } },
+      { payload: { status: 'ready' } },
+    ]);
+
+    await expect(verifyBackendReady('https://api.useit.com.:8443/backend', {
+      resolverFactory: dns.resolverFactory,
+      requestImpl,
+    })).resolves.toBeUndefined();
+
+    expect(requests.map(({ options }) => options.headers.Host))
+      .toEqual(['api.useit.com.:8443', 'api.useit.com.:8443']);
+    expect(requests.map(({ options }) => options.headers['Accept-Encoding']))
+      .toEqual(['identity', 'identity']);
+    expect(requests.map(({ options }) => options.servername))
+      .toEqual(['api.useit.com', 'api.useit.com']);
+  });
+
+  it('normalizes the configured backend path only once in the CLI flow', async () => {
+    const dns = createResolverFactory({ ipv4: ['93.184.216.34'] });
+    const { requestImpl, requests } = createRequestMock([
+      { payload: { status: 'ok' } },
+      { payload: { status: 'ready' } },
+    ]);
+
+    await expect(verifyBackendReady('https://api.useit.com/backend///', {
+      resolverFactory: dns.resolverFactory,
+      requestImpl,
+    })).resolves.toBeUndefined();
+
+    expect(requests.map(({ options }) => options.path))
+      .toEqual(['/backend//health', '/backend//ready']);
+  });
+
+  it('reports non-success status without consuming an oversized error body', async () => {
+    const dns = createResolverFactory({ ipv4: ['93.184.216.34'] });
+    const { requestImpl, requests } = createRequestMock([
+      { statusCode: 503, body: 'x'.repeat(40 * 1024) },
+    ]);
+
+    await expect(verifyBackendReady('https://api.useit.com', {
+      resolverFactory: dns.resolverFactory,
+      requestImpl,
+    })).rejects.toThrow('/health returned HTTP 503');
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0].request.destroy).toHaveBeenCalled();
+  });
+
+  it('accepts a response at the byte limit and rejects one byte over it', async () => {
+    const dns = createResolverFactory({ ipv4: ['93.184.216.34'] });
+    const validJson = JSON.stringify({ status: 'ok' });
+    const exactLimit = validJson + ' '.repeat(32 * 1024 - Buffer.byteLength(validJson));
+    const overLimit = validJson + ' '.repeat(32 * 1024 + 1 - Buffer.byteLength(validJson));
+
+    const exact = createRequestMock([
+      { body: exactLimit },
+      { payload: { status: 'ready' } },
+    ]);
+    await expect(verifyBackendReady('https://api.useit.com', {
+      resolverFactory: dns.resolverFactory,
+      requestImpl: exact.requestImpl,
+    })).resolves.toBeUndefined();
+    expect(exact.requests).toHaveLength(2);
+
+    const oversized = createRequestMock([
+      { body: overLimit },
+      { payload: { status: 'ready' } },
+    ]);
+    await expect(verifyBackendReady('https://api.useit.com', {
+      resolverFactory: dns.resolverFactory,
+      requestImpl: oversized.requestImpl,
+    })).rejects.toThrow('/health is unreachable');
+    expect(oversized.requests).toHaveLength(1);
+    expect(oversized.requests[0].request.destroy).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'USEIT backend readiness response exceeded the size limit.' }),
+    );
+  });
+
 });
