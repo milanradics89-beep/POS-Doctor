@@ -127,3 +127,36 @@ async def test_quota_bucket_keeps_both_racing_admissions(monkeypatch, existing):
         await ref.delete()
         for client in clients:
             client.close()
+
+
+@pytest.mark.asyncio
+async def test_existing_daily_budget_bucket_preserves_both_racing_reservations(monkeypatch):
+    if not os.getenv("FIRESTORE_EMULATOR_HOST"):
+        pytest.skip("requires local Firestore emulator")
+    project = "budget-race-" + uuid.uuid4().hex[:12]
+    clients = [AsyncClient(project=project) for _ in range(2)]
+    a, b = [FirestoreState(c, "test-secret-" * 4) for c in clients]
+    ref = clients[0].collection("useit_state_v1").document("ai_daily_units")
+    try:
+        day = datetime.now(timezone.utc).date().isoformat()
+        await ref.set({"day": day, "used": 1})
+        original_get = AsyncDocumentReference.get
+        first_reads = 0
+        barrier = asyncio.Barrier(2)
+
+        async def synchronized_get(document, *args, **kwargs):
+            nonlocal first_reads
+            snapshot = await original_get(document, *args, **kwargs)
+            if document.path == ref.path and first_reads < 2:
+                first_reads += 1
+                await asyncio.wait_for(barrier.wait(), timeout=5)
+            return snapshot
+
+        monkeypatch.setattr(AsyncDocumentReference, "get", synchronized_get)
+        results = await asyncio.gather(a.reserve_daily(4, 1), b.reserve_daily(4, 2))
+        assert results == [True, True]
+        assert (await ref.get()).get("used") == 4
+    finally:
+        await ref.delete()
+        for client in clients:
+            client.close()

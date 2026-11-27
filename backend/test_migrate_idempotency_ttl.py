@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import pytest
 from google.cloud.firestore_v1.async_client import AsyncClient
 
+from backend import migrate_idempotency_ttl
 from backend.migrate_idempotency_ttl import migrate_legacy_expiry_fields
 
 
@@ -64,3 +65,24 @@ async def test_ttl_migration_rejects_invalid_page_sizes():
             await migrate_legacy_expiry_fields(client, page_size=True)
     finally:
         client.close()
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        [],
+        ["--apply", "--ttl-disabled-confirmed", "--old-writers-drained"],
+    ],
+)
+def test_ttl_migration_operator_cli_rejects_emulator_routing(monkeypatch, args):
+    monkeypatch.setenv("USEIT_FIRESTORE_PROJECT_ID", "useit-platform-2026")
+    monkeypatch.setenv("FIRESTORE_EMULATOR_HOST", "127.0.0.1:8080")
+
+    def unexpected_cloud_run(*_args, **_kwargs):
+        pytest.fail("operator migration must not construct a Firestore client when emulator routing is set")
+
+    monkeypatch.setattr(migrate_idempotency_ttl, "_run", unexpected_cloud_run)
+    with pytest.raises(SystemExit) as error:
+        migrate_idempotency_ttl.main(args)
+
+    assert error.value.code == 2

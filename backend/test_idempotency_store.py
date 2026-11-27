@@ -4,6 +4,7 @@ import asyncio
 import os
 import uuid
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 import pytest
 from google.cloud.firestore_v1.async_client import AsyncClient
@@ -312,3 +313,35 @@ async def test_unhashable_claim_state_with_legacy_expiry_remains_blocked_and_cle
         assert "expires_at" not in stored
     finally:
         await _close_pair(collection, first_client, second_client)
+
+
+@pytest.mark.asyncio
+async def test_claim_confirms_ownership_when_firestore_create_acknowledgement_is_lost():
+    state = {}
+
+    class Snapshot:
+        def __init__(self, exists, data=None):
+            self.exists = exists
+            self._data = data or {}
+
+        def to_dict(self):
+            return self._data
+
+    class Document:
+        async def get(self):
+            return Snapshot(bool(state), dict(state))
+
+        async def create(self, data, retry=None):
+            state.update(data)
+            raise TimeoutError("simulated lost Firestore write acknowledgement")
+
+    document = Document()
+    client = SimpleNamespace(collection=lambda _name: SimpleNamespace(document=lambda _id: document))
+    store = FirestoreIdempotencyStore(client, SECRET)
+
+    result = await store.claim("analysis-ambiguous-write-1234", b"synthetic-request")
+
+    assert result.decision is IdempotencyDecision.CLAIMED
+    assert result.claim is not None
+    assert state["status"] == "processing"
+    assert state["lease_token"] == result.claim.lease_token

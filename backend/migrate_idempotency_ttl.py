@@ -98,6 +98,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--old-writers-drained", action="store_true", help="Confirm all old application writers are drained.")
     args = parser.parse_args(argv)
 
+    if os.environ.get("FIRESTORE_EMULATOR_HOST", "").strip():
+        parser.error(
+            "FIRESTORE_EMULATOR_HOST must be unset for the operator migration CLI; "
+            "run emulator tests through the injected-client migration function instead."
+        )
+
     project_id = os.environ.get("USEIT_FIRESTORE_PROJECT_ID", "").strip()
     if not _PROJECT_ID_RE.fullmatch(project_id):
         parser.error("USEIT_FIRESTORE_PROJECT_ID must be the verified 6-30 character Google Cloud project ID.")

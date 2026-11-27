@@ -133,6 +133,34 @@ class FirestoreIdempotencyStore:
                         raise
                     await asyncio.sleep(0.01 * 2**attempt)
                     continue
+                except Exception as create_error:
+                    # Firestore may commit a conditional create while its
+                    # acknowledgement is lost. Proceed only when this exact
+                    # attempt owns the persisted lease and request fingerprint.
+                    try:
+                        confirmation = await reference.get()
+                    except Exception as read_error:
+                        raise create_error from read_error
+                    confirmed = confirmation.to_dict() or {} if confirmation.exists else {}
+                    confirmed_token = confirmed.get("lease_token")
+                    confirmed_hash = confirmed.get("request_hash")
+                    owns_claim = (
+                        confirmation.exists
+                        and confirmed.get("status") == "processing"
+                        and isinstance(confirmed_token, str)
+                        and hmac.compare_digest(confirmed_token, lease_token)
+                        and isinstance(confirmed_hash, str)
+                        and hmac.compare_digest(confirmed_hash, request_hash)
+                    )
+                    if owns_claim:
+                        return IdempotencyClaimResult(
+                            decision=IdempotencyDecision.CLAIMED,
+                            claim=IdempotencyClaim(document_id=document_id, lease_token=lease_token),
+                        )
+                    if not confirmation.exists or attempt == 4:
+                        raise create_error
+                    await asyncio.sleep(0.01 * 2**attempt)
+                    continue
                 return IdempotencyClaimResult(
                     decision=IdempotencyDecision.CLAIMED,
                     claim=IdempotencyClaim(document_id=document_id, lease_token=lease_token),

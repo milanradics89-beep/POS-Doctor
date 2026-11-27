@@ -26,5 +26,8 @@ describe("Firestore idempotency TTL migration release gate", () => {
     expect(steps.get(9)).toContain("Only after steps 1-8 pass, re-enable TTL");
     expect(steps.get(10)).toContain("Route traffic to the new version only after steps 1-9 pass");
     expect(gate).toContain("Do not infer safety from aggregate provider usage or an empty scan.");
+    expect(register).toContain(
+      "A Firestore timeout, transport error, HTTP 503 or request cancellation may leave the daily budget reservation committed; retain the processing claim",
+    );
   });
 });

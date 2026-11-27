@@ -571,12 +571,22 @@ async def useit_analyze(
         try:
             await reserve_units(app, 1)
         except Exception as exc:
-            try:
-                await store.release_before_provider_start(claim)
-            except Exception as release_exc:
+            # A 429 is an explicit negative reservation result: Firestore
+            # confirmed that no units were consumed. A 503/transport error may
+            # have committed before its acknowledgement was lost, so retain the
+            # claim and require reconciliation rather than risking a second charge.
+            if isinstance(exc, HTTPException) and exc.status_code == 429:
+                try:
+                    await store.release_before_provider_start(claim)
+                except Exception as release_exc:
+                    logger.warning(
+                        "Analysis idempotency pre-provider release failed (exception_type=%s)",
+                        type(release_exc).__name__,
+                    )
+            else:
                 logger.warning(
-                    "Analysis idempotency pre-provider release failed (exception_type=%s)",
-                    type(release_exc).__name__,
+                    "Analysis idempotency claim retained after ambiguous budget reservation (exception_type=%s)",
+                    type(exc).__name__,
                 )
             if isinstance(exc, HTTPException):
                 raise

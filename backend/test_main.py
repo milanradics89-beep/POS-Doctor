@@ -239,7 +239,10 @@ def test_useit_analyze_releases_claim_when_budget_reservation_fails(monkeypatch,
     assert response.status_code == status_code
     reserve.assert_awaited_once_with(main.app, 1)
     analyze.assert_not_awaited()
-    store.release_before_provider_start.assert_awaited_once()
+    if status_code == 429:
+        store.release_before_provider_start.assert_awaited_once()
+    else:
+        store.release_before_provider_start.assert_not_awaited()
     store.mark_outcome_unknown.assert_not_awaited()
 
 

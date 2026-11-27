@@ -129,7 +129,10 @@ async def redesign(
         try:
             await reserve_units(http_request.app, 5)
         except Exception as exc:
-            if claim is not None:
+            if claim is not None and isinstance(exc, HTTPException) and exc.status_code == 429:
+                # Only an explicit budget denial proves that no units were reserved.
+                # Transport and 503 failures may follow a committed write; retain
+                # the key rather than allowing a retry to reserve twice.
                 try:
                     await store.release_before_provider_start(claim)
                 except Exception as release_exc:
@@ -137,6 +140,11 @@ async def redesign(
                         "Redesign idempotency pre-provider release failed (exception_type=%s)",
                         type(release_exc).__name__,
                     )
+            elif claim is not None:
+                logger.warning(
+                    "Redesign idempotency claim retained after ambiguous budget reservation (exception_type=%s)",
+                    type(exc).__name__,
+                )
             if isinstance(exc, HTTPException):
                 raise
             logger.warning(

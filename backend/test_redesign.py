@@ -152,7 +152,7 @@ def test_keyed_redesign_does_not_edit_image_twice(monkeypatch):
     assert all(call.args[1].startswith(b"redesign:v1\0") for call in store.claim.await_args_list)
 
 
-def test_keyed_redesign_releases_claim_when_budget_reservation_fails(monkeypatch):
+def test_keyed_redesign_releases_claim_only_when_budget_is_explicitly_denied(monkeypatch):
     claim = IdempotencyClaim("doc", "lease")
     store = SimpleNamespace(
         claim=AsyncMock(return_value=IdempotencyClaimResult(IdempotencyDecision.CLAIMED, claim)),
@@ -214,3 +214,29 @@ def test_retry_without_redesign_claim_store_cannot_start_another_image(monkeypat
     }, headers={"Idempotency-Key": "redesign-test-request", "X-USEIT-Retry": "true"})
     assert r.status_code == 409
     provider.images.edit.assert_not_called()
+
+
+def test_keyed_redesign_retains_claim_when_budget_reservation_is_ambiguous(monkeypatch):
+    claim = IdempotencyClaim("doc", "lease")
+    store = SimpleNamespace(
+        claim=AsyncMock(return_value=IdempotencyClaimResult(IdempotencyDecision.CLAIMED, claim)),
+        mark_completed=AsyncMock(return_value=True),
+        mark_outcome_unknown=AsyncMock(return_value=True),
+        release_before_provider_start=AsyncMock(return_value=True),
+    )
+    provider = SimpleNamespace(images=SimpleNamespace(edit=AsyncMock()))
+    monkeypatch.setattr(app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr("backend.redesign.reserve_units", AsyncMock(side_effect=HTTPException(503, "reservation outcome unknown")))
+    monkeypatch.setattr("backend.redesign._client", lambda _: provider)
+
+    response = client.post(
+        "/v1/redesign",
+        json={"imageUri": image_uri(), "prompt": "Keep the existing windows and room dimensions."},
+        headers={"Idempotency-Key": "redesign-test-request"},
+    )
+
+    assert response.status_code == 503
+    provider.images.edit.assert_not_awaited()
+    store.release_before_provider_start.assert_not_awaited()
+    store.mark_completed.assert_not_awaited()
+    store.mark_outcome_unknown.assert_not_awaited()
