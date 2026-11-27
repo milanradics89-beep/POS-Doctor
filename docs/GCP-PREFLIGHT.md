@@ -2,18 +2,31 @@
 
 Status: prepared for owner-operated verification. This document and its script do not provision resources, enable APIs, alter IAM, create secrets, change billing, or deploy the service.
 
-## Owner-specified project label and exact ID gate
+## Owner-confirmed project identity
 
-The owner-specified GCP project label is `useit`. The literal `useit` has five characters, but Google Cloud project IDs must be 6–30 lowercase letters, digits or hyphens, begin with a letter, and not end with a hyphen ([official project ID requirements](https://docs.cloud.google.com/resource-manager/reference/rest/v1/projects)). Therefore `useit` is not a valid Google Cloud project ID. The exact existing project ID is unverified and provisioning is blocked. Do not substitute another project or create a replacement.
+The owner-confirmed Google Cloud project is:
 
-<!-- coderabbit-ai-generated:v1 -->
+- Display name: `USEIT` (short label: `useit`)
+- Exact project ID: `useit-platform-2026`
+- Project number: `386862694550`
 
-<!-- coderabbit-ai-generated-section:v1:4b87fd8ff47ebb033abbc9ca28534ec6b9073687e0db33e3325c5e6b6ed64782 -->
+The display name and project ID are different fields. Use only the exact project ID
+above for USEIT; `fresh-weft-447913-u6` is explicitly excluded. Do not infer an ID from
+a display name or substitute a historical project.
 
-Set `USEIT_GCP_PROJECT_ID` to the existing, explicitly approved project. There is no default. An empty or invalid ID stops the script before any gcloud call.
+The preflight remains read-only. It verifies the supplied exact ID before invoking
+`gcloud` and does not create resources, enable APIs, alter IAM or billing, read secret
+payloads, or deploy. The project ID is owner-confirmed, but live project resources,
+billing/SKU eligibility, IAM and deployment readiness remain unverified.
 
-<!-- /coderabbit-ai-generated:v1 -->
+The fail-closed identity guard can be verified without contacting Google Cloud:
 
+```bash
+USEIT_GCP_PROJECT_ID=useit-platform-2026 bash scripts/gcp-readonly-preflight.sh
+```
+
+The script then performs read-only inventory only. Do not treat a successful identity
+check as authorization to provision or deploy.
 ## Run the read-only inventory
 
 Requirements: Google Cloud CLI, an interactively authenticated account with read access, and Bash 3.2 or newer (including the macOS system Bash).
@@ -22,13 +35,13 @@ Requirements: Google Cloud CLI, an interactively authenticated account with read
 
 <!-- coderabbit-ai-generated-section:v1:e2a5a30c200e8aaea29ad79568f2562be3ec37198856bd034313a3ec3acda762 -->
 
-    USEIT_GCP_PROJECT_ID=OWNER_CONFIRMED_PROJECT_ID bash scripts/gcp-readonly-preflight.sh
+    USEIT_GCP_PROJECT_ID=useit-platform-2026 bash scripts/gcp-readonly-preflight.sh
 
 <!-- /coderabbit-ai-generated:v1 -->
 
 If a region has already been selected and approved, set it explicitly:
 
-    USEIT_GCP_PROJECT_ID=OWNER_CONFIRMED_PROJECT_ID USEIT_GCP_REGION=YOUR_APPROVED_REGION bash scripts/gcp-readonly-preflight.sh
+    USEIT_GCP_PROJECT_ID=useit-platform-2026 USEIT_GCP_REGION=YOUR_APPROVED_REGION bash scripts/gcp-readonly-preflight.sh
 
 The script reads project metadata, billing linkage, enabled APIs, Firestore databases, Secret Manager secret names, Workload Identity Federation pools, Artifact Registry repositories, Logging sinks, Monitoring notification channels, and (only when a region is supplied) Cloud Run services.
 
@@ -36,11 +49,13 @@ It never reads secret versions or secret payloads. It does not call create, enab
 
 ## Required owner Console checks
 
+The exact project identity is owner-confirmed as `useit-platform-2026` (project number `386862694550`). The read-only preflight may be run against this exact ID; it does not provision or mutate resources. Complete the billing/SKU, budget, region, IAM/WIF and runtime-secret checks below before proposing any paid resource creation or deployment. Do not infer an ID from the display name or substitute `fresh-weft-447913-u6`.
+
 <!-- coderabbit-ai-generated:v1 -->
 
 <!-- coderabbit-ai-generated-section:v1:65b25564decb9f908b5e0d3ac1ce1818835379620d58ead46ab4a1884d0e375a -->
 
-1. Select the approved existing project and confirm its actual ID, number and lifecycle state.
+1. Select the existing `USEIT` project; confirm project ID `useit-platform-2026`, project number `386862694550`, and lifecycle state.
 
 <!-- /coderabbit-ai-generated:v1 -->
 2. Open Billing > My projects. Confirm the linked billing account and who is financially responsible.

@@ -4,32 +4,45 @@ import { describe, expect, it } from 'vitest';
 const script = readFileSync(new URL('./gcp-readonly-preflight.sh', import.meta.url), 'utf8');
 
 describe('USEIT GCP read-only preflight', () => {
-  it('keeps the owner-specified label separate from the exact project ID', () => {
-    expect(script).toContain('readonly OWNER_PROJECT_LABEL="useit"');
+  it('pins the only permitted project ID to the owner-confirmed canonical ID', () => {
+    expect(script).toContain('readonly OWNER_PROJECT_ID="useit-platform-2026"');
     expect(script).toContain('readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"');
-    expect(script).toContain('Agreed USEIT target project ID: %s');
-    expect(script).not.toContain('useit-platform-2026');
-    expect(script).not.toContain('readonly PROJECT_ID="useit"');
+    expect(script).not.toContain('OWNER_PROJECT_NAME');
     expect(script).not.toContain('fresh-weft-447913-u6');
   });
 
-  it('validates the explicitly supplied project ID before any gcloud invocation', () => {
-    const projectIdGuard = script.indexOf('if [[ ! "$PROJECT_ID" =~');
+  it('rejects every project ID other than the exact owner-confirmed ID before gcloud', () => {
+    const ownerGuard = script.indexOf('if [[ "$PROJECT_ID" != "$OWNER_PROJECT_ID" ]]');
+    const syntaxGuard = script.indexOf('if [[ ! "$PROJECT_ID" =~');
     const gcloudAvailabilityCheck = script.indexOf('command -v gcloud');
-    expect(projectIdGuard).toBeGreaterThan(-1);
-    expect(projectIdGuard).toBeLessThan(gcloudAvailabilityCheck);
-    expect(script).toContain('No gcloud command was executed');
+    expect(ownerGuard).toBeGreaterThan(-1);
+    expect(ownerGuard).toBeLessThan(syntaxGuard);
+    expect(syntaxGuard).toBeLessThan(gcloudAvailabilityCheck);
+    expect(script).toContain("Only the owner-specified project ID 'useit-platform-2026' is permitted.");
+    expect(script).toContain('No gcloud command was executed.');
   });
 
-  it('validates a supplied project ID against Google Cloud project ID syntax', () => {
-    expect(script).toContain('^[a-z][a-z0-9-]{4,28}[a-z0-9]$');
+  it('validates the canonical project ID against Google Cloud syntax before gcloud', () => {
+    const syntax = /^([a-z][a-z0-9-]{4,28}[a-z0-9])$/;
+    expect(syntax.test('useit-platform-2026')).toBe(true);
+    expect(syntax.test('useit')).toBe(false);
     expect(script).toContain('Google Cloud project IDs must be 6 to 30 lowercase letters');
+    const syntaxGuard = script.indexOf('if [[ ! "$PROJECT_ID" =~');
+    expect(syntaxGuard).toBeLessThan(script.indexOf('command -v gcloud'));
+  });
+
+  it('does not discover projects by display name or substitute another project', () => {
+    expect(script).not.toContain('gcloud projects list');
+    expect(script).not.toContain('OWNER_PROJECT_NAME');
+    expect(script).not.toContain('PROJECT_NAME=');
+    expect(script).not.toContain('gcloud projects describe "$PROJECT_ID" --format=\'value(name)\'');
   });
 
   it('supports the macOS system Bash 3.2 without Bash-4-only array helpers', () => {
     expect(script).toContain('ACTIVE_ACCOUNTS=()');
     expect(script).toContain('while IFS= read -r account; do');
-    expect(script).not.toMatch(/\b(?:mapfile|readarray)\b/);
+    expect(script).not.toContain('mapfile');
+    expect(script).not.toContain('readarray');
   });
 
   it('contains the approved read-only inventory commands without reading secret values', () => {
