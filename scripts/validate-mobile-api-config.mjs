@@ -118,28 +118,38 @@ async function resolvePublicAddresses(hostname, lookupImpl = lookup) {
   return records;
 }
 
+function getPinnedLookupResult(expectedHostname, records, requestedHostname, family) {
+  const requested = String(requestedHostname).toLowerCase().replace(/\.$/, '');
+  if (requested !== expectedHostname) {
+    return { error: new Error('Unexpected hostname requested by the HTTPS transport.') };
+  }
+
+  const candidates = family ? records.filter((record) => record.family === family) : records;
+  if (candidates.length === 0) {
+    return { error: new Error('No validated DNS address matches the requested address family.') };
+  }
+
+  return { candidates };
+}
+
+function respondToPinnedLookup(result, options, callback) {
+  if (result.error) {
+    callback(result.error);
+    return;
+  }
+  if (options?.all) {
+    callback(null, result.candidates);
+    return;
+  }
+
+  const [first] = result.candidates;
+  callback(null, first.address, first.family);
+}
+
 function createPinnedLookup(expectedHostname, records) {
-  return (requestedHostname, options, callback) => {
-    const requested = String(requestedHostname).toLowerCase().replace(/\.$/, '');
-    if (requested !== expectedHostname) {
-      callback(new Error('Unexpected hostname requested by the HTTPS transport.'));
-      return;
-    }
-
-    const candidates = options?.family
-      ? records.filter((record) => record.family === options.family)
-      : records;
-    if (candidates.length === 0) {
-      callback(new Error('No validated DNS address matches the requested address family.'));
-      return;
-    }
-
-    if (options?.all) {
-      callback(null, candidates);
-      return;
-    }
-
-    callback(null, candidates[0].address, candidates[0].family);
+  return function pinnedLookup(requestedHostname, options, callback) {
+    const result = getPinnedLookupResult(expectedHostname, records, requestedHostname, options?.family);
+    respondToPinnedLookup(result, options, callback);
   };
 }
 
