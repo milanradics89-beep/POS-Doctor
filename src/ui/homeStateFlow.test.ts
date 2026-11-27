@@ -35,7 +35,7 @@ describe('USEIT Home recovery-state integration', () => {
     expect(home).toContain('asset.exif?.Orientation');
     expect(home).toContain('resolveVisualDimensions(dimensions.width, dimensions.height, orientation)');
     expect(home).toContain('const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);');
-    expect(home).toContain('setSelectedPhoto(normalized.dataUrl);');
+    expect(home).toContain('setSelectedPhoto(normalized.dataUrl, normalized.fidelity);');
     expect(home).not.toContain('setPhoto(`data:${a.mimeType || \'image/jpeg\'};base64,${a.base64}`)');
   });
 
@@ -50,6 +50,24 @@ describe('USEIT Home recovery-state integration', () => {
     expect(firstAwait).toBeGreaterThan(invalidation);
     expect(home).toContain('redesignControllerRef.current?.abort();');
     expect(home).toContain('onBegin: () => {\n      cancelRedesign();');
+  });
+
+  it('renders the normalized image without cropping and keeps fidelity metadata out of analysis requests', () => {
+    const previewStart = home.indexOf('function SelectedPhoto(');
+    const previewEnd = home.indexOf('\nfunction ResultNavigation', previewStart);
+    const preview = home.slice(previewStart, previewEnd);
+    expect(preview).toContain('resizeMode="contain"');
+    expect(preview).toContain('source={{ uri: photo }}');
+    expect(preview).toContain('accessibilityHint={hu.flow.selectedPhotoHint}');
+    expect(preview).toContain('photoFidelity.sourceWidth');
+    expect(preview).toContain('photoFidelity.outputWidth');
+
+    const analysisStart = home.indexOf('const response = await analyzeForConsumer(');
+    const analysisEnd = home.indexOf('\n      );', analysisStart);
+    const analysisCall = home.slice(analysisStart, analysisEnd);
+    expect(analysisCall).toContain('photo,');
+    expect(analysisCall).not.toContain('photoFidelity');
+    expect(analysisCall).not.toContain('fidelity');
   });
 
   it('routes network failures to the offline panel with a retry for the same intent', () => {
