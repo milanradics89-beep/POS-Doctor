@@ -86,6 +86,8 @@ Every asynchronous screen must have intentional loading, success, empty, error, 
 
 ## Verification evidence
 
+Generated design-reference images are a floor, not a visual target or acceptance artifact. The implemented UI must exceed them in execution quality and must preserve or improve their hierarchy, image treatment and craft while adding real, accessible behavior. Compare implementation against the references and record where it improves; a merely similar screenshot is insufficient.
+
 For every substantial UI change, attach or link:
 - Changed screens and shared owners.
 - iOS and Android build/test results where available.
