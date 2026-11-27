@@ -78,7 +78,7 @@ Every asynchronous screen must have intentional loading, success, empty, error, 
 - Use semantic roles, accessible names/hints, visible state, and logical focus order.
 - Support system reduced motion.
 - Maintain readable type and contrast; never communicate state through color alone.
-- Hungarian (`hu-HU`) is the primary launch locale and a blocking launch gate. Current English strings and the current `en-HU` request locale are known implementation gaps, not accepted fallbacks. User-facing strings, errors, and accessibility labels must be localized consistently before launch.
+- Hungarian (`hu-HU`) is implemented as the launch locale at the app boundary and in the shared `src/i18n/hu.ts` catalog. The former `en-HU` request-locale defect is corrected. Remaining launch blockers are an exhaustive audit of every route, dynamic backend-provided copy, error/recovery state and accessibility label/hint, plus Android/iOS interaction and visual verification. The catalog's existence alone is not localization acceptance.
 - Respect safe areas, dynamic text where supported, and virtual keyboard behavior.
 
 ## Verification evidence
