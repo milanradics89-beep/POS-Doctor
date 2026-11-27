@@ -385,12 +385,31 @@ export default function Home() {
               <Text style={s.galleryHint}>Use a photo you already have</Text>
             </Pressable>
 
-            <View style={s.tags}>
-              {['ROOMS', 'OBJECTS', 'FOOD', 'MATERIALS'].map((x) => (
-                <Text style={s.tag} key={x}>
-                  {x}
-                </Text>
-              ))}
+            <View style={s.categoryHeading}>
+              <Text style={s.categoryEyebrow}>START WITH WHAT YOU HAVE</Text>
+              <Text style={s.categoryCaption}>A room, an object, a meal or a material.</Text>
+            </View>
+            <View style={s.categoryGrid}>
+              <View style={[s.categoryCard, s.categoryRoom]}>
+                <Text style={s.categorySymbol}>⌂</Text>
+                <Text style={s.categoryLabel}>ROOMS</Text>
+                <Text style={s.categoryDetail}>Spaces to rethink</Text>
+              </View>
+              <View style={[s.categoryCard, s.categoryObjects]}>
+                <Text style={s.categorySymbol}>◈</Text>
+                <Text style={s.categoryLabel}>OBJECTS</Text>
+                <Text style={s.categoryDetail}>Things with potential</Text>
+              </View>
+              <View style={[s.categoryCard, s.categoryFood]}>
+                <Text style={s.categorySymbol}>✳</Text>
+                <Text style={s.categoryLabel}>FOOD</Text>
+                <Text style={s.categoryDetail}>Ideas from ingredients</Text>
+              </View>
+              <View style={[s.categoryCard, s.categoryMaterials]}>
+                <Text style={s.categorySymbol}>▧</Text>
+                <Text style={s.categoryLabel}>MATERIALS</Text>
+                <Text style={s.categoryDetail}>Make something useful</Text>
+              </View>
             </View>
             {noticePanel}
           </>
@@ -414,8 +433,17 @@ export default function Home() {
 
             {rendered ? (
               <>
-                <Text style={s.kicker}>VISUAL CONCEPT</Text>
-                <Image source={{ uri: rendered }} style={s.rendered} />
+                <Text style={s.kicker}>YOUR SPACE, REIMAGINED</Text>
+                <View style={s.comparison}>
+                  <View style={s.comparisonItem}>
+                    <Text style={s.comparisonLabel}>BEFORE</Text>
+                    <Image source={{ uri: photo }} style={s.comparisonImage} />
+                  </View>
+                  <View style={s.comparisonItem}>
+                    <Text style={s.comparisonLabel}>AFTER</Text>
+                    <Image source={{ uri: rendered }} style={s.comparisonImage} />
+                  </View>
+                </View>
                 <Text style={s.disclosure}>
                   {redesign?.disclosure}
                 </Text>
@@ -506,6 +534,18 @@ export default function Home() {
                   </>
                 ) : null}
 
+                {result.unified?.intent.name !== 'shop' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Find matching products"
+                    accessibilityHint="Searches for products related to the selected photo and recommendation."
+                    style={s.primary}
+                    onPress={() => { void analyze('shop'); }}
+                  >
+                    <Text style={s.primaryText}>FIND MATCHING PRODUCTS</Text>
+                  </Pressable>
+                ) : null}
+
                 {(result.intelligence?.rankedCandidates?.length ?? 0) > 0 ? (
                   <>
                     <SectionHeader eyebrow="MATCHING OPTIONS" />
@@ -516,8 +556,8 @@ export default function Home() {
                         <ProductCard
                           key={x.id}
                           title={x.title}
-                          category={x.category}
-                          source={x.source}
+                          category={x.brand ? `${x.brand} · ${x.category}` : x.category}
+                          source={x.availability && x.availability !== 'unknown' ? `${x.source} · ${x.availability.replace('_', ' ')}` : x.source}
                           price={typeof x.priceHuf === 'number' ? x.priceHuf : undefined}
                           onPress={() => { void openProductLink(x.url); }}
                         />
@@ -567,22 +607,40 @@ export default function Home() {
                 {noticePanel}
                 <Text style={s.title}>What should I do with this?</Text>
 
-                {modes.map(([a, b]) => (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`${a.toUpperCase()} mode`}
-                    accessibilityHint={b}
-                    key={a}
-                    style={s.mode}
-                    onPress={() => analyze(a)}
-                  >
-                    <Text style={s.modeTitle}>{a.toUpperCase()}</Text>
-
-                    <Text style={s.modeDesc}>{b}</Text>
-
-                    <Text style={s.arrow}>›</Text>
-                  </Pressable>
-                ))}
+                <View style={s.modeIntro}>
+                  <Text style={s.categoryEyebrow}>WHAT SHOULD WE DO?</Text>
+                  <Text style={s.categoryCaption}>Choose a direction. USEIT will take it from there.</Text>
+                </View>
+                <View style={s.modeGrid}>
+                  {modes.map(([a, b]) => (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${a.toUpperCase()} mode`}
+                      accessibilityHint={b}
+                      key={a}
+                      style={({ pressed }) => [
+                        s.mode,
+                        a === 'create' ? s.modeCreate : null,
+                        a === 'improve' ? s.modeImprove : null,
+                        a === 'fix' ? s.modeFix : null,
+                        a === 'cook' ? s.modeCook : null,
+                        a === 'surprise' ? s.modeSurprise : null,
+                        a === 'surprise' ? s.modeWide : null,
+                        pressed && s.modePressed,
+                      ]}
+                      onPress={() => analyze(a)}
+                    >
+                      <View style={s.modeTop}>
+                        <Text style={[s.modeIcon, a === 'surprise' ? s.modeSurpriseForeground : null]}>
+                          {a === 'create' ? '✳' : a === 'improve' ? '↗' : a === 'fix' ? '⌁' : a === 'cook' ? '◒' : '✦'}
+                        </Text>
+                        <Text style={[s.modeArrow, a === 'surprise' ? s.modeSurpriseForeground : null]}>↗</Text>
+                      </View>
+                      <Text style={[s.modeTitle, a === 'surprise' ? s.modeSurpriseForeground : null]}>{a.toUpperCase()}</Text>
+                      <Text style={[s.modeDesc, a === 'surprise' ? s.modeSurpriseDescription : null]}>{b}</Text>
+                    </Pressable>
+                  ))}
+                </View>
               </>
             )}
           </>
@@ -637,8 +695,8 @@ const s = StyleSheet.create({
     marginTop: 32,
   },
   hero: {
-    fontSize: 52,
-    lineHeight: 53,
+    fontSize: 44,
+    lineHeight: 46,
     fontWeight: '800',
     letterSpacing: -2.5,
     color: theme.colors.ink,
@@ -702,57 +760,54 @@ const s = StyleSheet.create({
     color: theme.colors.subtle,
     marginTop: 4,
   },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 26,
-  },
-  tag: {
-    borderWidth: 1,
-    borderColor: theme.colors.line,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    fontSize: 10,
-    fontWeight: '800',
-    color: theme.colors.muted,
-  },
+  categoryHeading: { marginTop: 34, marginBottom: 12 },
+  categoryEyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 1.7, color: theme.colors.subtle },
+  categoryCaption: { fontSize: 12, color: theme.colors.muted, marginTop: 5, lineHeight: 18 },
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+  categoryCard: { width: '48.5%', minHeight: 112, borderRadius: 22, padding: 15, justifyContent: 'space-between' },
+  categoryRoom: { backgroundColor: theme.colors.surfaceMuted },
+  categoryObjects: { backgroundColor: theme.colors.mint },
+  categoryFood: { backgroundColor: theme.colors.peach },
+  categoryMaterials: { backgroundColor: theme.colors.lavender },
+  categorySymbol: { fontSize: 23, color: theme.colors.ink, fontWeight: '700' },
+  categoryLabel: { fontSize: 12, fontWeight: '900', letterSpacing: 1.2, color: theme.colors.ink, marginTop: 10 },
+  categoryDetail: { fontSize: 10, color: theme.colors.muted, marginTop: 3 },
   photo: {
     width: '100%',
     height: 320,
     borderRadius: 26,
   },
-  rendered: {
-    width: '100%',
-    height: 420,
-    borderRadius: 26,
-  },
-  mode: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: theme.colors.line,
-  },
+  rendered: { width: '100%', height: 420, borderRadius: 26 },
+  comparison: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  comparisonItem: { flex: 1, minWidth: 0 },
+  comparisonLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1.4, color: theme.colors.subtle, marginBottom: 7 },
+  comparisonImage: { width: '100%', aspectRatio: 0.78, borderRadius: 18, backgroundColor: theme.colors.surfaceMuted },
+  modeIntro: { marginTop: 24, marginBottom: 13 },
+  modeGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+  mode: { width: '48.5%', minHeight: 148, borderRadius: 23, padding: 16, marginBottom: 0, borderWidth: 1, borderColor: theme.colors.line, backgroundColor: theme.colors.surface, justifyContent: 'space-between' },
+  modeCreate: { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent },
+  modeImprove: { backgroundColor: theme.colors.mint, borderColor: theme.colors.mint },
+  modeFix: { backgroundColor: theme.colors.blue, borderColor: theme.colors.blue },
+  modeCook: { backgroundColor: theme.colors.peach, borderColor: theme.colors.peach },
+  modeSurprise: { backgroundColor: theme.colors.ink, borderColor: theme.colors.ink },
+  modeSurpriseForeground: { color: theme.colors.surface },
+  modeSurpriseDescription: { color: theme.colors.captureTextMuted },
+  modeWide: { width: '100%', minHeight: 118 },
+  modePressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
+  modeTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  modeIcon: { fontSize: 23, fontWeight: '800', color: theme.colors.ink },
+  modeArrow: { fontSize: 20, fontWeight: '800', color: theme.colors.muted },
   modeTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '900',
   },
   modeDesc: {
-    fontSize: 14,
+    fontSize: 11,
     color: theme.colors.muted,
     marginTop: 4,
     maxWidth: '85%',
   },
-  arrow: {
-    position: 'absolute',
-    right: 18,
-    top: 17,
-    fontSize: 28,
-    color: theme.colors.subtle,
-  },
+  arrow: { position: 'absolute', right: 18, top: 17, fontSize: 28, color: theme.colors.subtle },
   section: {
     fontSize: 11,
     fontWeight: '900',
