@@ -71,12 +71,16 @@ def test_useit_analyze_returns_versioned_contract():
          patch('backend.main.rank_opportunities', return_value=[]), \
          patch('backend.main.derive_scene_facts', return_value=[]), \
          patch('backend.main.derive_scene_reasoning', return_value=[]), \
-         patch('backend.main.build_specialist_context', return_value={'profile':'home-design'}):
+         patch('backend.main.build_specialist_context', return_value={'profile':'home-design'}), \
+         patch('backend.main._get_client', side_effect=AssertionError("unkeyed requests must use the legacy _analyze path")) as get_client, \
+         patch('backend.main.reserve_units', new=AsyncMock(side_effect=AssertionError("unkeyed budget reservation belongs inside _analyze"))) as reserve:
         r = client.post('/v1/useit/analyze', json={'imageUri':'data:image/jpeg;base64,' + 'a' * 32,'userIntent':'improve'})
     assert r.status_code == 200
     assert r.json()['contractVersion'] == 'useit_analyze_v1'
     assert r.json()['intent'] == intent
     assert r.json()['pipeline'][-1] == 'plan'
+    get_client.assert_not_called()
+    reserve.assert_not_awaited()
 
 
 def test_invalid_image_uri_is_rejected_by_validation():

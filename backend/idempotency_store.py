@@ -49,8 +49,9 @@ class FirestoreIdempotencyStore:
 
     Only HMAC digests and lifecycle metadata are persisted. Raw idempotency keys,
     request bodies, image data, prompts and model responses are never stored.
-    Processing claims deliberately have no TTL field; only terminal records expire.
-    Firestore TTL is cleanup only, and terminal claims check expires_at transactionally.
+    Processing and outcome-unknown claims deliberately have no TTL field; only
+    completed records expire. Firestore TTL is cleanup only, and completed claims
+    check expires_at transactionally.
     """
 
     def __init__(
@@ -116,9 +117,10 @@ class FirestoreIdempotencyStore:
             if snapshot.exists:
                 existing = snapshot.to_dict() or {}
                 status = existing.get("status")
-                if status == "processing":
-                    # Migrate legacy processing records away from TTL cleanup.
-                    # An in-flight provider call must never lose its claim by age.
+                if status in {"processing", "outcome_unknown"}:
+                    # Neither an in-flight request nor an uncertain provider outcome
+                    # can be replayed safely. An outcome-unknown POST may already
+                    # have been accepted and charged by the provider.
                     if "expires_at" in existing:
                         transaction.update(reference, {"expires_at": DELETE_FIELD})
                     stored_hash = existing.get("request_hash")
@@ -128,7 +130,7 @@ class FirestoreIdempotencyStore:
                         return IdempotencyDecision.PAYLOAD_MISMATCH
                     return IdempotencyDecision.DUPLICATE
 
-                if status not in {"completed", "outcome_unknown"}:
+                if status != "completed":
                     return IdempotencyDecision.DUPLICATE
 
                 existing_expiry = existing.get("expires_at")
@@ -211,15 +213,18 @@ class FirestoreIdempotencyStore:
                 or not hmac.compare_digest(lease, claim.lease_token)
             ):
                 return False
-            transaction.update(
-                reference,
-                {
-                    "status": status,
-                    "lease_token": None,
-                    "updated_at": now,
-                    "expires_at": now + timedelta(seconds=self._ttl_seconds),
-                },
-            )
+            updates = {
+                "status": status,
+                "lease_token": None,
+                "updated_at": now,
+            }
+            if status == "completed":
+                updates["expires_at"] = now + timedelta(seconds=self._ttl_seconds)
+            else:
+                # Provider outcome is uncertain: retain the key until explicit
+                # evidence-backed reconciliation, never TTL-based replay.
+                updates["expires_at"] = DELETE_FIELD
+            transaction.update(reference, updates)
             return True
 
         return await finish_in_transaction(self._client.transaction(max_attempts=5))

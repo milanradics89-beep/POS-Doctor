@@ -72,15 +72,36 @@ async def test_same_key_with_different_payload_is_rejected_without_overwrite():
 
 
 @pytest.mark.asyncio
-async def test_provider_outcome_unknown_remains_blocked_until_expiry():
-    collection, first_client, second_client, first, second = await _new_pair()
+async def test_provider_outcome_unknown_remains_blocked_after_ttl_and_migrates_legacy_expiry():
+    initial_time = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
+    current_time = [initial_time]
+    collection, first_client, second_client, first, second = await _new_pair(
+        ttl_seconds=60,
+        clock=lambda: current_time[0],
+    )
     key = f"analysis-{uuid.uuid4().hex}"
     payload = b"provider-may-have-processed"
     try:
         claimed = await first.claim(key, payload)
         assert claimed.claim is not None
         assert await first.mark_outcome_unknown(claimed.claim) is True
-        assert (await second.claim(key, payload)).decision is IdempotencyDecision.DUPLICATE
+        reference = first_client.collection(collection).document(claimed.claim.document_id)
+        stored = (await reference.get()).to_dict() or {}
+        assert stored["status"] == "outcome_unknown"
+        assert "expires_at" not in stored
+
+        # Simulate a legacy writer that gave an uncertain outcome a TTL.
+        await reference.update({"expires_at": initial_time + timedelta(seconds=60)})
+        current_time[0] += timedelta(seconds=61)
+
+        retry = await second.claim(key, payload)
+        assert retry.decision is IdempotencyDecision.DUPLICATE
+        migrated = (await reference.get()).to_dict() or {}
+        assert migrated["status"] == "outcome_unknown"
+        assert "expires_at" not in migrated
+
+        mismatch = await second.claim(key, b"different-provider-payload")
+        assert mismatch.decision is IdempotencyDecision.PAYLOAD_MISMATCH
     finally:
         await _close_pair(collection, first_client, second_client)
 
@@ -133,31 +154,33 @@ async def test_expired_processing_claim_remains_blocked_and_is_migrated_off_ttl(
 
 
 @pytest.mark.asyncio
-async def test_expired_terminal_record_can_be_reclaimed_without_waiting_for_ttl_cleanup():
+async def test_completed_record_expires_from_completion_time_without_waiting_for_ttl_cleanup():
     initial_time = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
-    collection, first_client, second_client, first, _ = await _new_pair(
+    current_time = [initial_time]
+    collection, first_client, second_client, first, second = await _new_pair(
         ttl_seconds=60,
-        clock=lambda: initial_time,
-    )
-    second = FirestoreIdempotencyStore(
-        second_client,
-        SECRET,
-        ttl_seconds=60,
-        collection=collection,
-        clock=lambda: initial_time + timedelta(seconds=61),
+        clock=lambda: current_time[0],
     )
     key = f"analysis-{uuid.uuid4().hex}"
     payload = b"completed-record"
     try:
         first_claim = await first.claim(key, payload)
         assert first_claim.claim is not None
+        current_time[0] += timedelta(seconds=30)
         assert await first.mark_completed(first_claim.claim) is True
         terminal = (await first_client.collection(collection).document(first_claim.claim.document_id).get()).to_dict() or {}
         assert terminal["status"] == "completed"
-        assert terminal["expires_at"] == initial_time + timedelta(seconds=60)
+        assert terminal["expires_at"] == current_time[0] + timedelta(seconds=60)
 
-        second_claim = await second.claim(key, payload)
-        assert second_claim.decision is IdempotencyDecision.CLAIMED
+        # A retry after the creation-based expiry must still be blocked until
+        # the completion-based expiry is reached.
+        current_time[0] = initial_time + timedelta(seconds=61)
+        before_completion_expiry = await second.claim(key, payload)
+        assert before_completion_expiry.decision is IdempotencyDecision.DUPLICATE
+
+        current_time[0] = initial_time + timedelta(seconds=91)
+        after_completion_expiry = await second.claim(key, payload)
+        assert after_completion_expiry.decision is IdempotencyDecision.CLAIMED
     finally:
         await _close_pair(collection, first_client, second_client)
 

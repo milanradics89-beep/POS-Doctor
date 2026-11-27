@@ -553,12 +553,12 @@ async def useit_analyze(
         if claim is None:
             raise HTTPException(status_code=503, detail="Analysis request protection could not claim this request.")
 
-    try:
-        # Resolve the provider before reserving budget so configuration failures
-        # cannot consume the daily allowance or strand a keyed claim.
-        provider_client = _get_client()
-    except Exception as exc:
-        if claim is not None:
+    if claim is not None:
+        try:
+            # Resolve the provider before reserving budget so configuration failures
+            # cannot consume the daily allowance or strand a keyed claim.
+            provider_client = _get_client()
+        except Exception as exc:
             try:
                 await store.release_before_provider_start(claim)
             except Exception as release_exc:
@@ -566,12 +566,11 @@ async def useit_analyze(
                     "Analysis idempotency pre-provider release failed (exception_type=%s)",
                     type(release_exc).__name__,
                 )
-        raise HTTPException(status_code=503, detail="Vision service is not configured.") from exc
+            raise HTTPException(status_code=503, detail="Vision service is not configured.") from exc
 
-    try:
-        await reserve_units(app, 1)
-    except Exception as exc:
-        if claim is not None:
+        try:
+            await reserve_units(app, 1)
+        except Exception as exc:
             try:
                 await store.release_before_provider_start(claim)
             except Exception as release_exc:
@@ -579,16 +578,21 @@ async def useit_analyze(
                     "Analysis idempotency pre-provider release failed (exception_type=%s)",
                     type(release_exc).__name__,
                 )
-        if isinstance(exc, HTTPException):
-            raise
-        logger.warning(
-            "Analysis budget reservation failed before provider start (exception_type=%s)",
-            type(exc).__name__,
-        )
-        raise HTTPException(status_code=503, detail="AI budget protection is temporarily unavailable.") from exc
+            if isinstance(exc, HTTPException):
+                raise
+            logger.warning(
+                "Analysis budget reservation failed before provider start (exception_type=%s)",
+                type(exc).__name__,
+            )
+            raise HTTPException(status_code=503, detail="AI budget protection is temporarily unavailable.") from exc
 
     try:
-        scene = await _analyze(request, client=provider_client, reserve_budget=False)
+        if claim is not None:
+            scene = await _analyze(request, client=provider_client, reserve_budget=False)
+        else:
+            # Preserve the legacy unkeyed API path: _analyze resolves the client
+            # and reserves its own budget when no idempotency claim exists.
+            scene = await _analyze(request)
         intent = classify_intent(request.userIntent, request.prompt)
         context = {"preferredStyles": request.preferredStyles, "preferredColors": request.preferredColors, "budgetHuf": request.budgetHuf}
         ranked = rank_opportunities(scene, intent, context=context)
