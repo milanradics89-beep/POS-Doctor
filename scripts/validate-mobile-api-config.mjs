@@ -20,9 +20,16 @@ function validateMobileApiConfig(value) {
   if (url.username || url.password || url.search || url.hash) {
     throw new Error('EXPO_PUBLIC_USEIT_API_URL must not contain credentials, query parameters, or fragments.');
   }
-  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-  const localSuffixes = ['.localhost', '.local', '.localdomain', '.internal', '.lan', '.home', '.home.arpa', '.intranet'];
-  if (host === 'localhost' || localSuffixes.some((suffix) => host.endsWith(suffix)) || host === '0.0.0.0' || isIP(host)) {
+
+  // DNS absolute names may have a trailing dot; normalize it before applying
+  // the local/reserved-host guard so localhost cannot bypass the check.
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  const localSuffixes = [
+    '.localhost', '.local', '.localdomain', '.internal', '.lan',
+    '.home', '.home.arpa', '.intranet', '.test', '.invalid',
+    '.example', '.onion', '.arpa',
+  ];
+  if (!host.includes('.') || host === 'localhost' || localSuffixes.some((suffix) => host.endsWith(suffix)) || host === '0.0.0.0' || isIP(host)) {
     throw new Error('EXPO_PUBLIC_USEIT_API_URL must point to a deployed public hostname, not localhost or an IP address.');
   }
 
@@ -30,32 +37,34 @@ function validateMobileApiConfig(value) {
 }
 
 async function verifyBackendReady(baseUrl, fetchImpl = fetch) {
+  const base = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
   for (const path of ['/health', '/ready']) {
     let response;
     try {
-      response = await fetchImpl(new URL(path.slice(1), `${baseUrl}/`), {
+      response = await fetchImpl(new URL(path.slice(1), base), {
         method: 'GET',
         headers: { Accept: 'application/json' },
+        redirect: 'error',
         signal: AbortSignal.timeout(10_000),
       });
     } catch {
-      throw new Error(`USEIT backend ${path} is unreachable from the mobile build environment.`);
+      throw new Error('USEIT backend ' + path + ' is unreachable from the mobile build environment.');
     }
 
     if (!response.ok) {
-      throw new Error(`USEIT backend ${path} returned HTTP ${response.status}; the deployment is not ready for mobile builds.`);
+      throw new Error('USEIT backend ' + path + ' returned HTTP ' + response.status + '; the deployment is not ready for mobile builds.');
     }
 
     let payload;
     try {
       payload = await response.json();
     } catch {
-      throw new Error(`USEIT backend ${path} returned invalid JSON.`);
+      throw new Error('USEIT backend ' + path + ' returned invalid JSON.');
     }
 
     const expectedStatus = path === '/health' ? 'ok' : 'ready';
     if (!payload || payload.status !== expectedStatus) {
-      throw new Error(`USEIT backend ${path} did not report status "${expectedStatus}".`);
+      throw new Error('USEIT backend ' + path + ' did not report status "' + expectedStatus + '".');
     }
   }
 }
@@ -64,9 +73,9 @@ if (import.meta.url === new URL(process.argv[1], 'file:').href) {
   try {
     const apiUrl = validateMobileApiConfig(raw);
     await verifyBackendReady(apiUrl);
-    process.stdout.write('Remote USEIT API configuration and backend readiness are valid.\\n');
+    process.stdout.write('Remote USEIT API configuration and backend readiness are valid.\n');
   } catch (error) {
-    process.stderr.write(`Mobile build configuration error: ${error.message}\\n`);
+    process.stderr.write('Mobile build configuration error: ' + error.message + '\n');
     process.exitCode = 1;
   }
 }
