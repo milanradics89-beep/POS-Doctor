@@ -49,7 +49,7 @@ It never reads secret versions or secret payloads. It does not call create, enab
 
 ## Required owner Console checks
 
-These checks are not actionable under the current invalid `useit` project-ID constraint. Do not proceed by selecting a project with a matching display name or by substituting another ID. They become applicable only after the owner explicitly updates the project-ID instruction.
+The exact project identity is owner-confirmed as `useit-platform-2026` (project number `386862694550`). The read-only preflight may be run against this exact ID; it does not provision or mutate resources. Complete the billing/SKU, budget, region, IAM/WIF and runtime-secret checks below before proposing any paid resource creation or deployment. Do not infer an ID from the display name or substitute `fresh-weft-447913-u6`.
 
 <!-- coderabbit-ai-generated:v1 -->
 
