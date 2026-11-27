@@ -44,13 +44,79 @@ const modes: [ConsumerIntent, string, string][] = [
   ['surprise', modeCopy.surprise.title, modeCopy.surprise.description],
 ];
 
-const modeVisuals: Record<ResultMode, { tint: string; symbol: string }> = {
-  create: { tint: theme.colors.mint, symbol: '+' },
-  improve: { tint: theme.colors.blue, symbol: '↗' },
-  fix: { tint: theme.colors.peach, symbol: '⌁' },
-  cook: { tint: theme.colors.accent, symbol: '◒' },
-  surprise: { tint: theme.colors.lavender, symbol: '✳' },
+const modeVisuals: Record<ResultMode, { tint: string }> = {
+  create: { tint: theme.colors.mint },
+  improve: { tint: theme.colors.blue },
+  fix: { tint: theme.colors.peach },
+  cook: { tint: theme.colors.accent },
+  surprise: { tint: theme.colors.lavender },
 };
+
+function CameraGlyph() {
+  return (
+    <View style={s.cameraGlyph} accessible={false}>
+      <View style={s.cameraGlyphTop} />
+      <View style={s.cameraGlyphLens} />
+      <View style={s.cameraGlyphFlash} />
+    </View>
+  );
+}
+
+function GalleryGlyph() {
+  return (
+    <View style={s.galleryGlyph} accessible={false}>
+      <View style={s.galleryGlyphBack} />
+      <View style={s.galleryGlyphFront}>
+        <View style={s.galleryGlyphSun} />
+        <View style={s.galleryGlyphHorizon} />
+      </View>
+    </View>
+  );
+}
+
+function IntentGlyph({ mode }: { mode: ResultMode }) {
+  return (
+    <View style={s.intentGlyph} accessible={false}>
+      {mode === 'create' ? (
+        <>
+          <View style={s.intentPlusVertical} />
+          <View style={s.intentPlusHorizontal} />
+        </>
+      ) : null}
+      {mode === 'improve' ? (
+        <>
+          <View style={s.intentArrowLine} />
+          <View style={s.intentArrowHeadA} />
+          <View style={s.intentArrowHeadB} />
+        </>
+      ) : null}
+      {mode === 'fix' ? (
+        <>
+          <View style={s.intentToolShaft} />
+          <View style={s.intentToolHandle} />
+          <View style={s.intentToolHead} />
+        </>
+      ) : null}
+      {mode === 'cook' ? (
+        <>
+          <View style={s.intentPotRim} />
+          <View style={s.intentPotBody} />
+          <View style={s.intentPotHandleLeft} />
+          <View style={s.intentPotHandleRight} />
+          <View style={s.intentPotSteamA} />
+          <View style={s.intentPotSteamB} />
+        </>
+      ) : null}
+      {mode === 'surprise' ? (
+        <>
+          <View style={s.intentSparkVertical} />
+          <View style={s.intentSparkHorizontal} />
+          <View style={s.intentSparkDiagonal} />
+        </>
+      ) : null}
+    </View>
+  );
+}
 
 function hasUsableDimensions(width: number, height: number) {
   return [width, height].every((value) => Number.isFinite(value) && value > 0);
@@ -109,7 +175,7 @@ function PhotoWelcome({ capture, chooseGallery, noticePanel }: {
           onPress={capture}
           style={({ pressed }) => [s.capture, pressed && s.capturePressed]}
         >
-          <View style={s.captureIcon}><Text style={s.cam}>◎</Text></View>
+          <View style={s.captureIcon}><CameraGlyph /></View>
           <View style={s.captureCopy}>
             <Text style={s.cta}>{hu.home.capture}</Text>
             <Text style={s.hint}>{hu.home.captureHint}</Text>
@@ -124,7 +190,7 @@ function PhotoWelcome({ capture, chooseGallery, noticePanel }: {
           onPress={chooseGallery}
           style={({ pressed }) => [s.gallery, pressed && s.galleryPressed]}
         >
-          <View style={s.galleryIcon}><Text style={s.galleryIconText}>▧</Text></View>
+          <View style={s.galleryIcon}><GalleryGlyph /></View>
           <View style={s.galleryCopy}>
             <Text style={s.galleryTitle}>{hu.home.gallery}</Text>
             <Text style={s.galleryHint}>{hu.home.galleryHint}</Text>
@@ -192,7 +258,7 @@ function ModeChooser({ noticePanel, onSelect, onBack }: {
             onPress={() => onSelect(intent)}
           >
             <View style={[s.modeGlyph, { backgroundColor: visual.tint }]}>
-              <Text style={s.modeGlyphText}>{visual.symbol}</Text>
+              <IntentGlyph mode={intent as ResultMode} />
             </View>
             <View style={s.modeCopy}>
               <Text style={s.modeTitle}>{label}</Text>
@@ -769,7 +835,10 @@ const s = StyleSheet.create({
   capturePressed: { opacity: 0.82, transform: [{ scale: 0.99 }] },
   capture: { flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: theme.colors.accent, marginTop: 18, borderRadius: theme.radius.lg, minHeight: 82, paddingHorizontal: 17 },
   captureIcon: { width: 44, height: 44, borderRadius: 15, backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center' },
-  cam: { fontSize: 27, color: theme.colors.ink },
+  cameraGlyph: { width: 23, height: 17, borderWidth: 2, borderColor: theme.colors.ink, borderRadius: 5, alignItems: 'center', justifyContent: 'center' },
+  cameraGlyphTop: { position: 'absolute', width: 10, height: 4, top: -5, left: 4, backgroundColor: theme.colors.ink, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+  cameraGlyphLens: { width: 8, height: 8, borderWidth: 2, borderColor: theme.colors.ink, borderRadius: 4 },
+  cameraGlyphFlash: { position: 'absolute', top: 3, right: 3, width: 3, height: 3, borderRadius: 2, backgroundColor: theme.colors.ink },
   captureCopy: { flex: 1, gap: 3 },
   cta: { fontSize: 18, fontWeight: '900', letterSpacing: -0.2, color: theme.colors.ink },
   hint: { fontSize: 12, color: theme.colors.accentDark },
@@ -777,7 +846,11 @@ const s = StyleSheet.create({
   galleryPressed: { backgroundColor: theme.colors.surfaceMuted, borderColor: theme.colors.accentDark },
   gallery: { flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line, borderRadius: theme.radius.md, paddingHorizontal: 16, minHeight: 72, marginTop: 10 },
   galleryIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: theme.colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
-  galleryIconText: { color: theme.colors.ink, fontSize: 22 },
+  galleryGlyph: { width: 23, height: 21 },
+  galleryGlyphBack: { position: 'absolute', top: 0, right: 0, width: 17, height: 14, borderWidth: 1.5, borderColor: theme.colors.subtle, borderRadius: 3 },
+  galleryGlyphFront: { position: 'absolute', bottom: 0, left: 0, width: 17, height: 14, borderWidth: 1.7, borderColor: theme.colors.ink, borderRadius: 3, backgroundColor: theme.colors.surfaceMuted, overflow: 'hidden' },
+  galleryGlyphSun: { position: 'absolute', top: 2, right: 3, width: 3.5, height: 3.5, borderRadius: 2, backgroundColor: theme.colors.accentDark },
+  galleryGlyphHorizon: { position: 'absolute', bottom: 1, left: 2, width: 11, height: 7, borderTopWidth: 1.5, borderRightWidth: 1.5, borderColor: theme.colors.ink, transform: [{ rotate: '-28deg' }] },
   galleryCopy: { flex: 1, gap: 3 },
   galleryTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.ink },
   galleryHint: { fontSize: 12, color: theme.colors.subtle },
@@ -797,7 +870,24 @@ const s = StyleSheet.create({
   backToResultText: { color: theme.colors.accentDark, fontSize: 13, fontWeight: '800' },
   mode: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 13, minHeight: 82, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.line, marginBottom: 9 },
   modeGlyph: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  modeGlyphText: { color: theme.colors.ink, fontSize: 22, fontWeight: '700' },
+  intentGlyph: { width: 25, height: 25, alignItems: 'center', justifyContent: 'center' },
+  intentPlusVertical: { position: 'absolute', width: 3, height: 19, borderRadius: 2, backgroundColor: theme.colors.ink },
+  intentPlusHorizontal: { position: 'absolute', width: 19, height: 3, borderRadius: 2, backgroundColor: theme.colors.ink },
+  intentArrowLine: { position: 'absolute', width: 20, height: 3, borderRadius: 2, backgroundColor: theme.colors.ink, transform: [{ rotate: '-45deg' }] },
+  intentArrowHeadA: { position: 'absolute', width: 9, height: 3, top: 3, right: 2, borderRadius: 2, backgroundColor: theme.colors.ink },
+  intentArrowHeadB: { position: 'absolute', width: 3, height: 9, top: 3, right: 2, borderRadius: 2, backgroundColor: theme.colors.ink },
+  intentToolShaft: { position: 'absolute', width: 4, height: 20, borderRadius: 2, backgroundColor: theme.colors.ink, transform: [{ rotate: '42deg' }] },
+  intentToolHandle: { position: 'absolute', bottom: 1, left: 3, width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: theme.colors.ink, backgroundColor: theme.colors.peach },
+  intentToolHead: { position: 'absolute', top: 2, right: 2, width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: theme.colors.ink, backgroundColor: theme.colors.peach },
+  intentPotRim: { position: 'absolute', top: 7, width: 20, height: 2.5, borderRadius: 2, backgroundColor: theme.colors.ink },
+  intentPotBody: { position: 'absolute', top: 10, width: 15, height: 9, borderBottomLeftRadius: 6, borderBottomRightRadius: 6, borderLeftWidth: 2, borderRightWidth: 2, borderBottomWidth: 2, borderColor: theme.colors.ink },
+  intentPotHandleLeft: { position: 'absolute', top: 11, left: 0, width: 5, height: 4, borderWidth: 1.5, borderColor: theme.colors.ink, borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
+  intentPotHandleRight: { position: 'absolute', top: 11, right: 0, width: 5, height: 4, borderWidth: 1.5, borderColor: theme.colors.ink, borderTopRightRadius: 4, borderBottomRightRadius: 4 },
+  intentPotSteamA: { position: 'absolute', top: 0, left: 8, width: 2, height: 5, borderRadius: 1, backgroundColor: theme.colors.ink },
+  intentPotSteamB: { position: 'absolute', top: 1, right: 8, width: 2, height: 4, borderRadius: 1, backgroundColor: theme.colors.ink },
+  intentSparkVertical: { position: 'absolute', width: 3, height: 23, borderRadius: 2, backgroundColor: theme.colors.ink },
+  intentSparkHorizontal: { position: 'absolute', width: 23, height: 3, borderRadius: 2, backgroundColor: theme.colors.ink },
+  intentSparkDiagonal: { position: 'absolute', width: 3, height: 20, borderRadius: 2, backgroundColor: theme.colors.ink, transform: [{ rotate: '45deg' }] },
   modeCopy: { flex: 1, minWidth: 0 },
   modeTitle: { color: theme.colors.ink, fontSize: 16, fontWeight: '800', lineHeight: 22 },
   modeDesc: { color: theme.colors.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },

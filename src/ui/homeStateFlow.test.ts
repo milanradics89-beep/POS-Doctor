@@ -4,6 +4,17 @@ import { describe, expect, it } from 'vitest';
 const home = readFileSync(new URL('../../app/index.tsx', import.meta.url), 'utf8');
 
 describe('USEIT Home recovery-state integration', () => {
+  it('uses bespoke platform-independent glyphs instead of font-dependent symbols', () => {
+    expect(home).toContain('function CameraGlyph()');
+    expect(home).toContain('function GalleryGlyph()');
+    expect(home).toContain('function IntentGlyph');
+    expect(home).toContain('<CameraGlyph />');
+    expect(home).toContain('<GalleryGlyph />');
+    expect(home).toContain('<IntentGlyph mode={intent as ResultMode} />');
+    expect(home).not.toContain('modeGlyphText');
+    expect(home).not.toContain('galleryIconText');
+  });
+
   it('uses a single-flight abortable analysis request and ignores stale completions', () => {
     expect(home).toContain('useRef');
     expect(home).toContain('const analysisControllerRef = useRef<AbortController | null>(null);');
