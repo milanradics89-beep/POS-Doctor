@@ -68,11 +68,15 @@ function isOptionalString(value: unknown): value is string | null | undefined {
   return value === undefined || value === null || typeof value === 'string';
 }
 
+function isOptionalPrice(value: unknown): boolean {
+  return value == null || (isFiniteNumber(value) && value >= 0);
+}
+
 function isValidShoppingCandidate(value: unknown): value is UseitShoppingCandidate {
-  if (!isRecord(value) || typeof value.id !== 'string' || !value.id || typeof value.name !== 'string' || !value.name || typeof value.url !== 'string' || !value.url) return false;
-  if (!isOptionalString(value.category) || !isOptionalString(value.brand) || !isOptionalString(value.imageUrl) || !isOptionalString(value.currency) || !isOptionalString(value.retailer)) return false;
-  if (value.price !== undefined && value.price !== null && (!isFiniteNumber(value.price) || value.price < 0)) return false;
-  if (value.priceHuf !== undefined && value.priceHuf !== null && (!isFiniteNumber(value.priceHuf) || value.priceHuf < 0)) return false;
+  if (!isRecord(value)) return false;
+  if (![value.id, value.name, value.url].every(field => typeof field === 'string' && field.length > 0)) return false;
+  if (![value.category, value.brand, value.imageUrl, value.currency, value.retailer].every(isOptionalString)) return false;
+  if (![value.price, value.priceHuf].every(isOptionalPrice)) return false;
   if (value.qualityScore !== undefined && (!isFiniteNumber(value.qualityScore) || value.qualityScore < 0 || value.qualityScore > 1)) return false;
   if (value.searchRank !== undefined && (!isFiniteNumber(value.searchRank) || !Number.isInteger(value.searchRank) || value.searchRank < 1)) return false;
   return value.availability === undefined || typeof value.availability === 'string';

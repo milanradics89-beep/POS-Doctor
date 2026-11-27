@@ -25,14 +25,13 @@ Do not introduce Cloud SQL, Memorystore, Cloud Storage, Kubernetes/GKE, a dedica
 
 ## Existing application boundary
 
-The repository has a FastAPI backend, an OpenAI `AsyncOpenAI` client, the canonical `/v1/useit/analyze` endpoint, encrypted SQLite personal memory, Redis-backed distributed rate limiting and Redis-backed attestation challenge storage. Production security is fail-closed and the OpenAI client disables implicit retries for billable POST requests.
+<!-- coderabbit-ai-generated:v1 -->
 
-The currently inspected production code requires shared Redis in production:
+<!-- coderabbit-ai-generated-section:v1:e25e9f64899a90f1ed97150b8069acc4d17585238f53976cea80dc1175fb1180 -->
 
-- `backend/production_security.py` rejects production startup unless `USEIT_RATE_LIMIT_MODE=redis` and a valid TLS `rediss://USEIT_REDIS_URL` are configured.
-- `backend/rate_limit.py` uses a Redis Lua script for atomic rolling-window admission, Redis server time, sorted-set event storage and expiry. The current identity derivation and trusted-proxy behavior require a separate privacy hardening review.
-- `backend/attestation_store.py` uses Redis `SET NX` with TTL and `GETDEL` for single-use challenge consumption.
-- Personal memory currently uses encrypted SQLite; no Firestore adapter is present in the inspected implementation.
+The canonical FastAPI endpoint, the legacy vision endpoint and the OpenAI-only provider boundary remain available. Existing Redis deployments retain their TLS-backed rolling window and single-use challenges. The Cloud Run code path requires Firestore for quota, challenges and App Attest enrollment/counters, and excludes local SQLite memory and action routes. A stable state secret must be supplied through the runtime identity. See the [release register](RELEASE-REGISTER.md) for compatibility, TTL collections, cost reservations and staged migration requirements. Local emulator tests are not evidence of a managed deployment.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 Redis may remain in existing compatibility tests, but it must not become a new Memorystore dependency. Production must not fall back to process-local/in-memory state.
 

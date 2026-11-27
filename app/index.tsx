@@ -266,6 +266,16 @@ export default function Home() {
     }
   }
 
+  async function selectPickerResult(result: ImagePicker.ImagePickerResult, generation: number, failure: string) {
+    if (generation !== photoGeneration.current || result.canceled) return;
+    const asset = result.assets[0];
+    if (!asset) {
+      setNotice({ kind: 'error', title: 'Photo unavailable', description: failure });
+      return;
+    }
+    await prepareAndSelectPhoto(asset.uri, asset.width, asset.height, asset.exif?.Orientation, failure);
+  }
+
   async function chooseGallery() {
     const generation = ++photoGeneration.current;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -300,16 +310,7 @@ export default function Home() {
       allowsMultipleSelection: false,
     });
 
-    if (r.canceled || generation !== photoGeneration.current) return;
-
-    const a = r.assets[0];
-    await prepareAndSelectPhoto(
-      a.uri,
-      a.width,
-      a.height,
-      a.exif?.Orientation,
-      'USEIT could not decode this image. Choose a different photo.'
-    );
+    await selectPickerResult(r, generation, 'USEIT could not decode this image. Choose a different photo.');
   }
 
   async function capture() {
@@ -345,16 +346,7 @@ export default function Home() {
       exif: true,
     });
 
-    if (r.canceled || generation !== photoGeneration.current) return;
-
-    const a = r.assets[0];
-    await prepareAndSelectPhoto(
-      a.uri,
-      a.width,
-      a.height,
-      a.exif?.Orientation,
-      'USEIT could not decode the captured image. Try taking it again.'
-    );
+    await selectPickerResult(r, generation, 'USEIT could not decode the captured image. Try taking it again.');
   }
 
   const noticePanel = notice ? (

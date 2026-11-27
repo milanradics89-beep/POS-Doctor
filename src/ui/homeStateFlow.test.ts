@@ -17,8 +17,9 @@ describe('USEIT Home recovery-state integration', () => {
     expect(home).toContain("import { validateImageUri } from '../src/core/intelligence/imageInput';");
     expect(home).toContain('validateImageUri(imageUri);');
     expect(home).toContain("import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';");
-    expect(home.split('await prepareAndSelectPhoto(').length - 1).toBe(2);
-    expect(home).toContain('a.exif?.Orientation');
+    expect(home.split('await selectPickerResult(r, generation,').length - 1).toBe(2);
+    expect(home).toContain('await prepareAndSelectPhoto(asset.uri, asset.width, asset.height');
+    expect(home).toContain('asset.exif?.Orientation');
     expect(home).toContain('resolveVisualDimensions(dimensions.width, dimensions.height, orientation)');
     expect(home).toContain('const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);');
     expect(home).toContain('setSelectedPhoto(normalized.dataUrl);');
