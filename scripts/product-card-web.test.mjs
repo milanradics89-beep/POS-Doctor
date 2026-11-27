@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,6 +9,13 @@ vi.mock('react-native', () => import('react-native-web'));
 import { ProductCard } from '../src/ui/components';
 
 describe('product prices in Expo web output', () => {
+  it('declares both runtime renderers for production-only installs', () => {
+    const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    for (const name of ['react-dom', 'react-native-web']) {
+      expect(manifest.dependencies[name]).toEqual(expect.any(String));
+    }
+  });
+
   it.each([[99, 'EUR', '99 EUR'], [0, 'HUF', '0 Ft'], [undefined, '', 'Price unavailable']])(
     'renders and announces the source price %s %s', (price, currency, expected) => {
       const html = renderToStaticMarkup(React.createElement(ProductCard, {
