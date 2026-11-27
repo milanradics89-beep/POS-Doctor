@@ -20,6 +20,9 @@ describe("Firestore idempotency TTL migration release gate", () => {
     expect(steps.get(8)).toContain(
       "If per-request evidence cannot establish every affected claim outcome, keep traffic at zero, keep TTL disabled, and keep this release gate blocked.",
     );
+    expect(steps.get(8)).toContain(
+      "independent, per-request provider-dispatch and terminal-outcome evidence",
+    );
     expect(steps.get(9)).toContain("Only after steps 1-8 pass, re-enable TTL");
     expect(steps.get(10)).toContain("Route traffic to the new version only after steps 1-9 pass");
     expect(gate).toContain("Do not infer safety from aggregate provider usage or an empty scan.");
