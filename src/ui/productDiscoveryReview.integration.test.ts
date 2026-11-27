@@ -8,6 +8,7 @@ describe('product discovery review boundary', () => {
     expect(source).toContain('value={discovery.query}');
     expect(source).toContain('onChangeText={discovery.updateQuery}');
     expect(source).toContain('maxLength={MAX_REVIEWED_PRODUCT_QUERY_LENGTH}');
+    expect(source).toContain('&& discovery.canSearch ? (');
     expect(source).toContain('const requestQuery = normalizeReviewedProductSearchQuery(query);');
     expect(source).toContain('discoverProducts(\n        requestQuery,');
     expect(source).not.toContain('discoverProducts(\n        query,');

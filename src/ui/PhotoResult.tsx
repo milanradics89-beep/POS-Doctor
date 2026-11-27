@@ -11,7 +11,7 @@ import { productResultsState } from './productResultsState';
 import { productPriceDisplay } from './productPresentation';
 import { localizeProductCategory } from './productAccessibility';
 import { hu } from '../i18n/hu';
-import { isCurrentProductDiscoveryResult, normalizeReviewedProductSearchQuery, MAX_REVIEWED_PRODUCT_QUERY_LENGTH } from './productDiscoveryReview';
+import { canDiscoverReviewedProductQuery, isCurrentProductDiscoveryResult, normalizeReviewedProductSearchQuery, MAX_REVIEWED_PRODUCT_QUERY_LENGTH } from './productDiscoveryReview';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -151,7 +151,7 @@ function useProductDiscovery(result: ConsumerAnalysis) {
 
   async function discover() {
     const requestQuery = normalizeReviewedProductSearchQuery(query);
-    if (loading || controllerRef.current || requestQuery.length < 2) return;
+    if (loading || controllerRef.current || !canDiscoverReviewedProductQuery(requestQuery)) return;
     const controller = new AbortController();
     controllerRef.current = controller;
     setSubmittedQuery(requestQuery);
@@ -199,7 +199,17 @@ function useProductDiscovery(result: ConsumerAnalysis) {
     ? shopping
     : null;
 
-  return { need, query, updateQuery, shopping: currentShopping, loading, failed, discover, cancel };
+  return {
+    need,
+    query,
+    updateQuery,
+    shopping: currentShopping,
+    canSearch: canDiscoverReviewedProductQuery(query),
+    loading,
+    failed,
+    discover,
+    cancel,
+  };
 }
 
 function ProductDiscoveryPanel({ result, onOpenProduct }: {
@@ -238,7 +248,7 @@ function ProductDiscoveryPanel({ result, onOpenProduct }: {
           actionLabel={hu.product.tryAgain} actionAccessibilityHint={hu.product.retrySearchHint}
           onAction={() => { void discovery.discover(); }} />
       ) : null}
-      {!discovery.loading && !discovery.failed && !discovery.shopping ? (
+      {!discovery.loading && !discovery.failed && !discovery.shopping && discovery.canSearch ? (
         <ResultButton label={hu.product.find}
           hint={hu.product.findHint}
           onPress={() => { void discovery.discover(); }} primary />

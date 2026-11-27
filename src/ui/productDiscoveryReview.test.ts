@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canDiscoverReviewedProductQuery,
   isCurrentProductDiscoveryResult,
   MAX_REVIEWED_PRODUCT_QUERY_LENGTH,
   normalizeReviewedProductSearchQuery,
@@ -10,6 +11,12 @@ describe('reviewed product discovery query', () => {
     expect(normalizeReviewedProductSearchQuery('  vintage   desk  lamp  ')).toBe('vintage desk lamp');
     expect(normalizeReviewedProductSearchQuery('x'.repeat(MAX_REVIEWED_PRODUCT_QUERY_LENGTH + 30)))
       .toHaveLength(MAX_REVIEWED_PRODUCT_QUERY_LENGTH);
+  });
+
+  it('only enables discovery for a normalized query of at least two characters', () => {
+    expect(canDiscoverReviewedProductQuery('  ')).toBe(false);
+    expect(canDiscoverReviewedProductQuery('x')).toBe(false);
+    expect(canDiscoverReviewedProductQuery(' xy ')).toBe(true);
   });
 
   it('hides results as soon as the reviewed query changes', () => {
