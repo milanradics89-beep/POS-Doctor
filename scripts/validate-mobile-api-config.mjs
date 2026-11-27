@@ -108,6 +108,12 @@ async function resolvePublicAddresses(
   const resolver = resolverFactory();
   const absoluteHostname = hostname.endsWith('.') ? hostname : hostname + '.';
   let deadline;
+  let cancelled = false;
+  const cancelResolver = () => {
+    if (cancelled) return;
+    cancelled = true;
+    resolver.cancel();
+  };
 
   try {
     const queries = Promise.all([
@@ -116,7 +122,7 @@ async function resolvePublicAddresses(
     ]);
     const timeout = new Promise((resolve, reject) => {
       deadline = setTimeout(() => {
-        resolver.cancel();
+        cancelResolver();
         const error = new Error('USEIT backend hostname DNS resolution exceeded its total time limit.');
         error.code = 'ETIMEOUT';
         reject(error);
@@ -144,7 +150,7 @@ async function resolvePublicAddresses(
 
     return validated;
   } catch (error) {
-    resolver.cancel();
+    cancelResolver();
     if (error?.code === 'ETIMEOUT') throw error;
     if (error?.message?.includes('did not resolve')) throw error;
     if (error?.message?.includes('exclusively to public')) throw error;
