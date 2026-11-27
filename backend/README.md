@@ -64,20 +64,83 @@ A GitHub Actions workflow builds the image on pull requests and mainline changes
 that affect the backend/container definition. It builds only and does not publish
 to Artifact Registry or authenticate to Google Cloud.
 
-## Cloud Run deployment gate
+## Cloud Run production configuration
 
-A successful container build is not deployment acceptance. The current production
-backend still requires shared TLS Redis for distributed rate limiting and may use
-Redis for one-time attestation challenges; personal memory currently uses encrypted
-SQLite. These process/local-disk and shared-state dependencies must be migrated
-and validated against the approved Firestore design before a stateless multi-instance
-Cloud Run deployment. Do not set production to memory rate limiting, use local SQLite
-as persistent storage, add Memorystore, or silently bypass production security checks.
+A successful local or GitHub Actions container build is **not** deployment acceptance.
+The Cloud Run path is designed for stateless, multi-instance operation and uses Firestore
+for shared security state. The current code enforces this when `K_SERVICE` is present.
 
-The owner-provided target label is `useit`, but the exact valid Google Cloud
-project ID and project number are currently unresolved. Do not substitute a
-remembered or historical project ID, create a project, change IAM or billing,
-enable paid services, or deploy until the owner reconfirms the exact existing
-project ID in current approved instructions. Staging deployment also remains
-gated on Firestore adapter tests, least-privilege deployment IAM/WIF verification,
-billing/region/cost approval, and a reviewed Cloud Run configuration.
+For a new Cloud Run deployment, configure the following through the approved runtime
+configuration and Secret Manager path. Never commit secret values or expose them in
+`EXPO_PUBLIC_*` variables.
+
+Required Cloud Run state configuration:
+
+- `USEIT_ENV=production`
+- `USEIT_RATE_LIMIT_MODE=firestore`
+- `USEIT_IDEMPOTENCY_MODE=firestore`
+- `USEIT_FIRESTORE_PROJECT_ID` set to the exact ID of the already-existing Google
+  Cloud project whose **display name is USEIT**, or use the explicitly configured
+  `GOOGLE_CLOUD_PROJECT` for that same project. Do not select or use any other project.
+- `USEIT_IDEMPOTENCY_SECRET` containing at least 32 UTF-8 bytes, stable across all
+  Cloud Run instances and stored server-side only.
+- `USEIT_IDEMPOTENCY_TTL_SECONDS` within the supported 60–3600 second range
+  (default 600) where a non-default policy is approved.
+- `USEIT_REDIS_URL` unset for the Firestore deployment path.
+- `FIRESTORE_EMULATOR_HOST` unset in production.
+
+The production security gate also requires a real `OPENAI_API_KEY`, either a valid
+server-side `USEIT_API_KEY` or `USEIT_SESSION_SECRET`, explicit HTTPS origins in
+`USEIT_CORS_ORIGINS`, and `USEIT_ALLOW_DOCS=false`. When session authentication is
+enabled, configure `USEIT_ATTESTATION_MODE=required`, the correct provider and app ID,
+and the provider-specific production identity material. For Google Play Integrity this
+includes the Play package name and the production Play signing certificate digest pins.
+A provider selection alone is not proof of device identity.
+
+### Firestore collections and TTL
+
+The shared Firestore state uses these collections:
+
+- `analysis_idempotency_v1`: billable analysis request claims and terminal outcomes.
+- `useit_state_v1`: cross-instance rate-limit/budget state, attestation challenges and
+  Apple App Attest key/counter state.
+
+Configure Firestore TTL on the `expires_at` field for **both**
+`analysis_idempotency_v1` and `useit_state_v1`, as described in the
+[release register](../docs/RELEASE-REGISTER.md). TTL is cleanup, not the correctness
+boundary: application transactions still check expiry. Apple enrollment records have
+no TTL. Database creation, TTL policy changes, IAM, billing and paid API enablement
+are owner-approved cloud operations, not side effects of this repository or CI.
+
+### SQLite-backed capabilities
+
+The local-host API mounts personal-memory and action routers, which use SQLite.
+When `K_SERVICE` is set, `backend/main.py` deliberately does **not** mount those
+routers because Cloud Run instances have disposable local filesystems and these
+capabilities do not yet have the required durable owner model and hosted-user lifecycle
+controls. Do not enable them on Cloud Run by mounting SQLite or treating container
+storage as persistent. The Release Register lists the remaining ownership, retention,
+migration and export/delete acceptance requirements.
+
+Redis remains supported for compatible non-Cloud-Run or legacy deployments. It is not
+the Cloud Run rate-limit/idempotency configuration described above. Do not perform a
+rolling Redis-to-Firestore cutover on an existing installation: the release register
+requires a separately tested migration/re-enrollment plan, drain, rollback and owner.
+
+### GCP project selection and deployment gate
+
+Only the existing Google Cloud project with the display name **USEIT** is in scope.
+The display name is not a project ID. Discover its exact project ID and project number
+using the read-only procedure in [GCP-PREFLIGHT.md](../docs/GCP-PREFLIGHT.md); that
+procedure checks that the supplied project ID resolves to a project named USEIT before
+inventorying it. If the result is missing or ambiguous, stop. Do not guess an ID, use
+another project, create a replacement project, change IAM or billing, enable paid
+services, create secrets, or deploy without the relevant explicit approval.
+
+Staging remains gated on exact project identity, approved billing/SKU eligibility,
+region and cost limits, least-privilege WIF/runtime IAM, Firestore database and TTL
+readiness, exact-head CI, physical-device App Attest and Play Integrity verification,
+backup/restore evidence, monitored alert delivery, rollback rehearsal, representative
+AI quality evaluation, and pilot/business approval. See the
+[release register](../docs/RELEASE-REGISTER.md) and
+[release runbook](../docs/RELEASE_RUNBOOK.md).

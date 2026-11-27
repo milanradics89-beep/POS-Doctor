@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly OWNER_PROJECT_LABEL="useit"
+readonly OWNER_PROJECT_NAME="USEIT"
 readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"
 READ_FAILURES=0
 
@@ -35,8 +35,13 @@ done < <(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/de
 [[ ${#ACTIVE_ACCOUNTS[@]} -gt 0 ]] || fail "No active gcloud credential. Authenticate interactively, then rerun this read-only preflight."
 [[ -n "${ACTIVE_ACCOUNTS[0]}" ]] || fail "No active gcloud credential. Authenticate interactively, then rerun this read-only preflight."
 
+PROJECT_NAME="$(gcloud projects describe "$PROJECT_ID" --format='value(name)' 2>/dev/null || true)"
+if [[ "$PROJECT_NAME" != "$OWNER_PROJECT_NAME" ]]; then
+  fail "The supplied project ID does not resolve to the owner-selected project display name USEIT. No inventory or changes were performed." 2
+fi
+
 printf 'USEIT GCP READ-ONLY PREFLIGHT\n'
-printf 'Owner-specified project label: %s\n' "$OWNER_PROJECT_LABEL"
+printf 'Owner-selected project display name: %s\n' "$OWNER_PROJECT_NAME"
 printf 'Agreed USEIT target project ID: %s\n' "$PROJECT_ID"
 printf 'Active account: %s\n' "${ACTIVE_ACCOUNTS[0]}"
 printf 'Configured gcloud project: '

@@ -4,8 +4,9 @@ import { describe, expect, it } from 'vitest';
 const script = readFileSync(new URL('./gcp-readonly-preflight.sh', import.meta.url), 'utf8');
 
 describe('USEIT GCP read-only preflight', () => {
-  it('keeps the owner-specified label separate from the exact project ID', () => {
-    expect(script).toContain('readonly OWNER_PROJECT_LABEL="useit"');
+  it('keeps the owner-selected display name separate from the exact project ID', () => {
+    expect(script).toContain('readonly OWNER_PROJECT_NAME="USEIT"');
+    expect(script).not.toContain('OWNER_PROJECT_LABEL');
     expect(script).toContain('readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"');
     expect(script).toContain('Agreed USEIT target project ID: %s');
     expect(script).not.toContain('useit-platform-2026');
@@ -19,6 +20,15 @@ describe('USEIT GCP read-only preflight', () => {
     expect(projectIdGuard).toBeGreaterThan(-1);
     expect(projectIdGuard).toBeLessThan(gcloudAvailabilityCheck);
     expect(script).toContain('No gcloud command was executed');
+  });
+
+  it('fails closed unless the supplied ID resolves to the existing USEIT display name before inventory', () => {
+    const nameCheck = script.indexOf('PROJECT_NAME="$(gcloud projects describe "$PROJECT_ID" --format=\'value(name)\' 2>/dev/null || true)"');
+    const firstInventory = script.indexOf('run_inventory "Project identity"');
+    expect(script).toContain('if [[ "$PROJECT_NAME" != "$OWNER_PROJECT_NAME" ]]');
+    expect(script).toContain('No inventory or changes were performed.');
+    expect(nameCheck).toBeGreaterThan(-1);
+    expect(nameCheck).toBeLessThan(firstInventory);
   });
 
   it('validates a supplied project ID against Google Cloud project ID syntax', () => {
