@@ -26,8 +26,13 @@ describe('Hungarian launch locale', () => {
     expect(hu.home.privacy).toContain('OpenAI');
     expect(hu.home.privacy).toContain('ezen az eszközön');
     expect(hu.product.searchingDescription).toContain('nem küldjük el újra');
-    expect(hu.product.findDisclosure).toContain('Google');
+    expect(hu.product.searchingDescription).toContain('USEIT szervere');
+    expect(hu.product.searchingDescription).toContain('Google Web Search');
+    expect(hu.product.findDisclosure).toContain('USEIT szerverére');
+    expect(hu.product.findDisclosure).toContain('Google Web Search');
     expect(hu.product.findDisclosure).toContain('nem küldjük el újra');
+    expect(hu.product.findHint).toContain('USEIT szervere');
+    expect(hu.product.findHint).toContain('Google Web Search');
     expect(hu.common.productOpen).toBe('Termék megnyitása');
     expect(hu.home.privacy.length).toBeGreaterThan(20);
     expect(hu.picker.camera.ask).not.toBe('');
