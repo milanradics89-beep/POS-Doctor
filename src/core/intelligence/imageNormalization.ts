@@ -6,10 +6,21 @@ export const IMAGE_NORMALIZATION_MAX_DIMENSION = 2048;
 const MAX_DATA_URL_ATTEMPTS = [2048, 1600, 1280, 960, 720] as const;
 const JPEG_QUALITY = 0.82;
 
+export type NormalizedImageFidelity = {
+  sourceWidth: number;
+  sourceHeight: number;
+  outputWidth: number;
+  outputHeight: number;
+  mimeType: 'image/jpeg';
+  payloadBytes: number;
+  aspectRatioDelta: number;
+};
+
 export type NormalizedImage = {
   dataUrl: string;
   width: number;
   height: number;
+  fidelity: NormalizedImageFidelity;
 };
 
 /**
@@ -81,7 +92,26 @@ export async function normalizeImageAsset(
       const dataUrl = `data:image/jpeg;base64,${saved.base64}`;
       try {
         validateImageUri(dataUrl);
-        return { dataUrl, width: saved.width, height: saved.height };
+        if (!Number.isFinite(saved.width) || !Number.isFinite(saved.height) || saved.width <= 0 || saved.height <= 0) {
+          throw new Error('Normalized image dimensions are unavailable.');
+        }
+        const sourceAspectRatio = sourceWidth / sourceHeight;
+        const outputAspectRatio = saved.width / saved.height;
+        return {
+          dataUrl,
+          width: saved.width,
+          height: saved.height,
+          fidelity: {
+            sourceWidth,
+            sourceHeight,
+            outputWidth: saved.width,
+            outputHeight: saved.height,
+            mimeType: 'image/jpeg',
+            // A base64 data URL is ASCII-only, so character count equals byte count.
+            payloadBytes: dataUrl.length,
+            aspectRatioDelta: Math.abs(outputAspectRatio / sourceAspectRatio - 1),
+          },
+        };
       } catch (error) {
         if (!(error instanceof Error) || error.message !== 'Image is too large. Please choose a smaller photo.') {
           throw error;
