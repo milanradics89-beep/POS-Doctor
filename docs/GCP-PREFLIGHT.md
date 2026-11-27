@@ -19,14 +19,24 @@ The preflight remains read-only. It verifies the supplied exact ID before invoki
 payloads, or deploy. The project ID is owner-confirmed, but live project resources,
 billing/SKU eligibility, IAM and deployment readiness remain unverified.
 
-The fail-closed identity guard can be verified without contacting Google Cloud:
+To verify the fail-closed identity guard **without contacting Google Cloud**,
+supply a deliberately unapproved value. The script must exit with status 2 before
+checking credentials or invoking any `gcloud` command:
+
+```bash
+USEIT_GCP_PROJECT_ID=not-the-approved-project bash scripts/gcp-readonly-preflight.sh
+```
+
+To perform the actual read-only inventory, use the exact owner-confirmed project ID.
+This command contacts Google Cloud through read-only `gcloud` calls and requires an
+interactively authenticated account with the necessary read permissions:
 
 ```bash
 USEIT_GCP_PROJECT_ID=useit-platform-2026 bash scripts/gcp-readonly-preflight.sh
 ```
 
-The script then performs read-only inventory only. Do not treat a successful identity
-check as authorization to provision or deploy.
+A successful inventory is not authorization to provision, change billing/IAM, create
+resources or deploy.
 ## Run the read-only inventory
 
 Requirements: Google Cloud CLI, an interactively authenticated account with read access, and Bash 3.2 or newer (including the macOS system Bash).

@@ -1,7 +1,44 @@
-import { readFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { delimiter, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const script = readFileSync(new URL('./gcp-readonly-preflight.sh', import.meta.url), 'utf8');
+const scriptPath = fileURLToPath(new URL('./gcp-readonly-preflight.sh', import.meta.url));
+
+function runWithFakeGcloud(projectId) {
+  const temp = mkdtempSync(join(tmpdir(), 'useit-gcp-preflight-'));
+  try {
+    const callLog = join(temp, 'gcloud-calls.log');
+    const fakeGcloud = join(temp, 'gcloud');
+    writeFileSync(fakeGcloud, String.raw`#!/bin/sh
+printf '%s\n' "$*" >> "$FAKE_GCLOUD_CALL_LOG"
+if [ "$1" = "auth" ] && [ "$2" = "list" ]; then
+  printf 'ci@example.test\n'
+fi
+exit 0
+`);
+    chmodSync(fakeGcloud, 0o755);
+    const result = spawnSync('/bin/bash', [scriptPath], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PATH: `${temp}${delimiter}${process.env.PATH ?? ''}`,
+        USEIT_GCP_PROJECT_ID: projectId,
+        FAKE_GCLOUD_CALL_LOG: callLog,
+        USEIT_GCP_REGION: '',
+      },
+    });
+    const calls = existsSync(callLog)
+      ? readFileSync(callLog, 'utf8').split(/\r?\n/).filter(Boolean)
+      : [];
+    return { status: result.status, stdout: result.stdout, stderr: result.stderr, calls, error: result.error };
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+}
 
 describe('USEIT GCP read-only preflight', () => {
   it('pins the only permitted project ID to the owner-confirmed canonical ID', () => {
@@ -20,6 +57,27 @@ describe('USEIT GCP read-only preflight', () => {
     expect(syntaxGuard).toBeLessThan(gcloudAvailabilityCheck);
     expect(script).toContain("Only the owner-specified project ID 'useit-platform-2026' is permitted.");
     expect(script).toContain('No gcloud command was executed.');
+  });
+
+  it.each(['not-the-approved-project', 'useit'])(
+    'rejects unapproved ID "%s" before executing any gcloud command',
+    (projectId) => {
+      const result = runWithFakeGcloud(projectId);
+      expect(result.status).toBe(2);
+      expect(result.error).toBeUndefined();
+      expect(result.calls).toEqual([]);
+      expect(result.stderr).toContain('No gcloud command was executed.');
+    },
+  );
+
+  it('runs the read-only inventory after the exact approved ID passes the guard', () => {
+    const result = runWithFakeGcloud('useit-platform-2026');
+    expect(result.status).toBe(0);
+    expect(result.error).toBeUndefined();
+    expect(result.calls).toContain('projects describe useit-platform-2026 --format=yaml(projectId,projectNumber,name,lifecycleState)');
+    expect(result.calls.some((call) => call.startsWith('auth list '))).toBe(true);
+    expect(result.stdout).toContain('PREFLIGHT COMPLETE');
+    expect(result.calls.some((call) => /\b(?:create|deploy|delete|enable|add-iam-policy-binding)\b/.test(call))).toBe(false);
   });
 
   it('validates the canonical project ID against Google Cloud syntax before gcloud', () => {
