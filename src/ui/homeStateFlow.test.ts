@@ -4,6 +4,19 @@ import { describe, expect, it } from 'vitest';
 const home = readFileSync(new URL('../../app/index.tsx', import.meta.url), 'utf8');
 
 describe('USEIT Home recovery-state integration', () => {
+  it('uses Hungarian as the launch locale and exposes five consumer intents', () => {
+    expect(home).toContain("import { hu } from '../src/i18n/hu';");
+    expect(home).toContain('locale: hu.locale');
+    expect(home).not.toContain("locale: 'en-HU'");
+    expect(home).toContain("['create', modeCopy.create.title, modeCopy.create.description]");
+    expect(home).toContain("['improve', modeCopy.improve.title, modeCopy.improve.description]");
+    expect(home).toContain("['fix', modeCopy.fix.title, modeCopy.fix.description]");
+    expect(home).toContain("['cook', modeCopy.cook.title, modeCopy.cook.description]");
+    expect(home).toContain("['surprise', modeCopy.surprise.title, modeCopy.surprise.description]");
+    expect(home).not.toContain("['shop', modeCopy.shop.title");
+    expect(home).toContain('<HomeWelcome');
+  });
+
   it('uses a single-flight abortable analysis request and ignores stale completions', () => {
     expect(home).toContain('useRef');
     expect(home).toContain('const analysisControllerRef = useRef<AbortController | null>(null);');
@@ -50,14 +63,14 @@ describe('USEIT Home recovery-state integration', () => {
 
   it('routes exhausted camera and gallery permissions to the permission-denied panel', () => {
     expect(home).toContain("kind: 'permission-denied'");
-    expect(home).toContain("actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN'");
+    expect(home).toContain("actionLabel: openSettings ? hu.flow.openSettings : hu.flow.tryAgain");
     expect(home).toContain('if (openSettings) void Linking.openSettings();');
     expect(home).toContain('void pickPhoto(source);');
     expect(home).toContain("permissionNotice(copy, decision === 'open_settings'");
   });
 
   it('uses the shared panel for recoverable visual rendering failures', () => {
-    expect(home).toContain("title: 'Visual concept failed'");
+    expect(home).toContain("title: hu.flow.conceptFailed");
     expect(home).toContain('void createVisualConcept(true);');
     expect(home).toContain('const noticePanel = notice ? (');
     expect(home).toContain('<StatePanel');

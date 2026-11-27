@@ -11,12 +11,13 @@ import {
   Linking,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, UseitApiError, analyzeForConsumer } from '../src/core/intelligence/apiClient';
 import type { ConsumerIntent, ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
 import { BrandMark, FadeIn, StatePanel } from '../src/ui/components';
+import { HomeWelcome } from '../src/ui/HomeWelcome';
+import { hu } from '../src/i18n/hu';
 import { PhotoComparison, PhotoResult } from '../src/ui/PhotoResult';
 import { modeCopy, resultMode, type ResultMode } from '../src/ui/resultModel';
 import { theme } from '../src/ui/theme';
@@ -37,79 +38,15 @@ type ScreenNotice = {
 };
 
 const modes: [ConsumerIntent, string, string][] = [
-  ['create', modeCopy.create.title, 'Turn the materials you see into a new project.'],
-  ['improve', modeCopy.improve.title, 'Explore changes to the look or layout.'],
-  ['fix', modeCopy.fix.title, 'Find a practical next step for a damaged item.'],
-  ['cook', modeCopy.cook.title, 'Get a recipe idea from the ingredients in view.'],
-  ['surprise', modeCopy.surprise.title, 'Discover an unexpected use for this scene.'],
+  ['create', modeCopy.create.title, modeCopy.create.description],
+  ['improve', modeCopy.improve.title, modeCopy.improve.description],
+  ['fix', modeCopy.fix.title, modeCopy.fix.description],
+  ['cook', modeCopy.cook.title, modeCopy.cook.description],
+  ['surprise', modeCopy.surprise.title, modeCopy.surprise.description],
 ];
 
 function hasUsableDimensions(width: number, height: number) {
   return [width, height].every((value) => Number.isFinite(value) && value > 0);
-}
-
-function PhotoWelcome({ capture, chooseGallery, noticePanel }: {
-  capture: () => void; chooseGallery: () => void; noticePanel: React.ReactNode;
-}) {
-  return (
-          <FadeIn delay={40}>
-          <>
-            <View style={s.brandRow}>
-              <BrandMark />
-              <Text style={s.logo}>USEIT</Text>
-            </View>
-
-            <Text style={s.kicker}>SEE WHAT’S POSSIBLE</Text>
-
-            <Text style={s.hero}>
-              Show me what{`\n`}you have.
-            </Text>
-
-            <Text style={s.sub}>
-              Point your camera at almost anything. USEIT helps you discover what you can do with it.
-            </Text>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Take a photo"
-              accessibilityHint="Opens the camera to take a photo for analysis."
-              onPress={capture}
-              style={({ pressed }) => [s.capture, pressed && s.capturePressed]}
-            >
-              <LinearGradient colors={[theme.colors.captureStart, theme.colors.captureEnd]} style={s.grad}>
-                <Text style={s.cam}>⌾</Text>
-                <Text style={s.cta}>Take a photo</Text>
-                <Text style={s.hint}>Start with what’s in front of you</Text>
-              </LinearGradient>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Choose a photo from your gallery"
-              accessibilityHint="Opens your photo library."
-              onPress={chooseGallery}
-              style={s.gallery}
-            >
-              <Text style={s.galleryTitle}>▣  CHOOSE FROM GALLERY</Text>
-              <Text style={s.galleryHint}>Use a photo you already have</Text>
-            </Pressable>
-
-            <Text style={s.sub}>Your photo stays on this device until you start an analysis. USEIT and its AI provider then process the photo.</Text>
-
-            {noticePanel}
-            <Text accessibilityRole="header" style={s.modeHeading}>One photo. Five possibilities.</Text>
-            <View style={s.examples}>
-              <Text style={s.exampleTitle}>Fridge shelf → a meal idea</Text>
-              <Text style={s.modeDesc}>Cook with the ingredients you already have.</Text>
-              <Text style={s.exampleTitle}>Living room → a new layout</Text>
-              <Text style={s.modeDesc}>See what to keep and what could move.</Text>
-            </View>
-            <View style={s.tags}>
-              {modes.map(([mode]) => <Text style={s.tag} key={mode}>{mode.toUpperCase()}</Text>)}
-            </View>
-          </>
-          </FadeIn>
-  );
 }
 
 function ModeChooser({ noticePanel, onSelect, onBack }: {
@@ -118,17 +55,18 @@ function ModeChooser({ noticePanel, onSelect, onBack }: {
   return (
               <>
                 {noticePanel}
-                <Text accessibilityRole="header" style={s.modeHeading}>What should I do with this?</Text>
+                <Text accessibilityRole="header" style={s.modeHeading}>{hu.intents.heading}</Text>
+                <Text style={s.modeDesc}>{hu.intents.description}</Text>
 
                 {onBack && (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Back to my result"
-                    accessibilityHint="Shows your last result without analyzing the photo again."
+                    accessibilityLabel={hu.intents.backToResult}
+                    accessibilityHint={hu.intents.backToResultHint}
                     style={s.secondary}
                     onPress={onBack}
                   >
-                    <Text style={s.secondaryText}>Back to my result</Text>
+                    <Text style={s.secondaryText}>{hu.intents.backToResult}</Text>
                   </Pressable>
                 )}
                 {modes.map(([intent, label, hint], index) => (
@@ -154,20 +92,20 @@ function ModeChooser({ noticePanel, onSelect, onBack }: {
 
 const pickerCopy = {
   camera: {
-    blocked: 'Camera access is disabled', permission: 'Camera permission needed',
-    settings: 'Enable camera access in Settings to take a photo.',
-    ask: 'USEIT needs camera access to photograph what you want to explore.',
-    failure: 'Camera unavailable', recover: 'Try opening the camera again, or choose a photo from your gallery.',
-    decode: 'USEIT could not decode the captured image. Try taking it again.',
+    blocked: hu.picker.camera.blocked, permission: hu.picker.camera.permission,
+    settings: hu.picker.camera.settings,
+    ask: hu.picker.camera.ask,
+    failure: hu.picker.camera.failure, recover: hu.picker.camera.recover,
+    decode: hu.picker.camera.decode,
     request: ImagePicker.requestCameraPermissionsAsync,
     launch: ImagePicker.launchCameraAsync,
   },
   gallery: {
-    blocked: 'Photos access is disabled', permission: 'Photos permission needed',
-    settings: 'Enable photo library access in Settings to choose an image.',
-    ask: 'USEIT needs access to a photo you want to explore.',
-    failure: 'Photo library unavailable', recover: 'Try choosing a photo again, or use the camera.',
-    decode: 'USEIT could not decode this image. Choose a different photo.',
+    blocked: hu.picker.gallery.blocked, permission: hu.picker.gallery.permission,
+    settings: hu.picker.gallery.settings,
+    ask: hu.picker.gallery.ask,
+    failure: hu.picker.gallery.failure, recover: hu.picker.gallery.recover,
+    decode: hu.picker.gallery.decode,
     request: ImagePicker.requestMediaLibraryPermissionsAsync,
     launch: ImagePicker.launchImageLibraryAsync,
   },
@@ -180,8 +118,8 @@ function permissionNotice(copy: typeof pickerCopy[PickerSource], openSettings: b
     kind: 'permission-denied',
     title: openSettings ? copy.blocked : copy.permission,
     description: openSettings ? copy.settings : copy.ask,
-    actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN',
-    actionAccessibilityHint: openSettings ? 'Opens system settings to enable access.' : 'Requests permission again.',
+    actionLabel: openSettings ? hu.flow.openSettings : hu.flow.tryAgain,
+    actionAccessibilityHint: openSettings ? hu.flow.openSettingsHint : hu.flow.retryPermissionHint,
     onAction: () => {
       if (openSettings) void Linking.openSettings();
       else retry();
@@ -194,25 +132,25 @@ function conceptIsAvailable(mode: ResultMode, plan: ConsumerAnalysis['redesign']
 }
 
 function analysisFailureTitle(error: unknown, kind: ReturnType<typeof requestFailureKind>) {
-  if (kind === 'offline') return 'No connection';
-  if (error instanceof Error && error.name === 'AbortError') return 'Analysis took too long';
-  if (error instanceof UseitApiError && error.status === 503) return 'Analysis is temporarily unavailable';
-  return 'Could not finish the analysis';
+  if (kind === 'offline') return hu.flow.noConnection;
+  if (error instanceof Error && error.name === 'AbortError') return hu.flow.analysisTimeout;
+  if (error instanceof UseitApiError && error.status === 503) return hu.flow.analysisUnavailable;
+  return hu.flow.analysisFailed;
 }
 
 function analysisFailureNotice(error: unknown, onAction: () => void): ScreenNotice {
   if (error instanceof UseitApiError && error.status === 409) {
-    return { kind: 'error', title: 'Analysis cannot be recovered', description: 'USEIT cannot safely repeat that request. You can choose a mode to explicitly start a new analysis.' };
+    return { kind: 'error', title: hu.flow.analysisCannotRecover, description: hu.flow.analysisCannotRecoverBody };
   }
   const kind = requestFailureKind(error);
   return {
     kind,
     title: analysisFailureTitle(error, kind),
     description: kind === 'offline'
-      ? 'Check your internet connection, then retry the analysis.'
-      : 'USEIT could not finish the analysis. Your photo is still here.',
-    actionLabel: 'TRY AGAIN',
-    actionAccessibilityHint: 'Retries image analysis for the selected photo.',
+      ? hu.flow.checkConnection
+      : hu.flow.analysisFailedBody,
+    actionLabel: hu.flow.tryAgain,
+    actionAccessibilityHint: hu.flow.retryAnalysisHint,
     onAction,
   };
 }
@@ -221,10 +159,10 @@ function PhotoProgress({ busy, cancel }: { busy: boolean; cancel: () => void }) 
   return (
     <FadeIn>
       <StatePanel kind="loading"
-        title={busy ? 'Understanding your photo' : 'Creating your visual concept'}
-        description={busy ? 'Finding a useful next step from your photo.' : 'Preparing a visual version of the selected plan.'}
-        actionLabel={busy ? 'CANCEL ANALYSIS' : 'CANCEL VISUAL CONCEPT'}
-        actionAccessibilityHint={busy ? 'Stops the analysis and returns to your photo.' : 'Returns to the selected plan.'}
+        title={busy ? hu.flow.understandingPhoto : hu.flow.creatingConcept}
+        description={busy ? hu.flow.findingNextStep : hu.flow.preparingConcept}
+        actionLabel={busy ? hu.flow.cancelAnalysis : hu.flow.cancelConcept}
+        actionAccessibilityHint={busy ? hu.flow.cancelAnalysisHint : hu.flow.cancelConceptHint}
         onAction={cancel} />
     </FadeIn>
   );
@@ -236,14 +174,14 @@ function showConcept(concept: string | null, choosingMode: boolean, busy: boolea
 
 function conceptFailureNotice(error: unknown, retryConcept: () => void): ScreenNotice {
   if (error instanceof UseitApiError && error.status === 409) {
-    return { kind: 'error', title: 'Visual concept could not be recovered', description: 'USEIT cannot safely repeat this image request. Your plan is still available.' };
+    return { kind: 'error', title: hu.flow.conceptCannotRecover, description: hu.flow.conceptCannotRecoverBody };
   }
   return {
     kind: 'error',
-    title: 'Visual concept failed',
-    description: 'The image did not arrive. Your plan is still available.',
-    actionLabel: 'RETRY IF SAFE',
-    actionAccessibilityHint: 'Tries the same request only when USEIT can prevent a duplicate.',
+    title: hu.flow.conceptFailed,
+    description: hu.flow.conceptFailedBody,
+    actionLabel: hu.flow.retryIfSafe,
+    actionAccessibilityHint: hu.flow.retryConceptHint,
     onAction: retryConcept,
   };
 }
@@ -258,8 +196,8 @@ function SelectedPhoto({ photo, concept, reset }: { photo: string; concept: stri
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Choose another photo"
-                accessibilityHint="Returns to photo selection."
+                accessibilityLabel={hu.flow.chooseAnotherPhoto}
+                accessibilityHint={hu.flow.chooseAnotherPhotoHint}
                 onPress={reset}
                 style={s.closeButton}
               >
@@ -268,7 +206,7 @@ function SelectedPhoto({ photo, concept, reset }: { photo: string; concept: stri
             </View>
 
             {concept ? <PhotoComparison photo={photo} concept={concept} /> : (
-              <Image accessible accessibilityLabel="Your selected photo" resizeMode="contain" source={{ uri: photo }} style={s.photo} />
+              <Image accessible accessibilityLabel={hu.flow.selectedPhoto} resizeMode="contain" source={{ uri: photo }} style={s.photo} />
             )}
 
     </>
@@ -280,23 +218,23 @@ function ResultNavigation({ switchMode, reset }: { switchMode: () => void; reset
     <>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Try another mode"
-                  accessibilityHint="Shows the modes for this photo without starting an analysis."
+                  accessibilityLabel={hu.flow.switchMode}
+                  accessibilityHint={hu.flow.switchModeHint}
                   style={({ pressed }) => [s.modeSwitch, pressed && s.modePressed]}
                   onPress={switchMode}
                 >
-                  <Text style={s.secondaryText}>Try another mode</Text>
-                  <Text style={s.modeDesc}>Keep this photo and explore a different idea.</Text>
+                  <Text style={s.secondaryText}>{hu.flow.switchMode}</Text>
+                  <Text style={s.modeDesc}>{hu.flow.switchModeBody}</Text>
                 </Pressable>
 
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Try another photo"
-                  accessibilityHint="Returns to photo selection."
+                  accessibilityLabel={hu.flow.anotherPhoto}
+                  accessibilityHint={hu.flow.chooseAnotherPhotoHint}
                   style={s.secondary}
                   onPress={reset}
                 >
-                  <Text style={s.secondaryText}>TRY ANOTHER PHOTO</Text>
+                  <Text style={s.secondaryText}>{hu.flow.anotherPhoto}</Text>
                 </Pressable>
 
     </>
@@ -305,14 +243,14 @@ function ResultNavigation({ switchMode, reset }: { switchMode: () => void; reset
 
 async function openProductLink(url: string) {
   if (!isSafeExternalHttpUrl(url)) {
-    Alert.alert('Product link unavailable', 'This product link cannot be opened safely.');
+    Alert.alert(hu.flow.productLinkUnavailable, hu.flow.unsafeProductLink);
     return;
   }
 
   try {
     await Linking.openURL(url);
   } catch {
-    Alert.alert('Could not open product link', 'Please try again later.');
+    Alert.alert(hu.flow.openProductFailed, hu.flow.tryLater);
   }
 }
 
@@ -355,7 +293,7 @@ function createPhotoPreparation({ photoGeneration, setPreparing, onBegin, setNot
       if (generation !== photoGeneration.current) return;
       setNotice({
         kind: 'error',
-        title: 'Photo unavailable',
+        title: hu.flow.photoUnavailable,
         description: error instanceof Error ? error.message : failureDescription,
       });
     } finally {
@@ -375,7 +313,7 @@ function createPhotoPicker({ photoGeneration, setNotice, prepareAndSelectPhoto }
     if (generation !== photoGeneration.current || result.canceled) return;
     const asset = result.assets[0];
     if (!asset) {
-      setNotice({ kind: 'error', title: 'Photo unavailable', description: failure });
+      setNotice({ kind: 'error', title: hu.flow.photoUnavailable, description: failure });
       return;
     }
     await prepareAndSelectPhoto(asset.uri, asset.width, asset.height, asset.exif?.Orientation, failure);
@@ -478,8 +416,8 @@ function createAnalysisRequest({ photo, analysisControllerRef, analysisRequestId
     if (!API_URL) {
       setNotice({
         kind: 'error',
-        title: 'USEIT is not connected',
-        description: 'Photo analysis is unavailable in this version. Your photo has not been sent.',
+        title: hu.flow.apiNotConnected,
+        description: hu.flow.apiNotConnectedBody,
       });
       return;
     }
@@ -498,7 +436,7 @@ function createAnalysisRequest({ photo, analysisControllerRef, analysisRequestId
         new UseitApiProvider(API_URL),
         photo,
         intent,
-        { signal: controller.signal, idempotencyKey, actionable: true, refinement, refinementTarget, locale: 'en-HU', retry }
+        { signal: controller.signal, idempotencyKey, actionable: true, refinement, refinementTarget, locale: hu.locale, retry }
       );
       if (isStale()) return;
       onComplete(response, intent);
@@ -659,13 +597,15 @@ function PhotoStage(props: PhotoStageProps) {
     <SafeAreaView style={s.safe}>
       <ScrollView contentContainerStyle={s.page}>
         {preparing ? (
-          <StatePanel kind="loading" title="Preparing your photo"
-            description="Your photo is being prepared on this device." actionLabel="CANCEL"
-            actionAccessibilityHint="Stops photo selection and returns to the camera and gallery options." onAction={reset} />
+          <StatePanel kind="loading" title={hu.flow.preparingPhoto}
+            description={hu.flow.preparingPhotoBody} actionLabel={hu.flow.cancel}
+            actionAccessibilityHint={hu.flow.cancelPhotoHint} onAction={reset} />
         ) : photo ? (
           <SelectedPhotoFlow {...props} photo={photo} />
         ) : (
-          <PhotoWelcome capture={() => { void props.pickPhoto('camera'); }} chooseGallery={() => { void props.pickPhoto('gallery'); }} noticePanel={noticePanel} />
+          <FadeIn delay={40}>
+        <HomeWelcome capture={() => { void props.pickPhoto('camera'); }} chooseGallery={() => { void props.pickPhoto('gallery'); }} noticePanel={noticePanel} />
+      </FadeIn>
         )}
       </ScrollView>
     </SafeAreaView>

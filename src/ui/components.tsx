@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from './theme';
 import { formatProductPrice, productCardAccessibilityLabel } from './productAccessibility';
+import { hu } from '../i18n/hu';
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
@@ -19,7 +20,7 @@ export function ProductCard({ title, category, source, price, currency, onPress 
     <Pressable
       accessibilityRole={onPress ? 'link' : 'text'}
       accessibilityLabel={productCardAccessibilityLabel({ title, category, source, price, currency, actionable: Boolean(onPress) })}
-      accessibilityHint={onPress ? 'Opens the product page in your browser.' : 'Product details are not available for this item.'}
+      accessibilityHint={onPress ? hu.product.openPageHint : hu.product.unavailableHint}
       onPress={onPress}
       disabled={!onPress}
       style={({ pressed }) => [styles.product, pressed && styles.pressed]}
@@ -31,7 +32,7 @@ export function ProductCard({ title, category, source, price, currency, onPress 
       <Text style={styles.productTitle}>{title}</Text>
       <View style={styles.productFooter}>
         <Text style={styles.price}>{formatProductPrice(price, currency)}</Text>
-        {onPress ? <Text style={styles.link}>View product ↗</Text> : null}
+        {onPress ? <Text style={styles.link}>{hu.result.viewProduct} ↗</Text> : null}
       </View>
     </Pressable>
   );

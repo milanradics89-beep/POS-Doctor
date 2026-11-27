@@ -50,7 +50,7 @@ describe('USEIT shared component accessibility', () => {
     expect(source).toContain("accessibilityRole={onPress ? 'link' : 'text'}");
     expect(source).toContain("import { formatProductPrice, productCardAccessibilityLabel } from './productAccessibility';");
     expect(source).toContain('accessibilityLabel={productCardAccessibilityLabel({ title, category, source, price, currency, actionable: Boolean(onPress) })}');
-    expect(source).toContain("accessibilityHint={onPress ? 'Opens the product page in your browser.' : 'Product details are not available for this item.'}");
+    expect(source).toContain("accessibilityHint={onPress ? hu.product.openPageHint : hu.product.unavailableHint}");
   });
   it('supports loading, empty, error, offline and permission-denied states with accessible announcements', () => {
     expect(source).toContain("kind: 'loading' | 'empty' | 'error' | 'offline' | 'permission-denied' | 'success'");

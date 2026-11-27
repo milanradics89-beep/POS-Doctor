@@ -12,17 +12,17 @@ describe('ProductCard accessible name', () => {
       actionable: true,
     });
 
-    expect(label).toContain('Open product page for Trail Runner');
-    expect(label).toContain('Category: Shoes');
-    expect(label).toContain('Source: Example Store');
-    expect(label).toContain(`Price: ${price.toLocaleString('hu-HU')} Ft`);
+    expect(label).toContain('Termékoldal megnyitása: Trail Runner');
+    expect(label).toContain('Kategória: Shoes');
+    expect(label).toContain('Forrás: Example Store');
+    expect(label).toContain(`Ár: ${price.toLocaleString('hu-HU')} Ft`);
   });
 
   it('distinguishes zero, foreign currency and absent pricing', () => {
     expect(formatProductPrice(0, 'HUF')).toBe('0 Ft');
     expect(formatProductPrice(99, 'EUR')).toBe('99 EUR');
-    expect(formatProductPrice(99, '')).toBe('Price unavailable');
-    expect(formatProductPrice(undefined)).toBe('Price unavailable');
+    expect(formatProductPrice(99, '')).toBe('Az ár nem érhető el');
+    expect(formatProductPrice(undefined)).toBe('Az ár nem érhető el');
   });
 
   it('announces unavailable pricing without inventing a value', () => {
@@ -34,9 +34,9 @@ describe('ProductCard accessible name', () => {
     });
 
     expect(label).toContain('Desk Lamp');
-    expect(label).toContain('Category: Lighting');
-    expect(label).toContain('Source: Example Store');
-    expect(label).toContain('Price unavailable');
+    expect(label).toContain('Kategória: Lighting');
+    expect(label).toContain('Forrás: Example Store');
+    expect(label).toContain('Az ár nem érhető el');
   });
 
   it('keeps metadata available when product details are not actionable', () => {
@@ -48,10 +48,10 @@ describe('ProductCard accessible name', () => {
       actionable: false,
     });
 
-    expect(label).toContain('Unavailable Item product details unavailable');
-    expect(label).toContain('Category: Home');
-    expect(label).toContain('Source: Example Store');
-    expect(label).toContain('Price:');
-    expect(label).not.toContain('Open product page');
+    expect(label).toContain('A(z) Unavailable Item termék részletei nem érhetők el.');
+    expect(label).toContain('Kategória: Home');
+    expect(label).toContain('Forrás: Example Store');
+    expect(label).toContain('Ár:');
+    expect(label).not.toContain('Termékoldal megnyitása');
   });
 });
