@@ -139,13 +139,14 @@ requires a separately tested migration/re-enrollment plan, drain, rollback and o
 
 ### GCP project selection and deployment gate
 
-The only owner-specified GCP project ID is the literal `useit`. Google Cloud rejects
-that five-character value because project IDs must be at least six characters. Do not
-search for a project by display name, infer a different ID, or use a historical project
-ID. The read-only preflight deliberately stops before invoking `gcloud`; GCP inventory,
-Cloud Run staging, and deployment remain blocked until the owner explicitly changes
-the project-ID instruction. Do not create a replacement project or change IAM, billing,
-services, secrets, or deployments.
+The owner-confirmed GCP project display name is `USEIT` (short label `useit`), exact
+project ID `useit-platform-2026`, project number `386862694550`. The project ID is the
+only value to use in GCP commands and `USEIT_FIRESTORE_PROJECT_ID`. The similarly
+named `fresh-weft-447913-u6` project is explicitly excluded. The read-only preflight
+validates the exact ID and inventories existing resources without mutation. Project
+identity is confirmed, but current resource state, billing/SKU eligibility, region,
+IAM and deployment readiness remain unverified. No resource creation, IAM/billing
+change, secret mutation or deployment is authorized by this documentation.
 
 Staging remains gated on exact project identity, approved billing/SKU eligibility,
 region and cost limits, least-privilege WIF/runtime IAM, Firestore database and TTL
