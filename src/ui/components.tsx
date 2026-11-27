@@ -55,7 +55,7 @@ export function ProductCard({ title, category, source, price, currency, onPress 
       <Text style={styles.productTitle}>{title}</Text>
       <View style={styles.productFooter}>
         <Text style={styles.price}>{formatProductPrice(price, currency)}</Text>
-        {onPress ? <Text style={styles.link}>Termék megnyitása ↗</Text> : null}
+        {onPress ? <Text style={styles.link}>{hu.common.productOpen} ↗</Text> : null}
       </View>
     </Pressable>
   );
