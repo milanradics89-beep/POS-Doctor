@@ -21,7 +21,10 @@ function validateMobileApiConfig(value) {
     throw new Error('EXPO_PUBLIC_USEIT_API_URL must not contain credentials, query parameters, or fragments.');
   }
   const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-  const localSuffixes = ['.localhost', '.local', '.localdomain', '.internal', '.lan', '.home', '.home.arpa', '.intranet'];
+  const localSuffixes = ['.localhost', '.local', '.localdomain', '.internal', '.lan', '.home', '.home.arpa', '.intranet', '.test', '.invalid', '.example', '.onion', '.arpa'];
+  // DNS absolute names may have a trailing dot; normalize it before applying
+  // the local/reserved-host guard so `localhost.` cannot bypass the check.
+  const host = url.hostname.toLowerCase().replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
   if (host === 'localhost' || localSuffixes.some((suffix) => host.endsWith(suffix)) || host === '0.0.0.0' || isIP(host)) {
     throw new Error('EXPO_PUBLIC_USEIT_API_URL must point to a deployed public hostname, not localhost or an IP address.');
   }
@@ -36,6 +39,7 @@ async function verifyBackendReady(baseUrl, fetchImpl = fetch) {
       response = await fetchImpl(new URL(path.slice(1), `${baseUrl}/`), {
         method: 'GET',
         headers: { Accept: 'application/json' },
+        redirect: 'error',
         signal: AbortSignal.timeout(10_000),
       });
     } catch {
