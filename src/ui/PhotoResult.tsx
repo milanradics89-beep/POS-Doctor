@@ -9,6 +9,7 @@ import { modeCopy, selectResult, type ResultMode } from './resultModel';
 import { theme } from './theme';
 import { productResultsState } from './productResultsState';
 import { productPriceDisplay } from './productPresentation';
+import { hu } from '../i18n/hu';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -39,17 +40,17 @@ export function PhotoComparison({ photo, concept }: { photo: string; concept: st
   const [showConcept, setShowConcept] = useState(true);
   return (
     <View style={s.comparison}>
-      <Text style={s.eyebrow}>{showConcept ? 'PROPOSED CONCEPT' : 'ORIGINAL PHOTO'}</Text>
+      <Text style={s.eyebrow}>{showConcept ? hu.result.proposedConcept : hu.result.originalPhoto}</Text>
       <Image
-        accessible accessibilityLabel={showConcept ? 'Generated visual concept' : 'Your selected photo'}
+        accessible accessibilityLabel={showConcept ? hu.result.generatedConcept : hu.result.selectedPhoto}
         resizeMode="contain" source={{ uri: showConcept ? concept : photo }} style={s.comparisonImage}
       />
       <ResultButton
-        label={showConcept ? 'Show original photo' : 'Show visual concept'}
-        hint="Switches the comparison without generating another image."
+        label={showConcept ? hu.result.showOriginal : hu.result.showConcept}
+        hint={hu.result.comparisonHint}
         onPress={() => setShowConcept(!showConcept)}
       />
-      <Text style={s.caption}>AI visualization. Appearance, scale and placement may differ from the real room.</Text>
+      <Text style={s.caption}>{hu.result.conceptDisclosure}</Text>
     </View>
   );
 }
@@ -102,21 +103,21 @@ function ProductResults({ shopping, onOpenProduct, onRetry }: {
     return (
       <StatePanel
         kind="error"
-        title="Product search unavailable"
-        description="Your photo analysis is still available. Product listings could not be verified."
-        actionLabel="TRY AGAIN"
-        actionAccessibilityHint="Starts one new product search using the same text clues."
+        title={hu.result.productSearchUnavailable}
+        description={hu.result.productSearchUnavailableBody}
+        actionLabel={hu.flow.tryAgain}
+        actionAccessibilityHint={hu.result.productSearchRetryHint}
         onAction={onRetry}
       />
     );
   }
   if (!candidates.length) {
-    return <StatePanel kind="empty" title="No matching products yet" description="Try a more specific product need or keep the photo-based recommendation." />;
+    return <StatePanel kind="empty" title={hu.result.noMatchingProducts} description={hu.result.noMatchingProductsBody} />;
   }
   return (
     <View style={s.stack}>
-      <Text accessibilityRole="header" style={s.sectionTitle}>Matching products</Text>
-      <Text style={s.caption}>Store listings. Confirm price, dimensions and availability with the retailer.</Text>
+      <Text accessibilityRole="header" style={s.sectionTitle}>{hu.result.matchingProducts}</Text>
+      <Text style={s.caption}>{hu.result.storeListingNote}</Text>
       {candidates.slice(0, 5).map(item => (
         <ProductCardRow key={item.id} item={item} onOpenProduct={onOpenProduct} />
       ))}
@@ -180,24 +181,24 @@ function ProductDiscoveryPanel({ result, onOpenProduct }: {
   if (!discovery.need) return null;
   return (
     <View style={s.stack}>
-      <Text accessibilityRole="header" style={s.sectionTitle}>Product discovery</Text>
+      <Text accessibilityRole="header" style={s.sectionTitle}>{hu.result.productDiscoveryTitle}</Text>
       <Text style={s.body}>{discovery.need.summary}</Text>
-      <Lines title="Clues from your photo" items={discovery.need.evidence} />
+      <Lines title={hu.result.cluesFromPhoto} items={discovery.need.evidence} />
       {discovery.loading ? (
-        <StatePanel kind="loading" title="Finding matching products"
-          description="Searching product listings from the text clues. Your photo is not sent again."
-          actionLabel="CANCEL SEARCH" actionAccessibilityHint="Stops the product search without repeating the photo analysis."
+        <StatePanel kind="loading" title={hu.result.productDiscoveryLoading}
+          description={hu.result.productDiscoveryLoadingBody}
+          actionLabel={hu.result.productDiscoveryCancel} actionAccessibilityHint={hu.result.productDiscoveryCancelHint}
           onAction={discovery.cancel} />
       ) : null}
       {discovery.failed ? (
-        <StatePanel kind="error" title="Product search unavailable"
-          description="Your photo analysis is still available. You can retry product discovery separately."
-          actionLabel="TRY AGAIN" actionAccessibilityHint="Starts one new product search using the same text clues."
+        <StatePanel kind="error" title={hu.result.productSearchUnavailable}
+          description={hu.result.productDiscoveryFailedBody}
+          actionLabel={hu.flow.tryAgain} actionAccessibilityHint={hu.result.productSearchRetryHint}
           onAction={() => { void discovery.discover(); }} />
       ) : null}
       {!discovery.loading && !discovery.failed && !discovery.shopping ? (
-        <ResultButton label="Find matching products"
-          hint="Searches product listings using visible-item clues without sending your photo or starting another AI analysis."
+        <ResultButton label={hu.result.findMatchingProducts}
+          hint={hu.result.findMatchingProductsHint}
           onPress={() => { void discovery.discover(); }} primary />
       ) : null}
       {discovery.shopping ? (
@@ -214,16 +215,16 @@ function ProductDiscoveryPanel({ result, onOpenProduct }: {
 function Refinement({ onRefine }: Pick<Props, 'onRefine'>) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
-  if (!open) return <ResultButton label="Refine this result" hint="Opens a field for what you want to change." onPress={() => setOpen(true)} expanded={false} />;
+  if (!open) return <ResultButton label={hu.result.refine} hint={hu.result.refineHint} onPress={() => setOpen(true)} expanded={false} />;
   const text = value.trim();
   return (
     <View style={s.guide}>
-      <Text accessibilityRole="header" style={s.sectionTitle}>What would you change?</Text>
-      <TextInput accessibilityLabel="What would you change?" placeholder="E.g. Use only what’s in the photo" placeholderTextColor={theme.colors.muted}
+      <Text accessibilityRole="header" style={s.sectionTitle}>{hu.result.refineHeading}</Text>
+      <TextInput accessibilityLabel={hu.result.refineHeading} placeholder={hu.result.refinePlaceholder} placeholderTextColor={theme.colors.muted}
         value={value} onChangeText={setValue} maxLength={320} multiline style={s.input} />
-      <Text style={s.caption}>Requesting a new result sends this note and your photo for analysis.</Text>
-      {text ? <ResultButton label="Analyze with this note" hint="Starts a new analysis with your photo and note." onPress={() => onRefine(text)} primary /> : null}
-      <ResultButton label="Cancel refinement" hint="Closes the note and keeps your result." onPress={() => setOpen(false)} expanded />
+      <Text style={s.caption}>{hu.result.refinePrivacy}</Text>
+      {text ? <ResultButton label={hu.result.analyseWithNote} hint={hu.result.analyseWithNoteHint} onPress={() => onRefine(text)} primary /> : null}
+      <ResultButton label={hu.result.cancelRefine} hint={hu.result.cancelRefineHint} onPress={() => setOpen(false)} expanded />
     </View>
   );
 }
@@ -235,17 +236,17 @@ function GuideDetails({ guide, mode, expanded, onToggle }: {
 }) {
   return (
         <View style={s.guide}>
-          <Lines title="Used from your photo" items={guide.evidence} />
-          <Lines title="Check before you start" items={guide.limits} />
-          {guide.steps[0] ? <Lines title={mode === 'fix' ? 'First safe check' : 'Start here'} items={[guide.steps[0]]} /> : null}
-          <ResultButton label={expanded ? 'Hide plan details' : 'View plan details'} hint="Shows the plan, materials and alternatives already available for this idea."
+          <Lines title={hu.result.usedFromPhoto} items={guide.evidence} />
+          <Lines title={hu.result.checkBeforeStart} items={guide.limits} />
+          {guide.steps[0] ? <Lines title={mode === 'fix' ? hu.intents.modes.fix.next : hu.result.startHere} items={[guide.steps[0]]} /> : null}
+          <ResultButton label={expanded ? hu.result.hideDetails : hu.result.viewDetails} hint={hu.result.detailsHint}
             expanded={expanded} onPress={onToggle} />
           {expanded ? <>
             <Lines title={modeCopy[mode].next} items={guide.steps} ordered />
             <Lines title={modeCopy[mode].needs} items={guide.requiredItems} />
-            <Lines title="What’s missing or unconfirmed" items={guide.missingItems} />
+            <Lines title={hu.result.missingOrUnconfirmed} items={guide.missingItems} />
             <Lines title={modeCopy[mode].alternatives} items={guide.alternatives} />
-            <Lines title="Keep as it is" items={guide.keep} />
+            <Lines title={hu.result.keepAsIs} items={guide.keep} />
           </> : null}
         </View>
   );
@@ -257,9 +258,9 @@ function IdeaChoices({ ideas, selected, onSelect }: {
   if (ideas.length < 2) return null;
   return (
     <View style={s.stack}>
-      <Text accessibilityRole="header" style={s.sectionTitle}>More ideas for this photo</Text>
+      <Text accessibilityRole="header" style={s.sectionTitle}>{hu.result.moreIdeas}</Text>
       {ideas.map((other, index) => index === selected ? null : (
-        <ResultButton key={other.id} label={other.title} hint="Shows this idea without analyzing the photo again."
+        <ResultButton key={other.id} label={other.title} hint={hu.result.switchIdeaHint}
           onPress={() => onSelect(index)} />
       ))}
     </View>
@@ -276,7 +277,7 @@ function Recommendations({ data, mode, onRefine, onConcept }: Pick<Props, 'mode'
   if (!idea) {
     return (
       <>
-        <StatePanel kind="empty" title="I need a little more context" description={data.clarification || 'Try a closer photo, or tell USEIT what you want to achieve below.'} />
+        <StatePanel kind="empty" title={hu.result.needMoreContext} description={data.clarification || hu.result.needMoreContextBody} />
         <Refinement onRefine={onRefine} />
       </>
     );
@@ -288,12 +289,12 @@ function Recommendations({ data, mode, onRefine, onConcept }: Pick<Props, 'mode'
         <Text style={s.featureLabel}>{modeCopy[mode].title.toUpperCase()}</Text>
         <Text accessibilityRole="header" style={s.featureTitle}>{idea.title}</Text>
         <Text style={s.featureText}>{idea.description}</Text>
-        {idea.durationMinutes ? <Text style={s.featureText}>About {idea.durationMinutes} min</Text> : null}
+        {idea.durationMinutes ? <Text style={s.featureText}>{hu.result.aboutMinutes.replace('{minutes}', String(idea.durationMinutes))}</Text> : null}
       </View>
       {guide ? (
         <GuideDetails guide={guide} mode={mode} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
       ) : null}
-      {(!selected && onConcept) ? <ResultButton label="Create visual concept" hint="Generates a visual redesign for this suggestion." onPress={onConcept} primary /> : null}
+      {(!selected && onConcept) ? <ResultButton label={hu.result.createConcept} hint={hu.result.createConceptHint} onPress={onConcept} primary /> : null}
       <Refinement key={idea.id} onRefine={(note) => onRefine(note, idea.title)} />
       <IdeaChoices ideas={data.ideas} selected={selected}
         onSelect={(index) => { setSelected(index); setExpanded(false); }} />
@@ -307,11 +308,11 @@ export function PhotoResult({ result, mode, onOpenProduct, onRefine, onConcept }
   return (
     <View style={s.result}>
       <View style={s.stack}>
-        <Text style={s.eyebrow}>YOUR PHOTO · {modeCopy[mode].title.toUpperCase()}</Text>
-        <Text accessibilityRole="header" style={s.heading}>What USEIT sees</Text>
+        <Text style={s.eyebrow}>{hu.result.findFromPhoto} · {modeCopy[mode].title.toUpperCase()}</Text>
+        <Text accessibilityRole="header" style={s.heading}>{hu.result.photoSummary}</Text>
         <Text style={s.body}>{result.analysis.summary}</Text>
       </View>
-      {data.cautions.length ? <View style={s.caution}><Lines title="Before you continue" items={data.cautions} /></View> : null}
+      {data.cautions.length ? <View style={s.caution}><Lines title={hu.result.beforeContinue} items={data.cautions} /></View> : null}
       <Recommendations data={data} mode={mode} onRefine={onRefine} onConcept={onConcept} />
       <ProductDiscoveryPanel result={result} onOpenProduct={onOpenProduct} />
     </View>

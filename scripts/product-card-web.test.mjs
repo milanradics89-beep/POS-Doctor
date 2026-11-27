@@ -26,7 +26,7 @@ describe('product prices in Expo web output', () => {
     expect(html).not.toContain('View product');
   });
 
-  it.each([[99, 'EUR', '99 EUR'], [0, 'HUF', '0 Ft'], [undefined, '', 'Price unavailable']])(
+  it.each([[99, 'EUR', '99 EUR'], [0, 'HUF', '0 Ft'], [undefined, '', 'Az ár nem érhető el']])(
     'renders and announces the source price %s %s', (price, currency, expected) => {
       const html = renderToStaticMarkup(React.createElement(ProductCard, {
         title: 'Lamp', category: 'Lighting', source: 'Retailer', price, currency,
