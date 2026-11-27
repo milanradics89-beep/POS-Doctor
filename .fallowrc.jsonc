@@ -1,0 +1,5 @@
+// Expo imports these two runtime renderers from inside expo-router/Metro.
+// The production web export and real ProductCard rendering test exercise both.
+{
+  "ignoreDependencies": ["react-native-web", "react-dom"]
+}

@@ -77,9 +77,13 @@ function isValidShoppingCandidate(value: unknown): value is UseitShoppingCandida
   if (![value.id, value.name, value.url].every(field => typeof field === 'string' && field.length > 0)) return false;
   if (![value.category, value.brand, value.imageUrl, value.currency, value.retailer].every(isOptionalString)) return false;
   if (![value.price, value.priceHuf].every(isOptionalPrice)) return false;
+  return hasValidRanking(value) && (value.availability === undefined || typeof value.availability === 'string');
+}
+
+function hasValidRanking(value: Record<string, unknown>): boolean {
   if (value.qualityScore !== undefined && (!isFiniteNumber(value.qualityScore) || value.qualityScore < 0 || value.qualityScore > 1)) return false;
   if (value.searchRank !== undefined && (!isFiniteNumber(value.searchRank) || !Number.isInteger(value.searchRank) || value.searchRank < 1)) return false;
-  return value.availability === undefined || typeof value.availability === 'string';
+  return true;
 }
 
 export function validateUseitAnalyzeResponse(payload: unknown):
