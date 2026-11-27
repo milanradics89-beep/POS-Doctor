@@ -145,7 +145,10 @@ async function resolvePublicAddresses(
     return validated;
   } catch (error) {
     resolver.cancel();
-    throw error;
+    if (error?.code === 'ETIMEOUT') throw error;
+    if (error?.message?.includes('did not resolve')) throw error;
+    if (error?.message?.includes('exclusively to public')) throw error;
+    throw new Error('USEIT backend hostname could not be resolved from the mobile build environment.');
   } finally {
     clearTimeout(deadline);
   }
