@@ -102,7 +102,7 @@ describe('normalizeImageAsset', () => {
         outputWidth: 2048,
         outputHeight: 1536,
         mimeType: 'image/jpeg',
-        payloadBytes: 'data:image/jpeg;base64,Zm9v'.length,
+        payloadBytes: 3,
         aspectRatioDelta: 0,
       },
     });
