@@ -117,12 +117,30 @@ class FirestoreState:
     async def advance(self, key_id, counter):
         ref = self.reference("apple-key", key_id)
 
-        @async_transactional
-        async def compare_and_set(tx):
-            snap = await ref.get(transaction=tx)
-            if not snap.exists or counter <= snap.get("counter"):
+        # A document-version precondition is an atomic compare-and-set. It avoids
+        # holding a transaction lock while independent instances advance the same
+        # App Attest counter, while preserving strictly monotonic updates.
+        for attempt in range(5):
+            snap = await ref.get()
+            if not snap.exists:
                 return False
-            tx.update(ref, {"counter": counter})
-            return True
+            current_counter = snap.get("counter")
+            if type(counter) is not int or type(current_counter) is not int or counter <= current_counter:
+                return False
 
-        return await compare_and_set(self.client.transaction())
+            version = self.client.write_option(last_update_time=snap.update_time)
+            try:
+                await ref.update({"counter": counter}, option=version, retry=None)
+            except NotFound:
+                # The enrolled key was removed after the read; never recreate it.
+                return False
+            except FailedPrecondition:
+                # A competing instance changed the document. Re-read and either
+                # reject a stale counter or retry against the new version.
+                if attempt == 4:
+                    raise
+                await asyncio.sleep(0.01 * 2**attempt)
+            else:
+                return True
+
+        return False
