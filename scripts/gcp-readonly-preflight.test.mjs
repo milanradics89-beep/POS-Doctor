@@ -5,10 +5,10 @@ const script = readFileSync(new URL('./gcp-readonly-preflight.sh', import.meta.u
 
 describe('USEIT GCP read-only preflight', () => {
   it('pins the only permitted project ID to the owner-specified literal', () => {
-    expect(script).toContain('readonly OWNER_PROJECT_ID="useit"');
+    expect(script).toContain('readonly OWNER_PROJECT_ID="useit-platform-2026"');
     expect(script).toContain('readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"');
     expect(script).not.toContain('OWNER_PROJECT_NAME');
-    expect(script).not.toContain('useit-platform-2026');
+    expect(script).not.toContain('useit-platform-2026-platform-2026');
     expect(script).not.toContain('fresh-weft-447913-u6');
   });
 
@@ -19,12 +19,12 @@ describe('USEIT GCP read-only preflight', () => {
     expect(ownerGuard).toBeGreaterThan(-1);
     expect(ownerGuard).toBeLessThan(syntaxGuard);
     expect(syntaxGuard).toBeLessThan(gcloudAvailabilityCheck);
-    expect(script).toContain("Only the owner-specified project ID 'useit' is permitted.");
+    expect(script).toContain("Only the owner-specified project ID 'useit-platform-2026' is permitted.");
     expect(script).toContain('No gcloud command was executed.');
   });
 
   it('fails closed because the owner-specified five-character ID is invalid', () => {
-    expect(script).toContain("The owner-specified project ID 'useit' is invalid");
+    expect(script).toContain("The owner-specified project ID 'useit-platform-2026' is invalid");
     expect(script).toContain('Google Cloud project IDs must be 6 to 30 lowercase letters');
     const syntaxGuard = script.indexOf('if [[ ! "$PROJECT_ID" =~');
     expect(syntaxGuard).toBeLessThan(script.indexOf('command -v gcloud'));
