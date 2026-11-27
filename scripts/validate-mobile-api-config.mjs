@@ -222,7 +222,7 @@ async function verifyBackendReady(baseUrl, dependencies = {}) {
   const validatedBase = validateMobileApiConfig(baseUrl);
   const base = validatedBase.endsWith('/') ? validatedBase : validatedBase + '/';
   const baseUrlObject = new URL(base);
-  const hostname = baseUrlObject.hostname.toLowerCase().replace(/\\.$/, '');
+  const hostname = baseUrlObject.hostname.toLowerCase().replace(/\.$/, '');
 
   // Resolve exactly once, reject the entire answer if any result is non-public,
   // then pin both anonymous HTTPS probes to this validated address set.
