@@ -21,7 +21,11 @@ function createRequestMock(responses) {
       const response = new PassThrough();
       response.statusCode = next?.statusCode ?? 200;
       onResponse(response);
-      response.end(next?.body ?? JSON.stringify(next?.payload ?? { status: 'ok' }));
+      if (next?.leaveOpen) {
+        if (next.partialBody) response.write(next.partialBody);
+      } else {
+        response.end(next?.body ?? JSON.stringify(next?.payload ?? { status: 'ok' }));
+      }
     });
     requests.push({ options, request });
     return request;
@@ -202,6 +206,25 @@ describe('pinned backend readiness probes', () => {
       requestImpl,
     })).rejects.toThrow('/health returned HTTP 302');
     expect(requestImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('enforces a total deadline when partial response data keeps the socket active', async () => {
+    const lookupImpl = vi.fn().mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    const { requestImpl, requests } = createRequestMock([
+      { partialBody: '{"status":', leaveOpen: true },
+    ]);
+
+    await expect(verifyBackendReady('https://api.useit.com', {
+      lookupImpl,
+      requestImpl,
+      timeoutMs: 25,
+    })).rejects.toThrow('/health is unreachable');
+
+    expect(lookupImpl).toHaveBeenCalledTimes(1);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].request.destroy).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'USEIT backend readiness request exceeded its total time limit.' }),
+    );
   });
 
   it('rejects invalid JSON and an incorrect readiness state', async () => {
