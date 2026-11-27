@@ -98,6 +98,10 @@ describe('public DNS address validation', () => {
     '::',
     '::1',
     '::ffff:127.0.0.1',
+    '64:ff9b::a9fe:a9fe',
+    '64:ff9b:1::1',
+    '100::1',
+    '100:0:0:1::1',
     '2001:db8::1',
     '2002:0808:0808::1',
     'fc00::1',
@@ -113,6 +117,7 @@ describe('public DNS address validation', () => {
     '93.184.216.34',
     '2606:4700:4700::1111',
     '2001:4860:4860::8888',
+    '2620:4f:8000::1',
   ])('accepts public address %s', (address) => {
     expect(isPublicAddress(address)).toBe(true);
   });
