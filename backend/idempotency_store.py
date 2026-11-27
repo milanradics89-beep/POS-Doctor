@@ -140,7 +140,10 @@ class FirestoreIdempotencyStore:
 
             existing = snapshot.to_dict() or {}
             status = existing.get("status")
-            if status in {"processing", "outcome_unknown"}:
+            # Compare against each known string explicitly: corrupted Firestore
+            # values may be lists or maps, which are unhashable and must still
+            # reach the fail-closed cleanup path below.
+            if status == "processing" or status == "outcome_unknown":
                 if "expires_at" in existing:
                     try:
                         await reference.update(
