@@ -233,7 +233,9 @@ function ProductDiscoveryPanel({ result, onOpenProduct }: {
         maxLength={MAX_REVIEWED_PRODUCT_QUERY_LENGTH}
         autoCapitalize="none"
         autoCorrect={false}
-        style={s.input}
+        returnKeyType="search"
+        onSubmitEditing={() => { void discovery.discover(); }}
+        style={s.searchInput}
       />
       <Text style={s.caption}>{hu.product.queryGuidance}</Text>
       {discovery.loading ? (
@@ -392,6 +394,7 @@ const s = StyleSheet.create({
   featureTitle: { color: theme.colors.surface, fontSize: 24, lineHeight: 30, fontWeight: '800' },
   featureText: { color: theme.colors.captureTextMuted, fontSize: 15, lineHeight: 23 },
   caution: { backgroundColor: theme.colors.errorSurface, borderColor: theme.colors.errorBorder, borderWidth: 1, borderRadius: theme.radius.md, padding: theme.spacing.lg },
+  searchInput: { color: theme.colors.ink, backgroundColor: theme.colors.canvas, borderColor: theme.colors.controlBorder, borderWidth: 1, borderRadius: theme.radius.sm, minHeight: 52, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16 },
   input: { color: theme.colors.ink, backgroundColor: theme.colors.canvas, borderColor: theme.colors.controlBorder, borderWidth: 1, borderRadius: theme.radius.sm, minHeight: 70, padding: 12, fontSize: 16, textAlignVertical: 'top' },
   comparison: { gap: theme.spacing.sm },
 });

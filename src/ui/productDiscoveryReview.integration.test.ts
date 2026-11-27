@@ -8,6 +8,9 @@ describe('product discovery review boundary', () => {
     expect(source).toContain('value={discovery.query}');
     expect(source).toContain('onChangeText={discovery.updateQuery}');
     expect(source).toContain('maxLength={MAX_REVIEWED_PRODUCT_QUERY_LENGTH}');
+    expect(source).toContain('returnKeyType="search"');
+    expect(source).toContain('onSubmitEditing={() => { void discovery.discover(); }}');
+    expect(source).toContain('style={s.searchInput}');
     expect(source).toContain('&& discovery.canSearch ? (');
     expect(source).toContain('const requestQuery = normalizeReviewedProductSearchQuery(query);');
     expect(source).toContain('discoverProducts(\n        requestQuery,');
