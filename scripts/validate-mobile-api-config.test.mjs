@@ -178,6 +178,20 @@ describe('pinned backend readiness probes', () => {
       .toEqual({ address: '93.184.216.34', family: 4 });
     expect(await resolvePinned(requests[0].options, { family: 6 }))
       .toEqual({ address: '2606:4700:4700::1111', family: 6 });
+
+    await expect(new Promise((resolve, reject) => {
+      requests[0].options.lookup('attacker.example.com', { all: true }, (error, records) => {
+        if (error) reject(error);
+        else resolve(records);
+      });
+    })).rejects.toThrow('Unexpected hostname');
+
+    await expect(new Promise((resolve, reject) => {
+      requests[0].options.lookup('api.useit.com', { family: 5 }, (error, address) => {
+        if (error) reject(error);
+        else resolve(address);
+      });
+    })).rejects.toThrow('No validated DNS address');
   });
 
   it('never sends readiness requests when DNS resolves to a private or mixed address set', async () => {
