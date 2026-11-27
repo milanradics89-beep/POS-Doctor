@@ -196,6 +196,13 @@ async def test_completed_record_expires_from_completion_time_without_waiting_for
         current_time[0] = initial_time + timedelta(seconds=91)
         after_completion_expiry = await second.claim(key, payload)
         assert after_completion_expiry.decision is IdempotencyDecision.CLAIMED
+        renewed = (
+            await first_client.collection(collection)
+            .document(first_claim.claim.document_id)
+            .get()
+        ).to_dict() or {}
+        assert renewed["status"] == "processing"
+        assert "expires_at" not in renewed
     finally:
         await _close_pair(collection, first_client, second_client)
 

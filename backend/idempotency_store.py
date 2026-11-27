@@ -209,8 +209,8 @@ class FirestoreIdempotencyStore:
                 return IdempotencyClaimResult(decision=IdempotencyDecision.DUPLICATE)
 
             try:
-                await reference.set(
-                    claim_data,
+                await reference.update(
+                    {**claim_data, "expires_at": DELETE_FIELD},
                     option=self._client.write_option(last_update_time=snapshot.update_time),
                     retry=None,
                 )
