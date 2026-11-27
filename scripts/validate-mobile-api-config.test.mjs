@@ -45,6 +45,25 @@ function createRequestMock(responses) {
   return { requestImpl, requests };
 }
 
+function createResolverFactory({ ipv4 = [], ipv6 = [], errors = {}, pending = false } = {}) {
+  const instances = [];
+  const resolverFactory = vi.fn(function createResolver() {
+    const resolve = (family) => {
+      if (pending) return new Promise(() => {});
+      if (errors[family]) return Promise.reject(errors[family]);
+      return Promise.resolve(family === 'ipv4' ? ipv4 : ipv6);
+    };
+    const resolver = {
+      resolve4: vi.fn(() => resolve('ipv4')),
+      resolve6: vi.fn(() => resolve('ipv6')),
+      cancel: vi.fn(),
+    };
+    instances.push(resolver);
+    return resolver;
+  });
+  return { resolverFactory, instances };
+}
+
 function resolvePinned(options, lookupOptions = { all: true }) {
   return new Promise((resolve, reject) => {
     options.lookup(options.hostname, lookupOptions, (error, address, family) => {
@@ -139,21 +158,44 @@ describe('public DNS address validation', () => {
   });
 
   it('rejects the whole DNS answer if any A or AAAA result is non-public', async () => {
-    const lookupImpl = vi.fn().mockResolvedValue([
-      { address: '93.184.216.34', family: 4 },
-      { address: '169.254.169.254', family: 4 },
-    ]);
-    await expect(resolvePublicAddresses('api.useit.com', lookupImpl))
+    const { resolverFactory, instances } = createResolverFactory({
+      ipv4: ['93.184.216.34'],
+      ipv6: ['fe80::1'],
+    });
+    await expect(resolvePublicAddresses('api.useit.com', resolverFactory))
       .rejects.toThrow('exclusively to public');
-    expect(lookupImpl).toHaveBeenCalledWith('api.useit.com', { all: true, verbatim: true });
+    expect(resolverFactory).toHaveBeenCalledTimes(1);
+    expect(instances[0].resolve4).toHaveBeenCalledWith('api.useit.com.');
+    expect(instances[0].resolve6).toHaveBeenCalledWith('api.useit.com.');
+    expect(instances[0].cancel).toHaveBeenCalledTimes(1);
   });
 
-  it('fails closed when DNS returns no addresses or a family mismatch', async () => {
-    await expect(resolvePublicAddresses('api.useit.com', vi.fn().mockResolvedValue([])))
+  it('fails closed when DNS returns no addresses or a malformed answer', async () => {
+    const empty = createResolverFactory();
+    await expect(resolvePublicAddresses('api.useit.com', empty.resolverFactory))
       .rejects.toThrow('did not resolve');
-    await expect(resolvePublicAddresses('api.useit.com', vi.fn().mockResolvedValue([
-      { address: '93.184.216.34', family: 6 },
-    ]))).rejects.toThrow('exclusively to public');
+
+    const malformed = createResolverFactory({ ipv4: ['not-an-ip-address'] });
+    await expect(resolvePublicAddresses('api.useit.com', malformed.resolverFactory))
+      .rejects.toThrow('exclusively to public');
+  });
+
+  it('treats an absent address family as empty while requiring at least one valid public answer', async () => {
+    const noIpv6 = Object.assign(new Error('no AAAA records'), { code: 'ENODATA' });
+    const factory = createResolverFactory({
+      ipv4: ['93.184.216.34'],
+      errors: { ipv6: noIpv6 },
+    });
+    await expect(resolvePublicAddresses('api.useit.com', factory.resolverFactory))
+      .resolves.toEqual([{ address: '93.184.216.34', family: 4 }]);
+  });
+
+  it('cancels outstanding DNS queries when the DNS deadline expires', async () => {
+    const { resolverFactory, instances } = createResolverFactory({ pending: true });
+    await expect(resolvePublicAddresses('api.useit.com', resolverFactory, 25))
+      .rejects.toThrow('DNS resolution exceeded its total time limit.');
+    expect(instances).toHaveLength(1);
+    expect(instances[0].cancel).toHaveBeenCalledTimes(1);
   });
 });
 
