@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly OWNER_PROJECT_ID="useit-platform-2026"
+readonly OWNER_PROJECT_LABEL="useit"
 readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"
 READ_FAILURES=0
 
@@ -10,12 +10,12 @@ fail() {
   exit "${2:-2}"
 }
 
-if [[ "$PROJECT_ID" != "$OWNER_PROJECT_ID" ]]; then
-  fail "Only the owner-specified project ID 'useit-platform-2026' is permitted. Do not substitute another project ID. No gcloud command was executed." 2
+if [[ "$PROJECT_ID" != "$OWNER_PROJECT_LABEL" ]]; then
+  fail "Only the owner-specified label 'useit' is permitted. No alternate project ID is authorized. No gcloud command was executed." 2
 fi
 
 if [[ ! "$PROJECT_ID" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]; then
-  fail "The supplied project ID does not match Google Cloud project ID syntax: IDs must be 6 to 30 lowercase letters, digits or hyphens, start with a letter, and not end with a hyphen. No gcloud command was executed. Do not substitute another project ID." 2
+  fail "The owner-specified label 'useit' is not a valid Google Cloud project ID; IDs must be 6 to 30 lowercase letters, digits or hyphens. No valid project ID has been supplied. No gcloud command was executed." 2
 fi
 
 run_inventory() {
@@ -40,8 +40,8 @@ done < <(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/de
 [[ -n "${ACTIVE_ACCOUNTS[0]}" ]] || fail "No active gcloud credential. Authenticate interactively, then rerun this read-only preflight."
 
 printf 'USEIT GCP READ-ONLY PREFLIGHT\n'
-printf 'Owner-specified project ID: %s\n' "$OWNER_PROJECT_ID"
-printf 'Agreed USEIT target project ID: %s\n' "$PROJECT_ID"
+printf 'Owner-specified project label: %s\n' "$OWNER_PROJECT_LABEL"
+printf 'Authorized project ID: %s\n' "$PROJECT_ID"
 printf 'Active account: %s\n' "${ACTIVE_ACCOUNTS[0]}"
 printf 'Configured gcloud project: '
 gcloud config get-value project 2>/dev/null || true

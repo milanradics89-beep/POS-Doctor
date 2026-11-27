@@ -79,12 +79,12 @@ Required Cloud Run state configuration:
 - `USEIT_ENV=production`
 - `USEIT_RATE_LIMIT_MODE=firestore`
 - `USEIT_IDEMPOTENCY_MODE=firestore`
-- Set `USEIT_FIRESTORE_PROJECT_ID=useit-platform-2026` (project number
-  `386862694550`). The display name is `USEIT`; `useit` is the short label, not the
-  project ID. Do not use `fresh-weft-447913-u6` or substitute another project.
-  Project identity is owner-confirmed; Cloud Run provisioning remains blocked until
-  read-only inventory, billing/SKU eligibility, region, IAM/WIF and Firestore readiness
-  are independently verified and the staging deployment is explicitly approved.
+- Do not set `USEIT_FIRESTORE_PROJECT_ID` yet. The only currently specified label is
+  `useit`, which is not a valid Google Cloud project ID because project IDs must be
+  6–30 characters. No exact existing project ID or project number is currently
+  authorized. Do not substitute any other project. Cloud Run remains blocked until
+  a new controlling instruction supplies an exact valid existing project ID and
+  separately authorizes the relevant read-only verification or deployment step.
 - `USEIT_IDEMPOTENCY_SECRET` containing at least 32 UTF-8 bytes, stable across all
   Cloud Run instances and stored server-side only.
 - `USEIT_IDEMPOTENCY_TTL_SECONDS` within the supported 60–3600 second range
@@ -140,14 +140,13 @@ requires a separately tested migration/re-enrollment plan, drain, rollback and o
 
 ### GCP project selection and deployment gate
 
-The owner-confirmed GCP project display name is `USEIT` (short label `useit`), exact
-project ID `useit-platform-2026`, project number `386862694550`. The project ID is the
-only value to use in GCP commands and `USEIT_FIRESTORE_PROJECT_ID`. The similarly
-named `fresh-weft-447913-u6` project is explicitly excluded. The read-only preflight
-validates the exact ID and inventories existing resources without mutation. Project
-identity is confirmed, but current resource state, billing/SKU eligibility, region,
-IAM and deployment readiness remain unverified. No resource creation, IAM/billing
-change, secret mutation or deployment is authorized by this documentation.
+The owner-specified GCP label is `USEIT` (`useit`), but `useit` is not a valid
+Google Cloud project ID because it is only five characters. The exact existing
+project ID and project number are unresolved; no alternate project is authorized.
+The read-only preflight intentionally fails before any `gcloud` command until a
+new controlling instruction supplies a valid existing project ID. No project
+discovery, resource creation, IAM/billing change, secret mutation, WIF setup or
+deployment is authorized by this documentation.
 
 Staging remains gated on exact project identity, approved billing/SKU eligibility,
 region and cost limits, least-privilege WIF/runtime IAM, Firestore database and TTL

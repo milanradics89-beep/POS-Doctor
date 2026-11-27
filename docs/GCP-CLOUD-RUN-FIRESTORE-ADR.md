@@ -3,10 +3,10 @@
 **Status:** Proposed, implementation not yet deployed  
 **Date:** 2026-11-27  
 **Owner-provided target label:** `USEIT` (`useit`)  
-**Owner-confirmed Google Cloud project ID:** `useit-platform-2026`  
-**Project number:** `386862694550`
+**Exact existing Google Cloud project ID:** unresolved  
+**Project number:** unresolved
 
-The project display name and exact project ID are separate fields. Use only `useit-platform-2026` for USEIT GCP operations; `fresh-weft-447913-u6` is excluded. Project identity is owner-confirmed, but no application container has been deployed and current resource inventory, billing/SKU eligibility, approved region, IAM/WIF, Firestore TTL state and runtime-secret configuration still require independent verification. This ADR does not authorize paid resource creation, IAM or billing changes, or deployment.
+The owner-specified label `useit` is not a valid Google Cloud project ID because project IDs must be 6–30 characters. The current controlling instruction supplies no exact existing project ID or project number and does not authorize a substitute. The read-only preflight therefore fails before any `gcloud` command. This ADR does not authorize project discovery, paid resource creation, IAM or billing changes, secret mutation, or deployment.
 
 ## Decision
 
@@ -117,7 +117,7 @@ Before enabling deployment:
 
 ## Cost guardrails
 
-The project ID is owner-confirmed as `useit-platform-2026`, but billing-account linkage, remaining credits, credit expiry and SKU eligibility have not yet been verified for this project. Do not transfer billing or credit assumptions from another project. Verify these items in the confirmed project before approving spend.
+No exact existing project ID or project number is currently authorized. Billing-account linkage, remaining credits, credit expiry and SKU eligibility therefore remain unverified. Do not transfer billing or credit assumptions from another project. Verify these items only after a new controlling instruction supplies a valid existing project ID and separately authorizes the read-only checks.
 
 Set a project-scoped budget only after the owner approves a budget amount based on a measured service/usage model. Suggested notification thresholds are 25/50/75/90/100 percent of that approved budget; notifications do not stop resources or prevent overage.
 
@@ -136,7 +136,7 @@ Start with scale-to-zero, minimum instances 0, conservative max instances, no im
 
 ## Acceptance checklist
 
-- [x] Exact Google Cloud project ID `useit-platform-2026` and project number `386862694550` confirmed by the owner.  
+- [ ] Exact existing Google Cloud project ID and project number supplied in a current controlling instruction and validated against Google Cloud syntax.
 - [ ] Billing-account linkage, current credit balance/eligibility, region and approved spend verified.
 - [ ] Cloud Run container is stateless and deploys with a dedicated least-privilege runtime identity.
 - [ ] OpenAI key and all server secrets are read only from Secret Manager.
