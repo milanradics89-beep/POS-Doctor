@@ -97,6 +97,8 @@ export async function normalizeImageAsset(
         }
         const sourceAspectRatio = sourceWidth / sourceHeight;
         const outputAspectRatio = saved.width / saved.height;
+        const base64Padding = saved.base64.endsWith('==') ? 2 : saved.base64.endsWith('=') ? 1 : 0;
+        const payloadBytes = Math.max(0, Math.floor(saved.base64.length * 3 / 4) - base64Padding);
         return {
           dataUrl,
           width: saved.width,
@@ -108,7 +110,7 @@ export async function normalizeImageAsset(
             outputHeight: saved.height,
             mimeType: 'image/jpeg',
             // A base64 data URL is ASCII-only, so character count equals byte count.
-            payloadBytes: dataUrl.length,
+            payloadBytes,
             aspectRatioDelta: Math.abs(outputAspectRatio / sourceAspectRatio - 1),
           },
         };
