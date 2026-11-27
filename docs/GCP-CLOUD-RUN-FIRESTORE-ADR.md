@@ -1,12 +1,12 @@
 # USEIT Google Cloud infrastructure ADR
 
 **Status:** Proposed, implementation not yet deployed  
-**Date:** 2026-11-26  
-**Owner-provided target label:** `useit`  
-**Actual Google Cloud project ID:** unresolved / blocked  
-**Project number:** unverified
+**Date:** 2026-11-27  
+**Owner-provided target label:** `USEIT` (`useit`)  
+**Owner-confirmed Google Cloud project ID:** `useit-platform-2026`  
+**Project number:** `386862694550`
 
-The latest repository-owner review instruction permits only the label `useit` and explicitly says not to substitute another project ID. Because `useit` alone is not a valid Google Cloud project ID, the exact existing project ID must be reconfirmed by the owner in the current approved instructions before any GCP operation. Earlier project identifiers and screenshots are not treated as authorization in this ADR until that conflict is resolved. Do not create resources, enable APIs, change IAM/billing, or deploy while the project ID remains unresolved. No application container has been deployed.
+The project display name and exact project ID are separate fields. Use only `useit-platform-2026` for USEIT GCP operations; `fresh-weft-447913-u6` is excluded. Project identity is owner-confirmed, but no application container has been deployed and current resource inventory, billing/SKU eligibility, approved region, IAM/WIF, Firestore TTL state and runtime-secret configuration still require independent verification. This ADR does not authorize paid resource creation, IAM or billing changes, or deployment.
 
 ## Decision
 
