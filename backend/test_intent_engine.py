@@ -20,10 +20,11 @@ def test_canonical_mobile_modes_are_preserved() -> None:
         assert result["source"] == "user_mode"
 
 
-def test_hungarian_shopping_intent_is_classified() -> None:
+def test_product_discovery_language_does_not_create_a_sixth_intent() -> None:
     result = classify_intent("Szeretnék venni egy új bútort")
-    assert result["name"] == "shop"
-    assert result["confidence"] >= 0.90
+    assert result["name"] == "explore"
+    assert result["source"] == "fallback"
+    assert classify_intent("shop")["name"] == "explore"
 
 
 def test_intent_can_use_prompt_when_user_intent_missing() -> None:

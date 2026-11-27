@@ -12,17 +12,14 @@ class IntentProfile:
 
 
 _INTENTS: tuple[IntentProfile, ...] = (
-    IntentProfile("shop", 0.90, ("venni", "vásárol", "shopping", "buy", "purchase", "termék", "csere")),
-    IntentProfile("improve", 0.82, ("javítani", "fejleszteni", "szebb", "improve", "upgrade", "better", "átalakítani", "átalakítás")),
+    IntentProfile("improve", 0.82, ("javítani", "fejleszteni", "szebb", "improve", "upgrade", "better", "átalakítani", "átalakítás", "rendez", "rendet", "pakol", "tárol", "organize", "storage", "declutter")),
     IntentProfile("fix", 0.88, ("javítás", "javíts", "szerel", "repair", "fix", "hibás", "rossz")),
     IntentProfile("cook", 0.90, ("főzni", "recept", "recipe", "cook", "vacsora", "ebéd", "reggeli")),
-    IntentProfile("organize", 0.86, ("rendez", "rendet", "pakol", "tárol", "organize", "storage", "declutter")),
-    IntentProfile("reuse", 0.84, ("újrahasznos", "újrahasznál", "reuse", "upcycle", "hasznosítani")),
-    IntentProfile("create", 0.80, ("készíteni", "csinálni", "create", "build", "make", "projekt")),
-    IntentProfile("play", 0.80, ("játék", "játszani", "play", "game", "gyerek")),
+    IntentProfile("create", 0.80, ("készíteni", "csinálni", "create", "build", "make", "projekt", "újrahasznos", "újrahasznál", "reuse", "upcycle", "hasznosítani")),
+    IntentProfile("surprise", 0.80, ("meglep", "unexpected", "surprise", "játék", "játszani", "play", "game", "gyerek")),
 )
 
-_ENGLISH_SINGLE_WORD_TERMS = {"fix", "buy", "purchase", "shopping", "improve", "upgrade", "better", "repair", "cook", "recipe", "organize", "storage", "declutter", "reuse", "upcycle", "create", "build", "make", "project", "play", "game"}
+_ENGLISH_SINGLE_WORD_TERMS = {"fix", "improve", "upgrade", "better", "repair", "cook", "recipe", "organize", "storage", "declutter", "reuse", "upcycle", "create", "build", "make", "project", "play", "game", "surprise", "unexpected"}
 
 
 def _tokens(text: str) -> set[str]:
@@ -57,7 +54,6 @@ def classify_intent(user_intent: str | None, prompt: str | None = None) -> dict:
     # them before keyword matching so "surprise" is not silently downgraded to
     # the generic explore fallback.
     canonical_intents = {
-        "shop": 0.90,
         "create": 0.80,
         "improve": 0.82,
         "fix": 0.88,
@@ -126,7 +122,6 @@ def _score_opportunity(opportunity: dict, intent: dict, scene: dict, context: di
     kind = str(opportunity.get("kind", ""))
     intent_name = intent.get("name", "explore")
     if intent_name == kind: score += 0.35
-    elif intent_name == "shop" and opportunity.get("missingItems"): score += 0.20
     elif intent_name == "explore": score += 0.05 if opportunity.get("visualizable") else 0.0
 
     searchable = " ".join(str(opportunity.get(key, "")) for key in ("title", "description", "kind")).lower()

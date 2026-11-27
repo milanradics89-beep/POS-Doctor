@@ -65,30 +65,26 @@ async def test_product_resolution_unexpected_exception_isolated_per_candidate(mo
 
 
 @pytest.mark.asyncio
-async def test_unified_consumer_flow_survives_unexpected_discovery_failure(monkeypatch):
+async def test_unified_analysis_does_not_invoke_product_discovery(monkeypatch):
     async def fake_analyze(_request):
         return dict(VALID_SCENE)
 
     async def fail_discovery(_request):
-        raise RuntimeError("search backend crashed")
+        raise RuntimeError("product discovery must be a separate request")
 
     monkeypatch.setattr(main, "_analyze", fake_analyze)
     monkeypatch.setattr(main, "discover_products", fail_discovery)
 
     request = main.UseItAnalyzeRequest(
         imageUri="https://example.com/image.jpg",
-        userIntent="buy",
-        discoverProducts=True,
+        userIntent="improve",
+        discoverProducts=False,
     )
 
     result = await main.useit_analyze(request)
 
     assert result["contractVersion"] == "useit_analyze_v1"
     assert result["scene"]["sceneType"] == "room"
-    assert result["intent"]["name"] == "shop"
-    assert result["shopping"] == {
-        "query": "room",
-        "candidates": [],
-        "errors": [{"url": "", "message": "product discovery unavailable"}],
-    }
-    assert result["pipeline"][-1] == "shop"
+    assert result["intent"]["name"] == "improve"
+    assert result["shopping"] is None
+    assert result["pipeline"][-1] == "plan"
