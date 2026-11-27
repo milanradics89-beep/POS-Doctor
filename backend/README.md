@@ -79,11 +79,12 @@ Required Cloud Run state configuration:
 - `USEIT_ENV=production`
 - `USEIT_RATE_LIMIT_MODE=firestore`
 - `USEIT_IDEMPOTENCY_MODE=firestore`
-- No Cloud Run project ID is currently usable under the owner instruction. The only
-  specified literal is `useit`, which is not a valid Google Cloud project ID (five
-  characters; the minimum is six). Do not set `USEIT_FIRESTORE_PROJECT_ID` or
-  `GOOGLE_CLOUD_PROJECT` to a different project ID, and do not infer an ID from a
-  display name. Cloud Run remains blocked.
+- Set `USEIT_FIRESTORE_PROJECT_ID=useit-platform-2026` (project number
+  `386862694550`). The display name is `USEIT`; `useit` is the short label, not the
+  project ID. Do not use `fresh-weft-447913-u6` or substitute another project.
+  Project identity is owner-confirmed; Cloud Run provisioning remains blocked until
+  read-only inventory, billing/SKU eligibility, region, IAM/WIF and Firestore readiness
+  are independently verified and the staging deployment is explicitly approved.
 - `USEIT_IDEMPOTENCY_SECRET` containing at least 32 UTF-8 bytes, stable across all
   Cloud Run instances and stored server-side only.
 - `USEIT_IDEMPOTENCY_TTL_SECONDS` within the supported 60–3600 second range
