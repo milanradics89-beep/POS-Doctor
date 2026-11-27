@@ -210,7 +210,7 @@ function SelectedPhoto({ photo, concept, photoFidelity, reset }: { photo: string
               <Image
                 accessible
                 accessibilityLabel={photoFidelity
-                  ? `${hu.flow.selectedPhoto}. ${hu.flow.originalPhotoDimensions}: ${photoFidelity.sourceWidth} × ${photoFidelity.sourceHeight} pixel. ${hu.flow.analysisPhotoDimensions}: ${photoFidelity.outputWidth} × ${photoFidelity.outputHeight} pixel.`
+                  ? `${hu.flow.selectedPhoto}. ${hu.flow.originalPhotoDimensions}: ${photoFidelity.sourceWidth} × ${photoFidelity.sourceHeight} képpont. ${hu.flow.analysisPhotoDimensions}: ${photoFidelity.outputWidth} × ${photoFidelity.outputHeight} képpont.`
                   : hu.flow.selectedPhoto}
                 accessibilityHint={hu.flow.selectedPhotoHint}
                 resizeMode="contain"
