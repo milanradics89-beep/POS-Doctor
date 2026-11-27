@@ -209,10 +209,10 @@ function requestJson(url, hostname, records, requestImpl = httpsRequest, timeout
   });
 }
 
-async function verifyReadinessEndpoint(url, path, hostname, addresses, requestImpl) {
+async function verifyReadinessEndpoint(url, path, hostname, addresses, requestImpl, timeoutMs) {
   let response;
   try {
-    response = await requestJson(url, hostname, addresses, requestImpl);
+    response = await requestJson(url, hostname, addresses, requestImpl, timeoutMs);
   } catch {
     throw new Error('USEIT backend ' + path + ' is unreachable from the mobile build environment.');
   }
@@ -237,6 +237,7 @@ async function verifyReadinessEndpoint(url, path, hostname, addresses, requestIm
 async function verifyBackendReady(baseUrl, dependencies = {}) {
   const lookupImpl = dependencies.lookupImpl ?? lookup;
   const requestImpl = dependencies.requestImpl ?? httpsRequest;
+  const timeoutMs = dependencies.timeoutMs ?? REQUEST_TIMEOUT_MS;
   const validatedBase = validateMobileApiConfig(baseUrl);
   const base = validatedBase.endsWith('/') ? validatedBase : validatedBase + '/';
   const baseUrlObject = new URL(base);
@@ -247,7 +248,7 @@ async function verifyBackendReady(baseUrl, dependencies = {}) {
   const addresses = await resolvePublicAddresses(hostname, lookupImpl);
 
   for (const path of ['/health', '/ready']) {
-    await verifyReadinessEndpoint(new URL(path.slice(1), base), path, hostname, addresses, requestImpl);
+    await verifyReadinessEndpoint(new URL(path.slice(1), base), path, hostname, addresses, requestImpl, timeoutMs);
   }
 }
 
