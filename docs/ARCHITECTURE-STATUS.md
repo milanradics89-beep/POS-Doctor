@@ -2,7 +2,7 @@
 
 ## Repository decision
 
-The repository is intentionally still named `POS-Doctor`, but the application has been repurposed as USEIT. The historical POS Doctor product is not a separate runtime in this repository. The original conversion is recorded in commit `3b039d4442128d3c7d4aebfbd96e36f222e18ef7` (`Replace POS-Doctor with USEIT foundation`).
+The only current repository is `milanradics89-beep/USEIT`, and its repository name is **USEIT**. The product is a camera-first consumer AI application. POS-Doctor is a historical predecessor product only, not a current product, runtime, repository, branch, or development target. Do not access or use the former POS-Doctor repository path, branches, or pull requests as current development sources, and do not reintroduce POS-terminal, diagnostic, or ADB functionality. The conversion to the USEIT foundation is recorded in commit `3b039d4442128d3c7d4aebfbd96e36f222e18ef7` (`Replace POS-Doctor with USEIT foundation`).
 
 ## Canonical runtime path today
 
