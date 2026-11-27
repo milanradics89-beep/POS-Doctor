@@ -18,7 +18,7 @@ The selected photo and current analysis context must be preserved when navigatin
 | Home and capture entry | `app/index.tsx` | One dominant capture action; gallery is secondary |
 | Intent chooser title labels | `src/ui/resultModel.ts` (`modeCopy.*.title`) | Current label source; keep chooser and result labels aligned and localize through the shared catalog |
 | Intent chooser descriptions | `app/index.tsx` (`modes` tuple descriptions) | Current literal description source; migrate to the same locale catalog, not a second copy source |
-| Result intent labels and mapping | `src/ui/resultModel.ts`, consumer intent domain | Exactly five canonical intents: CREATE, IMPROVE, FIX, COOK, SURPRISE. SHOP is legacy copy, not an intent |
+| Result intent labels and mapping | `src/ui/resultModel.ts`, consumer intent domain | **Target after PR #355 integration:** exactly five canonical intents (CREATE, IMPROVE, FIX, COOK, SURPRISE). Current main still exposes legacy SHOP chooser/API support; it is transitional runtime behavior, not the accepted target |
 | Result presentation | `src/ui/PhotoResult.tsx` (`PhotoResult`) | Owns result hierarchy and result-screen interaction copy |
 | Original/concept comparison | `src/ui/PhotoResult.tsx` (`PhotoComparison`) | Owns the result-side original/generated comparison and its explicit image labels |
 | Selected-photo preview | `app/index.tsx` (`SelectedPhoto`) | Owns the input-photo preview; preserve source aspect ratio and orientation, use contain unless the user explicitly chooses a reversible crop |
@@ -27,7 +27,7 @@ The selected photo and current analysis context must be preserved when navigatin
 
 These are the owners observed in the current source, not proof that the experience is complete. The input-photo preview (`SelectedPhoto`) and the result comparison (`PhotoComparison`) are separate image-display owners today; both must preserve orientation, aspect ratio and fidelity, and neither may silently crop or stretch. Do not imply that a shared image component already exists. If one is introduced later, migrate both consumers before declaring a single owner.
 
-The canonical intent scope follows Issue #347: exactly five consumer intents (CREATE, IMPROVE, FIX, COOK, SURPRISE). The legacy SHOP entry in the current `docs/PRODUCT-VISION.md` is known documentation drift being corrected with the five-intent product change; do not implement SHOP as a chooser intent. Product discovery is a separate optional result action, driven only by evidence-backed `shoppingNeed`, and must never become a sixth intent.
+The target product contract after PR #355 integration is exactly five consumer intents (CREATE, IMPROVE, FIX, COOK, SURPRISE). This is **pending runtime integration**, not a claim about current main: at base HEAD `2c0230cd005aadbf9edbc6174f8f1638a0b0d38e`, `app/index.tsx` still exposes a legacy SHOP chooser entry and `src/core/intelligence/apiClient.ts` still includes `shop` in `ConsumerIntent`. Treat that SHOP path as transitional legacy behavior only; do not expand it or accept it as a sixth intent. The five-intent contract becomes current runtime behavior only after PR #355 is integrated with exact-head required checks and review. Product discovery is a separate optional result action, driven only by evidence-backed `shoppingNeed`, and must never become a sixth intent.
 
 ## Interaction contract
 
@@ -44,7 +44,7 @@ The canonical intent scope follows Issue #347: exactly five consumer intents (CR
 - Permission denial and picker/camera failures must explain the next available action.
 
 ### Intent selection
-- Show exactly five canonical intents with distinct, localized descriptions: CREATE, IMPROVE, FIX, COOK and SURPRISE. Product discovery is a separate optional result action, not a chooser tile or consumer intent.
+- **Target after PR #355 integration:** show exactly five canonical intents with distinct, localized descriptions: CREATE, IMPROVE, FIX, COOK and SURPRISE. Until that PR is integrated, the existing SHOP chooser/API path is legacy transitional behavior, not accepted product scope. Product discovery is a separate optional result action, not a chooser tile or consumer intent.
 - Selection must have a visible state and accessible selected semantics.
 - Do not conflate product discovery with the five canonical consumer intents.
 - Intent changes must not accidentally create duplicate paid requests.
