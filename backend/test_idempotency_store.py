@@ -286,8 +286,9 @@ async def test_invalid_keys_and_ttl_are_rejected_before_firestore_access():
     finally:
         await _close_pair(collection, first_client, second_client)
 
+@pytest.mark.parametrize("corrupt_status", [["unexpected"], {"unexpected": "state"}])
 @pytest.mark.asyncio
-async def test_unknown_claim_state_with_legacy_expiry_remains_blocked_and_clears_ttl():
+async def test_unhashable_claim_state_with_legacy_expiry_remains_blocked_and_clears_ttl(corrupt_status):
     now = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
     collection, first_client, second_client, first, _ = await _new_pair(
         ttl_seconds=60,
@@ -300,14 +301,14 @@ async def test_unknown_claim_state_with_legacy_expiry_remains_blocked_and_clears
         assert claimed.claim is not None
         reference = first_client.collection(collection).document(claimed.claim.document_id)
         await reference.update({
-            "status": "corrupt_state",
+            "status": corrupt_status,
             "expires_at": now + timedelta(seconds=60),
         })
 
         retry = await first.claim(key, payload)
         assert retry.decision is IdempotencyDecision.DUPLICATE
         stored = (await reference.get()).to_dict() or {}
-        assert stored["status"] == "corrupt_state"
+        assert stored["status"] == corrupt_status
         assert "expires_at" not in stored
     finally:
         await _close_pair(collection, first_client, second_client)
