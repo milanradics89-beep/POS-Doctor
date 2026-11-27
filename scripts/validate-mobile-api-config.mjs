@@ -143,7 +143,7 @@ function createPinnedLookup(expectedHostname, records) {
   };
 }
 
-function requestJson(url, hostname, records, requestImpl = httpsRequest) {
+function requestJson(url, hostname, records, requestImpl = httpsRequest, timeoutMs = REQUEST_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     const options = {
       protocol: 'https:',
@@ -157,6 +157,20 @@ function requestJson(url, hostname, records, requestImpl = httpsRequest) {
     };
 
     let request;
+    let settled = false;
+    const finish = (error, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadline);
+      if (error) reject(error);
+      else resolve(value);
+    };
+    const deadline = setTimeout(() => {
+      const error = new Error('USEIT backend readiness request exceeded its total time limit.');
+      finish(error);
+      request?.destroy(error);
+    }, timeoutMs);
+
     try {
       request = requestImpl(options, (response) => {
         const chunks = [];
@@ -166,26 +180,30 @@ function requestJson(url, hostname, records, requestImpl = httpsRequest) {
           const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
           totalBytes += buffer.length;
           if (totalBytes > MAX_RESPONSE_BYTES) {
-            request.destroy(new Error('USEIT backend readiness response exceeded the size limit.'));
+            const error = new Error('USEIT backend readiness response exceeded the size limit.');
+            finish(error);
+            request.destroy(error);
             return;
           }
           chunks.push(buffer);
         });
-        response.on('error', reject);
-        response.on('aborted', () => reject(new Error('USEIT backend readiness response was interrupted.')));
-        response.on('end', () => resolve({
+        response.on('error', (error) => finish(error));
+        response.on('aborted', () => finish(new Error('USEIT backend readiness response was interrupted.')));
+        response.on('end', () => finish(null, {
           statusCode: response.statusCode ?? 0,
           body: Buffer.concat(chunks).toString('utf8'),
         }));
       });
     } catch (error) {
-      reject(error);
+      finish(error);
       return;
     }
 
-    request.on('error', reject);
-    request.setTimeout(REQUEST_TIMEOUT_MS, () => {
-      request.destroy(new Error('USEIT backend readiness request timed out.'));
+    request.on('error', (error) => finish(error));
+    request.setTimeout(timeoutMs, () => {
+      const error = new Error('USEIT backend readiness request timed out.');
+      finish(error);
+      request.destroy(error);
     });
     request.end();
   });
