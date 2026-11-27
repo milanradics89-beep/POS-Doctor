@@ -45,7 +45,7 @@ const IPV6_ALLOCATED_PUBLIC_RANGES = [
   [0x2001, 0x2001, 0x5000, 0x5fff],
   [0x2001, 0x2001, 0x8000, 0x9fff],
   [0x2001, 0x2001, 0xa000, 0xbfff],
-  [0x2003, 0x2003, 0x0000, 0x03ff],
+  [0x2003, 0x2003, 0x0000, 0x3fff],
   [0x2400, 0x240f, 0x0000, 0xffff],
   [0x2410, 0x241f, 0x0000, 0xffff],
   [0x2600, 0x260f, 0x0000, 0xffff],
@@ -93,7 +93,10 @@ function validateMobileApiConfig(value) {
   if (url.protocol !== 'https:') {
     throw new Error('EXPO_PUBLIC_USEIT_API_URL must use HTTPS for remote mobile builds.');
   }
-  if (url.username || url.password || url.search || url.hash) {
+  if (url.port === '0') {
+    throw new Error('EXPO_PUBLIC_USEIT_API_URL must not use port 0.');
+  }
+  if (url.username || url.password || url.search || url.hash || value.includes('?') || value.includes('#')) {
     throw new Error('EXPO_PUBLIC_USEIT_API_URL must not contain credentials, query parameters, or fragments.');
   }
 
@@ -224,6 +227,7 @@ function requestJson(url, hostname, records, requestImpl = httpsRequest, timeout
       hostname,
       port: url.port ? Number(url.port) : 443,
       method: 'GET',
+      agent: false,
       path: url.pathname + url.search,
       headers: { Accept: 'application/json' },
       servername: hostname,

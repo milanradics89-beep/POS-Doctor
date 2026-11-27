@@ -94,6 +94,13 @@ function resolvePinned(options, lookupOptions = { all: true }) {
 describe('remote mobile API build configuration', () => {
   it('accepts a deployed HTTPS backend URL', () => {
     expect(validateMobileApiConfig('https://api.useit.com/run/')).toBe('https://api.useit.com/run');
+    expect(validateMobileApiConfig('https://api.useit.com/backend')).toBe('https://api.useit.com/backend');
+    expect(validateMobileApiConfig('https://api.useit.com/backend/')).toBe('https://api.useit.com/backend');
+  });
+
+  it('rejects explicit port zero while preserving a valid non-default HTTPS port', () => {
+    expect(() => validateMobileApiConfig('https://api.useit.com:0')).toThrow('must not use port 0');
+    expect(validateMobileApiConfig('https://api.useit.com:8443')).toBe('https://api.useit.com:8443');
   });
 
   it('rejects a missing API URL', () => {
@@ -127,6 +134,8 @@ describe('remote mobile API build configuration', () => {
     expect(() => validateMobileApiConfig('https://user:secret@api.useit.example')).toThrow('must not contain credentials');
     expect(() => validateMobileApiConfig('https://api.useit.com?key=value')).toThrow('must not contain credentials');
     expect(() => validateMobileApiConfig('https://api.useit.com/#fragment')).toThrow('must not contain credentials');
+    expect(() => validateMobileApiConfig('https://api.useit.com/backend?')).toThrow('must not contain credentials');
+    expect(() => validateMobileApiConfig('https://api.useit.com/backend#')).toThrow('must not contain credentials');
   });
 });
 
@@ -156,7 +165,7 @@ describe('public DNS address validation', () => {
     '2001:1::1',
     '2001:2::1',
     '2002:0808:0808::1',
-    '2003:400::1',
+    '2003:4000::1',
     '2611::1',
     '2610:200::1',
     '2621::1',
@@ -186,6 +195,8 @@ describe('public DNS address validation', () => {
     '2606:4700:4700::1111',
     '2001:4860:4860::8888',
     '2003:3ff::1',
+    '2003:400::1',
+    '2003:3fff::1',
     '2610:1ff::1',
     '2620:1ff::1',
     '2404:6800::1',
@@ -275,6 +286,7 @@ describe('pinned backend readiness probes', () => {
     expect(requests).toHaveLength(2);
     expect(requests.map(({ options }) => options.path)).toEqual(['/backend/health', '/backend/ready']);
     expect(requests.map(({ options }) => options.method)).toEqual(['GET', 'GET']);
+    expect(requests.map(({ options }) => options.agent)).toEqual([false, false]);
     expect(requests.map(({ options }) => options.servername)).toEqual(['api.useit.com', 'api.useit.com']);
 
     const firstResolved = await resolvePinned(requests[0].options);
