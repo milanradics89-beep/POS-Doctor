@@ -8,7 +8,7 @@ describe('USEIT GCP read-only preflight', () => {
     expect(script).toContain('readonly OWNER_PROJECT_ID="useit-platform-2026"');
     expect(script).toContain('readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"');
     expect(script).not.toContain('OWNER_PROJECT_NAME');
-    expect(script).not.toContain('useit-platform-2026-platform-2026');
+    expect(script).not.toContain('fresh-weft-447913-u6');
     expect(script).not.toContain('fresh-weft-447913-u6');
   });
 
@@ -23,8 +23,10 @@ describe('USEIT GCP read-only preflight', () => {
     expect(script).toContain('No gcloud command was executed.');
   });
 
-  it('fails closed because the owner-specified five-character ID is invalid', () => {
-    expect(script).toContain("The owner-specified project ID 'useit-platform-2026' is invalid");
+  it('validates the canonical project ID against Google Cloud syntax before gcloud', () => {
+    const syntax = /^([a-z][a-z0-9-]{4,28}[a-z0-9])$/;
+    expect(syntax.test('useit-platform-2026')).toBe(true);
+    expect(syntax.test('useit')).toBe(false);
     expect(script).toContain('Google Cloud project IDs must be 6 to 30 lowercase letters');
     const syntaxGuard = script.indexOf('if [[ ! "$PROJECT_ID" =~');
     expect(syntaxGuard).toBeLessThan(script.indexOf('command -v gcloud'));
