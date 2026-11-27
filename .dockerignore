@@ -45,3 +45,6 @@ backend/**/token.txt
 backend/**/secret.txt
 backend/**/secrets.txt
 backend/**/credentials.txt
+
+**/.venv/
+backend/requirements-dev.lock

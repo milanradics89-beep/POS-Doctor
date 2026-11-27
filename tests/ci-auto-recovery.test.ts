@@ -21,14 +21,16 @@ describe('CI auto-recovery workflow', () => {
     expect(workflow).toContain('jq -r --arg title "$TITLE"');
   });
 
-  it('limits automatic retries to one failed attempt from this repository', () => {
-    expect(workflow).toContain("github.event.workflow_run.conclusion == 'failure'");
-    expect(workflow).toContain('github.event.workflow_run.run_attempt == 1');
-    expect(workflow).toContain('github.event.workflow_run.head_repository.full_name == github.repository');
+  it('limits manual retries to one failed attempt from this repository', () => {
+    expect(workflow).toContain('workflow_dispatch:');
+    expect(workflow).not.toMatch(/^  workflow_run:/m);
+    expect(workflow).toContain('.conclusion == "failure"');
+    expect(workflow).toContain('.run_attempt == 1');
+    expect(workflow).toContain('.head_repository.full_name == $repository');
     expect(workflow).toContain('rerun-failed-jobs');
   });
 
   it('reports a repeated failure only after the retry attempt', () => {
-    expect(workflow).toContain('github.event.workflow_run.run_attempt >= 2');
+    expect(workflow).toContain('.run_attempt >= 2');
   });
 });

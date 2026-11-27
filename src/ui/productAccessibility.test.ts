@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { productCardAccessibilityLabel } from './productAccessibility';
+import { formatProductPrice, productCardAccessibilityLabel } from './productAccessibility';
 
 describe('ProductCard accessible name', () => {
   it('announces the title, category, source and visible price for actionable products', () => {
@@ -18,7 +18,14 @@ describe('ProductCard accessible name', () => {
     expect(label).toContain(`Price: ${price.toLocaleString('hu-HU')} Ft`);
   });
 
-  it('omits price when the card does not display one', () => {
+  it('distinguishes zero, foreign currency and absent pricing', () => {
+    expect(formatProductPrice(0, 'HUF')).toBe('0 Ft');
+    expect(formatProductPrice(99, 'EUR')).toBe('99 EUR');
+    expect(formatProductPrice(99, '')).toBe('Price unavailable');
+    expect(formatProductPrice(undefined)).toBe('Price unavailable');
+  });
+
+  it('announces unavailable pricing without inventing a value', () => {
     const label = productCardAccessibilityLabel({
       title: 'Desk Lamp',
       category: 'Lighting',
@@ -29,7 +36,7 @@ describe('ProductCard accessible name', () => {
     expect(label).toContain('Desk Lamp');
     expect(label).toContain('Category: Lighting');
     expect(label).toContain('Source: Example Store');
-    expect(label).not.toContain('Price:');
+    expect(label).toContain('Price unavailable');
   });
 
   it('keeps metadata available when product details are not actionable', () => {

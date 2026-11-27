@@ -2,16 +2,25 @@
 
 Minimal production-oriented vision service for the mobile app.
 
-## Run
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:bef4a908374f87b694a32f7a06a520be69b60f38e4dd685dcd13dd1aab08f048 -->
+
+## Run locally
+
+From the repository root, use Python 3.12 and Node 22. Run `bash setup.sh`, activate `backend/.venv`, then:
 
 ```bash
-pip install -r requirements.txt
-export OPENAI_API_KEY=...
-export USEIT_VISION_MODEL=gpt-5.6-luna
-uvicorn main:app --host 0.0.0.0 --port 8000
+export USEIT_ENV=development
+# Configure OPENAI_API_KEY in your local environment before using real analysis.
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
-Health: `GET /health`
+The default vision model is `gpt-4.1`; set `USEIT_VISION_MODEL` to override it. Liveness: `GET /health`. Dependency readiness: `GET /ready`.
+
+For a client on the same machine, set `EXPO_PUBLIC_USEIT_API_URL=https://YOUR-APPROVED-API-HOST` to the reachable HTTPS API; do not embed provider credentials in the client. See [the release register](../docs/RELEASE-REGISTER.md) for durable state, verification and deployment settings.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 Vision: `POST /v1/analyze`
 

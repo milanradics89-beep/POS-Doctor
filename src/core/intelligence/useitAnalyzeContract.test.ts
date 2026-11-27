@@ -22,7 +22,7 @@ const validResponse = {
   }],
   shopping: {
     query: 'room furniture',
-    candidates: [{ id: 'p1', name: 'Chair', url: 'https://shop.example.test/chair', price: 24990, currency: 'HUF', qualityScore: 0.82, searchRank: 1 }],
+    candidates: [{ id: 'p1', name: 'Chair', url: 'https://shop.example.test/chair', price: 24990, priceHuf: 24990, currency: 'HUF', brand: 'Example', availability: 'in_stock', qualityScore: 0.82, searchRank: 1 }],
     errors: [],
   },
   pipeline: ['see', 'understand', 'reason', 'intent', 'specialist', 'suggest', 'shop'],
@@ -37,6 +37,8 @@ describe('validateUseitAnalyzeResponse', () => {
       expect(result.data.scene.sceneType).toBe('room');
       expect(result.data.suggestions[0]?.id).toBe('s1');
       expect(result.data.shopping?.candidates[0]?.name).toBe('Chair');
+      expect(result.data.shopping?.candidates[0]?.priceHuf).toBe(24990);
+      expect(result.data.shopping?.candidates[0]?.brand).toBe('Example');
       expect(result.data.pipeline).toContain('specialist');
     }
   });
@@ -66,6 +68,17 @@ describe('validateUseitAnalyzeResponse', () => {
       shopping: { query: 'room furniture', candidates: [{ id: 'p1', name: 'Chair', url: 'https://shop.example.test/chair', qualityScore: 4 }] },
     });
     expect(invalidProduct.ok).toBe(false);
+  });
+
+  it('rejects a negative HUF product price', () => {
+    const result = validateUseitAnalyzeResponse({
+      ...validResponse,
+      shopping: {
+        query: 'room furniture',
+        candidates: [{ ...validResponse.shopping.candidates[0], priceHuf: -1 }],
+      },
+    });
+    expect(result.ok).toBe(false);
   });
 
   it('allows shopping to be explicitly absent', () => {

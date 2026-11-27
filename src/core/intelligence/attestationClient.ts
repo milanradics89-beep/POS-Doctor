@@ -357,9 +357,11 @@ async function requestAttestationChallenge(
   base: string,
   headers: Record<string, string>,
 ): Promise<ChallengeResponse> {
+  const provider = process.env.EXPO_OS === 'ios' ? 'apple_app_attest'
+    : process.env.EXPO_OS === 'android' ? 'google_play_integrity' : undefined;
   const response = await fetchWithAttestationTimeout(base + '/v1/session/challenge', {
     method: 'POST',
-    headers,
+    headers: { ...headers, ...(provider ? { 'X-USEIT-Platform-Provider': provider } : {}) },
   });
   if (!response.ok) {
     throw new Error('USEIT attestation challenge failed (' + response.status + ').');

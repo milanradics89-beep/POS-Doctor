@@ -18,7 +18,12 @@ describe('normalizeApiBaseUrl', () => {
     expect(() => normalizeApiBaseUrl('http://api.example.test')).toThrow('must use HTTPS outside local development');
   });
 
+  it.each(['ftp://localhost', 'https://user:password@example.test', 'https://example.test?key=a', 'https://example.test#fragment'])('rejects an invalid API origin: %s', value => {
+    expect(() => normalizeApiBaseUrl(value)).toThrow();
+  });
+
   it('allows HTTP for local development only', () => {
+    expect(normalizeApiBaseUrl('http://[::1]:8000/')).toBe('http://[::1]:8000');
     expect(normalizeApiBaseUrl('http://localhost:8000/')).toBe('http://localhost:8000');
     expect(normalizeApiBaseUrl('http://127.0.0.1:8000/')).toBe('http://127.0.0.1:8000');
   });

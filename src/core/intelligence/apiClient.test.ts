@@ -104,6 +104,49 @@ describe('UseitApiProvider boundary handling', () => {
     expect(requestBody.userIntent).toBe('shop');
   });
 
+  it('preserves product metadata and never labels foreign or unknown prices as HUF', async () => {
+    const payload = {
+      ...validUnified,
+      intent: { name: 'shop', confidence: 0.9 },
+      shopping: {
+        query: 'desk lamp',
+        candidates: [
+          { id: 'huf', name: 'HUF lamp', url: 'https://shop.example.test/huf', price: 24990, priceHuf: 24990, currency: 'HUF', brand: 'Example', availability: 'in_stock', retailer: 'Example Store' },
+          { id: 'eur', name: 'EUR lamp', url: 'https://shop.example.test/eur', price: 99.99, currency: 'EUR', brand: 'Euro Brand', availability: 'limited', retailer: 'EU Store' },
+          { id: 'unknown', name: 'Unknown currency lamp', url: 'https://shop.example.test/unknown', price: 5000, currency: null, availability: 'unknown', retailer: 'Unknown Store' },
+        ],
+      },
+    };
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }));
+
+    const result = await analyzeForConsumer(provider(), image, 'shop');
+    const [huf, eur, unknown] = result.intelligence.rankedCandidates;
+
+    expect(huf).toMatchObject({ brand: 'Example', currency: 'HUF', availability: 'in_stock', priceHuf: 24990 });
+    expect(eur).toMatchObject({ brand: 'Euro Brand', currency: 'EUR', sourcePrice: 99.99, availability: 'limited' });
+    expect(eur?.priceHuf).toBeUndefined();
+    expect(unknown?.priceHuf).toBeUndefined();
+  });
+
+  it('sends the caller-owned idempotency key on the canonical billable analysis request', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(validUnified), { status: 200, headers: { 'content-type': 'application/json' } }),
+    );
+    const key = 'analysis-test-key-123456';
+    await provider().analyzeUseit(image, 'improve', { idempotencyKey: key });
+    const headers = fetchMock.mock.calls[0][1]?.headers as Record<string, string>;
+    expect(headers['Idempotency-Key']).toBe(key);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves a 409 duplicate response as a typed API error', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'duplicate' }), { status: 409, headers: { 'content-type': 'application/json' } }),
+    );
+    await expect(provider().analyzeUseit(image, 'improve', { idempotencyKey: 'analysis-test-key-123456' }))
+      .rejects.toMatchObject({ name: 'UseitApiError', status: 409 });
+  });
+
   it('rejects a missing API base URL before network access', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
     await expect(new UseitApiProvider('').analyzeImage(image)).rejects.toThrow('USEIT API base URL is required.');
@@ -201,6 +244,8 @@ describe('UseitApiProvider boundary handling', () => {
       productId: 'lamp-1',
       title: 'Warm floor lamp',
       priceHuf: 59000,
+      sourcePrice: 59000,
+      currency: 'HUF',
       url: 'https://shop.example.test/lamp',
     }]);
     expect(result.redesign?.products).toHaveLength(1);
@@ -253,6 +298,7 @@ describe('UseitApiProvider boundary handling', () => {
 
     expect(result.unified?.shopping?.candidates.map(candidate => candidate.id)).toEqual(['safe']);
     expect(result.intelligence.rankedCandidates.map(candidate => candidate.id)).toEqual(['safe']);
+    expect(result.intelligence.rankedCandidates[0]?.priceHuf).toBeUndefined();
     expect(result.redesign?.products.map(product => product.productId)).toEqual(['safe']);
   });
 

@@ -71,3 +71,16 @@ jobs:
           fi
           git cat-file -e "$BASE_SHA^{commit}"
           gitleaks detect --redact --no-banner --exit-code=2 --report-format=sarif --report-path=results-full-pr-history.sarif --log-opts="$BASE_SHA..$HEAD_SHA"
+
+  security-gate:
+    name: Security gate
+    if: always()
+    needs: [zizmor, gitleaks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require both scans to pass
+        env:
+          ZIZMOR: ${{ needs.zizmor.result }}
+          GITLEAKS: ${{ needs.gitleaks.result }}
+        run: test "$ZIZMOR" = success && test "$GITLEAKS" = success

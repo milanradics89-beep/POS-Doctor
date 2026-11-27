@@ -26,6 +26,7 @@ def _assert_intercepted_response(response, request_id: str, origin: str):
     assert response.headers["Content-Security-Policy"] == "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
     assert response.headers["Referrer-Policy"] == "no-referrer"
     assert response.headers["Permissions-Policy"] == "camera=(), microphone=(), geolocation=()"
+    assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Request-ID"] == request_id
     if "*" in main.origins:
         assert response.headers["Access-Control-Allow-Origin"] == "*"

@@ -36,3 +36,11 @@ def test_security_headers_present(monkeypatch):
     response = client.get("/health")
     assert response.headers.get("X-Content-Type-Options") == "nosniff"
     assert "frame-ancestors" in response.headers.get("Content-Security-Policy", "")
+
+
+def test_invalid_input_does_not_reflect_private_image_data(monkeypatch):
+    client = _load_client(monkeypatch)
+    res = client.post("/v1/analyze", headers={"X-API-Key": "test-key"}, json={"imageUri": "private-photo-value"})
+    assert res.status_code == 422
+    assert "private-photo-value" not in res.text
+    assert res.headers["Cache-Control"] == "no-store"

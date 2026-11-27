@@ -29,12 +29,12 @@ describe('USEIT Home recovery-state integration', () => {
     const start = home.indexOf('async function prepareAndSelectPhoto(');
     const end = home.indexOf('\n  const reset =', start);
     const preparation = home.slice(start, end);
-    const invalidation = preparation.indexOf('redesignRequestIdRef.current += 1;');
+    const invalidation = preparation.indexOf('cancelRedesign();');
     const firstAwait = preparation.indexOf('await ');
 
     expect(invalidation).toBeGreaterThanOrEqual(0);
     expect(firstAwait).toBeGreaterThan(invalidation);
-    expect(preparation).toContain('setRendering(false);');
+    expect(home).toContain('redesignControllerRef.current?.abort();');
   });
 
   it('routes network failures to the offline panel with a retry for the same intent', () => {
@@ -43,7 +43,7 @@ describe('USEIT Home recovery-state integration', () => {
     expect(home).toContain('kind,');
     expect(home).toContain("title: kind === 'offline' ? 'No connection' : 'Could not understand the image'");
     expect(home).toContain("description: kind === 'offline'");
-    expect(home).toContain('onAction: () => { void analyze(intent); }');
+    expect(home).toContain('onAction: () => { void analyze(intent, idempotencyKey); }');
   });
 
   it('routes exhausted camera and gallery permissions to the permission-denied panel', () => {

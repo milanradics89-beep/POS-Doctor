@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import uuid
+import hashlib
 from collections import deque
 
 import pytest
@@ -196,7 +197,8 @@ async def test_redis_rate_limit_uses_atomic_sliding_window_and_bounded_timeouts(
     assert captured["url"] == "redis://redis.example.test:6379/0"
     assert captured["kwargs"] == {"decode_responses": True, "socket_connect_timeout": 2.0, "socket_timeout": 5.0}
     assert captured["numkeys"] == 2
-    assert captured["events_key"] == "useit:unit-test:203.0.113.42:events"
+    assert "203.0.113.42" not in captured["events_key"]
+    assert captured["events_key"].startswith("useit:unit-test:")
     assert captured["sequence_key"] == captured["events_key"] + ":sequence"
     assert captured["window_ms"] == 60_000
     assert captured["limit"] == 5
@@ -246,7 +248,9 @@ async def test_redis_rate_limit_enforces_sliding_window_across_minute_boundary(m
     request = _redis_test_request(host)
     monkeypatch.setenv("USEIT_REDIS_URL", url)
     client = Redis.from_url(url, decode_responses=True, socket_connect_timeout=2.0, socket_timeout=5.0)
-    events_key = f"useit:{namespace}:{host}:events"
+    for secret in ("USEIT_RATE_KEY_SECRET", "USEIT_SESSION_SECRET", "USEIT_API_KEY"):
+        monkeypatch.delenv(secret, raising=False)
+    events_key = f"useit:{namespace}:{hashlib.sha256(host.encode()).hexdigest()}:events"
     sequence_key = f"{events_key}:sequence"
 
     try:
@@ -284,7 +288,9 @@ async def test_redis_rate_limit_is_atomic_across_independent_clients(monkeypatch
     request = _redis_test_request(host)
     monkeypatch.setenv("USEIT_REDIS_URL", url)
     client = Redis.from_url(url, decode_responses=True, socket_connect_timeout=2.0, socket_timeout=5.0)
-    events_key = f"useit:{namespace}:{host}:events"
+    for secret in ("USEIT_RATE_KEY_SECRET", "USEIT_SESSION_SECRET", "USEIT_API_KEY"):
+        monkeypatch.delenv(secret, raising=False)
+    events_key = f"useit:{namespace}:{hashlib.sha256(host.encode()).hexdigest()}:events"
     sequence_key = f"{events_key}:sequence"
 
     try:

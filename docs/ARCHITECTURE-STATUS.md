@@ -2,7 +2,13 @@
 
 ## Repository decision
 
-The repository is intentionally still named `POS-Doctor`, but the application has been repurposed as USEIT. The historical POS Doctor product is not a separate runtime in this repository. The original conversion is recorded in commit `3b039d4442128d3c7d4aebfbd96e36f222e18ef7` (`Replace POS-Doctor with USEIT foundation`).
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:00f312fc3b4091783513d185d90796856b40c16513610ea999df3973f3c55599 -->
+
+The repository and current application are named USEIT. The original POS Doctor conversion is historical; the live entry points and release evidence are listed in the [release register](RELEASE-REGISTER.md).
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ## Canonical runtime path today
 

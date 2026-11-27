@@ -9,4 +9,10 @@ This repository is the new USEIT foundation. The previous POS-Doctor application
 
 ## Release readiness
 
-See [the release and production runbook](docs/RELEASE_RUNBOOK.md) for CI gates, production secrets and attestation configuration, staged rollout, monitoring, privacy, and rollback procedures. Do not treat a cancelled or in-progress CI run as a release approval.
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:ed4877738c6aa2b167a99e475aadb600517fa696888d0afff82c5fd8effee602 -->
+
+Start with the [release register](docs/RELEASE-REGISTER.md) for current configuration, validation and outstanding acceptance. See the [backend setup](backend/README.md) to run locally and the [release runbook](docs/RELEASE_RUNBOOK.md) for rollout procedures.
+
+<!-- /coderabbit-ai-generated:v1 -->

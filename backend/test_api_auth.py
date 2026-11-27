@@ -405,3 +405,22 @@ def test_session_verification_reuses_application_scoped_redis_client(monkeypatch
     provider_verification.assert_awaited_once()
     assert provider_verification.await_args.kwargs["redis_client"] is shared_client
 
+
+
+def test_two_platforms_get_distinct_server_bound_challenges(monkeypatch):
+    monkeypatch.setenv("USEIT_ATTESTATION_PROVIDER", "apple_app_attest")
+    monkeypatch.setenv("USEIT_ATTESTATION_APP_ID", "TEAM.ios")
+    monkeypatch.delenv("USEIT_SECONDARY_ATTESTATION_APP_ID", raising=False)
+    path = "/v1/session/challenge"
+    android = {"X-USEIT-Platform-Provider": "google_play_integrity"}
+    assert client.post(path, headers=android).status_code == 400
+    monkeypatch.setenv("USEIT_SECONDARY_ATTESTATION_APP_ID", "com.test.android")
+    assert client.post(path).json()["appId"] == "TEAM.ios"
+    challenge = client.post(path, headers=android).json()
+    assert (challenge["provider"], challenge["appId"]) == ("google_play_integrity", "com.test.android")
+    monkeypatch.setenv("USEIT_ATTESTATION_MODE", "required")
+    monkeypatch.setenv("USEIT_SESSION_SECRET", "s" * 32)
+    denied = client.post("/v1/session", json={"challenge": challenge["challenge"], "provider": "apple_app_attest",
+                                              "assertion": "dummy", "appId": "TEAM.ios"})
+    assert denied.status_code == 401
+    assert denied.json()["detail"] == "wrong_provider"

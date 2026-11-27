@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from './theme';
-import { productCardAccessibilityLabel } from './productAccessibility';
+import { formatProductPrice, productCardAccessibilityLabel } from './productAccessibility';
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
@@ -21,13 +21,13 @@ export function SectionHeader({ eyebrow, detail }: { eyebrow: string; detail?: s
   );
 }
 
-export function ProductCard({ title, category, source, price, onPress }: {
-  title: string; category: string; source: string; price?: number; onPress?: () => void;
+export function ProductCard({ title, category, source, price, currency, onPress }: {
+  title: string; category: string; source: string; price?: number; currency?: string; onPress?: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole={onPress ? 'link' : 'text'}
-      accessibilityLabel={productCardAccessibilityLabel({ title, category, source, price, actionable: Boolean(onPress) })}
+      accessibilityLabel={productCardAccessibilityLabel({ title, category, source, price, currency, actionable: Boolean(onPress) })}
       accessibilityHint={onPress ? 'Opens the product page in your browser.' : 'Product details are not available for this item.'}
       onPress={onPress}
       disabled={!onPress}
@@ -39,7 +39,7 @@ export function ProductCard({ title, category, source, price, onPress }: {
         <Text style={styles.productMeta} numberOfLines={1}>{category} · {source}</Text>
       </View>
       <View style={styles.productPrice}>
-        {typeof price === 'number' ? <Text style={styles.price}>{price.toLocaleString('hu-HU')} Ft</Text> : null}
+        <Text style={styles.price}>{formatProductPrice(price, currency)}</Text>
         {onPress ? <Text style={styles.link}>VIEW ↗</Text> : <Text style={styles.unavailable}>DETAILS UNAVAILABLE</Text>}
       </View>
     </Pressable>

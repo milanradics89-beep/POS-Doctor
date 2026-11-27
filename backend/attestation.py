@@ -125,6 +125,16 @@ def configured_attestation_app_id() -> str:
     return os.environ.get("USEIT_ATTESTATION_APP_ID", "").strip()
 
 
+def attestation_apps() -> dict[AttestationProvider, str]:
+    primary = configured_attestation_provider()
+    apps = {primary: configured_attestation_app_id()}
+    secondary = next(provider for provider in AttestationProvider if provider is not primary)
+    secondary_app = os.getenv("USEIT_SECONDARY_ATTESTATION_APP_ID", "").strip()
+    if secondary_app:
+        apps[secondary] = secondary_app
+    return apps
+
+
 def configured_redis_url() -> str:
     return os.environ.get("USEIT_REDIS_URL", "").strip()
 
@@ -196,14 +206,19 @@ def validate_challenge_binding(evidence: AttestationEvidence) -> AttestationResu
 async def issue_challenge_async(
     ttl_seconds: int | None = None,
     redis_client: Redis | None = None,
+    provider: AttestationProvider | None = None,
+    state_store=None,
 ) -> AttestationChallenge:
     ttl = ttl_seconds if ttl_seconds is not None else attestation_challenge_ttl_seconds()
     ttl = max(30, min(ttl, MAX_CHALLENGE_TTL_SECONDS))
-    provider = configured_attestation_provider()
-    app_id = configured_attestation_app_id()
+    provider = provider or configured_attestation_provider()
+    app_id = attestation_apps()[provider]
     now = int(time.time())
 
-    if configured_redis_url():
+    if state_store is not None:
+        challenge = secrets.token_urlsafe(32)
+        await state_store.put(challenge, provider, app_id, ttl)
+    elif configured_redis_url():
         challenge = secrets.token_urlsafe(32)
         async with _redis_challenge_store(redis_client) as store:
             await store.put(challenge, provider, app_id, ttl)
@@ -216,10 +231,14 @@ async def issue_challenge_async(
 async def validate_challenge_binding_async(
     evidence: AttestationEvidence,
     redis_client: Redis | None = None,
+    state_store=None,
 ) -> AttestationResult:
-    if configured_redis_url():
-        async with _redis_challenge_store(redis_client) as store:
-            record = await store.consume(evidence.challenge)
+    if state_store is not None or configured_redis_url():
+        if state_store is not None:
+            record = await state_store.consume(evidence.challenge)
+        else:
+            async with _redis_challenge_store(redis_client) as store:
+                record = await store.consume(evidence.challenge)
         if record is None:
             return AttestationResult(False, "challenge_invalid_or_replayed")
         provider, app_id = record.provider, record.app_id
@@ -240,12 +259,13 @@ async def validate_challenge_binding_async(
 async def verify_attestation_provider(
     evidence: AttestationEvidence,
     redis_client: Redis | None = None,
+    state_store=None,
 ) -> AttestationResult:
     """Dispatch evidence to the configured real provider verifier."""
     if evidence.provider is AttestationProvider.APP_ATTEST:
         from backend.apple_app_attest import AppleAppAttestVerifier
 
-        return await AppleAppAttestVerifier(redis_client=redis_client).verify(evidence)
+        return await AppleAppAttestVerifier(redis_client=redis_client, state_store=state_store).verify(evidence)
     if evidence.provider is AttestationProvider.PLAY_INTEGRITY:
         from backend.google_play_integrity import GooglePlayIntegrityVerifier
 

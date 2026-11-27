@@ -19,9 +19,53 @@ import type { SceneModel } from './sceneModel';
 
 export type UseitApiClientOptions = { apiKey?: string };
 
+type UseitAnalyzeOptions = {
+  budgetHuf?: number;
+  preferredStyles?: string[];
+  preferredColors?: string[];
+  discoverProducts?: boolean;
+  productLimit?: number;
+  idempotencyKey?: string;
+};
+
+function buildUseitAnalyzePayload(
+  imageUri: string,
+  intent: OpportunityKind | 'shop' | undefined,
+  options: UseitAnalyzeOptions,
+) {
+  const policyIntent = intent === 'shop' ? undefined : intent;
+  const policy = createPromptPolicy(policyIntent, 'hu-HU');
+  return {
+    imageUri,
+    userIntent: intent ?? policy.intent,
+    prompt: policy.system,
+    locale: policy.locale,
+    budgetHuf: options.budgetHuf,
+    preferredStyles: options.preferredStyles ?? [],
+    preferredColors: options.preferredColors ?? [],
+    discoverProducts: options.discoverProducts ?? true,
+    productLimit: options.productLimit ?? 8,
+  };
+}
+
+function buildUseitAnalyzeHeaders(
+  headers: Record<string, string>,
+  idempotencyKey?: string,
+): Record<string, string> {
+  if (!idempotencyKey) return headers;
+  return { ...headers, 'Idempotency-Key': idempotencyKey };
+}
+
+export class UseitApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'UseitApiError';
+  }
+}
+
 // The backend request middleware returns 504 at 45 seconds. Keep the client
 // deadline above that limit so it can receive the controlled server response.
-// These billable POSTs remain single-attempt until an end-to-end idempotency contract exists.
+// Billable POSTs remain single-attempt. The caller reuses an idempotency key only for an explicit retry of the same user action.
 const AI_REQUEST_TIMEOUT_MS = 50_000;
 
 export class UseitApiProvider implements IntelligenceProvider {
@@ -52,21 +96,30 @@ export class UseitApiProvider implements IntelligenceProvider {
     if (!checked.ok) throw new Error(`USEIT API returned an invalid analysis: ${checked.issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
     return normalizeAnalysis(checked.data);
   }
-  async analyzeUseit(imageUri: string, intent?: OpportunityKind | 'shop', options: { budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; discoverProducts?: boolean; productLimit?: number } = {}, signal?: AbortSignal): Promise<UseitAnalyzeResponse> {
+  async analyzeUseit(imageUri: string, intent?: OpportunityKind | 'shop', options: UseitAnalyzeOptions = {}, signal?: AbortSignal): Promise<UseitAnalyzeResponse> {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
-    const policy = createPromptPolicy(intent === 'shop' ? undefined : intent, 'hu-HU');
-    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/useit/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: intent ?? policy.intent, prompt: policy.system, locale: policy.locale, budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles ?? [], preferredColors: options.preferredColors ?? [], discoverProducts: options.discoverProducts ?? true, productLimit: options.productLimit ?? 8 }), signal }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS });
-    if (!response.ok) throw new Error(`USEIT unified analysis failed (${response.status}).`);
-    if (parseError) throw new Error('USEIT unified analysis returned malformed JSON.');
-    const checked = validateUseitAnalyzeResponse(payload);
-    if (!checked.ok) throw new Error(`USEIT unified analysis returned an invalid response: ${checked.issues.join('; ')}`);
+    const body = buildUseitAnalyzePayload(imageUri, intent, options);
+    const headers = buildUseitAnalyzeHeaders(await this.headers(), options.idempotencyKey);
+    const request = await fetchJsonWithPolicy(
+      `${base}/v1/useit/analyze`,
+      { method: 'POST', headers, body: JSON.stringify(body), signal },
+      { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS },
+    );
+    if (!request.response.ok) {
+      throw new UseitApiError(`USEIT unified analysis failed (${request.response.status}).`, request.response.status);
+    }
+    if (request.parseError) throw new Error('USEIT unified analysis returned malformed JSON.');
+    const checked = validateUseitAnalyzeResponse(request.payload);
+    if (!checked.ok) {
+      throw new Error(`USEIT unified analysis returned an invalid response: ${checked.issues.join('; ')}`);
+    }
     return checked.data;
   }
-  async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; url: string; id?: string; confidence?: number }>): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
+  async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; sourcePrice?: number; currency?: string; url: string; id?: string; confidence?: number }>, signal?: AbortSignal): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
-    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, prompt, products }) }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS }, { requireJsonContentType: true });
+    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, prompt, products }), signal }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS }, { requireJsonContentType: true });
     if (!response.ok) throw new Error(`USEIT redesign request failed (${response.status}).`);
     if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('USEIT redesign API returned an unexpected response.');
     if (parseError) throw parseError;
@@ -82,7 +135,7 @@ export type ConsumerIntent = OpportunityKind | 'shop';
 export type ConsumerIntelligence = {
   action: { type: string; title: string };
   need: { kind: string };
-  rankedCandidates: Array<{ id: string; title: string; category: string; source: string; priceHuf: number; url: string }>;
+  rankedCandidates: Array<{ id: string; title: string; category: string; source: string; priceHuf?: number; sourcePrice?: number; brand?: string; currency?: string; availability?: string; url: string }>;
   intentConfidence: number;
   clarificationRequired: boolean;
 };
@@ -104,14 +157,31 @@ function toConsumerIntelligence(run: IntelligenceRun): ConsumerIntelligence {
   const goal = run.task.goal;
   const actionType = goal === 'food_recipe' ? 'recipe' : goal === 'wardrobe_styling' ? 'style' : goal === 'object_repair' ? 'repair_guide' : goal === 'room_redesign' || goal === 'room_shopping' ? 'visualize' : run.task.shoppingRequired ? 'shop' : 'recommend';
   const actionTitle = actionType === 'visualize' ? 'Create the redesigned view' : actionType === 'recipe' ? 'Build a recipe from the visible ingredients' : actionType === 'style' ? 'Complete the outfit' : actionType === 'repair_guide' ? 'Show the repair path' : actionType === 'shop' ? 'Show the best matching options' : 'Show recommendations';
-  const ranked = (run.ranked ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.title, category: candidate.category, source: candidate.source, priceHuf: candidate.priceHuf ?? 0, url: candidate.url }));
+  const ranked = (run.ranked ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.title, category: candidate.category, source: candidate.source, priceHuf: candidate.priceHuf ?? undefined, url: candidate.url }));
   return { action: { type: actionType, title: actionTitle }, need: { kind: goal }, rankedCandidates: ranked, intentConfidence: run.clarification.needsClarification ? 0.5 : 1, clarificationRequired: run.clarification.needsClarification };
 }
+function priceHufForCandidate(candidate: NonNullable<UseitAnalyzeResponse['shopping']>['candidates'][number]): number | undefined {
+  if (typeof candidate.priceHuf === 'number') return candidate.priceHuf;
+  if (candidate.currency?.toUpperCase() === 'HUF' && typeof candidate.price === 'number') return candidate.price;
+  return undefined;
+}
+
 function toUnifiedConsumerIntelligence(result: UseitAnalyzeResponse): ConsumerIntelligence {
   const intent = result.intent.name;
   const actionType = intent === 'cook' ? 'recipe' : intent === 'fix' ? 'repair_guide' : intent === 'improve' || intent === 'create' ? 'visualize' : intent === 'shop' ? 'shop' : 'recommend';
   const actionTitle = actionType === 'visualize' ? 'Create the redesigned view' : actionType === 'recipe' ? 'Build a recipe from the visible ingredients' : actionType === 'repair_guide' ? 'Show the repair path' : actionType === 'shop' ? 'Show the best matching options' : 'Show recommendations';
-  const ranked = (result.shopping?.candidates ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.name, category: candidate.category ?? 'general', source: candidate.retailer ?? 'USEIT', priceHuf: candidate.price ?? 0, url: candidate.url }));
+  const ranked = (result.shopping?.candidates ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({
+    id: candidate.id,
+    title: candidate.name,
+    category: candidate.category ?? 'general',
+    source: candidate.retailer ?? 'USEIT',
+    priceHuf: priceHufForCandidate(candidate),
+    sourcePrice: candidate.price ?? undefined,
+    brand: candidate.brand ?? undefined,
+    currency: candidate.currency ?? undefined,
+    availability: candidate.availability ?? undefined,
+    url: candidate.url,
+  }));
   return { action: { type: actionType, title: actionTitle }, need: { kind: intent }, rankedCandidates: ranked, intentConfidence: result.intent.confidence ?? 0.5, clarificationRequired: (result.intent.confidence ?? 0.5) < 0.6 };
 }
 function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel): RedesignPlan | undefined {
@@ -127,7 +197,9 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
       category: candidate.category?.trim() || 'general',
       productId: candidate.id,
       title: candidate.name,
-      priceHuf: candidate.price ?? undefined,
+      priceHuf: priceHufForCandidate(candidate),
+      sourcePrice: candidate.price ?? undefined,
+      currency: candidate.currency && /^[a-z]{3}$/i.test(candidate.currency) ? candidate.currency.toUpperCase() : undefined,
       url: candidate.url,
     }));
 
@@ -173,10 +245,10 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
     disclosure: 'AI-generated visualization. Product appearance, scale, color and placement may differ from the real item. Verify product details on the linked retailer page.',
   };
 }
-export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: ConsumerIntent, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean; signal?: AbortSignal } = {}): Promise<ConsumerAnalysis> {
+export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: ConsumerIntent, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean; signal?: AbortSignal; idempotencyKey?: string } = {}): Promise<ConsumerAnalysis> {
   validateImageUri(imageUri);
   if (provider.analyzeUseit) {
-    const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors }, options.signal);
+    const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, idempotencyKey: options.idempotencyKey }, options.signal);
     const analysis = normalizeAnalysis(unified.scene);
     const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(unified.scene, imageUri.slice(0, 80));
     const redesign = toUnifiedRedesignPlan(unified, scene);

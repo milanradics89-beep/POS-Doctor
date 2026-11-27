@@ -12,14 +12,14 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UseitApiProvider, analyzeForConsumer } from '../src/core/intelligence/apiClient';
+import { UseitApiProvider, UseitApiError, analyzeForConsumer } from '../src/core/intelligence/apiClient';
 import type { ConsumerIntent, ConsumerAnalysis } from '../src/core/intelligence/apiClient';
-import type { OpportunityKind } from '../src/core/intelligence/types';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
 import { BrandMark, FadeIn, ProductCard, SectionHeader, StatePanel } from '../src/ui/components';
 import { shouldShowEmptyProductPanel } from '../src/ui/productResultsState';
 import { theme } from '../src/ui/theme';
+import { createIdempotencyKey } from '../src/core/intelligence/idempotencyKey';
 import { requestFailureKind } from '../src/ui/requestFailure';
 import { validateImageUri } from '../src/core/intelligence/imageInput';
 import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';
@@ -35,11 +35,12 @@ type ScreenNotice = {
   onAction?: () => void;
 };
 
-const modes: [OpportunityKind, string][] = [
+const modes: [ConsumerIntent, string][] = [
   ['create', 'Turn what you have into something new.'],
   ['improve', 'Make your space or things better.'],
   ['fix', 'Figure out what to do next.'],
   ['cook', 'Make something from what you have.'],
+  ['shop', 'Find products that match this photo.'],
   ['surprise', 'Show me something I would not think of.'],
 ];
 
@@ -52,10 +53,15 @@ export default function Home() {
   const [notice, setNotice] = useState<ScreenNotice | null>(null);
   const analysisControllerRef = useRef<AbortController | null>(null);
   const analysisRequestIdRef = useRef(0);
+  const redesignControllerRef = useRef<AbortController | null>(null);
+  const photoGeneration = useRef(0);
   const redesignRequestIdRef = useRef(0);
   const redesign = result?.redesign ?? result?.phase3?.redesign;
 
   useEffect(() => () => {
+    photoGeneration.current += 1;
+    redesignRequestIdRef.current += 1;
+    redesignControllerRef.current?.abort();
     analysisRequestIdRef.current += 1;
     analysisControllerRef.current?.abort();
     analysisControllerRef.current = null;
@@ -68,9 +74,14 @@ export default function Home() {
     setBusy(false);
   }
 
-  function setSelectedPhoto(imageUri: string) {
+  function cancelRedesign() {
     redesignRequestIdRef.current += 1;
+    redesignControllerRef.current?.abort();
+    redesignControllerRef.current = null;
     setRendering(false);
+  }
+
+  function setSelectedPhoto(imageUri: string) {
     try {
       validateImageUri(imageUri);
     } catch (error) {
@@ -95,9 +106,9 @@ export default function Home() {
     orientation: unknown,
     failureDescription: string
   ) {
+    const generation = ++photoGeneration.current;
     // Invalidate a pending redesign before dimension lookup or normalization can await.
-    redesignRequestIdRef.current += 1;
-    setRendering(false);
+    cancelRedesign();
     cancelAnalysis();
     setResult(null);
     setRendered(null);
@@ -115,8 +126,10 @@ export default function Home() {
         resolvedHeight = visualDimensions.height;
       }
       const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
+      if (generation !== photoGeneration.current) return;
       setSelectedPhoto(normalized.dataUrl);
     } catch (error) {
+      if (generation !== photoGeneration.current) return;
       setNotice({
         kind: 'error',
         title: 'Photo unavailable',
@@ -126,9 +139,9 @@ export default function Home() {
   }
 
   const reset = () => {
+    photoGeneration.current += 1;
     cancelAnalysis();
-    redesignRequestIdRef.current += 1;
-    setRendering(false);
+    cancelRedesign();
     setPhoto(null);
     setResult(null);
     setRendered(null);
@@ -148,7 +161,7 @@ export default function Home() {
     }
   }
 
-  async function analyze(intent?: ConsumerIntent) {
+  async function analyze(intent?: ConsumerIntent, idempotencyKey = createIdempotencyKey()) {
     if (analysisControllerRef.current) return;
     if (!API_URL) {
       setNotice({
@@ -173,12 +186,16 @@ export default function Home() {
         new UseitApiProvider(API_URL),
         photo,
         intent,
-        { signal: controller.signal }
+        { signal: controller.signal, idempotencyKey }
       );
       if (controller.signal.aborted || requestId !== analysisRequestIdRef.current) return;
       setResult(response);
     } catch (error) {
       if (controller.signal.aborted || requestId !== analysisRequestIdRef.current || (error instanceof Error && error.name === 'AbortError')) return;
+      if (error instanceof UseitApiError && error.status === 409) {
+        setNotice({ kind: 'error', title: 'Analysis already received', description: 'The previous request reached USEIT. Its result could not be recovered here. Starting a new analysis may use another request.' });
+        return;
+      }
       const kind = requestFailureKind(error);
       setNotice({
         kind,
@@ -190,7 +207,7 @@ export default function Home() {
             : 'Please try again with a clearer photo.',
         actionLabel: 'TRY AGAIN',
         actionAccessibilityHint: 'Retries image analysis for the selected photo.',
-        onAction: () => { void analyze(intent); },
+        onAction: () => { void analyze(intent, idempotencyKey); },
       });
     } finally {
       if (requestId === analysisRequestIdRef.current) {
@@ -201,8 +218,10 @@ export default function Home() {
   }
 
   async function createVisualConcept() {
-    if (!photo || !redesign || rendering) return;
+    if (!photo || !redesign || redesignControllerRef.current) return;
 
+    const controller = new AbortController();
+    redesignControllerRef.current = controller;
     const requestId = ++redesignRequestIdRef.current;
     setRendering(true);
     setNotice(null);
@@ -214,6 +233,8 @@ export default function Home() {
         title: product.title,
         category: product.category,
         priceHuf: product.priceHuf,
+        sourcePrice: product.sourcePrice,
+        currency: product.currency,
         url: product.url,
         id: product.productId,
       }));
@@ -221,7 +242,8 @@ export default function Home() {
       const renderedResult = await api.renderRedesign(
         photo,
         redesign.prompt,
-        products
+        products,
+        controller.signal
       );
 
       if (requestId !== redesignRequestIdRef.current) return;
@@ -237,12 +259,17 @@ export default function Home() {
         onAction: () => { void createVisualConcept(); },
       });
     } finally {
-      if (requestId === redesignRequestIdRef.current) setRendering(false);
+      if (requestId === redesignRequestIdRef.current) {
+        redesignControllerRef.current = null;
+        setRendering(false);
+      }
     }
   }
 
   async function chooseGallery() {
+    const generation = ++photoGeneration.current;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (generation !== photoGeneration.current) return;
     const decision = permissionDecision(permission.granted, permission.canAskAgain);
     if (decision !== 'granted') {
       const openSettings = decision === 'open_settings';
@@ -273,7 +300,7 @@ export default function Home() {
       allowsMultipleSelection: false,
     });
 
-    if (r.canceled) return;
+    if (r.canceled || generation !== photoGeneration.current) return;
 
     const a = r.assets[0];
     await prepareAndSelectPhoto(
@@ -286,7 +313,9 @@ export default function Home() {
   }
 
   async function capture() {
+    const generation = ++photoGeneration.current;
     const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (generation !== photoGeneration.current) return;
     const decision = permissionDecision(permission.granted, permission.canAskAgain);
     if (decision !== 'granted') {
       const openSettings = decision === 'open_settings';
@@ -316,7 +345,7 @@ export default function Home() {
       exif: true,
     });
 
-    if (r.canceled) return;
+    if (r.canceled || generation !== photoGeneration.current) return;
 
     const a = r.assets[0];
     await prepareAndSelectPhoto(
@@ -385,6 +414,8 @@ export default function Home() {
               <Text style={s.galleryHint}>Use a photo you already have</Text>
             </Pressable>
 
+            <Text style={s.sub}>When you start an analysis, your selected photo is sent to USEIT and its AI provider.</Text>
+
             <View style={s.tags}>
               {['ROOMS', 'OBJECTS', 'FOOD', 'MATERIALS'].map((x) => (
                 <Text style={s.tag} key={x}>
@@ -430,6 +461,9 @@ export default function Home() {
                 kind="loading"
                 title="Understanding your photo"
                 description="USEIT is analyzing the image and preparing your next step."
+                actionLabel="CANCEL ANALYSIS"
+                actionAccessibilityHint="Stops the current image analysis and returns to the selected photo."
+                onAction={cancelAnalysis}
               />
               </FadeIn>
             ) : rendering ? (
@@ -438,6 +472,9 @@ export default function Home() {
                 kind="loading"
                 title="Creating your visual concept"
                 description="USEIT is preparing a visual version of the selected redesign."
+                actionLabel="CANCEL VISUAL CONCEPT"
+                actionAccessibilityHint="Returns to the selected solution."
+                onAction={cancelRedesign}
               />
               </FadeIn>
             ) : result ? (
@@ -515,7 +552,8 @@ export default function Home() {
                           title={x.title}
                           category={x.category}
                           source={x.source}
-                          price={typeof x.priceHuf === 'number' ? x.priceHuf : undefined}
+                          price={x.priceHuf ?? x.sourcePrice}
+                          currency={x.priceHuf !== undefined ? 'HUF' : x.currency ?? ''}
                           onPress={() => { void openProductLink(x.url); }}
                         />
                       ))}

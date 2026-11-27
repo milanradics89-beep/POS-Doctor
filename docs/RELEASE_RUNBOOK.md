@@ -1,4 +1,12 @@
-## Latest release checkpoint — 2026-11-13 18:49 CET
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:906a29ee81c2815ddc9a24544dbdb4e853f0d5d3baba4ef916046dc363bc42df -->
+
+## Historical release checkpoint — 2026-11-13 18:49 CET
+
+The PR-specific evidence below is historical. Use the [release register](RELEASE-REGISTER.md) for the current candidate and outstanding acceptance gates.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ### Pre-integration evidence for PR #41
 

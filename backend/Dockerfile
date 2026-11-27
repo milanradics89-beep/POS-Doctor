@@ -1,15 +1,15 @@
-FROM python:3.12-slim
+FROM python:3.12-slim@sha256:191083cdf6c7bda8c76158983163ead5d5cf7b77cf3033e805bb0f5296f51b4b
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    USEIT_ENV=production \
     PORT=8080
 
 WORKDIR /app
 
-COPY backend/requirements.txt /app/requirements.txt
-RUN python -m pip install --no-cache-dir --upgrade pip \
-    && python -m pip install --no-cache-dir -r /app/requirements.txt
+COPY backend/requirements-runtime.lock /app/requirements.lock
+RUN python -m pip install --no-cache-dir --require-hashes -r /app/requirements.lock
 
 RUN groupadd --system --gid 10001 useit \
     && useradd --system --uid 10001 --gid useit --home-dir /app --no-create-home useit \

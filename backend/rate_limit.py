@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hmac
+import hashlib
 import math
 import os
 import secrets
@@ -93,7 +95,12 @@ async def _redis_allowed(request: Request, limit: int, namespace: str = "rate") 
             socket_connect_timeout=2.0,
             socket_timeout=5.0,
         )
-    events_key = f"useit:{namespace}:{_client_key(request)}:events"
+    # Production already requires at least one stable private auth secret.
+    secret = os.getenv("USEIT_RATE_KEY_SECRET") or os.getenv("USEIT_SESSION_SECRET") or os.getenv("USEIT_API_KEY")
+    host = _client_key(request)
+    digest = (hmac.new(secret.encode(), host.encode(), hashlib.sha256).hexdigest()
+              if secret else hashlib.sha256(host.encode()).hexdigest())
+    events_key = f"useit:{namespace}:{digest}:events"
     sequence_key = f"{events_key}:sequence"
     try:
         result = await client.eval(
@@ -179,7 +186,23 @@ def install_rate_limit(app) -> None:
         limit = configured_session_rate_limit() if is_session or is_challenge else configured_rate_limit()
         namespace = "session-rate" if is_session else "challenge-rate" if is_challenge else "rate"
 
-        if rate_limit_mode() == "redis":
+        if request.method == "POST" and request.url.path in {"/v1/analyze", "/v1/useit/analyze", "/v1/redesign"}:
+            # A tighter threshold on the SAME rolling bucket preserves the total cap.
+            raw = os.getenv("USEIT_AI_RATE_LIMIT_PER_MINUTE")
+            if raw is not None:
+                try:
+                    limit = min(limit, max(1, int(raw)))
+                except ValueError:
+                    return JSONResponse(status_code=503, content={"detail": "Invalid AI quota configuration."})
+
+        if rate_limit_mode() == "firestore":
+            try:
+                allowed, retry_after = await request.app.state.firestore_state.allow(namespace, _client_key(request), limit)
+            except Exception:
+                return JSONResponse(status_code=503, content={"detail": "Rate limiting is temporarily unavailable."})
+            if not allowed:
+                return _limited_response(retry_after)
+        elif rate_limit_mode() == "redis":
             try:
                 allowed, retry_after = await _redis_allowed(request, limit, namespace)
             except Exception:

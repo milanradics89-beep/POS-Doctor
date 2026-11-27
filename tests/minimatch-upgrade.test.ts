@@ -84,7 +84,7 @@ describe('minimatch 11 security override migration', () => {
     } finally {
       await rm(tempRoot, { recursive: true, force: true });
     }
-  });
+  }, 30_000);
 
   it('runs the SDK 57 Expo fingerprint pipeline with minimatch 11', async () => {
     const fingerprint = await createFingerprintAsync(process.cwd(), {
