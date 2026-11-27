@@ -2,28 +2,31 @@
 
 Status: prepared for owner-operated verification. This document and its script do not provision resources, enable APIs, alter IAM, create secrets, change billing, or deploy the service.
 
-## Owner-specified project ID gate
+## Owner-confirmed project identity
 
-The only project identifier specified by the owner is the literal `useit`. Google
-Cloud project IDs must be 6–30 lowercase letters, digits or hyphens, begin with a
-letter, and not end with a hyphen ([official project ID requirements](https://docs.cloud.google.com/resource-manager/reference/rest/v1/projects)).
-The five-character value `useit` is therefore invalid.
+The owner-confirmed Google Cloud project is:
 
-Do not search by display name, list projects to infer a different ID, or substitute a
-historical project ID. The preflight script requires the exact owner-specified literal
-and then rejects it for invalid GCP syntax **before invoking any `gcloud` command**.
-No GCP project identity has been verified. Read-only inventory, staging, and deployment
-remain blocked until the owner explicitly updates the project-ID instruction to a
-valid existing ID. Do not create a replacement project.
+- Display name: `USEIT` (short label: `useit`)
+- Exact project ID: `useit-platform-2026`
+- Project number: `386862694550`
 
-The fail-closed guard can be verified without contacting Google Cloud:
+The display name and project ID are different fields. Use only the exact project ID
+above for USEIT; `fresh-weft-447913-u6` is explicitly excluded. Do not infer an ID from
+a display name or substitute a historical project.
+
+The preflight remains read-only. It verifies the supplied exact ID before invoking
+`gcloud` and does not create resources, enable APIs, alter IAM or billing, read secret
+payloads, or deploy. The project ID is owner-confirmed, but live project resources,
+billing/SKU eligibility, IAM and deployment readiness remain unverified.
+
+The fail-closed identity guard can be verified without contacting Google Cloud:
 
 ```bash
-USEIT_GCP_PROJECT_ID=useit bash scripts/gcp-readonly-preflight.sh
+USEIT_GCP_PROJECT_ID=useit-platform-2026 bash scripts/gcp-readonly-preflight.sh
 ```
 
-Expected result: a `BLOCKED` message explaining that `useit` is not a valid project ID;
-no `gcloud` command is executed. No alternative project ID is permitted.
+The script then performs read-only inventory only. Do not treat a successful identity
+check as authorization to provision or deploy.
 ## Run the read-only inventory
 
 Requirements: Google Cloud CLI, an interactively authenticated account with read access, and Bash 3.2 or newer (including the macOS system Bash).
