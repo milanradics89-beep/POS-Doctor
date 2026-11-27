@@ -29,7 +29,7 @@ function validateMobileApiConfig(value) {
     '.home', '.home.arpa', '.intranet', '.test', '.invalid',
     '.example', '.onion', '.arpa',
   ];
-  if (host === 'localhost' || localSuffixes.some((suffix) => host.endsWith(suffix)) || host === '0.0.0.0' || isIP(host)) {
+  if (!host.includes('.') || host === 'localhost' || localSuffixes.some((suffix) => host.endsWith(suffix)) || host === '0.0.0.0' || isIP(host)) {
     throw new Error('EXPO_PUBLIC_USEIT_API_URL must point to a deployed public hostname, not localhost or an IP address.');
   }
 
