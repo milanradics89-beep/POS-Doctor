@@ -12,16 +12,18 @@ The selected photo and current analysis context must be preserved when navigatin
 
 ## Canonical UI owners
 
-| Capability | Owner | Rule |
+| Capability | Current owner(s) | Rule |
 |---|---|---|
 | Brand and visual tokens | `src/ui/theme.ts`, `src/ui/components.tsx` | Extend shared owners; no parallel token palettes |
 | Home and capture entry | `app/index.tsx` | One dominant capture action; gallery is secondary |
-| Intent copy and mapping | `src/ui/resultModel.ts` and consumer intent domain | Six intents remain distinct: CREATE, IMPROVE, FIX, COOK, SHOP, SURPRISE |
-| Result presentation | `src/ui/PhotoResult.tsx` | Result layout follows selected intent; shared result primitives |
-| Image normalization and display | `src/core/intelligence/imageNormalization.ts` and shared image UI | Preserve orientation/aspect ratio and visual metadata; never silently crop |
-| Shared status and recovery | `src/ui/components.tsx` | Use shared StatePanel patterns; actionable recovery where possible |
+| Intent chooser labels and descriptions | `app/index.tsx` (`modes`) | Current literal owner; localize together with selected-state and accessibility copy |
+| Result intent labels and mapping | `src/ui/resultModel.ts`, consumer intent domain | Keep all six intents distinct: CREATE, IMPROVE, FIX, COOK, SHOP, SURPRISE |
+| Result presentation and concept comparison | `src/ui/PhotoResult.tsx` (`PhotoResult`, `PhotoComparison`) | Intent-specific result hierarchy; original/concept comparison must retain explicit image labels |
+| Selected-photo preview | `app/index.tsx` (`SelectedPhoto`) | Preserve source aspect ratio and orientation; use contain unless the user explicitly chooses a reversible crop |
+| Image preparation | `src/core/intelligence/imageNormalization.ts` | Normalize transport dimensions without silently changing the visible composition |
+| Shared status and recovery | `src/ui/components.tsx` | Use shared `StatePanel` patterns; actionable recovery where possible |
 
-If the current implementation conflicts with this map, inspect behavior and tests before moving ownership. Do not add an equivalent screen-local owner.
+These are the owners observed in the current source, not proof that the experience is complete. When a shared localization or image-display primitive is introduced, update this table in the same change and migrate all consumers; do not leave parallel sources of truth.
 
 ## Interaction contract
 
@@ -71,7 +73,7 @@ Every asynchronous screen must have intentional loading, success, empty, error, 
 - Use semantic roles, accessible names/hints, visible state, and logical focus order.
 - Support system reduced motion.
 - Maintain readable type and contrast; never communicate state through color alone.
-- Hungarian is the primary launch locale. User-facing strings, error copy, and accessibility labels must be localized consistently. No accidental English copy in a Hungarian flow.
+- Hungarian (`hu-HU`) is the primary launch locale and a blocking launch gate. Current English strings and the current `en-HU` request locale are known implementation gaps, not accepted fallbacks. User-facing strings, errors, and accessibility labels must be localized consistently before launch.
 - Respect safe areas, dynamic text where supported, and virtual keyboard behavior.
 
 ## Verification evidence
@@ -83,6 +85,7 @@ For every substantial UI change, attach or link:
 - Narrow and large viewport/device checks.
 - Accessibility and reduced-motion checks.
 - Visual regression results when Percy or equivalent is available.
-- Maestro end-to-end results for the changed journey when configured.
+- Maestro end-to-end results for the changed journey when configured. If Maestro is unavailable or unconfigured, require a recorded manual walkthrough of every changed action and recovery path, including the exact device/build used and observed outcome.
+- Representative photo-and-intent fixtures for all six intents. For each fixture, record the visible evidence in the source photo, why the result is relevant to that evidence, and how the result differs from the other intents. Generic output that could be produced without the photo or selected intent fails acceptance.
 
 A green build alone is not UI acceptance. A screenshot alone is not interaction acceptance.

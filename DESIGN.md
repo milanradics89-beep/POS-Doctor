@@ -12,7 +12,7 @@ The product's signature is the **Possibility Frame**: the user's photograph rema
 - Audience: ordinary people looking for useful, creative, practical ideas from objects, rooms, ingredients, and everyday scenes.
 - Primary context: one-handed use on a phone, often in a real room with variable lighting and connectivity.
 - Product language: plain, encouraging, specific. No developer terminology or generic AI hype.
-- Locale: Hungarian is the primary product language for the current launch; user-facing copy and accessibility labels must be localized consistently. Do not mix English labels into Hungarian flows.
+- Locale: Hungarian (`hu-HU`) is the primary launch locale. This is an explicit launch gate, not a statement that the current app is already localized. The current implementation still contains English user-facing and accessibility strings and sends `locale: 'en-HU'`; those gaps must be closed and verified before launch. No mixed-language flow may pass acceptance.
 
 ## Visual direction
 
