@@ -79,13 +79,18 @@ Required Cloud Run state configuration:
 - `USEIT_ENV=production`
 - `USEIT_RATE_LIMIT_MODE=firestore`
 - `USEIT_IDEMPOTENCY_MODE=firestore`
-- `USEIT_FIRESTORE_PROJECT_ID` set to the exact ID of the already-existing Google
-  Cloud project whose **display name is USEIT**, or use the explicitly configured
-  `GOOGLE_CLOUD_PROJECT` for that same project. Do not select or use any other project.
+- No Cloud Run project ID is currently usable under the owner instruction. The only
+  specified literal is `useit`, which is not a valid Google Cloud project ID (five
+  characters; the minimum is six). Do not set `USEIT_FIRESTORE_PROJECT_ID` or
+  `GOOGLE_CLOUD_PROJECT` to a different project ID, and do not infer an ID from a
+  display name. Cloud Run remains blocked.
 - `USEIT_IDEMPOTENCY_SECRET` containing at least 32 UTF-8 bytes, stable across all
   Cloud Run instances and stored server-side only.
 - `USEIT_IDEMPOTENCY_TTL_SECONDS` within the supported 60–3600 second range
   (default 600) where a non-default policy is approved.
+- `USEIT_AI_DAILY_UNITS` explicitly set to an owner-approved integer from 0 to
+  1,000,000 before Cloud Run startup. `0` pauses paid provider work; reservations are
+  consumed before dispatch (one unit per vision request and five per image edit).
 - `USEIT_REDIS_URL` unset for the Firestore deployment path.
 - `FIRESTORE_EMULATOR_HOST` unset in production.
 
@@ -105,12 +110,17 @@ The shared Firestore state uses these collections:
 - `useit_state_v1`: cross-instance rate-limit/budget state, attestation challenges and
   Apple App Attest key/counter state.
 
-Configure Firestore TTL on the `expires_at` field for **both**
-`analysis_idempotency_v1` and `useit_state_v1`, as described in the
-[release register](../docs/RELEASE-REGISTER.md). TTL is cleanup, not the correctness
-boundary: application transactions still check expiry. Apple enrollment records have
-no TTL. Database creation, TTL policy changes, IAM, billing and paid API enablement
-are owner-approved cloud operations, not side effects of this repository or CI.
+Configure TTL on `expires_at` for `useit_state_v1` only. For an existing
+`analysis_idempotency_v1` collection, keep TTL **disabled** until the release-register
+migration gate is complete: disable any existing policy before deploying the new
+version, drain every old writer, deploy the new code, run the metadata-only migration
+dry-run, apply only after explicit operator confirmation, rerun dry-run and require
+zero candidates, then re-enable TTL. Only `completed` (and bounded `health_probe`)
+records may carry `expires_at`; `processing`, `outcome_unknown`, and unknown/corrupt
+claims must never expire automatically. Follow the exact steps in the
+[release register](../docs/RELEASE-REGISTER.md). Apple enrollment records have no TTL.
+Database creation, TTL policy changes, IAM, billing and paid API enablement are
+owner-approved cloud operations, not side effects of this repository or CI.
 
 ### SQLite-backed capabilities
 
@@ -129,13 +139,13 @@ requires a separately tested migration/re-enrollment plan, drain, rollback and o
 
 ### GCP project selection and deployment gate
 
-Only the existing Google Cloud project with the display name **USEIT** is in scope.
-The display name is not a project ID. Discover its exact project ID and project number
-using the read-only procedure in [GCP-PREFLIGHT.md](../docs/GCP-PREFLIGHT.md); that
-procedure checks that the supplied project ID resolves to a project named USEIT before
-inventorying it. If the result is missing or ambiguous, stop. Do not guess an ID, use
-another project, create a replacement project, change IAM or billing, enable paid
-services, create secrets, or deploy without the relevant explicit approval.
+The only owner-specified GCP project ID is the literal `useit`. Google Cloud rejects
+that five-character value because project IDs must be at least six characters. Do not
+search for a project by display name, infer a different ID, or use a historical project
+ID. The read-only preflight deliberately stops before invoking `gcloud`; GCP inventory,
+Cloud Run staging, and deployment remain blocked until the owner explicitly changes
+the project-ID instruction. Do not create a replacement project or change IAM, billing,
+services, secrets, or deployments.
 
 Staging remains gated on exact project identity, approved billing/SKU eligibility,
 region and cost limits, least-privilege WIF/runtime IAM, Firestore database and TTL

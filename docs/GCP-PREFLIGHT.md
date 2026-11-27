@@ -2,33 +2,28 @@
 
 Status: prepared for owner-operated verification. This document and its script do not provision resources, enable APIs, alter IAM, create secrets, change billing, or deploy the service.
 
-## Owner-selected project and exact ID gate
+## Owner-specified project ID gate
 
-Only the existing Google Cloud project whose **display name is exactly `USEIT`** is in
-scope. The display name is not a project ID, and the ID must not be guessed from it.
-Do not query, select, or operate on another project.
+The only project identifier specified by the owner is the literal `useit`. Google
+Cloud project IDs must be 6–30 lowercase letters, digits or hyphens, begin with a
+letter, and not end with a hyphen ([official project ID requirements](https://docs.cloud.google.com/resource-manager/reference/rest/v1/projects)).
+The five-character value `useit` is therefore invalid.
 
-First list only active projects with that exact display name:
+Do not search by display name, list projects to infer a different ID, or substitute a
+historical project ID. The preflight script requires the exact owner-specified literal
+and then rejects it for invalid GCP syntax **before invoking any `gcloud` command**.
+No GCP project identity has been verified. Read-only inventory, staging, and deployment
+remain blocked until the owner explicitly updates the project-ID instruction to a
+valid existing ID. Do not create a replacement project.
+
+The fail-closed guard can be verified without contacting Google Cloud:
 
 ```bash
-gcloud projects list --filter='name=USEIT AND lifecycleState=ACTIVE' --format='table(projectId,projectNumber,name,lifecycleState)'
+USEIT_GCP_PROJECT_ID=useit bash scripts/gcp-readonly-preflight.sh
 ```
 
-This is a read-only metadata query. Continue only when it identifies exactly one
-accessible active project named `USEIT`. Record its exact `projectId` and
-`projectNumber`; if no project or more than one project is returned, stop and resolve
-the ambiguity without guessing.
-
-Google Cloud project IDs are 6–30 lowercase letters, digits or hyphens, begin with a
-letter, and do not end with a hyphen ([official project ID requirements](https://docs.cloud.google.com/resource-manager/reference/rest/v1/projects)).
-The display name `USEIT` may therefore differ from the valid project ID.
-
-The read-only script requires the exact ID in `USEIT_GCP_PROJECT_ID`. Before the
-inventory it calls `gcloud projects describe` and fails closed unless the returned
-project display name is exactly `USEIT`. It never silently substitutes another project.
-
-Set `USEIT_GCP_PROJECT_ID` to the exact ID discovered above. There is no default.
-An empty or invalid ID stops the script before any gcloud call.
+Expected result: a `BLOCKED` message explaining that `useit` is not a valid project ID;
+no `gcloud` command is executed. No alternative project ID is permitted.
 ## Run the read-only inventory
 
 Requirements: Google Cloud CLI, an interactively authenticated account with read access, and Bash 3.2 or newer (including the macOS system Bash).
@@ -50,6 +45,8 @@ The script reads project metadata, billing linkage, enabled APIs, Firestore data
 It never reads secret versions or secret payloads. It does not call create, enable, deploy, IAM mutation, budget mutation, Terraform apply, or Terraform destroy commands. Failed read-only calls are reported as unverified and produce a non-zero exit status.
 
 ## Required owner Console checks
+
+These checks are not actionable under the current invalid `useit` project-ID constraint. Do not proceed by selecting a project with a matching display name or by substituting another ID. They become applicable only after the owner explicitly updates the project-ID instruction.
 
 <!-- coderabbit-ai-generated:v1 -->
 

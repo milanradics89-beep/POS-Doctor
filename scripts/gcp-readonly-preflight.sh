@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly OWNER_PROJECT_NAME="USEIT"
+readonly OWNER_PROJECT_ID="useit"
 readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"
 READ_FAILURES=0
 
@@ -10,8 +10,12 @@ fail() {
   exit "${2:-2}"
 }
 
+if [[ "$PROJECT_ID" != "$OWNER_PROJECT_ID" ]]; then
+  fail "Only the owner-specified project ID 'useit' is permitted. Do not substitute another project ID. No gcloud command was executed." 2
+fi
+
 if [[ ! "$PROJECT_ID" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]; then
-  fail "The supplied project ID '${PROJECT_ID}' is invalid: Google Cloud project IDs must be 6 to 30 lowercase letters, digits or hyphens, start with a letter, and not end with a hyphen. No gcloud command was executed. Do not substitute another project ID." 2
+  fail "The owner-specified project ID 'useit' is invalid: Google Cloud project IDs must be 6 to 30 lowercase letters, digits or hyphens, start with a letter, and not end with a hyphen. No gcloud command was executed. Do not substitute another project ID." 2
 fi
 
 run_inventory() {
@@ -35,13 +39,8 @@ done < <(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/de
 [[ ${#ACTIVE_ACCOUNTS[@]} -gt 0 ]] || fail "No active gcloud credential. Authenticate interactively, then rerun this read-only preflight."
 [[ -n "${ACTIVE_ACCOUNTS[0]}" ]] || fail "No active gcloud credential. Authenticate interactively, then rerun this read-only preflight."
 
-PROJECT_NAME="$(gcloud projects describe "$PROJECT_ID" --format='value(name)' 2>/dev/null || true)"
-if [[ "$PROJECT_NAME" != "$OWNER_PROJECT_NAME" ]]; then
-  fail "The supplied project ID does not resolve to the owner-selected project display name USEIT. No inventory or changes were performed." 2
-fi
-
 printf 'USEIT GCP READ-ONLY PREFLIGHT\n'
-printf 'Owner-selected project display name: %s\n' "$OWNER_PROJECT_NAME"
+printf 'Owner-specified project ID: %s\n' "$OWNER_PROJECT_ID"
 printf 'Agreed USEIT target project ID: %s\n' "$PROJECT_ID"
 printf 'Active account: %s\n' "${ACTIVE_ACCOUNTS[0]}"
 printf 'Configured gcloud project: '
