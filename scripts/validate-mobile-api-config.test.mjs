@@ -45,18 +45,33 @@ function createRequestMock(responses) {
   return { requestImpl, requests };
 }
 
-function createResolverFactory({ ipv4 = [], ipv6 = [], errors = {}, pending = false } = {}) {
+function createResolverFactory({
+  ipv4 = [],
+  ipv6 = [],
+  errors = {},
+  pending = false,
+  cancelRejects = false,
+} = {}) {
   const instances = [];
   const resolverFactory = vi.fn(function createResolver() {
+    const pendingRejectors = [];
     const resolve = (family) => {
-      if (pending) return new Promise(() => {});
+      if (pending) {
+        return new Promise((resolvePending, rejectPending) => {
+          pendingRejectors.push(rejectPending);
+        });
+      }
       if (errors[family]) return Promise.reject(errors[family]);
       return Promise.resolve(family === 'ipv4' ? ipv4 : ipv6);
     };
     const resolver = {
       resolve4: vi.fn(() => resolve('ipv4')),
       resolve6: vi.fn(() => resolve('ipv6')),
-      cancel: vi.fn(),
+      cancel: vi.fn(function cancelPendingQueries() {
+        if (!cancelRejects) return;
+        const cancellation = Object.assign(new Error('query cancelled'), { code: 'ECANCELLED' });
+        pendingRejectors.splice(0).forEach((rejectPending) => rejectPending(cancellation));
+      }),
     };
     instances.push(resolver);
     return resolver;
@@ -191,7 +206,7 @@ describe('public DNS address validation', () => {
   });
 
   it('cancels outstanding DNS queries when the DNS deadline expires', async () => {
-    const { resolverFactory, instances } = createResolverFactory({ pending: true });
+    const { resolverFactory, instances } = createResolverFactory({ pending: true, cancelRejects: true });
     await expect(resolvePublicAddresses('api.useit.com', resolverFactory, 25))
       .rejects.toThrow('DNS resolution exceeded its total time limit.');
     expect(instances).toHaveLength(1);
