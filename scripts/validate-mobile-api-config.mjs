@@ -1,4 +1,4 @@
-import { lookup } from 'node:dns/promises';
+import { Resolver } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { request as httpsRequest } from 'node:https';
 
