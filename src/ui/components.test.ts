@@ -82,6 +82,10 @@ describe('USEIT shared component accessibility', () => {
     expect(source).not.toContain('accessible={true}');
   });
 
+  it('keeps recovery action text readable at a minimum of 12sp', () => {
+    expect(source).toContain('stateActionText: { color: theme.colors.surface, fontSize: 12, lineHeight: 16');
+  });
+
   it('respects the system reduced-motion preference and live preference changes', () => {
     expect(source).toContain("useState<boolean | null>(null)");
     expect(source).toContain("AccessibilityInfo.isReduceMotionEnabled()");

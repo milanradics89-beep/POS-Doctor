@@ -199,5 +199,5 @@ const styles = StyleSheet.create({
   stateTitle: { color: theme.colors.ink, fontSize: 17, fontWeight: '800', marginTop: 15, textAlign: 'center' },
   stateDescription: { color: theme.colors.muted, fontSize: 12, lineHeight: 19, textAlign: 'center', marginTop: 7 },
   stateAction: { marginTop: 17, backgroundColor: theme.colors.ink, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 13 },
-  stateActionText: { color: theme.colors.surface, fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  stateActionText: { color: theme.colors.surface, fontSize: 12, lineHeight: 16, fontWeight: '900', letterSpacing: 0.5 },
 });
