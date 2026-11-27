@@ -84,7 +84,7 @@ describe('USEIT GCP read-only preflight', () => {
     const syntax = /^([a-z][a-z0-9-]{4,28}[a-z0-9])$/;
     expect(syntax.test('useit-platform-2026')).toBe(true);
     expect(syntax.test('useit')).toBe(false);
-    expect(script).toContain('Google Cloud project IDs must be 6 to 30 lowercase letters');
+    expect(script).toContain('Google Cloud project ID syntax: IDs must be 6 to 30 lowercase letters');
     const syntaxGuard = script.indexOf('if [[ ! "$PROJECT_ID" =~');
     expect(syntaxGuard).toBeLessThan(script.indexOf('command -v gcloud'));
   });
