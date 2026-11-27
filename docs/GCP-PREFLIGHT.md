@@ -35,13 +35,13 @@ Requirements: Google Cloud CLI, an interactively authenticated account with read
 
 <!-- coderabbit-ai-generated-section:v1:e2a5a30c200e8aaea29ad79568f2562be3ec37198856bd034313a3ec3acda762 -->
 
-    USEIT_GCP_PROJECT_ID=OWNER_CONFIRMED_PROJECT_ID bash scripts/gcp-readonly-preflight.sh
+    USEIT_GCP_PROJECT_ID=useit-platform-2026 bash scripts/gcp-readonly-preflight.sh
 
 <!-- /coderabbit-ai-generated:v1 -->
 
 If a region has already been selected and approved, set it explicitly:
 
-    USEIT_GCP_PROJECT_ID=OWNER_CONFIRMED_PROJECT_ID USEIT_GCP_REGION=YOUR_APPROVED_REGION bash scripts/gcp-readonly-preflight.sh
+    USEIT_GCP_PROJECT_ID=useit-platform-2026 USEIT_GCP_REGION=YOUR_APPROVED_REGION bash scripts/gcp-readonly-preflight.sh
 
 The script reads project metadata, billing linkage, enabled APIs, Firestore databases, Secret Manager secret names, Workload Identity Federation pools, Artifact Registry repositories, Logging sinks, Monitoring notification channels, and (only when a region is supplied) Cloud Run services.
 
@@ -55,7 +55,7 @@ The exact project identity is owner-confirmed as `useit-platform-2026` (project 
 
 <!-- coderabbit-ai-generated-section:v1:65b25564decb9f908b5e0d3ac1ce1818835379620d58ead46ab4a1884d0e375a -->
 
-1. Select the approved existing project and confirm its actual ID, number and lifecycle state.
+1. Select the existing `USEIT` project; confirm project ID `useit-platform-2026`, project number `386862694550`, and lifecycle state.
 
 <!-- /coderabbit-ai-generated:v1 -->
 2. Open Billing > My projects. Confirm the linked billing account and who is financially responsible.
