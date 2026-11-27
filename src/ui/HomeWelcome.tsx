@@ -11,7 +11,7 @@ type Props = {
   noticePanel: React.ReactNode;
 };
 
-function ExampleIllustration({ variant }: { variant: 0 | 1 | 2 }) {
+function ExampleIllustration({ variant, label }: { variant: 0 | 1 | 2; label: string }) {
   return (
     <View
       accessibilityElementsHidden
@@ -29,7 +29,7 @@ function ExampleIllustration({ variant }: { variant: 0 | 1 | 2 }) {
             <View style={[styles.foodItem, styles.foodLeaf]} />
             <View style={styles.fridgeHandle} />
           </View>
-          <View style={styles.sceneTag}><Text style={styles.sceneTagText}>KONYHA</Text></View>
+          <View style={styles.sceneTag}><Text style={styles.sceneTagText}>{label}</Text></View>
         </>
       ) : variant === 1 ? (
         <>
@@ -43,7 +43,7 @@ function ExampleIllustration({ variant }: { variant: 0 | 1 | 2 }) {
           <View style={styles.roomPlantLeaf} />
           <View style={styles.roomLampShade} />
           <View style={styles.roomLampStem} />
-          <View style={styles.sceneTag}><Text style={styles.sceneTagText}>OTTHON</Text></View>
+          <View style={styles.sceneTag}><Text style={styles.sceneTagText}>{label}</Text></View>
         </>
       ) : (
         <>
@@ -55,7 +55,7 @@ function ExampleIllustration({ variant }: { variant: 0 | 1 | 2 }) {
             <View style={styles.toolWrenchGrip} />
             <View style={styles.toolBolt} />
           </View>
-          <View style={styles.sceneTag}><Text style={styles.sceneTagText}>JAVÍTÁS</Text></View>
+          <View style={styles.sceneTag}><Text style={styles.sceneTagText}>{label}</Text></View>
         </>
       )}
     </View>
@@ -92,7 +92,7 @@ export function HomeWelcome({ capture, chooseGallery, noticePanel }: Props) {
         style={({ pressed }) => [styles.captureCard, pressed && styles.capturePressed]}
       >
         <View style={styles.captureHeader}>
-          <Text style={styles.captureEyebrow}>01  /  INDULÁS</Text>
+          <Text style={styles.captureEyebrow}>{hu.home.captureEyebrow}</Text>
           <Text style={styles.captureArrow}>↗</Text>
         </View>
         <View style={styles.possibilityFrame}>
@@ -108,7 +108,7 @@ export function HomeWelcome({ capture, chooseGallery, noticePanel }: Props) {
         <Text style={styles.captureTitle}>{hu.home.captureTitle}</Text>
         <Text style={styles.captureHint}>{hu.home.captureHint}</Text>
         <View style={styles.captureFooter}>
-          <Text style={styles.captureFooterText}>FOTÓ → FELFEDEZÉS → CSELEKVÉS</Text>
+          <Text style={styles.captureFooterText}>{hu.home.captureFooter}</Text>
           <View style={styles.captureFooterMark}><Text style={styles.captureFooterArrow}>→</Text></View>
         </View>
       </Pressable>
@@ -143,7 +143,7 @@ export function HomeWelcome({ capture, chooseGallery, noticePanel }: Props) {
         <View style={styles.exampleGrid}>
           {hu.home.examples.map((item, index) => (
             <View key={item.title} style={[styles.example, index === 0 && styles.exampleWide]}>
-              <ExampleIllustration variant={index as 0 | 1 | 2} />
+              <ExampleIllustration variant={index as 0 | 1 | 2} label={hu.home.sceneTags[index]} />
               <Text style={styles.exampleNumber}>{String(index + 1).padStart(2, '0')}</Text>
               <Text style={styles.exampleTitle}>{item.title}</Text>
               <Text style={styles.exampleDescription}>{item.description}</Text>
@@ -169,15 +169,15 @@ const styles = StyleSheet.create({
   logo: { color: theme.colors.ink, fontSize: 24, lineHeight: 28, fontWeight: '900', letterSpacing: -1.4 },
   brandNote: { flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.line, paddingHorizontal: 10, paddingVertical: 7 },
   brandDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.accentDark },
-  brandNoteText: { color: theme.colors.muted, fontSize: 9, letterSpacing: 0.8, fontWeight: '800' },
+  brandNoteText: { color: theme.colors.muted, fontSize: 11, letterSpacing: 0.5, fontWeight: '800' },
   heroBlock: { gap: 10, paddingTop: 8 },
-  kicker: { color: theme.colors.accentDark, fontSize: 10, fontWeight: '900', letterSpacing: 1.6 },
+  kicker: { color: theme.colors.accentDark, fontSize: 11, fontWeight: '900', letterSpacing: 1.2 },
   hero: { color: theme.colors.ink, fontSize: 48, lineHeight: 52, fontWeight: '900', letterSpacing: -2.7 },
   description: { color: theme.colors.muted, fontSize: 16, lineHeight: 24, maxWidth: 460 },
   captureCard: { backgroundColor: theme.colors.ink, borderRadius: 28, padding: 22, borderWidth: 1, borderColor: theme.colors.ink, overflow: 'hidden' },
   capturePressed: { opacity: 0.88, transform: [{ scale: 0.992 }] },
   captureHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  captureEyebrow: { color: theme.colors.captureTextMuted, fontSize: 10, letterSpacing: 1.4, fontWeight: '800' },
+  captureEyebrow: { color: theme.colors.captureTextMuted, fontSize: 11, letterSpacing: 1, fontWeight: '800' },
   captureArrow: { color: theme.colors.accent, fontSize: 21, fontWeight: '700' },
   possibilityFrame: { width: 110, height: 92, alignSelf: 'center', marginTop: 13, marginBottom: 15, alignItems: 'center', justifyContent: 'center' },
   frameCorner: { position: 'absolute', width: 20, height: 20, borderColor: theme.colors.accent, borderWidth: 2 },
@@ -189,9 +189,9 @@ const styles = StyleSheet.create({
   cameraLensInner: { width: 22, height: 22, borderRadius: 11, backgroundColor: theme.colors.accent },
   frameSpark: { position: 'absolute', right: 17, top: 15, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.accent },
   captureTitle: { color: theme.colors.surface, fontSize: 22, lineHeight: 28, fontWeight: '900', textAlign: 'center' },
-  captureHint: { color: theme.colors.captureTextMuted, fontSize: 13, lineHeight: 19, marginTop: 3, textAlign: 'center' },
+  captureHint: { color: theme.colors.captureTextMuted, fontSize: 14, lineHeight: 20, marginTop: 3, textAlign: 'center' },
   captureFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#424B43' },
-  captureFooterText: { color: theme.colors.captureTextMuted, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  captureFooterText: { color: theme.colors.captureTextMuted, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, flexShrink: 1 },
   captureFooterMark: { width: 29, height: 29, borderRadius: 15, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' },
   captureFooterArrow: { color: theme.colors.ink, fontSize: 16, fontWeight: '900' },
   galleryCard: { minHeight: 78, flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: theme.colors.surface, borderRadius: 20, borderWidth: 1, borderColor: theme.colors.line, padding: 15 },
@@ -200,16 +200,16 @@ const styles = StyleSheet.create({
   galleryGlyph: { color: theme.colors.ink, fontSize: 23 },
   galleryCopy: { flex: 1, minWidth: 0, gap: 3 },
   galleryTitle: { color: theme.colors.ink, fontSize: 15, fontWeight: '800' },
-  galleryHint: { color: theme.colors.muted, fontSize: 12, lineHeight: 17 },
+  galleryHint: { color: theme.colors.muted, fontSize: 13, lineHeight: 18 },
   galleryArrow: { color: theme.colors.subtle, fontSize: 20, fontWeight: '700' },
   privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 2 },
   privacyMark: { width: 23, height: 23, borderRadius: 8, backgroundColor: theme.colors.mint, alignItems: 'center', justifyContent: 'center' },
   privacyGlyph: { color: theme.colors.accentDark, fontSize: 15, fontWeight: '800' },
-  privacyText: { color: theme.colors.muted, flex: 1, fontSize: 11, lineHeight: 17 },
+  privacyText: { color: theme.colors.muted, flex: 1, fontSize: 12, lineHeight: 18 },
   examplesSection: { gap: 13, marginTop: 2 },
   sectionHeader: { gap: 5 },
   sectionTitle: { color: theme.colors.ink, fontSize: 21, lineHeight: 26, fontWeight: '900', letterSpacing: -0.6 },
-  sectionMeta: { color: theme.colors.accentDark, fontSize: 9, letterSpacing: 1.1, fontWeight: '900' },
+  sectionMeta: { color: theme.colors.accentDark, fontSize: 11, letterSpacing: 0.7, fontWeight: '900' },
   exampleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
   example: { flexGrow: 1, flexBasis: '47%', minWidth: 140, backgroundColor: theme.colors.surface, borderRadius: 19, padding: 12, borderWidth: 1, borderColor: theme.colors.line, gap: 7 },
   scene: { width: '100%', height: 104, borderRadius: 13, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
@@ -245,12 +245,12 @@ const styles = StyleSheet.create({
   toolWrenchGrip: { position: 'absolute', bottom: 11, right: 31, width: 17, height: 8, borderRadius: 4, backgroundColor: '#6F817B', transform: [{ rotate: '38deg' }] },
   toolBolt: { position: 'absolute', top: 15, left: 20, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.accentDark },
   sceneTag: { position: 'absolute', bottom: 7, right: 7, borderRadius: theme.radius.pill, backgroundColor: 'rgba(255,255,255,0.78)', paddingHorizontal: 8, paddingVertical: 4 },
-  sceneTagText: { color: theme.colors.ink, fontSize: 8, fontWeight: '900', letterSpacing: 1.1 },
+  sceneTagText: { color: theme.colors.ink, fontSize: 10, fontWeight: '900', letterSpacing: 0.7 },
   exampleWide: { flexBasis: '100%' },
-  exampleNumber: { color: theme.colors.accentDark, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  exampleNumber: { color: theme.colors.accentDark, fontSize: 11, fontWeight: '900', letterSpacing: 0.8 },
   exampleTitle: { color: theme.colors.ink, fontSize: 15, lineHeight: 19, fontWeight: '800' },
   exampleDescription: { color: theme.colors.muted, fontSize: 12, lineHeight: 18 },
   intentChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 4 },
   intentChip: { borderWidth: 1, borderColor: theme.colors.line, borderRadius: theme.radius.pill, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: theme.colors.surface },
-  intentChipText: { color: theme.colors.muted, fontSize: 10, fontWeight: '700' },
+  intentChipText: { color: theme.colors.muted, fontSize: 11, fontWeight: '700' },
 });
