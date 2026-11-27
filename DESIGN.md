@@ -12,13 +12,20 @@ The product's signature is the **Possibility Frame**: the user's photograph rema
 - Audience: ordinary people looking for useful, creative, practical ideas from objects, rooms, ingredients, and everyday scenes.
 - Primary context: one-handed use on a phone, often in a real room with variable lighting and connectivity.
 - Product language: plain, encouraging, specific. No developer terminology or generic AI hype.
-- Locale: Hungarian (`hu-HU`) is the primary launch locale. This is an explicit launch gate, not a statement that the current app is already localized. The current implementation still contains English user-facing and accessibility strings and sends `locale: 'en-HU'`; those gaps must be closed and verified before launch. No mixed-language flow may pass acceptance.
+- Locale: Hungarian (`hu-HU`) is the primary launch locale. The app boundary and current Home, chooser, picker, recovery, result, product and accessibility copy now use the shared `src/i18n/hu.ts` catalog, and analysis requests send `hu-HU`. This is implementation progress, not proof of complete localization: all routes, dynamic backend-provided copy, accessibility output and every error/recovery state still require an exhaustive mixed-language audit and Android/iOS verification before launch.
 
 ## Localization ownership and launch gate
 
-The launch locale is exactly `hu-HU`; `en-HU` is not an accepted locale or fallback. Current user-facing copy is split across legacy owners: Home and chooser descriptions in `app/index.tsx`, intent/result labels in `src/ui/resultModel.ts`, and result-screen copy in `src/ui/PhotoResult.tsx`. These are current implementation locations, not the target architecture.
+The launch locale is exactly `hu-HU`; `en-HU` is not an accepted locale or fallback. The initial canonical catalog is implemented in `src/i18n/hu.ts`. Current ownership is:
 
-The target is one typed locale catalog under `src/i18n/`. Screen components must consume typed localization keys rather than define user-facing literals. Resolve the selected locale once at the app boundary and send the same `hu-HU` value to `/v1/useit/analyze`. Treat this catalog as a required future implementation, not as something this documentation PR has already delivered. Acceptance requires complete Hungarian coverage for visible copy, errors, accessibility labels/hints and all recovery states, plus tests proving no mixed-language path remains.
+- Home editorial content and examples: `src/ui/HomeWelcome.tsx`.
+- Canonical chooser/result intent copy: `hu.intents.modes`, consumed by `src/ui/resultModel.ts` and the chooser in `app/index.tsx`.
+- Camera/gallery permission, loading, cancellation and recovery copy: `hu.picker` and `hu.flow`, consumed at the app boundary in `app/index.tsx`.
+- Result, refinement, product discovery and comparison copy: `hu.result`, consumed by `src/ui/PhotoResult.tsx`.
+- Product-card accessibility and product labels: `hu.product`, consumed by `src/ui/productAccessibility.ts` and shared UI components.
+- The same `hu.locale` value is sent to `/v1/useit/analyze`.
+
+The catalog is the only owner for shipped Hungarian UI copy; components must not add duplicate local translations. Dynamic backend-generated content still requires output-language, safety and mixed-language verification. Acceptance requires exhaustive coverage of visible copy, errors, accessibility labels/hints and all recovery states on Android and iOS; the existence of a catalog alone is not localization acceptance.
 
 ## Visual direction
 
