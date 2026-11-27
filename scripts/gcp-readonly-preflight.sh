@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly OWNER_PROJECT_ID="useit"
+readonly OWNER_PROJECT_ID="useit-platform-2026"
 readonly PROJECT_ID="${USEIT_GCP_PROJECT_ID:-}"
 READ_FAILURES=0
 
@@ -11,11 +11,11 @@ fail() {
 }
 
 if [[ "$PROJECT_ID" != "$OWNER_PROJECT_ID" ]]; then
-  fail "Only the owner-specified project ID 'useit' is permitted. Do not substitute another project ID. No gcloud command was executed." 2
+  fail "Only the owner-specified project ID 'useit-platform-2026' is permitted. Do not substitute another project ID. No gcloud command was executed." 2
 fi
 
 if [[ ! "$PROJECT_ID" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]; then
-  fail "The owner-specified project ID 'useit' is invalid: Google Cloud project IDs must be 6 to 30 lowercase letters, digits or hyphens, start with a letter, and not end with a hyphen. No gcloud command was executed. Do not substitute another project ID." 2
+  fail "The owner-specified project ID 'useit-platform-2026' is invalid: Google Cloud project IDs must be 6 to 30 lowercase letters, digits or hyphens, start with a letter, and not end with a hyphen. No gcloud command was executed. Do not substitute another project ID." 2
 fi
 
 run_inventory() {
