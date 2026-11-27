@@ -1,10 +1,11 @@
 """Instance-independent security state for new Firestore deployments."""
+import asyncio
 import hashlib
 import hmac
 import math
 from datetime import datetime, timedelta, timezone
 
-from google.api_core.exceptions import AlreadyExists
+from google.api_core.exceptions import AlreadyExists, FailedPrecondition, NotFound
 from google.cloud.firestore_v1.async_transaction import async_transactional
 
 from backend.idempotency_store import FirestoreIdempotencyStore
@@ -52,18 +53,30 @@ class FirestoreState:
     async def allow(self, namespace, host, limit):
         ref = self.reference("quota:" + namespace, host)
 
-        @async_transactional
-        async def admit(tx):
-            snap = await ref.get(transaction=tx)
+        # Compare-and-swap avoids two readers holding transactions open while
+        # both try to upgrade to a write lock on the same hot bucket.
+        for attempt in range(5):
+            snap = await ref.get()
             now = snap.read_time
             cutoff = now - timedelta(seconds=60)
             recent = [t for t in (snap.to_dict() or {}).get("events", []) if t > cutoff]
             if len(recent) >= limit:
                 return False, max(1, math.ceil((recent[0] - cutoff).total_seconds()))
-            tx.set(ref, {"events": [*recent, now], "expires_at": now + timedelta(seconds=60)})
-            return True, 0
-
-        return await admit(self.client.transaction())
+            bucket = {"events": [*recent, now], "expires_at": now + timedelta(seconds=60)}
+            try:
+                if snap.exists:
+                    version = self.client.write_option(last_update_time=snap.update_time)
+                    await ref.update(bucket, option=version, retry=None)
+                else:
+                    await ref.create(bucket, retry=None)
+            except (AlreadyExists, FailedPrecondition, NotFound):
+                # Another writer won or TTL removed the old version. Only
+                # retry definite conflicts, never an ambiguous write failure.
+                if attempt == 4:
+                    raise
+                await asyncio.sleep(0.01 * 2**attempt)
+            else:
+                return True, 0
 
     async def reserve_daily(self, limit: int, units: int) -> bool:
         if units <= 0 or limit < 0:

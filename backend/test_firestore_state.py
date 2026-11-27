@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from google.cloud.firestore_v1.async_client import AsyncClient
+from google.cloud.firestore_v1.async_document import AsyncDocumentReference
 
 from backend.attestation import AttestationProvider
 from backend.firestore_state import FirestoreState
@@ -55,6 +56,46 @@ async def test_shared_budget_reserves_before_dispatch_and_resets_by_utc_day():
         await ref.update({"day": "2000-01-01"})
         assert await b.reserve_daily(5, 1)
         assert (await ref.get()).get("used") == 1
+    finally:
+        await ref.delete()
+        for client in clients:
+            client.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("existing", [False, True])
+async def test_quota_bucket_keeps_both_racing_admissions(monkeypatch, existing):
+    if not os.getenv("FIRESTORE_EMULATOR_HOST"):
+        pytest.skip("requires local Firestore emulator")
+    clients = [AsyncClient(project="useit-test") for _ in range(2)]
+    a, b = [FirestoreState(c, "test-secret-" * 4) for c in clients]
+    key = uuid.uuid4().hex
+    ref = a.reference("quota:rate", key)
+    try:
+        # Include an expired event to exercise pruning on the update path.
+        if existing:
+            await ref.create({"events": [datetime.now(timezone.utc) - timedelta(minutes=2)]})
+        # Force both clients to see the same initial snapshot before either
+        # may write. All reads and conditional writes still use the emulator.
+        barrier = asyncio.Barrier(2)
+        get = AsyncDocumentReference.get
+        first_reads = 0
+
+        async def synchronized_get(doc, *args, **kwargs):
+            nonlocal first_reads
+            snapshot = await get(doc, *args, **kwargs)
+            if doc.path == ref.path and first_reads < 2:
+                first_reads += 1
+                await asyncio.wait_for(barrier.wait(), timeout=5)
+            return snapshot
+
+        monkeypatch.setattr(AsyncDocumentReference, "get", synchronized_get)
+        assert await asyncio.gather(a.allow("rate", key, 2), b.allow("rate", key, 2)) == [
+            (True, 0), (True, 0),
+        ]
+        assert len((await ref.get()).get("events")) == 2
+        allowed, retry_after = await b.allow("rate", key, 2)
+        assert not allowed and 1 <= retry_after <= 60
     finally:
         await ref.delete()
         for client in clients:
