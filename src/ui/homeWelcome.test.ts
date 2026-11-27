@@ -37,7 +37,7 @@ describe('HomeWelcome localization and legibility contract', () => {
       "kicker: { color: theme.colors.accentDark, fontSize: 11",
       "captureEyebrow: { color: theme.colors.captureTextMuted, fontSize: 11",
       "captureFooterText: { color: theme.colors.captureTextMuted, fontSize: 11",
-      "sceneTagText: { color: theme.colors.ink, fontSize: 10",
+      "sceneTagText: { color: theme.colors.ink, fontSize: 11",
       "sectionMeta: { color: theme.colors.accentDark, fontSize: 11",
       "privacyText: { color: theme.colors.muted, flex: 1, fontSize: 12",
     ]) {
