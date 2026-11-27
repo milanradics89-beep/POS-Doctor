@@ -432,22 +432,29 @@ def _verify_assertion(key: tuple[bytes, int, str], evidence: AttestationEvidence
 
 
 class AppleAppAttestVerifier(AttestationVerifier):
-    def __init__(self, redis_client: Redis | None = None) -> None:
+    def __init__(self, redis_client: Redis | None = None, state_store=None) -> None:
+        self._state_store = state_store
         self._redis_client = redis_client
 
     async def verify(self, evidence: AttestationEvidence) -> AttestationResult:
         try:
             if evidence.client_data is None:
                 key = _verify_attestation(evidence)
-                await _store_key(key, evidence.app_id, self._redis_client)
+                if self._state_store is None:
+                    await _store_key(key, evidence.app_id, self._redis_client)
+                elif not await self._state_store.create(key.key_id, key.public_key_der, evidence.app_id):
+                    return AttestationResult(False, "attestation_invalid")
                 return AttestationResult(True, "provider_verified")
             if not evidence.key_id:
                 return AttestationResult(False, "attestation_invalid")
-            stored = await _load_key(evidence.key_id, self._redis_client)
+            stored = (await self._state_store.get(evidence.key_id) if self._state_store is not None
+                      else await _load_key(evidence.key_id, self._redis_client))
             if stored is None:
                 return AttestationResult(False, "attestation_invalid")
             counter = _verify_assertion(stored, evidence)
-            if not await _advance_key(evidence.key_id, counter, self._redis_client):
+            advanced = (await self._state_store.advance(evidence.key_id, counter) if self._state_store is not None
+                        else await _advance_key(evidence.key_id, counter, self._redis_client))
+            if not advanced:
                 return AttestationResult(False, "attestation_replayed")
             return AttestationResult(True, "provider_verified")
         except (ValueError, TypeError, cbor2.CBORDecodeError, x509.ExtensionNotFound, InvalidSignature):

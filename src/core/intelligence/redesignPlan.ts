@@ -2,7 +2,7 @@ import type { SceneModel } from './sceneModel';
 import type { CompatibilityResult } from './visualCompatibilityEngine';
 
 export type RedesignAction = { type: 'keep'|'replace'|'add'|'reposition'; target: string; rationale: string };
-export type RedesignPlan = { domain: SceneModel['domain']; sourceImageRequired: true; actions: RedesignAction[]; products: Array<{ category: string; productId: string; title: string; priceHuf?: number; url: string }>; prompt: string; disclosure: string };
+export type RedesignPlan = { domain: SceneModel['domain']; sourceImageRequired: true; actions: RedesignAction[]; products: Array<{ category: string; productId: string; title: string; priceHuf?: number; sourcePrice?: number; currency?: string; url: string }>; prompt: string; disclosure: string };
 
 export function buildRedesignPlan(scene: SceneModel, solution: CompatibilityResult): RedesignPlan {
   const existing = scene.objects.filter(o => o.confidence >= 0.7 && o.category !== 'person');

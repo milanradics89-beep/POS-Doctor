@@ -17,8 +17,9 @@ describe('USEIT Home recovery-state integration', () => {
     expect(home).toContain("import { validateImageUri } from '../src/core/intelligence/imageInput';");
     expect(home).toContain('validateImageUri(imageUri);');
     expect(home).toContain("import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';");
-    expect(home.split('await prepareAndSelectPhoto(').length - 1).toBe(2);
-    expect(home).toContain('a.exif?.Orientation');
+    expect(home).toContain('await selectPickerResult(r, generation, copy.decode)');
+    expect(home).toContain('await prepareAndSelectPhoto(asset.uri, asset.width, asset.height');
+    expect(home).toContain('asset.exif?.Orientation');
     expect(home).toContain('resolveVisualDimensions(dimensions.width, dimensions.height, orientation)');
     expect(home).toContain('const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);');
     expect(home).toContain('setSelectedPhoto(normalized.dataUrl);');
@@ -29,34 +30,35 @@ describe('USEIT Home recovery-state integration', () => {
     const start = home.indexOf('async function prepareAndSelectPhoto(');
     const end = home.indexOf('\n  const reset =', start);
     const preparation = home.slice(start, end);
-    const invalidation = preparation.indexOf('redesignRequestIdRef.current += 1;');
+    const invalidation = preparation.indexOf('onBegin();');
     const firstAwait = preparation.indexOf('await ');
 
     expect(invalidation).toBeGreaterThanOrEqual(0);
     expect(firstAwait).toBeGreaterThan(invalidation);
-    expect(preparation).toContain('setRendering(false);');
+    expect(home).toContain('redesignControllerRef.current?.abort();');
+    expect(home).toContain('onBegin: () => {\n      cancelRedesign();');
   });
 
   it('routes network failures to the offline panel with a retry for the same intent', () => {
     expect(home).toContain("import { requestFailureKind } from '../src/ui/requestFailure';");
     expect(home).toContain('const kind = requestFailureKind(error);');
     expect(home).toContain('kind,');
-    expect(home).toContain("title: kind === 'offline' ? 'No connection' : 'Could not understand the image'");
+    expect(home).toContain("title: analysisFailureTitle(error, kind)");
     expect(home).toContain("description: kind === 'offline'");
-    expect(home).toContain('onAction: () => { void analyze(intent); }');
+    expect(home).toContain('void analyze(intent, idempotencyKey, refinement, refinementTarget, true);');
   });
 
   it('routes exhausted camera and gallery permissions to the permission-denied panel', () => {
     expect(home).toContain("kind: 'permission-denied'");
     expect(home).toContain("actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN'");
     expect(home).toContain('if (openSettings) void Linking.openSettings();');
-    expect(home).toContain('else void chooseGallery();');
-    expect(home).toContain('else void capture();');
+    expect(home).toContain('void pickPhoto(source);');
+    expect(home).toContain("permissionNotice(copy, decision === 'open_settings'");
   });
 
   it('uses the shared panel for recoverable visual rendering failures', () => {
     expect(home).toContain("title: 'Visual concept failed'");
-    expect(home).toContain('onAction: () => { void createVisualConcept(); }');
+    expect(home).toContain('void createVisualConcept(true);');
     expect(home).toContain('const noticePanel = notice ? (');
     expect(home).toContain('<StatePanel');
   });

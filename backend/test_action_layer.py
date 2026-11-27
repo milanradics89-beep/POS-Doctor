@@ -51,6 +51,9 @@ def test_action_execution_requires_confirmation_and_fails_closed(monkeypatch, tm
     no_confirmation = client.post(path, json={"idempotencyKey": "idem-12345"})
     assert no_confirmation.status_code == 428
 
+    for coerced_value in ("yes", 1, "true"):
+        assert client.post(path, json={"idempotencyKey": "idem-12345", "confirmation": coerced_value}).status_code == 422
+
     not_configured = client.post(path, json={"idempotencyKey": "idem-12345", "confirmation": True})
     assert not_configured.status_code == 503
 
@@ -75,3 +78,20 @@ def test_action_idempotency_key_cannot_cross_bind(monkeypatch, tmp_path):
     assert replay.status_code == 200
     assert replay.json()["idempotent"] is True
     assert cross.status_code == 409
+
+
+def test_uncertain_adapter_is_not_dispatched_twice(monkeypatch, tmp_path):
+    import backend.action_layer as actions
+    _configure(monkeypatch, tmp_path)
+    monkeypatch.setenv("USEIT_ACTION_ADAPTERS", "recommend")
+    calls = []
+    def failing(plan):
+        calls.append(plan.planId)
+        raise RuntimeError("simulated failure after dispatch")
+    monkeypatch.setitem(actions._ADAPTERS, actions.ActionType.RECOMMEND, failing)
+    plan = client.post("/v1/actions/plan", json={"actionType": "recommend", "title": "One dispatch"}).json()
+    url = f"/v1/actions/{plan['planId']}/execute"
+    body = {"idempotencyKey": "test-uncertain-key"}
+    assert client.post(url, json=body).status_code == 502
+    assert client.post(url, json=body).status_code == 409
+    assert calls == [plan["planId"]]

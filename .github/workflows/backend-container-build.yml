@@ -2,21 +2,9 @@ name: Backend container build
 
 on:
   pull_request:
-    paths:
-      - "backend/**"
-      - "backend/Dockerfile"
-      - "Dockerfile"
-      - ".dockerignore"
-      - ".github/workflows/backend-container-build.yml"
   push:
     branches:
       - main
-    paths:
-      - "backend/**"
-      - "backend/Dockerfile"
-      - "Dockerfile"
-      - ".dockerignore"
-      - ".github/workflows/backend-container-build.yml"
 
 permissions:
   contents: read

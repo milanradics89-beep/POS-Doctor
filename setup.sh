@@ -6,11 +6,10 @@ cd "$ROOT_DIR"
 
 python3 -m venv backend/.venv
 source backend/.venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r backend/requirements.txt
+python -m pip install --require-hashes -r backend/requirements-dev.lock
 
 if command -v npm >/dev/null 2>&1; then
-  npm install
+  npm ci --ignore-scripts --no-audit --no-fund
 else
   echo "npm is required for the Expo frontend." >&2
   exit 1

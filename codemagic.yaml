@@ -62,8 +62,15 @@ workflows:
           fi
           cat "$VERIFY_LOG"
           node scripts/verify-unsigned-android-apk.mjs "$VERIFY_LOG" "$VERIFY_EXIT" "$APK"
+      - name: Record verified unsigned APK digest
+        script: |
+          set -euo pipefail
+          cd android/app/build/outputs/apk/release
+          shasum -a 256 app-release-unsigned.apk > SHA256SUMS
+          shasum -a 256 -c SHA256SUMS
     artifacts:
-      - android/app/build/outputs/apk/release/*.apk
+      - android/app/build/outputs/apk/release/app-release-unsigned.apk
+      - android/app/build/outputs/apk/release/SHA256SUMS
       - android/app/build/outputs/mapping/release/mapping.txt
 
   useit-ios-ci:

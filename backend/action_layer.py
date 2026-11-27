@@ -11,7 +11,7 @@ from typing import Any, Callable
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StrictBool, field_validator
 
 router = APIRouter(prefix="/v1/actions", tags=["actions"])
 
@@ -141,7 +141,7 @@ class PlanResponse(BaseModel):
 
 class ExecuteRequest(BaseModel):
     idempotencyKey: str = Field(min_length=8, max_length=128)
-    confirmation: bool = False
+    confirmation: StrictBool = False
 
     @field_validator("idempotencyKey")
     @classmethod
@@ -276,16 +276,25 @@ async def execute_action(plan_id: str, request: ExecuteRequest) -> ExecutionResp
             connection.rollback()
             if existing[0] != plan.planId:
                 raise HTTPException(409, "Idempotency key is already bound to another action plan.")
+            if existing[1] != ActionState.ACCEPTED.value:
+                raise HTTPException(409, "Execution was already started; its outcome is not confirmed.")
             return ExecutionResponse(planId=plan.planId, state=ActionState(existing[1]), idempotent=True, message="Action was already accepted for this idempotency key.")
 
-        state = adapter(plan)
-        if state not in {ActionState.ACCEPTED}:
-            connection.rollback()
-            raise HTTPException(502, "Action adapter returned an unsupported lifecycle state.")
+        # Commit a claim before invoking the adapter. If the process dies after
+        # dispatch, replay of this key must not perform the external operation again.
         connection.execute(
             "INSERT INTO action_executions(idempotency_key, plan_id, state, created_at) VALUES (?, ?, ?, ?)",
-            (request.idempotencyKey, plan.planId, state.value, datetime.now(timezone.utc).isoformat()),
+            (request.idempotencyKey, plan.planId, "started", datetime.now(timezone.utc).isoformat()),
         )
+        connection.commit()
+        try:
+            state = adapter(plan)
+        except Exception as exc:
+            raise HTTPException(502, "Action adapter outcome is unknown.") from exc
+        if state != ActionState.ACCEPTED:
+            raise HTTPException(502, "Action adapter returned an unsupported lifecycle state.")
+        connection.execute("UPDATE action_executions SET state = ? WHERE idempotency_key = ?",
+                           (state.value, request.idempotencyKey))
         connection.commit()
         return ExecutionResponse(planId=plan.planId, state=state, idempotent=False, message="Action accepted by the configured adapter boundary.")
     finally:

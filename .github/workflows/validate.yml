@@ -66,8 +66,16 @@ jobs:
           node -e "const pkg = require('./node_modules/expo-doctor/package.json'); if (pkg.version !== '1.20.5') throw new Error('Unexpected Expo Doctor version'); require.resolve('@expo/env')"
       - name: Validate Expo project health
         run: node node_modules/expo-doctor/bin/expo-doctor.js
+      - name: Validate web export
+        run: npx expo export --platform web --output-dir "$RUNNER_TEMP/useit-web"
       - name: Validate Android export
-        run: npx expo export --platform android --output-dir .expo-export
+        run: |
+          npx expo export --platform android --source-maps --output-dir "$RUNNER_TEMP/useit-android"
+          node scripts/check-mobile-bundle-dependencies.mjs "$RUNNER_TEMP/useit-android" picomatch
+      - name: Validate iOS bundle reachability
+        run: |
+          npx expo export --platform ios --source-maps --output-dir "$RUNNER_TEMP/useit-ios"
+          node scripts/check-mobile-bundle-dependencies.mjs "$RUNNER_TEMP/useit-ios" picomatch
       - name: Validate native Android release build
         run: |
           npx expo prebuild --platform android --no-install
@@ -275,7 +283,16 @@ jobs:
           echo "Android emulator smoke test passed for $PACKAGE_NAME"
 
       - name: Full dependency audit (including development dependencies)
-        run: npm audit --audit-level=moderate
+        id: full_npm_audit
+        run: npm audit --audit-level=moderate --json > "$RUNNER_TEMP/useit-npm-audit.json"
+      - name: Preserve full dependency audit evidence
+        if: ${{ !cancelled() && (steps.full_npm_audit.outcome == 'success' || steps.full_npm_audit.outcome == 'failure') }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: npm-full-audit-report
+          path: ${{ runner.temp }}/useit-npm-audit.json
+          retention-days: 14
+          if-no-files-found: error
 
       - name: Runtime dependency audit
         run: npm audit --omit=dev --audit-level=high
@@ -357,7 +374,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       redis:
-        image: redis:7.4-alpine
+        image: redis:7.4-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
         ports:
           - 6379:6379
         options: >-
@@ -373,19 +390,43 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: '3.12'
           cache: pip
       - name: Install backend dependencies
-        run: python -m pip install -r backend/requirements-dev.txt
+        run: |
+          python -m pip install --require-hashes -r backend/requirements-dev.lock
+          python -m pip install --no-index --no-deps -r backend/requirements-dev.txt
+          python -m pip check
+      - name: Start Firestore emulator
+        run: |
+          set -euo pipefail
+          docker run -d --name firestore-emulator -p 127.0.0.1:8080:8080 \
+            gcr.io/google.com/cloudsdktool/google-cloud-cli@sha256:17b4e7f940db19984c051a321c32f57bf679cb7148835fd16ddc7ce2908a70d8 \
+            gcloud --project=useit-test emulators firestore start --host-port=0.0.0.0:8080 --quiet
+          for attempt in $(seq 1 60); do
+            if timeout 1 bash -c '</dev/tcp/127.0.0.1/8080' 2>/dev/null; then
+              echo "Firestore emulator is listening."
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs firestore-emulator
+          exit 1
       - name: Compile backend
         run: python -m compileall -q backend
       - name: Run backend tests
+        env:
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          GOOGLE_CLOUD_PROJECT: useit-test
         run: python -m pytest -q backend
+      - name: Stop Firestore emulator
+        if: always()
+        run: docker rm -f firestore-emulator || true
       - name: Production readiness checks
         run: bash scripts/production-readiness.sh
       - name: Audit backend dependencies
         run: |
           python -m pip install pip-audit
-          python -m pip_audit -r backend/requirements.txt
+          python -m pip_audit -r backend/requirements-dev.lock

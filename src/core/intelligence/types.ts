@@ -15,6 +15,12 @@ export type UnifiedIntelligenceProvider = {
     preferredColors?: string[];
     discoverProducts?: boolean;
     productLimit?: number;
+    idempotencyKey?: string;
+    actionable?: boolean;
+    refinement?: string;
+    refinementTarget?: string;
+    retry?: boolean;
+    locale?: string;
   }, signal?: AbortSignal): Promise<UseitAnalyzeResponse>;
 };
 

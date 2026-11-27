@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { SceneAnalysis } from './types';
 import { validateAnalysis } from './validateAnalysis';
 import { isSafeExternalHttpUrl } from './externalLink';
@@ -32,6 +33,7 @@ export type UseitShoppingCandidate = {
   brand?: string | null;
   imageUrl?: string | null;
   price?: number | null;
+  priceHuf?: number | null;
   currency?: string | null;
   availability?: string;
   retailer?: string | null;
@@ -45,6 +47,26 @@ export type UseitShopping = {
   errors?: Array<{ url: string; message: string }>;
 } | null;
 
+const ResultLines = z.array(z.string().trim().min(1).max(420)).max(12);
+const Guide = z.object({
+  evidence: ResultLines.min(1),
+  steps: ResultLines.max(5),
+  requiredItems: ResultLines,
+  missingItems: ResultLines,
+  alternatives: ResultLines,
+  limits: ResultLines,
+  keep: ResultLines,
+});
+const ActionableResult = z.object({
+  guides: z.record(z.string(), Guide),
+  shoppingNeed: z.object({
+    summary: z.string().trim().min(1).max(420),
+    evidence: ResultLines.min(1),
+  }).nullable(),
+  clarification: z.string().max(420),
+});
+type ActionableResult = z.infer<typeof ActionableResult>;
+
 export type UseitAnalyzeResponse = {
   contractVersion: typeof USEIT_ANALYZE_CONTRACT_VERSION;
   scene: SceneAnalysis;
@@ -53,6 +75,7 @@ export type UseitAnalyzeResponse = {
   suggestions: UseitSuggestion[];
   shopping: UseitShopping;
   pipeline: string[];
+  actionable?: ActionableResult;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -67,13 +90,22 @@ function isOptionalString(value: unknown): value is string | null | undefined {
   return value === undefined || value === null || typeof value === 'string';
 }
 
+function isOptionalPrice(value: unknown): boolean {
+  return value == null || (isFiniteNumber(value) && value >= 0);
+}
+
 function isValidShoppingCandidate(value: unknown): value is UseitShoppingCandidate {
-  if (!isRecord(value) || typeof value.id !== 'string' || !value.id || typeof value.name !== 'string' || !value.name || typeof value.url !== 'string' || !value.url) return false;
-  if (!isOptionalString(value.category) || !isOptionalString(value.brand) || !isOptionalString(value.imageUrl) || !isOptionalString(value.currency) || !isOptionalString(value.retailer)) return false;
-  if (value.price !== undefined && value.price !== null && !isFiniteNumber(value.price)) return false;
+  if (!isRecord(value)) return false;
+  if (![value.id, value.name, value.url].every(field => typeof field === 'string' && field.length > 0)) return false;
+  if (![value.category, value.brand, value.imageUrl, value.currency, value.retailer].every(isOptionalString)) return false;
+  if (![value.price, value.priceHuf].every(isOptionalPrice)) return false;
+  return hasValidRanking(value) && (value.availability === undefined || typeof value.availability === 'string');
+}
+
+function hasValidRanking(value: Record<string, unknown>): boolean {
   if (value.qualityScore !== undefined && (!isFiniteNumber(value.qualityScore) || value.qualityScore < 0 || value.qualityScore > 1)) return false;
   if (value.searchRank !== undefined && (!isFiniteNumber(value.searchRank) || !Number.isInteger(value.searchRank) || value.searchRank < 1)) return false;
-  return value.availability === undefined || typeof value.availability === 'string';
+  return true;
 }
 
 export function validateUseitAnalyzeResponse(payload: unknown):
@@ -156,7 +188,9 @@ export function validateUseitAnalyzeResponse(payload: unknown):
     }
   }
 
-  if (issues.length) return { ok: false, issues };
+  const actionable = ActionableResult.optional().safeParse(payload.actionable);
+  if (!actionable.success) issues.push('actionable: invalid result details');
+  if (issues.length || !actionable.success) return { ok: false, issues };
   return {
     ok: true,
     data: {
@@ -167,6 +201,7 @@ export function validateUseitAnalyzeResponse(payload: unknown):
       suggestions,
       shopping,
       pipeline: payload.pipeline as string[],
+      ...(actionable.data ? { actionable: actionable.data } : {}),
     },
   };
 }

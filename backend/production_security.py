@@ -12,7 +12,7 @@ from backend.attestation import (
     AttestationProvider,
     configured_attestation_app_id,
     configured_attestation_mode,
-    configured_attestation_provider,
+    attestation_apps,
     configured_redis_url,
 )
 
@@ -49,7 +49,12 @@ def _is_placeholder_secret(value: str) -> bool:
 
 
 def production_mode() -> bool:
-    return os.getenv("USEIT_ENV", "development").strip().lower() in {"production", "prod"}
+    mode = os.getenv("USEIT_ENV", "development").strip().lower()
+    if mode in {"production", "prod"}:
+        return True
+    if mode in {"development", "dev", "test"} and not os.getenv("K_SERVICE"):
+        return False
+    raise RuntimeError("Invalid USEIT_ENV: use production on Cloud Run or development for local use.")
 
 
 def validate_production_redis_transport() -> None:
@@ -93,7 +98,7 @@ def validate_production_session_auth_configuration() -> None:
         )
     if not configured_attestation_app_id():
         raise RuntimeError("USEIT_ATTESTATION_APP_ID is required for production session authentication")
-    if not configured_redis_url():
+    if os.getenv("USEIT_RATE_LIMIT_MODE", "").strip().lower() != "firestore" and not configured_redis_url():
         raise RuntimeError("USEIT_REDIS_URL is required for production attestation challenge storage")
 
 
@@ -125,12 +130,12 @@ def validate_production_security() -> None:
     validate_production_session_auth_configuration()
 
     if session_secret:
-        provider = configured_attestation_provider()
-        if provider is AttestationProvider.PLAY_INTEGRITY:
+        apps = attestation_apps()
+        if AttestationProvider.PLAY_INTEGRITY in apps:
             play_package_name = os.getenv("USEIT_GOOGLE_PLAY_PACKAGE_NAME", "").strip()
             if not play_package_name:
                 raise RuntimeError("USEIT_GOOGLE_PLAY_PACKAGE_NAME is required for Google Play Integrity")
-            if configured_attestation_app_id() != play_package_name:
+            if apps[AttestationProvider.PLAY_INTEGRITY] != play_package_name:
                 raise RuntimeError(
                     "USEIT_ATTESTATION_APP_ID must match USEIT_GOOGLE_PLAY_PACKAGE_NAME for Google Play Integrity"
                 )
@@ -179,6 +184,14 @@ def validate_production_security() -> None:
         raise RuntimeError("Interactive API documentation must be explicitly disabled in production")
 
     rate_mode = os.getenv("USEIT_RATE_LIMIT_MODE", "memory").strip().lower()
+    if os.getenv("K_SERVICE") and rate_mode != "firestore":
+        raise RuntimeError("Cloud Run requires Firestore-backed security state.")
+    if rate_mode == "firestore":
+        if configured_redis_url():
+            raise RuntimeError("Configure only one production state store.")
+        if os.getenv("USEIT_IDEMPOTENCY_MODE", "").strip().lower() != "firestore":
+            raise RuntimeError("Firestore rate limits require USEIT_IDEMPOTENCY_MODE=firestore.")
+        return
     if rate_mode not in {"memory", "redis"}:
         raise RuntimeError("USEIT_RATE_LIMIT_MODE must be memory or redis")
     if rate_mode != "redis":

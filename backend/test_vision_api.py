@@ -88,11 +88,14 @@ async def test_analyze_uses_real_multimodal_message_and_strict_schema(monkeypatc
             imageUri="data:image/jpeg;base64," + ("A" * 32),
             userIntent="improve",
             locale="hu-HU",
+            prompt="client-only preference",
         )
     )
 
     call = fake.chat.completions.calls[0]
     user_content = call["messages"][1]["content"]
+    assert "client-only preference" not in call["messages"][0]["content"]
+    assert "client-only preference" in user_content[0]["text"]
     assert any(part.get("type") == "image_url" for part in user_content)
     assert call["response_format"]["type"] == "json_schema"
     assert call["response_format"]["json_schema"]["strict"] is True
@@ -151,6 +154,7 @@ async def test_analyze_logs_token_usage_without_logging_user_content(monkeypatch
                 imageUri=VALID_TEST_PNG_DATA_URI,
                 userIntent="PRIVATE_INTENT_SENTINEL",
                 locale="hu-HU",
+            prompt="client-only preference",
             )
         )
 
@@ -223,3 +227,15 @@ async def test_openai_client_is_not_created_without_api_key(monkeypatch):
         assert exc.value.status_code == 503
         assert main.app.state.openai_client is None
 
+
+
+@pytest.mark.asyncio
+async def test_budget_outage_prevents_billable_vision_call(monkeypatch):
+    fake = FakeClient(json.dumps(valid_scene()))
+    monkeypatch.setattr(main, "_get_client", lambda: fake)
+    monkeypatch.setenv("USEIT_AI_DAILY_UNITS", "1")
+    monkeypatch.setattr(main.app.state, "firestore_state", None, raising=False)
+    with pytest.raises(HTTPException) as exc:
+        await _analyze(AnalyzeRequest(imageUri=VALID_TEST_PNG_DATA_URI))
+    assert exc.value.status_code == 503
+    assert fake.chat.completions.calls == []
