@@ -50,14 +50,16 @@ describe('USEIT Home recovery-state integration', () => {
 
   it('routes exhausted camera and gallery permissions to the permission-denied panel', () => {
     expect(home).toContain("kind: 'permission-denied'");
-    expect(home).toContain("actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN'");
+    expect(home).toContain('actionLabel: openSettings ? hu.picker.openSettings : hu.picker.tryAgain');
+    expect(home).toContain('actionAccessibilityHint: openSettings ? hu.picker.settingsHint : hu.picker.permissionHint');
     expect(home).toContain('if (openSettings) void Linking.openSettings();');
     expect(home).toContain('void pickPhoto(source);');
     expect(home).toContain("permissionNotice(copy, decision === 'open_settings'");
   });
 
   it('uses the shared panel for recoverable visual rendering failures', () => {
-    expect(home).toContain("title: 'Visual concept failed'");
+    expect(home).toContain('title: hu.notice.conceptFailedTitle');
+    expect(home).toContain('description: hu.notice.conceptFailedDescription');
     expect(home).toContain('void createVisualConcept(true);');
     expect(home).toContain('const noticePanel = notice ? (');
     expect(home).toContain('<StatePanel');

@@ -11,14 +11,14 @@ import {
   Linking,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import { UseitApiProvider, UseitApiError, analyzeForConsumer } from '../src/core/intelligence/apiClient';
 import type { ConsumerIntent, ConsumerAnalysis } from '../src/core/intelligence/apiClient';
 import { permissionDecision } from '../src/core/intelligence/permissionDecision';
 import { isSafeExternalHttpUrl } from '../src/core/intelligence/externalLink';
-import { BrandMark, FadeIn, StatePanel } from '../src/ui/components';
+import { BrandMark, FadeIn, PhotoFrame, StatePanel } from '../src/ui/components';
 import { PhotoComparison, PhotoResult } from '../src/ui/PhotoResult';
 import { modeCopy, resultMode, type ResultMode } from '../src/ui/resultModel';
+import { HU_LOCALE, hu } from '../src/i18n/hu';
 import { theme } from '../src/ui/theme';
 import { createIdempotencyKey } from '../src/core/intelligence/idempotencyKey';
 import { requestFailureKind } from '../src/ui/requestFailure';
@@ -37,78 +37,124 @@ type ScreenNotice = {
 };
 
 const modes: [ConsumerIntent, string, string][] = [
-  ['create', modeCopy.create.title, 'Turn the materials you see into a new project.'],
-  ['improve', modeCopy.improve.title, 'Explore changes to the look or layout.'],
-  ['fix', modeCopy.fix.title, 'Find a practical next step for a damaged item.'],
-  ['cook', modeCopy.cook.title, 'Get a recipe idea from the ingredients in view.'],
-  ['surprise', modeCopy.surprise.title, 'Discover an unexpected use for this scene.'],
+  ['create', modeCopy.create.title, modeCopy.create.description],
+  ['improve', modeCopy.improve.title, modeCopy.improve.description],
+  ['fix', modeCopy.fix.title, modeCopy.fix.description],
+  ['cook', modeCopy.cook.title, modeCopy.cook.description],
+  ['surprise', modeCopy.surprise.title, modeCopy.surprise.description],
 ];
+
+const modeVisuals: Record<ResultMode, { tint: string; symbol: string }> = {
+  create: { tint: theme.colors.mint, symbol: '+' },
+  improve: { tint: theme.colors.blue, symbol: '↗' },
+  fix: { tint: theme.colors.peach, symbol: '⌁' },
+  cook: { tint: theme.colors.accent, symbol: '◒' },
+  surprise: { tint: theme.colors.lavender, symbol: '✳' },
+};
 
 function hasUsableDimensions(width: number, height: number) {
   return [width, height].every((value) => Number.isFinite(value) && value > 0);
+}
+
+function PossibilityFrame() {
+  return (
+    <View style={s.possibilityFrame} accessible accessibilityRole="image" accessibilityLabel={hu.home.frameAccessibility}>
+      <View style={s.frameHeader}>
+        <View style={s.frameHeaderMark} />
+        <Text style={s.frameEyebrow}>{hu.home.frameEyebrow}</Text>
+        <Text style={s.frameCount}>05</Text>
+      </View>
+      <View style={s.frameContent}>
+        <View style={s.frameVisual}>
+          <View style={s.frameOrbit} />
+          <View style={s.frameLens}><View style={s.frameLensCore} /></View>
+          <View style={s.frameSpark} />
+        </View>
+        <View style={s.frameCopy}>
+          <Text style={s.frameTitle}>{hu.home.frameTitle}</Text>
+          <Text style={s.frameBody}>{hu.home.frameBody}</Text>
+        </View>
+      </View>
+      <View style={s.frameTags}>
+        {[hu.modes.create.chip, hu.modes.improve.chip, hu.modes.fix.chip, hu.modes.cook.chip, hu.modes.surprise.chip].map((label) => (
+          <View key={label} style={s.frameTag}><Text style={s.frameTagText}>{label}</Text></View>
+        ))}
+      </View>
+    </View>
+  );
 }
 
 function PhotoWelcome({ capture, chooseGallery, noticePanel }: {
   capture: () => void; chooseGallery: () => void; noticePanel: React.ReactNode;
 }) {
   return (
-          <FadeIn delay={40}>
-          <>
-            <View style={s.brandRow}>
-              <BrandMark />
-              <Text style={s.logo}>USEIT</Text>
+    <FadeIn delay={40}>
+      <>
+        <View style={s.brandRow}>
+          <BrandMark />
+          <Text style={s.logo}>USEIT</Text>
+          <Text style={s.brandNote}>{hu.home.brandNote}</Text>
+        </View>
+
+        <Text style={s.kicker}>{hu.home.kicker}</Text>
+        <Text style={s.hero}>{hu.home.hero}</Text>
+        <Text style={s.sub}>{hu.home.description}</Text>
+
+        <PossibilityFrame />
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={hu.home.capture}
+          accessibilityHint={hu.home.captureAccessibility}
+          onPress={capture}
+          style={({ pressed }) => [s.capture, pressed && s.capturePressed]}
+        >
+          <View style={s.captureIcon}><Text style={s.cam}>◎</Text></View>
+          <View style={s.captureCopy}>
+            <Text style={s.cta}>{hu.home.capture}</Text>
+            <Text style={s.hint}>{hu.home.captureHint}</Text>
+          </View>
+          <Text style={s.captureArrow}>↗</Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={hu.home.gallery}
+          accessibilityHint={hu.home.galleryAccessibility}
+          onPress={chooseGallery}
+          style={({ pressed }) => [s.gallery, pressed && s.galleryPressed]}
+        >
+          <View style={s.galleryIcon}><Text style={s.galleryIconText}>▧</Text></View>
+          <View style={s.galleryCopy}>
+            <Text style={s.galleryTitle}>{hu.home.gallery}</Text>
+            <Text style={s.galleryHint}>{hu.home.galleryHint}</Text>
+          </View>
+          <Text style={s.galleryArrow}>›</Text>
+        </Pressable>
+
+        <Text style={s.privacy}>{hu.home.privacy}</Text>
+        {noticePanel}
+
+        <View style={s.examples}>
+          <Text accessibilityRole="header" style={s.examplesHeading}>{hu.home.examplesHeading}</Text>
+          <View style={s.exampleRow}>
+            <View style={[s.exampleMarker, { backgroundColor: theme.colors.mint }]} />
+            <View style={s.exampleCopy}>
+              <Text style={s.exampleTitle}>{hu.home.exampleOneTitle}</Text>
+              <Text style={s.exampleDescription}>{hu.home.exampleOneDescription}</Text>
             </View>
-
-            <Text style={s.kicker}>SEE WHAT’S POSSIBLE</Text>
-
-            <Text style={s.hero}>
-              Show me what{`\n`}you have.
-            </Text>
-
-            <Text style={s.sub}>
-              Point your camera at almost anything. USEIT helps you discover what you can do with it.
-            </Text>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Take a photo"
-              accessibilityHint="Opens the camera to take a photo for analysis."
-              onPress={capture}
-              style={({ pressed }) => [s.capture, pressed && s.capturePressed]}
-            >
-              <LinearGradient colors={[theme.colors.captureStart, theme.colors.captureEnd]} style={s.grad}>
-                <Text style={s.cam}>⌾</Text>
-                <Text style={s.cta}>Take a photo</Text>
-                <Text style={s.hint}>Start with what’s in front of you</Text>
-              </LinearGradient>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Choose a photo from your gallery"
-              accessibilityHint="Opens your photo library."
-              onPress={chooseGallery}
-              style={s.gallery}
-            >
-              <Text style={s.galleryTitle}>▣  CHOOSE FROM GALLERY</Text>
-              <Text style={s.galleryHint}>Use a photo you already have</Text>
-            </Pressable>
-
-            <Text style={s.sub}>Your photo stays on this device until you start an analysis. USEIT and its AI provider then process the photo.</Text>
-
-            {noticePanel}
-            <Text accessibilityRole="header" style={s.modeHeading}>One photo. Five possibilities.</Text>
-            <View style={s.examples}>
-              <Text style={s.exampleTitle}>Fridge shelf → a meal idea</Text>
-              <Text style={s.modeDesc}>Cook with the ingredients you already have.</Text>
-              <Text style={s.exampleTitle}>Living room → a new layout</Text>
-              <Text style={s.modeDesc}>See what to keep and what could move.</Text>
+          </View>
+          <View style={s.exampleDivider} />
+          <View style={s.exampleRow}>
+            <View style={[s.exampleMarker, { backgroundColor: theme.colors.blue }]} />
+            <View style={s.exampleCopy}>
+              <Text style={s.exampleTitle}>{hu.home.exampleTwoTitle}</Text>
+              <Text style={s.exampleDescription}>{hu.home.exampleTwoDescription}</Text>
             </View>
-            <View style={s.tags}>
-              {modes.map(([mode]) => <Text style={s.tag} key={mode}>{mode.toUpperCase()}</Text>)}
-            </View>
-          </>
-          </FadeIn>
+          </View>
+        </View>
+      </>
+    </FadeIn>
   );
 }
 
@@ -116,61 +162,53 @@ function ModeChooser({ noticePanel, onSelect, onBack }: {
   noticePanel: React.ReactNode; onSelect: (intent: ConsumerIntent) => void; onBack?: () => void;
 }) {
   return (
-              <>
-                {noticePanel}
-                <Text accessibilityRole="header" style={s.modeHeading}>What should I do with this?</Text>
+    <>
+      {noticePanel}
+      <Text style={s.kicker}>{hu.chooser.kicker}</Text>
+      <Text accessibilityRole="header" style={s.modeHeading}>{hu.chooser.title}</Text>
+      <Text style={s.chooserDescription}>{hu.chooser.description}</Text>
 
-                {onBack && (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Back to my result"
-                    accessibilityHint="Shows your last result without analyzing the photo again."
-                    style={s.secondary}
-                    onPress={onBack}
-                  >
-                    <Text style={s.secondaryText}>Back to my result</Text>
-                  </Pressable>
-                )}
-                {modes.map(([intent, label, hint], index) => (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={label}
-                    accessibilityHint={hint}
-                    key={intent}
-                    style={({ pressed }) => [s.mode, pressed && s.modePressed]}
-                    onPress={() => onSelect(intent)}
-                  >
-                    <Text style={s.modeIndex}>{String(index + 1).padStart(2, '0')}</Text>
-                    <View style={s.modeCopy}>
-                      <Text style={s.modeTitle}>{label}</Text>
-                      <Text style={s.modeDesc}>{hint}</Text>
-                    </View>
-                    <Text style={s.arrow}>›</Text>
-                  </Pressable>
-                ))}
-              </>
+      {onBack ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={hu.chooser.back}
+          accessibilityHint={hu.chooser.backAccessibility}
+          style={s.backToResult}
+          onPress={onBack}
+        >
+          <Text style={s.backToResultText}>‹  {hu.chooser.back}</Text>
+        </Pressable>
+      ) : null}
+
+      {modes.map(([intent, label, hint]) => {
+        const visual = modeVisuals[intent as ResultMode];
+        return (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            accessibilityHint={hint}
+            key={intent}
+            style={({ pressed }) => [s.mode, pressed && s.modePressed]}
+            onPress={() => onSelect(intent)}
+          >
+            <View style={[s.modeGlyph, { backgroundColor: visual.tint }]}>
+              <Text style={s.modeGlyphText}>{visual.symbol}</Text>
+            </View>
+            <View style={s.modeCopy}>
+              <Text style={s.modeTitle}>{label}</Text>
+              <Text style={s.modeDesc}>{hint}</Text>
+            </View>
+            <Text style={s.modeArrow}>↗</Text>
+          </Pressable>
+        );
+      })}
+    </>
   );
 }
 
 const pickerCopy = {
-  camera: {
-    blocked: 'Camera access is disabled', permission: 'Camera permission needed',
-    settings: 'Enable camera access in Settings to take a photo.',
-    ask: 'USEIT needs camera access to photograph what you want to explore.',
-    failure: 'Camera unavailable', recover: 'Try opening the camera again, or choose a photo from your gallery.',
-    decode: 'USEIT could not decode the captured image. Try taking it again.',
-    request: ImagePicker.requestCameraPermissionsAsync,
-    launch: ImagePicker.launchCameraAsync,
-  },
-  gallery: {
-    blocked: 'Photos access is disabled', permission: 'Photos permission needed',
-    settings: 'Enable photo library access in Settings to choose an image.',
-    ask: 'USEIT needs access to a photo you want to explore.',
-    failure: 'Photo library unavailable', recover: 'Try choosing a photo again, or use the camera.',
-    decode: 'USEIT could not decode this image. Choose a different photo.',
-    request: ImagePicker.requestMediaLibraryPermissionsAsync,
-    launch: ImagePicker.launchImageLibraryAsync,
-  },
+  camera: { ...hu.picker.camera, request: ImagePicker.requestCameraPermissionsAsync, launch: ImagePicker.launchCameraAsync },
+  gallery: { ...hu.picker.gallery, request: ImagePicker.requestMediaLibraryPermissionsAsync, launch: ImagePicker.launchImageLibraryAsync },
 };
 
 type PickerSource = keyof typeof pickerCopy;
@@ -180,8 +218,8 @@ function permissionNotice(copy: typeof pickerCopy[PickerSource], openSettings: b
     kind: 'permission-denied',
     title: openSettings ? copy.blocked : copy.permission,
     description: openSettings ? copy.settings : copy.ask,
-    actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN',
-    actionAccessibilityHint: openSettings ? 'Opens system settings to enable access.' : 'Requests permission again.',
+    actionLabel: openSettings ? hu.picker.openSettings : hu.picker.tryAgain,
+    actionAccessibilityHint: openSettings ? hu.picker.settingsHint : hu.picker.permissionHint,
     onAction: () => {
       if (openSettings) void Linking.openSettings();
       else retry();
@@ -194,25 +232,25 @@ function conceptIsAvailable(mode: ResultMode, plan: ConsumerAnalysis['redesign']
 }
 
 function analysisFailureTitle(error: unknown, kind: ReturnType<typeof requestFailureKind>) {
-  if (kind === 'offline') return 'No connection';
-  if (error instanceof Error && error.name === 'AbortError') return 'Analysis took too long';
-  if (error instanceof UseitApiError && error.status === 503) return 'Analysis is temporarily unavailable';
-  return 'Could not finish the analysis';
+  if (kind === 'offline') return hu.notice.offlineTitle;
+  if (error instanceof Error && error.name === 'AbortError') return hu.notice.timeoutTitle;
+  if (error instanceof UseitApiError && error.status === 503) return hu.notice.unavailableTitle;
+  return hu.notice.failureTitle;
 }
 
 function analysisFailureNotice(error: unknown, onAction: () => void): ScreenNotice {
   if (error instanceof UseitApiError && error.status === 409) {
-    return { kind: 'error', title: 'Analysis cannot be recovered', description: 'USEIT cannot safely repeat that request. You can choose a mode to explicitly start a new analysis.' };
+    return { kind: 'error', title: hu.notice.recoveredTitle, description: hu.notice.recoveredDescription };
   }
   const kind = requestFailureKind(error);
   return {
     kind,
     title: analysisFailureTitle(error, kind),
     description: kind === 'offline'
-      ? 'Check your internet connection, then retry the analysis.'
-      : 'USEIT could not finish the analysis. Your photo is still here.',
-    actionLabel: 'TRY AGAIN',
-    actionAccessibilityHint: 'Retries image analysis for the selected photo.',
+      ? hu.notice.offlineDescription
+      : hu.notice.failureDescription,
+    actionLabel: hu.notice.tryAgain,
+    actionAccessibilityHint: hu.notice.retryAnalysisHint,
     onAction,
   };
 }
@@ -221,10 +259,10 @@ function PhotoProgress({ busy, cancel }: { busy: boolean; cancel: () => void }) 
   return (
     <FadeIn>
       <StatePanel kind="loading"
-        title={busy ? 'Understanding your photo' : 'Creating your visual concept'}
-        description={busy ? 'Finding a useful next step from your photo.' : 'Preparing a visual version of the selected plan.'}
-        actionLabel={busy ? 'CANCEL ANALYSIS' : 'CANCEL VISUAL CONCEPT'}
-        actionAccessibilityHint={busy ? 'Stops the analysis and returns to your photo.' : 'Returns to the selected plan.'}
+        title={busy ? hu.progress.analysisTitle : hu.progress.conceptTitle}
+        description={busy ? hu.progress.analysisDescription : hu.progress.conceptDescription}
+        actionLabel={busy ? hu.progress.cancelAnalysis : hu.progress.cancelConcept}
+        actionAccessibilityHint={busy ? hu.progress.cancelAnalysisHint : hu.progress.cancelConceptHint}
         onAction={cancel} />
     </FadeIn>
   );
@@ -236,14 +274,14 @@ function showConcept(concept: string | null, choosingMode: boolean, busy: boolea
 
 function conceptFailureNotice(error: unknown, retryConcept: () => void): ScreenNotice {
   if (error instanceof UseitApiError && error.status === 409) {
-    return { kind: 'error', title: 'Visual concept could not be recovered', description: 'USEIT cannot safely repeat this image request. Your plan is still available.' };
+    return { kind: 'error', title: hu.notice.conceptRecoveredTitle, description: hu.notice.conceptRecoveredDescription };
   }
   return {
     kind: 'error',
-    title: 'Visual concept failed',
-    description: 'The image did not arrive. Your plan is still available.',
-    actionLabel: 'RETRY IF SAFE',
-    actionAccessibilityHint: 'Tries the same request only when USEIT can prevent a duplicate.',
+    title: hu.notice.conceptFailedTitle,
+    description: hu.notice.conceptFailedDescription,
+    actionLabel: hu.notice.retryIfSafe,
+    actionAccessibilityHint: hu.notice.retryConceptHint,
     onAction: retryConcept,
   };
 }
@@ -258,8 +296,8 @@ function SelectedPhoto({ photo, concept, reset }: { photo: string; concept: stri
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Choose another photo"
-                accessibilityHint="Returns to photo selection."
+                accessibilityLabel={hu.photo.chooseAnother}
+                accessibilityHint={hu.photo.chooseAnotherHint}
                 onPress={reset}
                 style={s.closeButton}
               >
@@ -268,7 +306,7 @@ function SelectedPhoto({ photo, concept, reset }: { photo: string; concept: stri
             </View>
 
             {concept ? <PhotoComparison photo={photo} concept={concept} /> : (
-              <Image accessible accessibilityLabel="Your selected photo" resizeMode="contain" source={{ uri: photo }} style={s.photo} />
+              <PhotoFrame uri={photo} label={hu.photo.selected} eyebrow={hu.photo.originalEyebrow} imageHeight={330} />
             )}
 
     </>
@@ -280,23 +318,23 @@ function ResultNavigation({ switchMode, reset }: { switchMode: () => void; reset
     <>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Try another mode"
-                  accessibilityHint="Shows the modes for this photo without starting an analysis."
+                  accessibilityLabel={hu.navigation.anotherMode}
+                  accessibilityHint={hu.navigation.anotherModeHint}
                   style={({ pressed }) => [s.modeSwitch, pressed && s.modePressed]}
                   onPress={switchMode}
                 >
-                  <Text style={s.secondaryText}>Try another mode</Text>
-                  <Text style={s.modeDesc}>Keep this photo and explore a different idea.</Text>
+                  <Text style={s.secondaryText}>{hu.navigation.anotherMode}</Text>
+                  <Text style={s.modeDesc}>{hu.navigation.keepPhoto}</Text>
                 </Pressable>
 
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Try another photo"
-                  accessibilityHint="Returns to photo selection."
+                  accessibilityLabel={hu.navigation.anotherPhoto}
+                  accessibilityHint={hu.navigation.anotherPhotoHint}
                   style={s.secondary}
                   onPress={reset}
                 >
-                  <Text style={s.secondaryText}>TRY ANOTHER PHOTO</Text>
+                  <Text style={s.secondaryText}>{hu.navigation.anotherPhoto}</Text>
                 </Pressable>
 
     </>
@@ -305,14 +343,14 @@ function ResultNavigation({ switchMode, reset }: { switchMode: () => void; reset
 
 async function openProductLink(url: string) {
   if (!isSafeExternalHttpUrl(url)) {
-    Alert.alert('Product link unavailable', 'This product link cannot be opened safely.');
+    Alert.alert(hu.alerts.productLinkUnavailable, hu.alerts.productLinkUnsafe);
     return;
   }
 
   try {
     await Linking.openURL(url);
   } catch {
-    Alert.alert('Could not open product link', 'Please try again later.');
+    Alert.alert(hu.alerts.productLinkFailed, hu.alerts.tryLater);
   }
 }
 
@@ -355,8 +393,8 @@ function createPhotoPreparation({ photoGeneration, setPreparing, onBegin, setNot
       if (generation !== photoGeneration.current) return;
       setNotice({
         kind: 'error',
-        title: 'Photo unavailable',
-        description: error instanceof Error ? error.message : failureDescription,
+        title: hu.notice.photoUnavailable,
+        description: hu.notice.preparingFailed,
       });
     } finally {
       if (generation === photoGeneration.current) setPreparing(false);
@@ -375,7 +413,7 @@ function createPhotoPicker({ photoGeneration, setNotice, prepareAndSelectPhoto }
     if (generation !== photoGeneration.current || result.canceled) return;
     const asset = result.assets[0];
     if (!asset) {
-      setNotice({ kind: 'error', title: 'Photo unavailable', description: failure });
+      setNotice({ kind: 'error', title: hu.notice.photoUnavailable, description: hu.notice.preparingFailed });
       return;
     }
     await prepareAndSelectPhoto(asset.uri, asset.width, asset.height, asset.exif?.Orientation, failure);
@@ -478,8 +516,8 @@ function createAnalysisRequest({ photo, analysisControllerRef, analysisRequestId
     if (!API_URL) {
       setNotice({
         kind: 'error',
-        title: 'USEIT is not connected',
-        description: 'Photo analysis is unavailable in this version. Your photo has not been sent.',
+        title: hu.notice.notConnectedTitle,
+        description: hu.notice.notConnectedDescription,
       });
       return;
     }
@@ -498,7 +536,7 @@ function createAnalysisRequest({ photo, analysisControllerRef, analysisRequestId
         new UseitApiProvider(API_URL),
         photo,
         intent,
-        { signal: controller.signal, idempotencyKey, actionable: true, refinement, refinementTarget, locale: 'en-HU', retry }
+        { signal: controller.signal, idempotencyKey, actionable: true, refinement, refinementTarget, locale: HU_LOCALE, retry }
       );
       if (isStale()) return;
       onComplete(response, intent);
@@ -659,9 +697,9 @@ function PhotoStage(props: PhotoStageProps) {
     <SafeAreaView style={s.safe}>
       <ScrollView contentContainerStyle={s.page}>
         {preparing ? (
-          <StatePanel kind="loading" title="Preparing your photo"
-            description="Your photo is being prepared on this device." actionLabel="CANCEL"
-            actionAccessibilityHint="Stops photo selection and returns to the camera and gallery options." onAction={reset} />
+          <StatePanel kind="loading" title={hu.progress.preparingTitle}
+            description={hu.progress.preparingDescription} actionLabel={hu.progress.cancel}
+            actionAccessibilityHint={hu.progress.cancelPreparationHint} onAction={reset} />
         ) : photo ? (
           <SelectedPhotoFlow {...props} photo={photo} />
         ) : (
@@ -699,156 +737,73 @@ function SelectedPhotoFlow(props: PhotoStageProps & { photo: string }) {
 }
 
 const s = StyleSheet.create({
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  safe: {
-    flex: 1,
-    backgroundColor: theme.colors.canvas,
-  },
-  page: {
-    alignSelf: 'center', width: '100%', maxWidth: 720,
-    padding: 24,
-    paddingTop: 28,
-    paddingBottom: 60,
-  },
-  top: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 18,
-  },
-  logo: {
-    fontSize: 36,
-    fontWeight: '900',
-    letterSpacing: -2,
-    color: theme.colors.ink,
-    marginTop: 12,
-  },
-  small: {
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: -1,
-  },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  safe: { flex: 1, backgroundColor: theme.colors.canvas },
+  page: { alignSelf: 'center', width: '100%', maxWidth: 640, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 48 },
+  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  logo: { fontSize: 28, fontWeight: '900', letterSpacing: -1.7, color: theme.colors.ink },
+  brandNote: { marginLeft: 'auto', color: theme.colors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
+  small: { fontSize: 18, fontWeight: '900', letterSpacing: -1, color: theme.colors.ink },
   closeButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  close: {
-    fontSize: 20,
-    color: theme.colors.muted,
-  },
-  kicker: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 2,
-    color: theme.colors.muted,
-    marginTop: 32,
-  },
-  hero: {
-    fontSize: 52,
-    lineHeight: 53,
-    fontWeight: '800',
-    letterSpacing: -2.5,
-    color: theme.colors.ink,
-    marginTop: 10,
-  },
-  sub: {
-    fontSize: 17,
-    lineHeight: 25,
-    color: theme.colors.muted,
-    marginTop: 16,
-  },
-  examples: { backgroundColor: theme.colors.surface, padding: 18, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.line },
-  exampleTitle: { marginTop: 6, color: theme.colors.ink, fontSize: 16, fontWeight: '800' },
-  capturePressed: { opacity: 0.82 },
-  capture: {
-    backgroundColor: theme.colors.ink,
-    marginTop: 36,
-    borderRadius: 28,
-    overflow: 'hidden',
-  },
-  grad: {
-    padding: 30,
-    alignItems: 'center',
-  },
-  cam: {
-    fontSize: 30,
-    color: theme.colors.surface,
-  },
-  cta: {
-    fontSize: 20,
-    fontWeight: '900',
-    letterSpacing: 1,
-    color: theme.colors.surface,
-    marginTop: 8,
-  },
-  hint: {
-    fontSize: 12,
-    color: theme.colors.captureTextMuted,
-    marginTop: 6,
-  },
-  gallery: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.line,
-    borderRadius: 20,
-    padding: 18,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  galleryTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  galleryHint: {
-    fontSize: 12,
-    color: theme.colors.subtle,
-    marginTop: 4,
-  },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 26,
-  },
-  tag: {
-    borderWidth: 1,
-    borderColor: theme.colors.line,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    fontSize: 10,
-    fontWeight: '800',
-    color: theme.colors.muted,
-  },
-  photo: {
-    width: '100%',
-    height: 280,
-    backgroundColor: theme.colors.surfaceMuted,
-    borderRadius: 26,
-  },
-  modeHeading: { fontSize: 30, lineHeight: 34, letterSpacing: -1, fontWeight: '800', color: theme.colors.ink, marginTop: 24, marginBottom: 16 },
-  mode: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, minHeight: 72,
-    backgroundColor: theme.colors.surface, borderRadius: 16, borderWidth: 1,
-    borderColor: theme.colors.line, marginBottom: 8,
-  },
-  modeSwitch: { padding: 16, marginTop: 14, backgroundColor: theme.colors.surface, borderColor: theme.colors.controlBorder, borderWidth: 1, borderRadius: 16, alignItems: 'center' },
-  modePressed: { backgroundColor: theme.colors.surfaceMuted, borderColor: theme.colors.accentDark },
-  modeIndex: { color: theme.colors.accentDark, fontSize: 12, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  close: { fontSize: 20, color: theme.colors.muted },
+  kicker: { fontSize: 10, fontWeight: '800', letterSpacing: 1.4, color: theme.colors.accentDark, marginTop: 30 },
+  hero: { fontSize: theme.type.hero, lineHeight: 50, fontWeight: '800', letterSpacing: -1.8, color: theme.colors.ink, marginTop: 11 },
+  sub: { fontSize: 16, lineHeight: 23, color: theme.colors.muted, marginTop: 12 },
+  possibilityFrame: { backgroundColor: theme.colors.ink, borderRadius: theme.radius.lg, padding: 19, marginTop: 24, overflow: 'hidden' },
+  frameHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  frameHeaderMark: { width: 7, height: 7, borderRadius: 4, backgroundColor: theme.colors.accent },
+  frameEyebrow: { color: theme.colors.captureTextMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1.1, flex: 1 },
+  frameCount: { color: theme.colors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 1.2 },
+  frameContent: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 18 },
+  frameVisual: { width: 94, height: 94, borderRadius: 47, backgroundColor: theme.colors.confidenceSurface, alignItems: 'center', justifyContent: 'center' },
+  frameOrbit: { position: 'absolute', width: 76, height: 76, borderRadius: 38, borderWidth: 1, borderColor: theme.colors.accent, opacity: 0.65 },
+  frameLens: { width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' },
+  frameLensCore: { width: 19, height: 19, borderRadius: 10, backgroundColor: theme.colors.ink },
+  frameSpark: { position: 'absolute', width: 9, height: 9, borderRadius: 5, backgroundColor: theme.colors.surface, top: 14, right: 17 },
+  frameCopy: { flex: 1, minWidth: 0, gap: 5 },
+  frameTitle: { color: theme.colors.surface, fontSize: 20, lineHeight: 24, fontWeight: '800', letterSpacing: -0.5 },
+  frameBody: { color: theme.colors.captureTextMuted, fontSize: 13, lineHeight: 19 },
+  frameTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 17 },
+  frameTag: { borderWidth: 1, borderColor: theme.colors.darkMuted, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 999 },
+  frameTagText: { color: theme.colors.captureTextMuted, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  capturePressed: { opacity: 0.82, transform: [{ scale: 0.99 }] },
+  capture: { flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: theme.colors.accent, marginTop: 18, borderRadius: theme.radius.lg, minHeight: 82, paddingHorizontal: 17 },
+  captureIcon: { width: 44, height: 44, borderRadius: 15, backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center' },
+  cam: { fontSize: 27, color: theme.colors.ink },
+  captureCopy: { flex: 1, gap: 3 },
+  cta: { fontSize: 18, fontWeight: '900', letterSpacing: -0.2, color: theme.colors.ink },
+  hint: { fontSize: 12, color: theme.colors.accentDark },
+  captureArrow: { color: theme.colors.ink, fontSize: 23, fontWeight: '700' },
+  galleryPressed: { backgroundColor: theme.colors.surfaceMuted, borderColor: theme.colors.accentDark },
+  gallery: { flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line, borderRadius: theme.radius.md, paddingHorizontal: 16, minHeight: 72, marginTop: 10 },
+  galleryIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: theme.colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  galleryIconText: { color: theme.colors.ink, fontSize: 22 },
+  galleryCopy: { flex: 1, gap: 3 },
+  galleryTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.ink },
+  galleryHint: { fontSize: 12, color: theme.colors.subtle },
+  galleryArrow: { color: theme.colors.subtle, fontSize: 22 },
+  privacy: { fontSize: 12, lineHeight: 18, color: theme.colors.muted, marginTop: 14, marginBottom: 8 },
+  examples: { backgroundColor: theme.colors.surface, padding: 18, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.line, marginTop: 18, gap: 12 },
+  examplesHeading: { color: theme.colors.ink, fontSize: 16, fontWeight: '800', marginBottom: 1 },
+  exampleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  exampleMarker: { width: 10, height: 34, borderRadius: 5 },
+  exampleCopy: { flex: 1, gap: 2 },
+  exampleTitle: { color: theme.colors.ink, fontSize: 14, fontWeight: '800' },
+  exampleDescription: { color: theme.colors.muted, fontSize: 12, lineHeight: 17 },
+  exampleDivider: { height: 1, backgroundColor: theme.colors.line, marginLeft: 22 },
+  modeHeading: { fontSize: 30, lineHeight: 35, letterSpacing: -0.9, fontWeight: '800', color: theme.colors.ink, marginTop: 10, marginBottom: 8 },
+  chooserDescription: { color: theme.colors.muted, fontSize: 14, lineHeight: 21, marginBottom: 18 },
+  backToResult: { alignSelf: 'flex-start', marginBottom: 15, minHeight: 40, justifyContent: 'center' },
+  backToResultText: { color: theme.colors.accentDark, fontSize: 13, fontWeight: '800' },
+  mode: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 13, minHeight: 82, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.line, marginBottom: 9 },
+  modeGlyph: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  modeGlyphText: { color: theme.colors.ink, fontSize: 22, fontWeight: '700' },
   modeCopy: { flex: 1, minWidth: 0 },
-  modeTitle: { color: theme.colors.ink, fontSize: 17, fontWeight: '800', lineHeight: 22 },
-  modeDesc: { color: theme.colors.muted, fontSize: 14, lineHeight: 19, marginTop: 3 },
-  arrow: { color: theme.colors.subtle, fontSize: 22 },
-  secondary: {
-    padding: 18,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  secondaryText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: theme.colors.ink,
-  },
+  modeTitle: { color: theme.colors.ink, fontSize: 16, fontWeight: '800', lineHeight: 22 },
+  modeDesc: { color: theme.colors.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
+  modeArrow: { color: theme.colors.accentDark, fontSize: 18, fontWeight: '700' },
+  modePressed: { backgroundColor: theme.colors.surfaceMuted, borderColor: theme.colors.accentDark, transform: [{ scale: 0.995 }] },
+  modeSwitch: { padding: 16, marginTop: 14, backgroundColor: theme.colors.surface, borderColor: theme.colors.controlBorder, borderWidth: 1, borderRadius: 16, alignItems: 'center' },
+  secondary: { padding: 18, alignItems: 'center', marginTop: 8 },
+  secondaryText: { fontSize: 14, fontWeight: '800', color: theme.colors.ink },
 });

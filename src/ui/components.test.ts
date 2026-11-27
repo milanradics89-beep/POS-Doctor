@@ -39,7 +39,18 @@ describe('USEIT shared component accessibility', () => {
     }
   });
   it('hides decorative marks from both VoiceOver and TalkBack', () => {
-    expect(source.match(/accessibilityElementsHidden\s+importantForAccessibility="no-hide-descendants"/g)).toHaveLength(3);
+    expect(source.match(/accessibilityElementsHidden\s+importantForAccessibility="no-hide-descendants"/g)).toHaveLength(4);
+  });
+
+  it('uses one shared uncropped image owner for the source photo and generated comparison', () => {
+    expect(source).toContain('export function PhotoFrame');
+    expect(source).toContain('resizeMode="contain"');
+    expect(source).toContain('accessibilityLabel={label}');
+    expect(source).toContain('source={{ uri }}');
+    const home = readFileSync(new URL('../../app/index.tsx', import.meta.url), 'utf8');
+    const result = readFileSync(new URL('./PhotoResult.tsx', import.meta.url), 'utf8');
+    expect(home).toContain('PhotoFrame uri={photo}');
+    expect(result).toContain('<PhotoFrame');
   });
 
   it('does not automatically fetch untrusted remote product image URLs', () => {
@@ -49,8 +60,9 @@ describe('USEIT shared component accessibility', () => {
   it('does not announce unavailable product details as an actionable link', () => {
     expect(source).toContain("accessibilityRole={onPress ? 'link' : 'text'}");
     expect(source).toContain("import { formatProductPrice, productCardAccessibilityLabel } from './productAccessibility';");
+    expect(source).toContain("import { hu } from '../i18n/hu';");
     expect(source).toContain('accessibilityLabel={productCardAccessibilityLabel({ title, category, source, price, currency, actionable: Boolean(onPress) })}');
-    expect(source).toContain("accessibilityHint={onPress ? 'Opens the product page in your browser.' : 'Product details are not available for this item.'}");
+    expect(source).toContain('accessibilityHint={onPress ? hu.common.productHint : hu.common.productUnavailableHint}');
   });
   it('supports loading, empty, error, offline and permission-denied states with accessible announcements', () => {
     expect(source).toContain("kind: 'loading' | 'empty' | 'error' | 'offline' | 'permission-denied' | 'success'");
@@ -61,7 +73,7 @@ describe('USEIT shared component accessibility', () => {
   });
 
   it('announces dynamic state panels to VoiceOver without grouping recovery actions', () => {
-    expect(source).toContain("import { AccessibilityInfo, ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';");
+    expect(source).toContain("import { AccessibilityInfo, ActivityIndicator, Animated, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';");
     expect(source).toContain("if (Platform.OS === 'ios')");
     expect(source).toContain("AccessibilityInfo.announceForAccessibility(`${title}. ${description}`)");
     expect(source).toContain('}, [kind, title, description]);');

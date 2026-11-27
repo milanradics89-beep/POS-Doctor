@@ -17,10 +17,10 @@ function contrast(foreground: string, background: string): number {
 
 describe('USEIT design token contrast', () => {
   it('uses an AA-safe token for the mode-card arrow on its light surface', () => {
-    const arrowStyle = homeSource.match(/arrow:\s*\{([^}]+)\}/)?.[1] ?? '';
-    expect(arrowStyle).toContain('theme.colors.subtle');
+    const arrowStyle = homeSource.match(/modeArrow:\s*\{([^}]+)\}/)?.[1] ?? '';
+    expect(arrowStyle).toContain('theme.colors.accentDark');
     expect(arrowStyle).not.toContain('theme.colors.captureTextMuted');
-    expect(contrast(theme.colors.subtle, theme.colors.surface)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(theme.colors.accentDark, theme.colors.surface)).toBeGreaterThanOrEqual(4.5);
   });
 
   it('keeps secondary text and links at WCAG AA contrast on light surfaces', () => {

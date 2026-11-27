@@ -1,12 +1,7 @@
 import type { ConsumerAnalysis, ConsumerIntent } from '../core/intelligence/apiClient';
+import { hu } from '../i18n/hu';
 
-export const modeCopy = {
-  create: { title: 'Make something new', next: 'Project plan', needs: 'Tools and materials', alternatives: 'Other ways to build it' },
-  improve: { title: 'Refresh the design', next: 'Improvement plan', needs: 'What you’ll need', alternatives: 'Other changes to consider' },
-  fix: { title: 'Repair an item', next: 'Safe checks', needs: 'What you’ll need', alternatives: 'Other options' },
-  cook: { title: 'Plan a meal', next: 'Cooking steps', needs: 'Ingredients', alternatives: 'Substitutions' },
-  surprise: { title: 'Surprise me', next: 'Try it yourself', needs: 'What you’ll need', alternatives: 'Other ways to try it' },
-} satisfies Record<string, { title: string; next: string; needs: string; alternatives: string }>;
+export const modeCopy = hu.modes;
 
 export type ResultMode = keyof typeof modeCopy;
 
