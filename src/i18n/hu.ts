@@ -165,8 +165,11 @@ export const hu = {
     retrySearchDescription: 'A fotóelemzésed továbbra is elérhető. A termékkeresést külön is megpróbálhatod újra.',
     retrySearchHint: 'Új termékkeresést indít ugyanazokkal a szöveges támpontokkal.',
     find: 'Megfelelő termékek keresése',
-    findDisclosure: 'A kereséshez a fotóból kinyert szöveges keresőkifejezéseket a Google keresőszolgáltatásnak továbbítjuk. A fotódat nem küldjük el újra.',
-    findHint: 'A fotó újraküldése és új AI-elemzés nélkül keres. Csak a képből származó szöveges keresőkifejezések kerülnek továbbításra.',
+    queryAccessibility: 'A termékkeresés előtt ellenőrizhető keresőkifejezés',
+    queryPlaceholder: 'A kereséshez használt szöveg',
+    queryGuidance: 'Ellenőrizd és szükség esetén módosítsd a szöveget. Töröld belőle a személyes adatokat, mielőtt elindítod a keresést.',
+    findDisclosure: 'A keresés indításakor csak az itt látható szöveget továbbítjuk a Google keresőszolgáltatásnak. A fotódat nem küldjük el újra.',
+    findHint: 'Az általad ellenőrzött, itt látható szöveget továbbítja a Google keresőszolgáltatásnak. A fotó nem kerül újra elküldésre.',
     unknownCategory: 'egyéb',
   },
   refinement: {

@@ -11,6 +11,7 @@ import { productResultsState } from './productResultsState';
 import { productPriceDisplay } from './productPresentation';
 import { localizeProductCategory } from './productAccessibility';
 import { hu } from '../i18n/hu';
+import { isCurrentProductDiscoveryResult, normalizeReviewedProductSearchQuery, MAX_REVIEWED_PRODUCT_QUERY_LENGTH } from './productDiscoveryReview';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -131,8 +132,13 @@ function ProductResults({ shopping, onOpenProduct, onRetry }: {
 
 function useProductDiscovery(result: ConsumerAnalysis) {
   const need = result.unified?.actionable?.shoppingNeed;
-  const query = need?.searchTerms.join(" ").replace(/\s+/g, " ").slice(0, 500) ?? "";
-  const [shopping, setShopping] = useState<NonNullable<UseitShopping> | null>(result.unified?.shopping ?? null);
+  const initialQuery = normalizeReviewedProductSearchQuery(need?.searchTerms.join(" ") ?? "");
+  const initialShopping = result.unified?.shopping ?? null;
+  const [query, setQuery] = useState(initialQuery);
+  const [shopping, setShopping] = useState<NonNullable<UseitShopping> | null>(initialShopping);
+  const [submittedQuery, setSubmittedQuery] = useState<string | null>(
+    initialShopping ? normalizeReviewedProductSearchQuery(initialShopping.query) : null,
+  );
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
@@ -144,15 +150,17 @@ function useProductDiscovery(result: ConsumerAnalysis) {
   }, []);
 
   async function discover() {
-    if (loading || controllerRef.current || query.length < 2) return;
+    const requestQuery = normalizeReviewedProductSearchQuery(query);
+    if (loading || controllerRef.current || requestQuery.length < 2) return;
     const controller = new AbortController();
     controllerRef.current = controller;
+    setSubmittedQuery(requestQuery);
     setShopping(null);
     setLoading(true);
     setFailed(false);
     try {
       const response = await new UseitApiProvider(API_URL).discoverProducts(
-        query,
+        requestQuery,
         { limit: 8, maxResolve: 8, locale: "hu-HU", region: "HU" },
         controller.signal,
       );
@@ -167,6 +175,19 @@ function useProductDiscovery(result: ConsumerAnalysis) {
     }
   }
 
+  function updateQuery(value: string) {
+    setQuery(value);
+    setShopping(null);
+    setSubmittedQuery(null);
+    setFailed(false);
+    const controller = controllerRef.current;
+    if (controller) {
+      controllerRef.current = null;
+      controller.abort();
+      setLoading(false);
+    }
+  }
+
   function cancel() {
     const controller = controllerRef.current;
     controllerRef.current = null;
@@ -174,7 +195,11 @@ function useProductDiscovery(result: ConsumerAnalysis) {
     setLoading(false);
   }
 
-  return { need, shopping, loading, failed, discover, cancel };
+  const currentShopping = shopping && isCurrentProductDiscoveryResult(query, submittedQuery)
+    ? shopping
+    : null;
+
+  return { need, query, updateQuery, shopping: currentShopping, loading, failed, discover, cancel };
 }
 
 function ProductDiscoveryPanel({ result, onOpenProduct }: {
@@ -189,6 +214,18 @@ function ProductDiscoveryPanel({ result, onOpenProduct }: {
       <Text style={s.body}>{discovery.need.summary}</Text>
       <Lines title={hu.product.photoClues} items={discovery.need.evidence} />
       <Text style={s.caption}>{hu.product.findDisclosure}</Text>
+      <TextInput
+        accessibilityLabel={hu.product.queryAccessibility}
+        placeholder={hu.product.queryPlaceholder}
+        placeholderTextColor={theme.colors.muted}
+        value={discovery.query}
+        onChangeText={discovery.updateQuery}
+        maxLength={MAX_REVIEWED_PRODUCT_QUERY_LENGTH}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={s.input}
+      />
+      <Text style={s.caption}>{hu.product.queryGuidance}</Text>
       {discovery.loading ? (
         <StatePanel kind="loading" title={hu.product.searching}
           description={hu.product.searchingDescription}

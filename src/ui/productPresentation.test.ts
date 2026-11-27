@@ -14,6 +14,14 @@ describe("product price presentation", () => {
     expect(productPriceDisplay({ price: 5_000, currency: null, priceHuf: null })).toEqual({ price: 5_000, currency: "" });
   });
 
+  it("falls back to HUF when a source-currency amount is missing", () => {
+    expect(productPriceDisplay({ price: null, currency: "EUR", priceHuf: 24_990 })).toEqual({ price: 24_990, currency: "HUF" });
+  });
+
+  it("preserves a zero source-currency amount instead of replacing it with HUF", () => {
+    expect(productPriceDisplay({ price: 0, currency: "EUR", priceHuf: 24_990 })).toEqual({ price: 0, currency: "EUR" });
+  });
+
   it("preserves a zero HUF price", () => {
     expect(productPriceDisplay({ priceHuf: 0 })).toEqual({ price: 0, currency: "HUF" });
   });

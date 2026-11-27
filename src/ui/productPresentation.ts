@@ -5,10 +5,14 @@ export type ProductPriceInput = {
 };
 
 export function productPriceDisplay(candidate: ProductPriceInput): { price: number | undefined; currency: string } {
-  const currency = candidate.currency?.toUpperCase() ?? "";
-  const displayCurrency = currency || (candidate.priceHuf != null ? "HUF" : "");
-  const price = displayCurrency === "HUF"
-    ? candidate.priceHuf ?? candidate.price ?? undefined
-    : candidate.price ?? undefined;
-  return { price, currency: displayCurrency };
+  const currency = candidate.currency?.trim().toUpperCase() ?? "";
+  // Prefer a source-currency amount only when that amount is actually present.
+  // Otherwise retain the available HUF fallback, including a valid zero value.
+  if (candidate.price != null && currency) {
+    return { price: candidate.price, currency };
+  }
+  if (candidate.priceHuf != null) {
+    return { price: candidate.priceHuf, currency: "HUF" };
+  }
+  return { price: candidate.price ?? undefined, currency };
 }
