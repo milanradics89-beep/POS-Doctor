@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   toolWrenchGrip: { position: 'absolute', bottom: 11, right: 31, width: 17, height: 8, borderRadius: 4, backgroundColor: '#6F817B', transform: [{ rotate: '38deg' }] },
   toolBolt: { position: 'absolute', top: 15, left: 20, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.accentDark },
   sceneTag: { position: 'absolute', bottom: 7, right: 7, borderRadius: theme.radius.pill, backgroundColor: 'rgba(255,255,255,0.78)', paddingHorizontal: 8, paddingVertical: 4 },
-  sceneTagText: { color: theme.colors.ink, fontSize: 10, fontWeight: '900', letterSpacing: 0.7 },
+  sceneTagText: { color: theme.colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: 0.6 },
   exampleWide: { flexBasis: '100%' },
   exampleNumber: { color: theme.colors.accentDark, fontSize: 11, fontWeight: '900', letterSpacing: 0.8 },
   exampleTitle: { color: theme.colors.ink, fontSize: 15, lineHeight: 19, fontWeight: '800' },
