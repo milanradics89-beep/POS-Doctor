@@ -30,6 +30,7 @@ describe('remote mobile API build configuration', () => {
     expect(() => validateMobileApiConfig('https://backend.invalid')).toThrow('deployed public hostname');
     expect(() => validateMobileApiConfig('https://localhost.:8000')).toThrow('deployed public hostname');
     expect(() => validateMobileApiConfig('https://backend.internal.')).toThrow('deployed public hostname');
+    expect(() => validateMobileApiConfig('https://backend')).toThrow('deployed public hostname');
   });
 
   it('probes both public health and production readiness before a remote build', async () => {
