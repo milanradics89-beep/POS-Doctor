@@ -626,7 +626,7 @@ function PhotoStage(props: PhotoStageProps) {
 }
 
 function SelectedPhotoFlow(props: PhotoStageProps & { photo: string }) {
-  const { photo, busy, choosingMode, noticePanel, mode, reset } = props;
+  const { photo, photoFidelity, busy, choosingMode, noticePanel, mode, reset } = props;
   const result = choosingMode ? null : props.result;
   const progress = busy ? props.cancelAnalysis : props.rendering ? props.cancelRedesign : null;
   const concept = showConcept(props.concept, choosingMode, busy);
