@@ -122,10 +122,10 @@ async function resolvePublicAddresses(
     ]);
     const timeout = new Promise((resolve, reject) => {
       deadline = setTimeout(() => {
-        cancelResolver();
         const error = new Error('USEIT backend hostname DNS resolution exceeded its total time limit.');
         error.code = 'ETIMEOUT';
         reject(error);
+        cancelResolver();
       }, timeoutMs);
     });
     const resolved = await Promise.race([queries, timeout]);
