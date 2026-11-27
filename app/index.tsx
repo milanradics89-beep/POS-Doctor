@@ -44,8 +44,13 @@ const modes: [ConsumerIntent, string][] = [
   ['surprise', 'Show me something I would not think of.'],
 ];
 
+function hasUsableDimensions(width: number, height: number) {
+  return [width, height].every((value) => Number.isFinite(value) && value > 0);
+}
+
 export default function Home() {
   const [photo, setPhoto] = useState<string | null>(null);
+  const [preparing, setPreparing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [rendered, setRendered] = useState<string | null>(null);
@@ -107,6 +112,7 @@ export default function Home() {
     failureDescription: string
   ) {
     const generation = ++photoGeneration.current;
+    setPreparing(true);
     // Invalidate a pending redesign before dimension lookup or normalization can await.
     cancelRedesign();
     cancelAnalysis();
@@ -117,7 +123,7 @@ export default function Home() {
     try {
       let resolvedWidth = width;
       let resolvedHeight = height;
-      if (!Number.isFinite(resolvedWidth) || !Number.isFinite(resolvedHeight) || resolvedWidth <= 0 || resolvedHeight <= 0) {
+      if (!hasUsableDimensions(resolvedWidth, resolvedHeight)) {
         const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
           Image.getSize(uri, (imageWidth, imageHeight) => resolve({ width: imageWidth, height: imageHeight }), reject);
         });
@@ -135,10 +141,13 @@ export default function Home() {
         title: 'Photo unavailable',
         description: error instanceof Error ? error.message : failureDescription,
       });
+    } finally {
+      if (generation === photoGeneration.current) setPreparing(false);
     }
   }
 
   const reset = () => {
+    setPreparing(false);
     photoGeneration.current += 1;
     cancelAnalysis();
     cancelRedesign();
@@ -167,7 +176,7 @@ export default function Home() {
       setNotice({
         kind: 'error',
         title: 'USEIT is not connected',
-        description: 'The real vision flow needs EXPO_PUBLIC_USEIT_API_URL to be configured.',
+        description: 'Photo analysis is unavailable in this version. Your photo has not been sent.',
       });
       return;
     }
@@ -278,75 +287,85 @@ export default function Home() {
 
   async function chooseGallery() {
     const generation = ++photoGeneration.current;
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (generation !== photoGeneration.current) return;
-    const decision = permissionDecision(permission.granted, permission.canAskAgain);
-    if (decision !== 'granted') {
-      const openSettings = decision === 'open_settings';
-      setNotice({
-        kind: 'permission-denied',
-        title: openSettings ? 'Photos access is disabled' : 'Photos permission needed',
-        description: openSettings
-          ? 'Enable photo library access in Settings to choose an image.'
-          : 'USEIT needs access to a photo you want to explore.',
-        actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN',
-        actionAccessibilityHint: openSettings
-          ? 'Opens system settings so you can enable photo library access.'
-          : 'Requests photo library permission again.',
-        onAction: () => {
-          if (openSettings) void Linking.openSettings();
-          else void chooseGallery();
-        },
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (generation !== photoGeneration.current) return;
+      const decision = permissionDecision(permission.granted, permission.canAskAgain);
+      if (decision !== 'granted') {
+        const openSettings = decision === 'open_settings';
+        setNotice({
+          kind: 'permission-denied',
+          title: openSettings ? 'Photos access is disabled' : 'Photos permission needed',
+          description: openSettings
+            ? 'Enable photo library access in Settings to choose an image.'
+            : 'USEIT needs access to a photo you want to explore.',
+          actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN',
+          actionAccessibilityHint: openSettings
+            ? 'Opens system settings so you can enable photo library access.'
+            : 'Requests photo library permission again.',
+          onAction: () => {
+            if (openSettings) void Linking.openSettings();
+            else void chooseGallery();
+          },
+        });
+        return;
+      }
+
+      setNotice(null);
+      const r = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+        base64: false,
+        exif: true,
+        allowsMultipleSelection: false,
       });
-      return;
+
+      await selectPickerResult(r, generation, 'USEIT could not decode this image. Choose a different photo.');
+    } catch {
+      if (generation !== photoGeneration.current) return;
+      setNotice({ kind: 'error', title: 'Photo library unavailable', description: 'Try choosing a photo again, or use the camera.' });
     }
-
-    setNotice(null);
-    const r = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-      base64: false,
-      exif: true,
-      allowsMultipleSelection: false,
-    });
-
-    await selectPickerResult(r, generation, 'USEIT could not decode this image. Choose a different photo.');
   }
 
   async function capture() {
     const generation = ++photoGeneration.current;
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (generation !== photoGeneration.current) return;
-    const decision = permissionDecision(permission.granted, permission.canAskAgain);
-    if (decision !== 'granted') {
-      const openSettings = decision === 'open_settings';
-      setNotice({
-        kind: 'permission-denied',
-        title: openSettings ? 'Camera access is disabled' : 'Camera permission needed',
-        description: openSettings
-          ? 'Enable camera access in Settings to take a photo.'
-          : 'USEIT needs camera access to photograph what you want to explore.',
-        actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN',
-        actionAccessibilityHint: openSettings
-          ? 'Opens system settings so you can enable camera access.'
-          : 'Requests camera permission again.',
-        onAction: () => {
-          if (openSettings) void Linking.openSettings();
-          else void capture();
-        },
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (generation !== photoGeneration.current) return;
+      const decision = permissionDecision(permission.granted, permission.canAskAgain);
+      if (decision !== 'granted') {
+        const openSettings = decision === 'open_settings';
+        setNotice({
+          kind: 'permission-denied',
+          title: openSettings ? 'Camera access is disabled' : 'Camera permission needed',
+          description: openSettings
+            ? 'Enable camera access in Settings to take a photo.'
+            : 'USEIT needs camera access to photograph what you want to explore.',
+          actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN',
+          actionAccessibilityHint: openSettings
+            ? 'Opens system settings so you can enable camera access.'
+            : 'Requests camera permission again.',
+          onAction: () => {
+            if (openSettings) void Linking.openSettings();
+            else void capture();
+          },
+        });
+        return;
+      }
+
+      setNotice(null);
+      const r = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+        base64: false,
+        exif: true,
       });
-      return;
+
+      await selectPickerResult(r, generation, 'USEIT could not decode the captured image. Try taking it again.');
+    } catch {
+      if (generation !== photoGeneration.current) return;
+      setNotice({ kind: 'error', title: 'Camera unavailable', description: 'Try opening the camera again, or choose a photo from your gallery.' });
     }
-
-    setNotice(null);
-    const r = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-      base64: false,
-      exif: true,
-    });
-
-    await selectPickerResult(r, generation, 'USEIT could not decode the captured image. Try taking it again.');
   }
 
   const noticePanel = notice ? (
@@ -363,7 +382,16 @@ export default function Home() {
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView contentContainerStyle={s.page}>
-        {!photo ? (
+        {preparing ? (
+          <StatePanel
+            kind="loading"
+            title="Preparing your photo"
+            description="Your photo is being prepared on this device."
+            actionLabel="CANCEL"
+            actionAccessibilityHint="Stops photo selection and returns to the camera and gallery options."
+            onAction={reset}
+          />
+        ) : !photo ? (
           <FadeIn delay={40}>
           <>
             <View style={s.brandRow}>
@@ -438,13 +466,13 @@ export default function Home() {
             {rendered ? (
               <>
                 <Text style={s.kicker}>VISUAL CONCEPT</Text>
-                <Image source={{ uri: rendered }} style={s.rendered} />
+                <Image accessible accessibilityLabel="Generated visual concept" source={{ uri: rendered }} style={s.rendered} />
                 <Text style={s.disclosure}>
                   {redesign?.disclosure}
                 </Text>
               </>
             ) : (
-              <Image source={{ uri: photo }} style={s.photo} />
+              <Image accessible accessibilityLabel="Your selected photo" source={{ uri: photo }} style={s.photo} />
             )}
 
             {busy ? (
