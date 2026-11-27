@@ -59,7 +59,7 @@ describe('runtime dependency security overrides', () => {
       /^\s*if:\s*\$\{\{\s*vars\.USEIT_DEPENDENCY_GRAPH_ENABLED/m,
     );
     expect(dependencyReviewWorkflow).toContain(
-      'actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294',
+      'actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec',
     );
     expect(dependencyReviewWorkflow).toContain('fail-on-severity: high');
   });

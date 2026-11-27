@@ -138,6 +138,7 @@ async function createSession(base: string, generation: number): Promise<string> 
     }
 
     keyId = await nativeModule.default.getOrCreateKeyId();
+    let keyAttested = nativeModule.default.isKeyAttested(keyId);
     let pending: PendingAppleAttestation | null = null;
     const pendingRaw = nativeModule.default.getPendingAttestation?.(keyId);
     const hasPendingMarker = nativeModule.default.isKeyAttestationPending(keyId);
@@ -161,23 +162,37 @@ async function createSession(base: string, generation: number): Promise<string> 
 
     if (!pending) {
       if (pendingRaw || hasPendingMarker) {
-        nativeModule.default.discardKey?.(keyId);
-        keyId = await nativeModule.default.getOrCreateKeyId();
+        if (keyAttested) {
+          // The server has already accepted this key. Clear stale local pending
+          // metadata without destroying the registered key or resetting its counter.
+          nativeModule.default.markKeyAttested(keyId);
+        } else {
+          nativeModule.default.discardKey?.(keyId);
+          keyId = await nativeModule.default.getOrCreateKeyId();
+          keyAttested = nativeModule.default.isKeyAttested(keyId);
+        }
       }
       if (challenge.provider !== 'apple_app_attest') {
         throw new Error('USEIT attestation provider changed during bootstrap.');
       }
-      pending = {
-        challenge: challenge.challenge,
-        provider: 'apple_app_attest',
-        appId: challenge.appId,
-        expiresAt: challenge.expiresAt,
-      };
-      nativeModule.default.markKeyAttestationPending(keyId);
-      nativeModule.default.storePendingAttestation?.(keyId, JSON.stringify(pending));
-    } else if (!pending.needsAssertionRecovery) {
+      if (!keyAttested) {
+        pending = {
+          challenge: challenge.challenge,
+          provider: 'apple_app_attest',
+          appId: challenge.appId,
+          expiresAt: challenge.expiresAt,
+        };
+        nativeModule.default.markKeyAttestationPending(keyId);
+        nativeModule.default.storePendingAttestation?.(keyId, JSON.stringify(pending));
+      }
+    } else if (!pending.needsAssertionRecovery && !keyAttested) {
       // Reuse the original nonce and evidence while the server outcome is ambiguous.
       challenge = pending;
+    }
+
+    if (keyAttested && pending) {
+      nativeModule.default.markKeyAttested(keyId);
+      pending = null;
     }
 
     markAppleRecoveryPending = () => {
@@ -186,10 +201,9 @@ async function createSession(base: string, generation: number): Promise<string> 
       nativeModule.default.storePendingAttestation?.(keyId, JSON.stringify(pending));
     };
 
-    if (pending.needsAssertionRecovery) {
-      // The enrollment result is ambiguous after a lost response or verifier outage.
-      // A fresh assertion distinguishes a stored key from an enrollment that must
-      // be safely recreated.
+    if (keyAttested || pending?.needsAssertionRecovery) {
+      // A registered key must use a fresh, challenge-bound assertion for every
+      // later session. Re-attesting the same key is not a valid enrollment flow.
       if (challenge.provider !== 'apple_app_attest') {
         throw new Error('USEIT App Attest recovery returned a different provider.');
       }
@@ -202,9 +216,12 @@ async function createSession(base: string, generation: number): Promise<string> 
         keyId,
         clientData,
       );
-    } else if (pending.attestationObject) {
+    } else if (pending?.attestationObject) {
       assertion = pending.attestationObject;
     } else {
+      if (!pending) {
+        throw new Error('USEIT App Attest enrollment state is missing.');
+      }
       try {
         assertion = await nativeModule.default.attest(challenge.challenge, keyId);
       } catch (error) {
