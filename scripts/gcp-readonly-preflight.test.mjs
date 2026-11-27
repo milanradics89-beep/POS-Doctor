@@ -21,15 +21,20 @@ fi
 exit 0
 `);
     chmodSync(fakeGcloud, 0o755);
+    const env = {
+      ...process.env,
+      PATH: `${temp}${delimiter}${process.env.PATH ?? ''}`,
+      FAKE_GCLOUD_CALL_LOG: callLog,
+      USEIT_GCP_REGION: '',
+    };
+    if (projectId === undefined) {
+      delete env.USEIT_GCP_PROJECT_ID;
+    } else {
+      env.USEIT_GCP_PROJECT_ID = projectId;
+    }
     const result = spawnSync('/bin/bash', [scriptPath], {
       encoding: 'utf8',
-      env: {
-        ...process.env,
-        PATH: `${temp}${delimiter}${process.env.PATH ?? ''}`,
-        USEIT_GCP_PROJECT_ID: projectId,
-        FAKE_GCLOUD_CALL_LOG: callLog,
-        USEIT_GCP_REGION: '',
-      },
+      env,
     });
     const calls = existsSync(callLog)
       ? readFileSync(callLog, 'utf8').split(/\r?\n/).filter(Boolean)
@@ -61,7 +66,7 @@ describe('USEIT GCP read-only preflight', () => {
     expect(script).toContain('No gcloud command was executed.');
   });
 
-  it.each(['not-the-approved-project', 'useit', 'useit-platform-2026', 'fresh-weft-447913-u6', 'owner-approved-123456'])(
+  it.each(['', 'not-the-approved-project', 'useit', 'useit-platform-2026', 'fresh-weft-447913-u6', 'owner-approved-123456'])(
     'rejects value "%s" before executing any gcloud command',
     (projectId) => {
       const result = runWithFakeGcloud(projectId);
@@ -72,10 +77,18 @@ describe('USEIT GCP read-only preflight', () => {
     },
   );
 
+  it('rejects a missing project ID before executing any gcloud command', () => {
+    const result = runWithFakeGcloud(undefined);
+    expect(result.status).toBe(2);
+    expect(result.error).toBeUndefined();
+    expect(result.calls).toEqual([]);
+    expect(result.stderr).toContain('No gcloud command was executed.');
+  });
+
   it('rejects the five-character owner label under Google Cloud project-ID syntax', () => {
     const syntax = /^([a-z][a-z0-9-]{4,28}[a-z0-9])$/;
     expect(syntax.test('useit')).toBe(false);
-    expect(script).toContain('Google Cloud project ID syntax: IDs must be 6 to 30 lowercase letters');
+    expect(script).toContain("The owner-specified label 'useit' is not a valid Google Cloud project ID; IDs must be 6 to 30 lowercase letters, digits or hyphens.");
     const syntaxGuard = script.indexOf('if [[ ! "$PROJECT_ID" =~');
     expect(syntaxGuard).toBeLessThan(script.indexOf('command -v gcloud'));
   });

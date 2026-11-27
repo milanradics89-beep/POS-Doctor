@@ -111,14 +111,17 @@ The shared Firestore state uses these collections:
 - `useit_state_v1`: cross-instance rate-limit/budget state, attestation challenges and
   Apple App Attest key/counter state.
 
-Configure TTL on `expires_at` for `useit_state_v1` only. For an existing
-`analysis_idempotency_v1` collection, keep TTL **disabled** until the release-register
-migration gate is complete: disable any existing policy before deploying the new
-version, drain every old writer, deploy the new code, run the metadata-only migration
-dry-run, apply only after explicit operator confirmation, rerun dry-run and require
-zero candidates, then re-enable TTL. Only `completed` (and bounded `health_probe`)
-records may carry `expires_at`; `processing`, `outcome_unknown`, and unknown/corrupt
-claims must never expire automatically. Follow the exact steps in the
+Configure TTL on `expires_at` for `useit_state_v1` during initial setup.
+Keep TTL **disabled** on `analysis_idempotency_v1` for every deployment until the
+release-register migration gate passes. This also applies to a newly created
+collection: record direct evidence that it is new and empty, that no TTL policy was
+ever enabled, and that no legacy writer could have created or deleted claims; run
+the migration dry-run and retain the zero-candidate verification. A zero-candidate
+scan alone does not prove that an earlier TTL policy never deleted claims. Only
+after the gate passes may TTL be enabled for `analysis_idempotency_v1`. Only
+`completed` (and bounded `health_probe`) records may carry `expires_at`;
+`processing`, `outcome_unknown`, and unknown/corrupt claims must never expire
+automatically. Follow the exact steps in the
 [release register](../docs/RELEASE-REGISTER.md). Apple enrollment records have no TTL.
 Database creation, TTL policy changes, IAM, billing and paid API enablement are
 owner-approved cloud operations, not side effects of this repository or CI.

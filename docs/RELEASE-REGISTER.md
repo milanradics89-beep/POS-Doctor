@@ -32,6 +32,14 @@ A mobile retry of the same analysis carries the same `Idempotency-Key`. The serv
 
 Firestore TTL is field-based; it cannot filter by document status. An existing `analysis_idempotency_v1` TTL policy can delete legacy `processing`, `outcome_unknown` or unknown/corrupt claim records before the new code migrates them. Do not retain or enable that policy during the migration.
 
+This gate applies to new deployments as well as existing collections. For a newly
+created collection, record direct evidence that it is new and empty, that no TTL
+policy was ever enabled, and that no legacy writer could have created or deleted
+claims. Run the dry-run and retain the zero-candidate verification before enabling
+TTL. A zero-candidate scan alone cannot prove that TTL never deleted historical
+claims. If any historical data, policy history, or legacy writer may exist, complete
+all ten steps below, including per-request reconciliation where applicable.
+
 1. Confirm the exact, approved Google Cloud project ID and record its project number. Do not infer an ID from a display name or substitute a historical project.
 2. Record whether the `analysis_idempotency_v1` TTL policy has ever been enabled and its active interval. If it is currently enabled, disable it before any writer drain or deployment; verify that deletion is disabled before continuing. If it was never enabled, retain independent evidence of that fact.
 3. Stop routing new requests to old-version writers, drain their in-flight requests, and verify that no old writer can create claims. Keep the new version at zero traffic throughout migration and reconciliation.
