@@ -22,9 +22,9 @@ For a client on the same machine, set `EXPO_PUBLIC_USEIT_API_URL=https://YOUR-AP
 
 <!-- /coderabbit-ai-generated:v1 -->
 
-Vision: `POST /v1/analyze`
+`POST /v1/analyze` is the low-level vision endpoint. The camera-first consumer app should call `POST /v1/useit/analyze`, the canonical consumer orchestration boundary for intent, specialist, suggestions and optional product discovery. Do not wire the consumer app directly to the low-level endpoint; it remains available for legacy vision integrations.
 
-The API key stays server-side. The mobile app only receives structured scene analysis.
+The OpenAI API key stays server-side. The mobile app receives structured scene analysis and never receives provider credentials.
 
 ## Outbound product-page networking
 
