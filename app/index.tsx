@@ -25,6 +25,7 @@ import { createIdempotencyKey } from '../src/core/intelligence/idempotencyKey';
 import { requestFailureKind } from '../src/ui/requestFailure';
 import { validateImageUri } from '../src/core/intelligence/imageInput';
 import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';
+import type { NormalizedImage } from '../src/core/intelligence/imageNormalization';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -186,7 +187,7 @@ function conceptFailureNotice(error: unknown, retryConcept: () => void): ScreenN
   };
 }
 
-function SelectedPhoto({ photo, concept, reset }: { photo: string; concept: string | null; reset: () => void }) {
+function SelectedPhoto({ photo, concept, photoFidelity, reset }: { photo: string; concept: string | null; photoFidelity: NormalizedImage['fidelity'] | null; reset: () => void }) {
   return (
     <>
             <View style={s.top}>
@@ -206,7 +207,16 @@ function SelectedPhoto({ photo, concept, reset }: { photo: string; concept: stri
             </View>
 
             {concept ? <PhotoComparison photo={photo} concept={concept} /> : (
-              <Image accessible accessibilityLabel={hu.flow.selectedPhoto} resizeMode="contain" source={{ uri: photo }} style={s.photo} />
+              <Image
+                accessible
+                accessibilityLabel={photoFidelity
+                  ? `${hu.flow.selectedPhoto}. ${hu.flow.originalPhotoDimensions}: ${photoFidelity.sourceWidth} × ${photoFidelity.sourceHeight} pixel. ${hu.flow.analysisPhotoDimensions}: ${photoFidelity.outputWidth} × ${photoFidelity.outputHeight} pixel.`
+                  : hu.flow.selectedPhoto}
+                accessibilityHint={hu.flow.selectedPhotoHint}
+                resizeMode="contain"
+                source={{ uri: photo }}
+                style={s.photo}
+              />
             )}
 
     </>
@@ -259,7 +269,7 @@ type PhotoPreparation = {
   setPreparing: (preparing: boolean) => void;
   onBegin: () => void;
   setNotice: (notice: ScreenNotice | null) => void;
-  setSelectedPhoto: (image: string) => void;
+  setSelectedPhoto: (image: string, fidelity: NormalizedImage['fidelity']) => void;
 };
 
 function createPhotoPreparation({ photoGeneration, setPreparing, onBegin, setNotice, setSelectedPhoto }: PhotoPreparation) {
@@ -288,7 +298,7 @@ function createPhotoPreparation({ photoGeneration, setPreparing, onBegin, setNot
       }
       const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
       if (generation !== photoGeneration.current) return;
-      setSelectedPhoto(normalized.dataUrl);
+      setSelectedPhoto(normalized.dataUrl, normalized.fidelity);
     } catch (error) {
       if (generation !== photoGeneration.current) return;
       setNotice({
@@ -489,6 +499,7 @@ function usePhotoRequestLifetimes(setBusy: (busy: boolean) => void, setRendering
 
 export default function Home() {
   const [photo, setPhoto] = useState<string | null>(null);
+  const [photoFidelity, setPhotoFidelity] = useState<NormalizedImage['fidelity'] | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [rendering, setRendering] = useState(false);
@@ -507,11 +518,12 @@ export default function Home() {
     setChoosingMode(true);
   }
 
-  function setSelectedPhoto(imageUri: string) {
+  function setSelectedPhoto(imageUri: string, fidelity: NormalizedImage['fidelity']) {
     validateImageUri(imageUri);
     cancelAnalysis();
     setNotice(null);
     setPhoto(imageUri);
+    setPhotoFidelity(fidelity);
     setResult(null);
     setRendered(null);
   }
@@ -537,6 +549,7 @@ export default function Home() {
     cancelAnalysis();
     cancelRedesign();
     setPhoto(null);
+    setPhotoFidelity(null);
     setResult(null);
     setRendered(null);
     setNotice(null);
@@ -571,7 +584,7 @@ export default function Home() {
 
   const onRefine = (text: string, target?: string) => { void analyze(completedMode, undefined, text, target?.slice(0, 180)); };
   return (
-    <PhotoStage photo={photo} preparing={preparing} busy={busy} noticePanel={noticePanel}
+    <PhotoStage photo={photo} photoFidelity={photoFidelity} preparing={preparing} busy={busy} noticePanel={noticePanel}
       concept={rendered} rendering={rendering} choosingMode={choosingMode} result={result} mode={completedMode}
       cancelAnalysis={cancelAnalysis} cancelRedesign={cancelRedesign}
       resultId={analysisRequestIdRef.current} reset={reset} switchMode={switchMode}
@@ -583,7 +596,7 @@ export default function Home() {
 }
 
 type PhotoStageProps = {
-  photo: string | null; preparing: boolean; busy: boolean; noticePanel: React.ReactNode;
+  photo: string | null; photoFidelity: NormalizedImage['fidelity'] | null; preparing: boolean; busy: boolean; noticePanel: React.ReactNode;
   concept: string | null; rendering: boolean; choosingMode: boolean;
   cancelAnalysis: () => void; cancelRedesign: () => void; result: ConsumerAnalysis | null; mode: ResultMode;
   resultId: number; reset: () => void; switchMode: () => void; pickPhoto: (source: PickerSource) => Promise<void>;
@@ -592,7 +605,7 @@ type PhotoStageProps = {
 };
 
 function PhotoStage(props: PhotoStageProps) {
-  const { photo, preparing, noticePanel, reset } = props;
+  const { photo, photoFidelity, preparing, noticePanel, reset } = props;
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView contentContainerStyle={s.page}>
@@ -632,7 +645,7 @@ function SelectedPhotoFlow(props: PhotoStageProps & { photo: string }) {
   }
   return (
     <>
-      <SelectedPhoto photo={photo} concept={concept} reset={reset} />
+      <SelectedPhoto photo={photo} concept={concept} photoFidelity={photoFidelity} reset={reset} />
       {body}
     </>
   );
