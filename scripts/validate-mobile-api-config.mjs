@@ -34,18 +34,40 @@ function isInIpv4Range(address, network, prefix) {
   return (ipv4ToBigInt(address) & mask) === network;
 }
 
+// Only use currently allocated global-unicast prefixes from the IANA registry.
+// Unallocated space inside 2000::/3 is reserved for future assignment and is rejected.
+const IPV6_ALLOCATED_PUBLIC_RANGES = [
+  [0x2001, 0x0200, 0x0dff],
+  [0x2001, 0x0e00, 0x0fff],
+  [0x2001, 0x1200, 0x1fff],
+  [0x2001, 0x2000, 0x3fff],
+  [0x2001, 0x4000, 0x4dff],
+  [0x2001, 0x5000, 0x5fff],
+  [0x2001, 0x8000, 0x9fff],
+  [0x2001, 0xa000, 0xbfff],
+  [0x2003, 0x0000, 0x3fff],
+  [0x2400, 0x0000, 0x0fff],
+  [0x2410, 0x0000, 0x0fff],
+  [0x2600, 0x0000, 0x0fff],
+  [0x2610, 0x0000, 0x01ff],
+  [0x2620, 0x0000, 0x01ff],
+  [0x2630, 0x0000, 0x0fff],
+  [0x2800, 0x0000, 0x0fff],
+  [0x2a00, 0x0000, 0x0fff],
+  [0x2a10, 0x0000, 0x0fff],
+  [0x2c00, 0x0000, 0x0fff],
+];
+
 function isPublicIpv6(address) {
-  const [firstHextet, rawSecondHextet] = address.toLowerCase().split(':');
-  if (!/^[23][0-9a-f]{3}$/.test(firstHextet)) return false;
+  const [firstText, secondText = '0'] = address.toLowerCase().split(':');
+  const first = Number.parseInt(firstText, 16);
+  const second = Number.parseInt(secondText || '0', 16);
+  if (!Number.isInteger(first) || !Number.isInteger(second)) return false;
+  if (first === 0x2001 && second === 0x0db8) return false;
 
-  const secondHextet = rawSecondHextet || '0';
-  const secondValue = Number.parseInt(secondHextet, 16);
-  const isIetfProtocolRange = firstHextet === '2001' && secondValue <= 0x01ff;
-  const isDocumentationRange = (firstHextet === '2001' && secondValue === 0x0db8)
-    || (firstHextet === '3fff' && secondValue <= 0x0fff);
-  const is6to4Range = firstHextet === '2002';
-
-  return !isIetfProtocolRange && !isDocumentationRange && !is6to4Range;
+  return IPV6_ALLOCATED_PUBLIC_RANGES.some(([prefix, start, end]) => (
+    first === prefix && second >= start && second <= end
+  ));
 }
 
 function isPublicAddress(address) {
