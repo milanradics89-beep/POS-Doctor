@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ConsumerAnalysis } from '../core/intelligence/apiClient';
 import { validateUseitAnalyzeResponse } from '../core/intelligence/useitAnalyzeContract';
 import { selectResult } from './resultModel';
+import { productResultsState } from './productResultsState';
 
 const guide = {
   evidence: ['Tomato'], steps: ['Rinse the tomato.'], requiredItems: ['Tomato'], missingItems: [],
@@ -43,12 +44,21 @@ describe('photo result presentation', () => {
     expect(result.cautions).toEqual(['Check for spoilage.']);
   });
 
-  it('distinguishes no retailer results, missing context and service failure', () => {
-    expect(selectResult(fromPayload(payload), 'shop').status).toBe('needs-context');
+  it('keeps product discovery independent from the selected consumer intent', () => {
+    const shoppingNeed = { summary: 'A tray could hold the visible ingredients.', evidence: ['Tomato'], searchTerms: ['produce tray', 'low rim'] };
+    const result = selectResult(fromPayload({
+      ...payload,
+      actionable: { guides: { first: guide }, shoppingNeed, clarification: '' },
+    }), 'cook');
+    expect(result.shoppingNeed).toEqual(shoppingNeed);
+  });
+
+  it('distinguishes missing context, empty product results and search failure', () => {
+    expect(productResultsState(0, null, false)).toBe('needs-context');
     const empty = { query: 'tray', candidates: [] };
-    expect(selectResult(fromPayload({ ...payload, shopping: empty }), 'shop').status).toBe('empty');
+    expect(productResultsState(0, empty, true)).toBe('empty');
     const failed = { ...empty, errors: [{ url: '', message: 'Unavailable' }] };
-    expect(selectResult(fromPayload({ ...payload, shopping: failed }), 'shop').status).toBe('unavailable');
+    expect(productResultsState(0, failed, true)).toBe('unavailable');
   });
 
   it('keeps old servers compatible and rejects malformed action plans', () => {

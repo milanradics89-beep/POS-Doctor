@@ -9,7 +9,7 @@ export type Opportunity = VisionOpportunity;
 export type SceneAnalysis = VisionSceneAnalysis;
 
 export type UnifiedIntelligenceProvider = {
-  analyzeUseit(imageUri: string, intent?: OpportunityKind | 'shop', options?: {
+  analyzeUseit(imageUri: string, intent?: OpportunityKind, options?: {
     budgetHuf?: number;
     preferredStyles?: string[];
     preferredColors?: string[];

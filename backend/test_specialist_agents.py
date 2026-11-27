@@ -11,14 +11,9 @@ def test_fix_routes_to_repair_specialist():
     assert select_specialist(scene, {"name": "fix"}).name == "repair"
 
 
-def test_shop_room_routes_to_home_design_specialist():
-    scene = {"sceneType": "room", "items": [{"category": "furniture", "name": "sofa"}]}
-    assert select_specialist(scene, {"name": "shop"}).name == "home_design"
-
-
-def test_shop_non_room_routes_to_shopping_specialist():
+def test_product_discovery_does_not_create_a_specialist_intent():
     scene = {"sceneType": "object", "items": [{"category": "product", "name": "headphones"}]}
-    assert select_specialist(scene, {"name": "shop"}).name == "shopping"
+    assert select_specialist(scene, {"name": "explore"}).name == "general"
 
 
 def test_unknown_scene_has_safe_general_fallback():

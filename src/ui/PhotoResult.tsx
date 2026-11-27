@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { UseitApiProvider } from '../core/intelligence/apiClient';
 import type { ConsumerAnalysis } from '../core/intelligence/apiClient';
+import type { UseitShopping } from '../core/intelligence/useitAnalyzeContract';
 import { isSafeExternalHttpUrl } from '../core/intelligence/externalLink';
 import { ProductCard, StatePanel } from './components';
 import { modeCopy, selectResult, type ResultMode } from './resultModel';
 import { theme } from './theme';
+import { productResultsState } from './productResultsState';
+import { productPriceDisplay } from './productPresentation';
+
+const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
 type ActionProps = {
   label: string;
@@ -66,29 +72,141 @@ type Props = {
   onConcept?: () => void;
 };
 
-function Shopping({ data, candidates, onOpenProduct }: {
-  data: ReturnType<typeof selectResult>;
-  candidates: ConsumerAnalysis['intelligence']['rankedCandidates'];
-  onOpenProduct: Props['onOpenProduct'];
-}) {
-  if (!candidates.length) {
-    if (data.status === 'unavailable') {
-      return <StatePanel kind="error" title="Product search unavailable" description="Your photo analysis is available. The store search did not finish." />;
-    }
-    return <StatePanel kind="empty" title={data.status === 'needs-context' ? 'What should we look for?' : 'No matching products yet'} description={data.clarification || 'Try a clearer photo or describe what you want to find below.'} />;
-  }
+type ProductCandidate = NonNullable<UseitShopping>["candidates"][number];
 
+function ProductCardRow({ item, onOpenProduct }: {
+  item: ProductCandidate;
+  onOpenProduct: Props["onOpenProduct"];
+}) {
+  const price = productPriceDisplay(item);
+  return (
+    <ProductCard
+      title={item.name}
+      category={item.brand ? `${item.brand} · ${item.category ?? 'general'}` : item.category ?? 'general'}
+      source={item.retailer ?? 'USEIT'}
+      price={price.price}
+      currency={price.currency}
+      onPress={isSafeExternalHttpUrl(item.url) ? () => onOpenProduct(item.url) : undefined}
+    />
+  );
+}
+
+function ProductResults({ shopping, onOpenProduct, onRetry }: {
+  shopping: NonNullable<UseitShopping>;
+  onOpenProduct: Props["onOpenProduct"];
+  onRetry: () => void;
+}) {
+  const candidates = shopping.candidates;
+  const status = productResultsState(candidates.length, shopping, true);
+  if (!candidates.length && status === "unavailable") {
+    return (
+      <StatePanel
+        kind="error"
+        title="Product search unavailable"
+        description="Your photo analysis is still available. Product listings could not be verified."
+        actionLabel="TRY AGAIN"
+        actionAccessibilityHint="Starts one new product search using the same text clues."
+        onAction={onRetry}
+      />
+    );
+  }
+  if (!candidates.length) {
+    return <StatePanel kind="empty" title="No matching products yet" description="Try a more specific product need or keep the photo-based recommendation." />;
+  }
   return (
     <View style={s.stack}>
-      <Text accessibilityRole="header" style={s.heading}>Matching products</Text>
+      <Text accessibilityRole="header" style={s.sectionTitle}>Matching products</Text>
       <Text style={s.caption}>Store listings. Confirm price, dimensions and availability with the retailer.</Text>
-      {candidates.slice(0, 5).map((item) => (
-        <ProductCard key={item.id} title={item.title} category={item.category} source={item.source}
-          price={item.sourcePrice !== undefined && item.currency ? item.sourcePrice : item.priceHuf}
-          currency={item.sourcePrice !== undefined && item.currency ? item.currency : item.priceHuf !== undefined ? 'HUF' : ''}
-          onPress={isSafeExternalHttpUrl(item.url) ? () => onOpenProduct(item.url) : undefined}
-        />
+      {candidates.slice(0, 5).map(item => (
+        <ProductCardRow key={item.id} item={item} onOpenProduct={onOpenProduct} />
       ))}
+    </View>
+  );
+}
+
+function useProductDiscovery(result: ConsumerAnalysis) {
+  const need = result.unified?.actionable?.shoppingNeed;
+  const query = need?.searchTerms.join(" ").replace(/\s+/g, " ").slice(0, 500) ?? "";
+  const [shopping, setShopping] = useState<NonNullable<UseitShopping> | null>(result.unified?.shopping ?? null);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const controllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    const controller = controllerRef.current;
+    controllerRef.current = null;
+    controller?.abort();
+  }, []);
+
+  async function discover() {
+    if (loading || controllerRef.current || query.length < 2) return;
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    setShopping(null);
+    setLoading(true);
+    setFailed(false);
+    try {
+      const response = await new UseitApiProvider(API_URL).discoverProducts(
+        query,
+        { limit: 8, maxResolve: 8, locale: "hu-HU", region: "HU" },
+        controller.signal,
+      );
+      if (!controller.signal.aborted) setShopping(response);
+    } catch {
+      setFailed(!controller.signal.aborted);
+    } finally {
+      if (controllerRef.current === controller) {
+        controllerRef.current = null;
+        setLoading(false);
+      }
+    }
+  }
+
+  function cancel() {
+    const controller = controllerRef.current;
+    controllerRef.current = null;
+    controller?.abort();
+    setLoading(false);
+  }
+
+  return { need, shopping, loading, failed, discover, cancel };
+}
+
+function ProductDiscoveryPanel({ result, onOpenProduct }: {
+  result: ConsumerAnalysis;
+  onOpenProduct: Props["onOpenProduct"];
+}) {
+  const discovery = useProductDiscovery(result);
+  if (!discovery.need) return null;
+  return (
+    <View style={s.stack}>
+      <Text accessibilityRole="header" style={s.sectionTitle}>Product discovery</Text>
+      <Text style={s.body}>{discovery.need.summary}</Text>
+      <Lines title="Clues from your photo" items={discovery.need.evidence} />
+      {discovery.loading ? (
+        <StatePanel kind="loading" title="Finding matching products"
+          description="Searching product listings from the text clues. Your photo is not sent again."
+          actionLabel="CANCEL SEARCH" actionAccessibilityHint="Stops the product search without repeating the photo analysis."
+          onAction={discovery.cancel} />
+      ) : null}
+      {discovery.failed ? (
+        <StatePanel kind="error" title="Product search unavailable"
+          description="Your photo analysis is still available. You can retry product discovery separately."
+          actionLabel="TRY AGAIN" actionAccessibilityHint="Starts one new product search using the same text clues."
+          onAction={() => { void discovery.discover(); }} />
+      ) : null}
+      {!discovery.loading && !discovery.failed && !discovery.shopping ? (
+        <ResultButton label="Find matching products"
+          hint="Searches product listings using visible-item clues without sending your photo or starting another AI analysis."
+          onPress={() => { void discovery.discover(); }} primary />
+      ) : null}
+      {discovery.shopping ? (
+        <ProductResults
+          shopping={discovery.shopping}
+          onOpenProduct={onOpenProduct}
+          onRetry={() => { void discovery.discover(); }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -194,18 +312,8 @@ export function PhotoResult({ result, mode, onOpenProduct, onRefine, onConcept }
         <Text style={s.body}>{result.analysis.summary}</Text>
       </View>
       {data.cautions.length ? <View style={s.caution}><Lines title="Before you continue" items={data.cautions} /></View> : null}
-      {mode === 'shop' ? (
-        <>
-          {data.shoppingNeed ? (
-            <View style={s.guide}>
-              <Text style={s.body}>{data.shoppingNeed.summary}</Text>
-              <Lines title="Clues from your photo" items={data.shoppingNeed.evidence} />
-            </View>
-          ) : null}
-          <Shopping data={data} candidates={result.intelligence.rankedCandidates} onOpenProduct={onOpenProduct} />
-          <Refinement onRefine={onRefine} />
-        </>
-      ) : <Recommendations data={data} mode={mode} onRefine={onRefine} onConcept={onConcept} />}
+      <Recommendations data={data} mode={mode} onRefine={onRefine} onConcept={onConcept} />
+      <ProductDiscoveryPanel result={result} onOpenProduct={onOpenProduct} />
     </View>
   );
 }
