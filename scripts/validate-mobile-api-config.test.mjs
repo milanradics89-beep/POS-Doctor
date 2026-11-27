@@ -25,7 +25,7 @@ describe('remote mobile API build configuration', () => {
   });
 
   it('rejects reserved example/test names and trailing-dot local hostnames', () => {
-    expect(() => validateMobileApiConfig('https://api.useit.example')).toThrow('deployed public hostname');
+    expect(() => validateMobileApiConfig('https://api.useit.com')).toThrow('deployed public hostname');
     expect(() => validateMobileApiConfig('https://backend.test')).toThrow('deployed public hostname');
     expect(() => validateMobileApiConfig('https://backend.invalid')).toThrow('deployed public hostname');
     expect(() => validateMobileApiConfig('https://localhost.:8000')).toThrow('deployed public hostname');
