@@ -1,6 +1,15 @@
 import { hu } from '../i18n/hu';
 
 const PRODUCT_CATEGORY_LABELS: Record<string, string> = {
+  sofa: 'Kanapé',
+  'coffee table': 'Dohányzóasztal',
+  top: 'Felsők',
+  bottom: 'Alsóruházat',
+  ingredient: 'Hozzávalók',
+  accessory: 'Kiegészítők',
+  'repair part': 'Javítóalkatrészek',
+  replacement: 'Pótlás',
+  general: 'Egyéb',
   shoe: 'Cipő',
   shoes: 'Cipők',
   lighting: 'Világítás',
@@ -37,10 +46,15 @@ const PRODUCT_CATEGORY_LABELS: Record<string, string> = {
   accessories: 'Kiegészítők',
 };
 
+const KNOWN_HUNGARIAN_CATEGORY_LABELS = new Set(
+  Object.values(PRODUCT_CATEGORY_LABELS).map(label => label.toLocaleLowerCase('hu-HU')),
+);
+
 export function localizeProductCategory(category: string): string {
   const value = category.trim();
   if (!value) return 'Egyéb';
   const normalized = value.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
+  if (KNOWN_HUNGARIAN_CATEGORY_LABELS.has(value.toLocaleLowerCase('hu-HU'))) return value;
   return PRODUCT_CATEGORY_LABELS[normalized] ?? (/[áéíóöőúüű]/i.test(value) ? value : 'Egyéb');
 }
 
