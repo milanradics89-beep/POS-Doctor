@@ -5,6 +5,8 @@ const home = readFileSync(new URL('../../app/index.tsx', import.meta.url), 'utf8
 
 describe('USEIT Home recovery-state integration', () => {
   it('uses bespoke platform-independent glyphs instead of font-dependent symbols', () => {
+    expect(home).toContain("Image.getSize(");
+    expect(home).toMatch(/import \{[\s\S]*\bImage\b[\s\S]*\} from 'react-native';/);
     expect(home).toContain('function CameraGlyph()');
     expect(home).toContain('function GalleryGlyph()');
     expect(home).toContain('function IntentGlyph');
