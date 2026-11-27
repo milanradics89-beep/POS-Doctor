@@ -132,12 +132,26 @@ class FirestoreState:
     async def advance(self, key_id, counter):
         ref = self.reference("apple-key", key_id)
 
-        @async_transactional
-        async def compare_and_set(tx):
-            snap = await ref.get(transaction=tx)
+        # A transaction can deadlock under concurrent App Attest counter updates
+        # in the Firestore emulator. Use the snapshot update_time as a compare-
+        # and-swap precondition so only one writer can advance a given version.
+        for attempt in range(5):
+            snap = await ref.get()
             if not snap.exists or counter <= snap.get("counter"):
                 return False
-            tx.update(ref, {"counter": counter})
+            try:
+                await ref.update(
+                    {"counter": counter},
+                    option=self.client.write_option(last_update_time=snap.update_time),
+                    retry=None,
+                )
+            except (FailedPrecondition, NotFound):
+                # A concurrent writer changed/deleted the document. Re-read and
+                # compare again; never treat an ambiguous write error as success.
+                if attempt == 4:
+                    raise
+                await asyncio.sleep(0.01 * 2**attempt)
+                continue
             return True
 
-        return await compare_and_set(self.client.transaction())
+        return False

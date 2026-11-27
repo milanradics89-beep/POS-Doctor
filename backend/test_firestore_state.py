@@ -100,3 +100,42 @@ async def test_quota_bucket_keeps_both_racing_admissions(monkeypatch, existing):
         await ref.delete()
         for client in clients:
             client.close()
+
+@pytest.mark.asyncio
+async def test_attestation_counter_advance_is_atomic_across_instances(monkeypatch):
+    if not os.getenv("FIRESTORE_EMULATOR_HOST"):
+        pytest.skip("requires local Firestore emulator")
+    project = "attest-" + uuid.uuid4().hex[:12]
+    clients = [AsyncClient(project=project) for _ in range(2)]
+    a, b = [FirestoreState(c, "test-secret-" * 4) for c in clients]
+    key = uuid.uuid4().hex
+    ref = a.reference("apple-key", key)
+    try:
+        assert await a.create(key, b"synthetic-public-key", "ios.app")
+
+        # Force both instances to read the same version before either writes.
+        # The update_time precondition must allow exactly one counter advance.
+        barrier = asyncio.Barrier(2)
+        original_get = AsyncDocumentReference.get
+        first_reads = 0
+
+        async def synchronized_get(doc, *args, **kwargs):
+            nonlocal first_reads
+            snapshot = await original_get(doc, *args, **kwargs)
+            if doc.path == ref.path and first_reads < 2:
+                first_reads += 1
+                await asyncio.wait_for(barrier.wait(), timeout=5)
+            return snapshot
+
+        monkeypatch.setattr(AsyncDocumentReference, "get", synchronized_get)
+        results = await asyncio.gather(a.advance(key, 2), b.advance(key, 2))
+        assert sorted(results) == [False, True]
+        assert await a.get(key) == (b"synthetic-public-key", 2, "ios.app")
+        assert not await a.advance(key, 1)
+        assert await b.advance(key, 3)
+        assert await b.get(key) == (b"synthetic-public-key", 3, "ios.app")
+    finally:
+        await ref.delete()
+        for client in clients:
+            client.close()
+
