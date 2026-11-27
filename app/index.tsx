@@ -23,6 +23,7 @@ import { theme } from '../src/ui/theme';
 import { requestFailureKind } from '../src/ui/requestFailure';
 import { validateImageUri } from '../src/core/intelligence/imageInput';
 import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';
+import type { NormalizedImage } from '../src/core/intelligence/imageNormalization';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -45,6 +46,7 @@ const modes: [OpportunityKind, string][] = [
 
 export default function Home() {
   const [photo, setPhoto] = useState<string | null>(null);
+  const [photoFidelity, setPhotoFidelity] = useState<NormalizedImage['fidelity'] | null>(null);
   const [busy, setBusy] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [rendered, setRendered] = useState<string | null>(null);
@@ -68,7 +70,7 @@ export default function Home() {
     setBusy(false);
   }
 
-  function setSelectedPhoto(imageUri: string) {
+  function setSelectedPhoto(imageUri: string, fidelity?: NormalizedImage['fidelity']) {
     redesignRequestIdRef.current += 1;
     setRendering(false);
     try {
@@ -84,6 +86,7 @@ export default function Home() {
     cancelAnalysis();
     setNotice(null);
     setPhoto(imageUri);
+    setPhotoFidelity(fidelity ?? null);
     setResult(null);
     setRendered(null);
   }
@@ -115,7 +118,7 @@ export default function Home() {
         resolvedHeight = visualDimensions.height;
       }
       const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
-      setSelectedPhoto(normalized.dataUrl);
+      setSelectedPhoto(normalized.dataUrl, normalized.fidelity);
     } catch (error) {
       setNotice({
         kind: 'error',
@@ -130,6 +133,7 @@ export default function Home() {
     redesignRequestIdRef.current += 1;
     setRendering(false);
     setPhoto(null);
+    setPhotoFidelity(null);
     setResult(null);
     setRendered(null);
     setNotice(null);
@@ -421,7 +425,15 @@ export default function Home() {
                 </Text>
               </>
             ) : (
-              <Image source={{ uri: photo }} style={s.photo} />
+              <Image
+                source={{ uri: photo }}
+                style={s.photo}
+                resizeMode="contain"
+                accessibilityLabel={photoFidelity
+                  ? `Selected photo preview, source ${photoFidelity.sourceWidth} by ${photoFidelity.sourceHeight} pixels, analysis image ${photoFidelity.outputWidth} by ${photoFidelity.outputHeight} pixels`
+                  : 'Selected photo preview'}
+                accessibilityHint="Shows the complete selected photo without cropping."
+              />
             )}
 
             {busy ? (

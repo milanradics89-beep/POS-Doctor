@@ -25,6 +25,20 @@ describe('USEIT Home recovery-state integration', () => {
     expect(home).not.toContain('setPhoto(`data:${a.mimeType || \'image/jpeg\'};base64,${a.base64}`)');
   });
 
+  it('keeps normalized image fidelity metadata and renders the complete photo without cropping', () => {
+    expect(home).toContain("import type { NormalizedImage } from '../src/core/intelligence/imageNormalization';");
+    expect(home).toContain("const [photoFidelity, setPhotoFidelity] = useState<NormalizedImage['fidelity'] | null>(null);");
+    expect(home).toContain('setSelectedPhoto(normalized.dataUrl, normalized.fidelity);');
+    expect(home).toContain('resizeMode="contain"');
+    expect(home).toContain('photoFidelity.sourceWidth');
+    expect(home).toContain('photoFidelity.outputWidth');
+    expect(home).toContain('analyzeForConsumer(');
+    expect(home).toContain('photo,');
+    const resetStart = home.indexOf('const reset = () =>');
+    const resetEnd = home.indexOf('async function openProductLink', resetStart);
+    expect(home.slice(resetStart, resetEnd)).toContain('setPhotoFidelity(null);');
+  });
+
   it('invalidates a pending visual concept before photo preparation can await', () => {
     const start = home.indexOf('async function prepareAndSelectPhoto(');
     const end = home.indexOf('\n  const reset =', start);

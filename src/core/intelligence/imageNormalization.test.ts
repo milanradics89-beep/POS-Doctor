@@ -96,6 +96,15 @@ describe('normalizeImageAsset', () => {
       dataUrl: 'data:image/jpeg;base64,Zm9v',
       width: 2048,
       height: 1536,
+      fidelity: {
+        sourceWidth: 4032,
+        sourceHeight: 3024,
+        outputWidth: 2048,
+        outputHeight: 1536,
+        mimeType: 'image/jpeg',
+        payloadBytes: new TextEncoder().encode('data:image/jpeg;base64,Zm9v').byteLength,
+        aspectRatioDelta: 0,
+      },
     });
     expect(FileSystem.deleteAsync).toHaveBeenCalledWith('file:///cache/normalized.jpg', { idempotent: true });
     expect(releaseImage).toHaveBeenCalledOnce();
