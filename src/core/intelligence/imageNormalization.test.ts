@@ -96,8 +96,40 @@ describe('normalizeImageAsset', () => {
       dataUrl: 'data:image/jpeg;base64,Zm9v',
       width: 2048,
       height: 1536,
+      fidelity: {
+        sourceWidth: 4032,
+        sourceHeight: 3024,
+        outputWidth: 2048,
+        outputHeight: 1536,
+        mimeType: 'image/jpeg',
+        payloadBytes: 'data:image/jpeg;base64,Zm9v'.length,
+        aspectRatioDelta: 0,
+      },
     });
     expect(FileSystem.deleteAsync).toHaveBeenCalledWith('file:///cache/normalized.jpg', { idempotent: true });
+    expect(releaseImage).toHaveBeenCalledOnce();
+    expect(releaseContext).toHaveBeenCalledOnce();
+  });
+
+  it('rejects invalid normalized dimensions and still releases temporary resources', async () => {
+    const releaseImage = vi.fn();
+    const releaseContext = vi.fn();
+    const saveAsync = vi.fn().mockResolvedValue({
+      uri: 'file:///cache/invalid-dimensions.jpg',
+      width: 0,
+      height: 1536,
+      base64: 'Zm9v',
+    });
+    const renderAsync = vi.fn().mockResolvedValue({ saveAsync, release: releaseImage });
+    mocks.manipulate.mockReturnValue({
+      resize: vi.fn(),
+      renderAsync,
+      release: releaseContext,
+    } as unknown as ReturnType<typeof ImageManipulator.manipulate>);
+
+    await expect(normalizeImageAsset('file:///photos/source.heic', 4032, 3024))
+      .rejects.toThrow('Normalized image dimensions are unavailable.');
+    expect(FileSystem.deleteAsync).toHaveBeenCalledWith('file:///cache/invalid-dimensions.jpg', { idempotent: true });
     expect(releaseImage).toHaveBeenCalledOnce();
     expect(releaseContext).toHaveBeenCalledOnce();
   });
