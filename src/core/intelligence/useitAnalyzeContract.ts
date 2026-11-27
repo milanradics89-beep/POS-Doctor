@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { SceneAnalysis } from './types';
 import { validateAnalysis } from './validateAnalysis';
 import { isSafeExternalHttpUrl } from './externalLink';
@@ -46,6 +47,26 @@ export type UseitShopping = {
   errors?: Array<{ url: string; message: string }>;
 } | null;
 
+const ResultLines = z.array(z.string().trim().min(1).max(420)).max(12);
+const Guide = z.object({
+  evidence: ResultLines.min(1),
+  steps: ResultLines.max(5),
+  requiredItems: ResultLines,
+  missingItems: ResultLines,
+  alternatives: ResultLines,
+  limits: ResultLines,
+  keep: ResultLines,
+});
+const ActionableResult = z.object({
+  guides: z.record(z.string(), Guide),
+  shoppingNeed: z.object({
+    summary: z.string().trim().min(1).max(420),
+    evidence: ResultLines.min(1),
+  }).nullable(),
+  clarification: z.string().max(420),
+});
+type ActionableResult = z.infer<typeof ActionableResult>;
+
 export type UseitAnalyzeResponse = {
   contractVersion: typeof USEIT_ANALYZE_CONTRACT_VERSION;
   scene: SceneAnalysis;
@@ -54,6 +75,7 @@ export type UseitAnalyzeResponse = {
   suggestions: UseitSuggestion[];
   shopping: UseitShopping;
   pipeline: string[];
+  actionable?: ActionableResult;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -166,7 +188,9 @@ export function validateUseitAnalyzeResponse(payload: unknown):
     }
   }
 
-  if (issues.length) return { ok: false, issues };
+  const actionable = ActionableResult.optional().safeParse(payload.actionable);
+  if (!actionable.success) issues.push('actionable: invalid result details');
+  if (issues.length || !actionable.success) return { ok: false, issues };
   return {
     ok: true,
     data: {
@@ -177,6 +201,7 @@ export function validateUseitAnalyzeResponse(payload: unknown):
       suggestions,
       shopping,
       pipeline: payload.pipeline as string[],
+      ...(actionable.data ? { actionable: actionable.data } : {}),
     },
   };
 }

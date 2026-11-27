@@ -12,15 +12,6 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function SectionHeader({ eyebrow, detail }: { eyebrow: string; detail?: string }) {
-  return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.eyebrow}>{eyebrow}</Text>
-      {detail ? <Text style={styles.detail}>{detail}</Text> : null}
-    </View>
-  );
-}
-
 export function ProductCard({ title, category, source, price, currency, onPress }: {
   title: string; category: string; source: string; price?: number; currency?: string; onPress?: () => void;
 }) {
@@ -33,14 +24,14 @@ export function ProductCard({ title, category, source, price, currency, onPress 
       disabled={!onPress}
       style={({ pressed }) => [styles.product, pressed && styles.pressed]}
     >
-      <View style={styles.productMark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><Text style={styles.productMarkText}>✳</Text></View>
-      <View style={styles.productCopy}>
-        <Text style={styles.productTitle} numberOfLines={2}>{title}</Text>
-        <Text style={styles.productMeta} numberOfLines={1}>{category} · {source}</Text>
+      <View style={styles.productHeader}>
+        <View style={styles.productMark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><Text style={styles.productMarkText}>✳</Text></View>
+        <Text style={styles.productMeta}>{category} · {source}</Text>
       </View>
-      <View style={styles.productPrice}>
+      <Text style={styles.productTitle}>{title}</Text>
+      <View style={styles.productFooter}>
         <Text style={styles.price}>{formatProductPrice(price, currency)}</Text>
-        {onPress ? <Text style={styles.link}>VIEW ↗</Text> : <Text style={styles.unavailable}>DETAILS UNAVAILABLE</Text>}
+        {onPress ? <Text style={styles.link}>View product ↗</Text> : null}
       </View>
     </Pressable>
   );
@@ -159,19 +150,15 @@ const styles = StyleSheet.create({
   brandMarkCompact: { width: 21, height: 21, borderRadius: 7 },
   brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.accent, position: 'absolute', top: 5, left: 5 },
   brandDotSmall: { width: 5, height: 5, borderRadius: 3, backgroundColor: theme.colors.surface, position: 'absolute', bottom: 5, right: 5 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 10 },
-  eyebrow: { color: theme.colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1.6 },
-  detail: { color: theme.colors.subtle, fontSize: 8, fontWeight: '900', letterSpacing: 1 },
-  product: { minHeight: 76, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.controlBorder, borderRadius: 18, padding: 12, marginBottom: 9, flexDirection: 'row', alignItems: 'center' },
-  productMark: { width: 42, height: 42, borderRadius: 14, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' },
-  productMarkText: { color: theme.colors.ink, fontSize: 20 },
-  productCopy: { flex: 1, paddingHorizontal: 12 },
-  productTitle: { color: theme.colors.ink, fontSize: 12, lineHeight: 17, fontWeight: '800' },
-  productMeta: { color: theme.colors.subtle, fontSize: 10, marginTop: 5 },
-  productPrice: { alignItems: 'flex-end' },
-  price: { color: theme.colors.ink, fontSize: 11, fontWeight: '900' },
-  link: { color: theme.colors.accentDark, fontSize: 8, fontWeight: '900', letterSpacing: 0.8, marginTop: 5 },
-  unavailable: { color: theme.colors.subtle, fontSize: 7, fontWeight: '800', letterSpacing: 0.35, marginTop: 5 },
+  product: { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line, borderRadius: 18, padding: 16, marginBottom: 10 },
+  productHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  productMark: { width: 24, height: 24, borderRadius: 8, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' },
+  productMarkText: { color: theme.colors.ink, fontSize: 15 },
+  productMeta: { flex: 1, color: theme.colors.muted, fontSize: 13, lineHeight: 18 },
+  productTitle: { color: theme.colors.ink, fontSize: 19, lineHeight: 25, fontWeight: '700', marginVertical: 10 },
+  productFooter: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderColor: theme.colors.line, paddingTop: 10 },
+  price: { color: theme.colors.ink, fontSize: 15, fontWeight: '800', flexShrink: 1 },
+  link: { color: theme.colors.accentDark, fontSize: 13, fontWeight: '700' },
   pressed: { opacity: 0.76, transform: [{ scale: 0.99 }] },
   statePanel: { alignItems: 'center', padding: 24, borderRadius: 22, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line },
   errorPanel: { backgroundColor: theme.colors.errorSurface, borderColor: theme.colors.errorBorder },

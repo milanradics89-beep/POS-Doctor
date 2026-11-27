@@ -16,6 +16,16 @@ describe('product prices in Expo web output', () => {
     }
   });
 
+  it('keeps the price but omits the shopping link when details are unavailable', () => {
+    const html = renderToStaticMarkup(React.createElement(ProductCard, {
+      title: 'Long linen lampshade with an adjustable reading arm',
+      category: 'Lighting', source: 'Studio Example', price: 0, currency: 'HUF',
+    }));
+    expect(html).toContain('>0 Ft</');
+    expect(html).not.toContain('role="link"');
+    expect(html).not.toContain('View product');
+  });
+
   it.each([[99, 'EUR', '99 EUR'], [0, 'HUF', '0 Ft'], [undefined, '', 'Price unavailable']])(
     'renders and announces the source price %s %s', (price, currency, expected) => {
       const html = renderToStaticMarkup(React.createElement(ProductCard, {

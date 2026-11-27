@@ -26,6 +26,11 @@ type UseitAnalyzeOptions = {
   discoverProducts?: boolean;
   productLimit?: number;
   idempotencyKey?: string;
+  actionable?: boolean;
+  refinement?: string;
+  refinementTarget?: string;
+  retry?: boolean;
+  locale?: string;
 };
 
 function buildUseitAnalyzePayload(
@@ -34,7 +39,7 @@ function buildUseitAnalyzePayload(
   options: UseitAnalyzeOptions,
 ) {
   const policyIntent = intent === 'shop' ? undefined : intent;
-  const policy = createPromptPolicy(policyIntent, 'hu-HU');
+  const policy = createPromptPolicy(policyIntent, options.locale ?? 'hu-HU');
   return {
     imageUri,
     userIntent: intent ?? policy.intent,
@@ -45,15 +50,22 @@ function buildUseitAnalyzePayload(
     preferredColors: options.preferredColors ?? [],
     discoverProducts: options.discoverProducts ?? true,
     productLimit: options.productLimit ?? 8,
+    actionable: options.actionable,
+    refinement: options.refinement,
+    refinementTarget: options.refinementTarget,
   };
 }
 
 function buildUseitAnalyzeHeaders(
   headers: Record<string, string>,
   idempotencyKey?: string,
-): Record<string, string> {
-  if (!idempotencyKey) return headers;
-  return { ...headers, 'Idempotency-Key': idempotencyKey };
+  retry?: boolean,
+) {
+  return {
+    ...headers,
+    ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+    ...(retry ? { 'X-USEIT-Retry': 'true' } : {}),
+  };
 }
 
 export class UseitApiError extends Error {
@@ -100,7 +112,7 @@ export class UseitApiProvider implements IntelligenceProvider {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
     const body = buildUseitAnalyzePayload(imageUri, intent, options);
-    const headers = buildUseitAnalyzeHeaders(await this.headers(), options.idempotencyKey);
+    const headers = buildUseitAnalyzeHeaders(await this.headers(), options.idempotencyKey, options.retry);
     const request = await fetchJsonWithPolicy(
       `${base}/v1/useit/analyze`,
       { method: 'POST', headers, body: JSON.stringify(body), signal },
@@ -116,11 +128,11 @@ export class UseitApiProvider implements IntelligenceProvider {
     }
     return checked.data;
   }
-  async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; sourcePrice?: number; currency?: string; url: string; id?: string; confidence?: number }>, signal?: AbortSignal): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
+  async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; sourcePrice?: number; currency?: string; url: string; id?: string; confidence?: number }>, signal?: AbortSignal, idempotencyKey?: string, retry?: boolean): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
     const base = normalizeApiBaseUrl(this.baseUrl);
     validateImageUri(imageUri);
-    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, prompt, products }), signal }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS }, { requireJsonContentType: true });
-    if (!response.ok) throw new Error(`USEIT redesign request failed (${response.status}).`);
+    const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: buildUseitAnalyzeHeaders(await this.headers(), idempotencyKey, retry), body: JSON.stringify({ imageUri, prompt, products }), signal }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS }, { requireJsonContentType: true });
+    if (!response.ok) throw new UseitApiError(`USEIT redesign request failed (${response.status}).`, response.status);
     if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('USEIT redesign API returned an unexpected response.');
     if (parseError) throw parseError;
     if (!payload || typeof payload !== 'object' || typeof (payload as { imageDataUrl?: unknown }).imageDataUrl !== 'string') throw new Error('USEIT redesign API returned an invalid result.');
@@ -184,13 +196,8 @@ function toUnifiedConsumerIntelligence(result: UseitAnalyzeResponse): ConsumerIn
   }));
   return { action: { type: actionType, title: actionTitle }, need: { kind: intent }, rankedCandidates: ranked, intentConfidence: result.intent.confidence ?? 0.5, clarificationRequired: (result.intent.confidence ?? 0.5) < 0.6 };
 }
-function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel): RedesignPlan | undefined {
-  if (scene.domain !== 'room') return undefined;
-
-  const recommendations = result.suggestions.filter(suggestion => suggestion.visualizable).slice(0, 5);
-  if (recommendations.length === 0) return undefined;
-
-  const products: RedesignPlan['products'] = (result.shopping?.candidates ?? [])
+function redesignProducts(result: UseitAnalyzeResponse): RedesignPlan['products'] {
+  return (result.shopping?.candidates ?? [])
     .filter(candidate => isSafeExternalHttpUrl(candidate.url))
     .slice(0, 8)
     .map(candidate => ({
@@ -202,6 +209,29 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
       currency: candidate.currency && /^[a-z]{3}$/i.test(candidate.currency) ? candidate.currency.toUpperCase() : undefined,
       url: candidate.url,
     }));
+}
+
+function preserveInConcept(result: UseitAnalyzeResponse, id: string) {
+  const keep = result.actionable?.guides[id]?.keep;
+  return keep?.length ? 'Specifically preserve: ' + keep.join('; ') : '';
+}
+
+function visualRecommendations(result: UseitAnalyzeResponse) {
+  const ordered = result.suggestions.slice().sort((a, b) => a.rank - b.rank);
+  const guides = result.actionable?.guides;
+  if (!guides) return ordered.filter(idea => idea.visualizable).slice(0, 5);
+  if (result.intent.name !== 'improve') return [];
+  const primary = ordered.find(idea => idea.kind === 'improve' && Object.hasOwn(guides, idea.id));
+  return primary?.visualizable && guides[primary.id].steps.length ? [primary] : [];
+}
+
+function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel): RedesignPlan | undefined {
+  if (scene.domain !== 'room') return undefined;
+
+  const recommendations = visualRecommendations(result);
+  if (!recommendations.length) return undefined;
+
+  const products = redesignProducts(result);
 
   const actions: RedesignPlan['actions'] = scene.objects
     .filter(object => object.confidence >= 0.7 && object.category !== 'person')
@@ -232,6 +262,7 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
     sceneSummary ? 'Observed scene: ' + sceneSummary : '',
     constraints ? 'Scene constraints: ' + constraints : '',
     'Apply these visualizable recommendations:\n' + recommendationText,
+    preserveInConcept(result, recommendations[0].id),
     'Selected retailer products: ' + selectedProducts,
     'Use only the selected retailer products where relevant. Do not invent product names, brands, prices, logos, or URLs. If no selected product fits, use neutral generic styling.',
   ].filter(Boolean).join('\n\n');
@@ -245,10 +276,10 @@ function toUnifiedRedesignPlan(result: UseitAnalyzeResponse, scene: SceneModel):
     disclosure: 'AI-generated visualization. Product appearance, scale, color and placement may differ from the real item. Verify product details on the linked retailer page.',
   };
 }
-export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: ConsumerIntent, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean; signal?: AbortSignal; idempotencyKey?: string } = {}): Promise<ConsumerAnalysis> {
+export async function analyzeForConsumer(provider: IntelligenceProvider, imageUri: string, intent?: ConsumerIntent, options: { phase3Providers?: ProductProvider[]; budgetHuf?: number; preferredStyles?: string[]; preferredColors?: string[]; preserveExisting?: boolean; signal?: AbortSignal; idempotencyKey?: string; actionable?: boolean; refinement?: string; refinementTarget?: string; locale?: string; retry?: boolean } = {}): Promise<ConsumerAnalysis> {
   validateImageUri(imageUri);
   if (provider.analyzeUseit) {
-    const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, idempotencyKey: options.idempotencyKey }, options.signal);
+    const unified = await provider.analyzeUseit(imageUri, intent, { budgetHuf: options.budgetHuf, preferredStyles: options.preferredStyles, preferredColors: options.preferredColors, idempotencyKey: options.idempotencyKey, actionable: options.actionable, refinement: options.refinement, refinementTarget: options.refinementTarget, locale: options.locale, retry: options.retry }, options.signal);
     const analysis = normalizeAnalysis(unified.scene);
     const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(unified.scene, imageUri.slice(0, 80));
     const redesign = toUnifiedRedesignPlan(unified, scene);

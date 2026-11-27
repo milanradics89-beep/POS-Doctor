@@ -120,3 +120,36 @@ def test_redesign_reports_provider_failure_as_bad_gateway():
 
     assert response.status_code == 502
     client_mock.images.edit.assert_awaited_once()
+
+
+def test_keyed_redesign_does_not_edit_image_twice(monkeypatch):
+    from backend.idempotency_store import IdempotencyClaim, IdempotencyClaimResult, IdempotencyDecision
+
+    reserve = AsyncMock()
+    edit = AsyncMock(return_value=SimpleNamespace(data=[SimpleNamespace(b64_json=base64.b64encode(b"image").decode())]))
+    store = SimpleNamespace(claim=AsyncMock(side_effect=[
+        IdempotencyClaimResult(IdempotencyDecision.CLAIMED, IdempotencyClaim("doc", "lease")),
+        IdempotencyClaimResult(IdempotencyDecision.DUPLICATE),
+    ]))
+    monkeypatch.setattr(app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr("backend.redesign.reserve_units", reserve)
+    monkeypatch.setattr("backend.redesign._client", lambda _: SimpleNamespace(images=SimpleNamespace(edit=edit)))
+    body = {"imageUri": image_uri(), "prompt": "Keep the same windows and room dimensions."}
+    headers = {"Idempotency-Key": "redesign-test-request"}
+    assert client.post("/v1/redesign", json=body, headers=headers).status_code == 200
+    assert client.post("/v1/redesign", json=body, headers=headers).status_code == 409
+    edit.assert_awaited_once()
+    reserve.assert_awaited_once()
+    assert all(call.args[1].startswith(b"redesign:v1\0") for call in store.claim.await_args_list)
+
+
+def test_retry_without_redesign_claim_store_cannot_start_another_image(monkeypatch):
+    provider = SimpleNamespace(images=SimpleNamespace(edit=AsyncMock()))
+    monkeypatch.setattr(app.state, "idempotency_store", None, raising=False)
+    monkeypatch.setattr("backend.redesign._client", lambda _: provider)
+    r = client.post("/v1/redesign", json={
+        "imageUri": image_uri(),
+        "prompt": "Keep the existing room structure.",
+    }, headers={"Idempotency-Key": "redesign-test-request", "X-USEIT-Retry": "true"})
+    assert r.status_code == 409
+    provider.images.edit.assert_not_called()

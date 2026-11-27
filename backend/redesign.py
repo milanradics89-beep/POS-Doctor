@@ -1,10 +1,12 @@
 import base64
 import io
+import json
 import os
-from typing import Optional
-from fastapi import APIRouter, HTTPException, Request
+from typing import Annotated, Optional
+from fastapi import APIRouter, Header, HTTPException, Request
 from openai import AsyncOpenAI
 from backend.ai_budget import reserve_units
+from backend.idempotency_store import IdempotencyDecision
 from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter()
@@ -72,8 +74,38 @@ def _image_file(image_uri: str) -> tuple[io.BytesIO, str]:
         raise HTTPException(413, "Redesign image is too large.")
     return io.BytesIO(raw), extension
 
+async def claim_redesign(http_request: Request, request: RedesignRequest, key: str | None, retry_request: bool):
+    store = getattr(http_request.app.state, "idempotency_store", None)
+    if retry_request and (store is None or key is None):
+        raise HTTPException(409, "A safe retry cannot be guaranteed for this request.")
+    if store is None:
+        if os.getenv("USEIT_IDEMPOTENCY_MODE", "disabled").strip().lower() == "firestore":
+            raise HTTPException(503, "Image request protection is temporarily unavailable.")
+        return
+    if key is None:
+        return  # Legacy clients retain their existing behavior.
+    payload = json.dumps(request.model_dump(mode="json"), sort_keys=True, separators=(",", ":")).encode()
+    try:
+        decision = await store.claim(key, b"redesign:v1\0" + payload)
+    except ValueError as exc:
+        raise HTTPException(422, "Invalid Idempotency-Key.") from exc
+    except Exception as exc:
+        raise HTTPException(503, "Image request protection is temporarily unavailable.") from exc
+    if decision.decision is not IdempotencyDecision.CLAIMED:
+        raise HTTPException(409, "This image request was already accepted.")
+    if decision.claim is None:
+        raise HTTPException(503, "Image request protection could not claim this request.")
+    # Keep the claim until its normal expiry even if the provider outcome is
+    # unknown. Do not persist generated photos or response data.
+
+
 @router.post("/v1/redesign")
-async def redesign(request: RedesignRequest, http_request: Request):
+async def redesign(
+    request: RedesignRequest,
+    http_request: Request,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+    retry_request: Annotated[bool, Header(alias="X-USEIT-Retry")] = False,
+):
     try:
         image_file, extension = _image_file(request.imageUri)
         selected = "\n".join(
@@ -90,6 +122,7 @@ async def redesign(request: RedesignRequest, http_request: Request):
             f"REDESIGN PLAN:\n{request.prompt}\n\nSELECTED PRODUCTS:\n{selected or 'None'}"
         )
         provider = _client(http_request)
+        await claim_redesign(http_request, request, idempotency_key, retry_request)
         await reserve_units(http_request.app, 5)
         result = await provider.images.edit(
             model=IMAGE_MODEL,

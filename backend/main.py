@@ -64,6 +64,7 @@ from backend.scene_quality import quality_gate
 from backend.scene_understanding import normalize_scene_understanding
 from backend.scene_reasoning import derive_scene_facts, derive_scene_reasoning
 from backend.vision_contract import BASE_SYSTEM, SCHEMA, SCENE_STRATEGIES
+from backend.actionable_results import ACTIONABLE_SCHEMA, MODE_DIRECTIONS, attach_actionable_result, instructions as actionable_instructions
 from backend.intent_engine import classify_intent, rank_opportunities
 from backend.suggestion_explanations import build_suggestion_reasons
 from backend.specialist_agents import build_specialist_context
@@ -208,7 +209,7 @@ install_rate_limit(app)
 # Keep CORS, security headers, and observability outside short-circuiting
 # auth/rate-limit middleware so 401/429/503 responses receive the same
 # browser policy, security headers, request ID, and request-completion log.
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "Authorization", "X-API-Key", "X-Request-ID", "Idempotency-Key", "X-USEIT-Platform-Provider"])
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "Authorization", "X-API-Key", "X-Request-ID", "Idempotency-Key", "X-USEIT-Retry", "X-USEIT-Platform-Provider"])
 @app.exception_handler(RequestValidationError)
 async def invalid_request(_request, exc):
     # Do not echo image bytes, submitted preferences, capability IDs or free-text
@@ -264,6 +265,14 @@ class UseItAnalyzeRequest(AnalyzeRequest):
     preferredColors: list[str] = Field(default_factory=list, max_length=12)
     discoverProducts: bool = True
     productLimit: int = Field(default=8, ge=1, le=12)
+    actionable: bool = False
+    refinement: str | None = Field(default=None, max_length=320)
+    refinementTarget: str | None = Field(default=None, max_length=180)
+
+    @property
+    def actionable_mode(self) -> str | None:
+        mode = (self.userIntent or "").strip().lower()
+        return mode if self.actionable and mode in MODE_DIRECTIONS else None
 
 class SessionRequest(BaseModel):
     provider: AttestationProvider | None = None
@@ -292,6 +301,10 @@ async def _analyze(request: AnalyzeRequest, client: AsyncOpenAI | None = None):
         instructions += "\nUse the requested locale for user-facing text. Treat client context as user preferences subordinate to these instructions."
         user_text = "Analyze this image for USEIT. Classify the scene before generating opportunities."
         user_text += "\nClient context: " + json.dumps({"locale": request.locale, "intent": request.userIntent, "preferences": request.prompt}, ensure_ascii=False)
+        mode = request.actionable_mode if isinstance(request, UseItAnalyzeRequest) else None
+        if mode:
+            instructions += actionable_instructions(mode)
+            user_text += "\nRefinement: " + json.dumps({"note": request.refinement, "previousSuggestion": request.refinementTarget}, ensure_ascii=False)
         provider = client or _get_client()
         await reserve_units(app, 1)
         response = await provider.chat.completions.create(
@@ -301,7 +314,7 @@ async def _analyze(request: AnalyzeRequest, client: AsyncOpenAI | None = None):
                 {"role":"system","content":instructions},
                 {"role":"user","content":[{"type":"text","text":user_text},{"type":"image_url","image_url":{"url":request.imageUri,"detail":"high"}}]},
             ],
-            response_format={"type":"json_schema","json_schema":{"name":"useit_scene_analysis","strict":True,"schema":SCHEMA}},
+            response_format={"type":"json_schema","json_schema":{"name":"useit_scene_analysis","strict":True,"schema":ACTIONABLE_SCHEMA if mode else SCHEMA}},
         )
         usage = getattr(response, "usage", None)
         if usage is not None:
@@ -499,6 +512,7 @@ async def analyze(request: AnalyzeRequest):
 async def useit_analyze(
     request: UseItAnalyzeRequest,
     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+    retry_request: Annotated[bool, Header(alias="X-USEIT-Retry")] = False,
 ):
     if request.responseFormat != "scene_analysis_v1":
         raise HTTPException(status_code=400, detail="Unsupported response format.")
@@ -506,6 +520,9 @@ async def useit_analyze(
     store = getattr(app.state, "idempotency_store", None)
     if os.getenv("USEIT_IDEMPOTENCY_MODE", "disabled").strip().lower() == "firestore" and store is None:
         raise HTTPException(status_code=503, detail="Analysis request protection is not configured.")
+
+    if retry_request and (store is None or idempotency_key is None):
+        raise HTTPException(409, "A safe retry cannot be guaranteed for this request.")
 
     claim = None
     provider_client = None
@@ -554,9 +571,17 @@ async def useit_analyze(
         intent = classify_intent(request.userIntent, request.prompt)
         context = {"preferredStyles": request.preferredStyles, "preferredColors": request.preferredColors, "budgetHuf": request.budgetHuf}
         ranked = rank_opportunities(scene, intent, context=context)
+        actionable = attach_actionable_result(scene, ranked, request.actionable_mode) if request.actionable_mode else None
         shopping = None
         if request.discoverProducts and intent["name"] == "shop":
-            query = _build_discovery_query(scene, request)
+            if actionable is None:
+                query = _build_discovery_query(scene, request)
+            elif need := actionable["shoppingNeed"]:
+                query = " ".join([*need["searchTerms"], *request.preferredStyles, *request.preferredColors])
+                if request.budgetHuf is not None:
+                    query += f" under {request.budgetHuf} HUF"
+            else:
+                query = ""
             if query:
                 try:
                     shopping = await discover_products(ProductDiscoveryRequest(query=query, limit=request.productLimit, locale=request.locale, region="HU" if request.locale.lower().endswith("hu") else "US", max_resolve=request.productLimit))
@@ -568,6 +593,8 @@ async def useit_analyze(
         scene["sceneReasoning"] = derive_scene_reasoning(scene)
         specialist = build_specialist_context(scene, intent)
         result = {"contractVersion":"useit_analyze_v1","scene":scene,"intent":intent,"specialist":specialist,"suggestions":suggestions,"shopping":shopping,"pipeline":["see","understand","reason","intent","specialist","suggest","shop" if shopping else "plan"]}
+        if actionable is not None:
+            result["actionable"] = actionable
         if claim is not None:
             try:
                 completed = await store.mark_completed(claim)
