@@ -201,21 +201,23 @@ describe('public DNS address validation', () => {
 
 describe('pinned backend readiness probes', () => {
   it('pins both readiness probes to the same public DNS answer without a second resolution', async () => {
-    const lookupImpl = vi.fn().mockResolvedValue([
-      { address: '93.184.216.34', family: 4 },
-      { address: '2606:4700:4700::1111', family: 6 },
-    ]);
+    const dns = createResolverFactory({
+      ipv4: ['93.184.216.34'],
+      ipv6: ['2606:4700:4700::1111'],
+    });
     const { requestImpl, requests } = createRequestMock([
       { payload: { status: 'ok' } },
       { payload: { status: 'ready' } },
     ]);
 
     await expect(verifyBackendReady('https://api.useit.com/backend', {
-      lookupImpl,
+      resolverFactory: dns.resolverFactory,
       requestImpl,
     })).resolves.toBeUndefined();
 
-    expect(lookupImpl).toHaveBeenCalledTimes(1);
+    expect(dns.resolverFactory).toHaveBeenCalledTimes(1);
+    expect(dns.instances[0].resolve4).toHaveBeenCalledWith('api.useit.com.');
+    expect(dns.instances[0].resolve6).toHaveBeenCalledWith('api.useit.com.');
     expect(requests).toHaveLength(2);
     expect(requests.map(({ options }) => options.path)).toEqual(['/backend/health', '/backend/ready']);
     expect(requests.map(({ options }) => options.method)).toEqual(['GET', 'GET']);
@@ -249,46 +251,44 @@ describe('pinned backend readiness probes', () => {
   });
 
   it('never sends readiness requests when DNS resolves to a private or mixed address set', async () => {
-    const lookupImpl = vi.fn().mockResolvedValue([
-      { address: '93.184.216.34', family: 4 },
-      { address: '10.20.30.40', family: 4 },
-    ]);
+    const dns = createResolverFactory({
+      ipv4: ['93.184.216.34', '10.20.30.40'],
+    });
     const { requestImpl } = createRequestMock([]);
 
     await expect(verifyBackendReady('https://api.useit.com', {
-      lookupImpl,
+      resolverFactory: dns.resolverFactory,
       requestImpl,
     })).rejects.toThrow('exclusively to public');
 
-    expect(lookupImpl).toHaveBeenCalledTimes(1);
+    expect(dns.instances[0].cancel).toHaveBeenCalledTimes(1);
     expect(requestImpl).not.toHaveBeenCalled();
   });
 
   it('rejects redirects and non-success responses', async () => {
-    const lookupImpl = vi.fn().mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    const dns = createResolverFactory({ ipv4: ['93.184.216.34'] });
     const { requestImpl } = createRequestMock([
       { statusCode: 302, payload: { status: 'ok' } },
     ]);
     await expect(verifyBackendReady('https://api.useit.com', {
-      lookupImpl,
+      resolverFactory: dns.resolverFactory,
       requestImpl,
     })).rejects.toThrow('/health returned HTTP 302');
     expect(requestImpl).toHaveBeenCalledTimes(1);
   });
 
   it('enforces a total deadline when partial response data keeps the socket active', async () => {
-    const lookupImpl = vi.fn().mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    const dns = createResolverFactory({ ipv4: ['93.184.216.34'] });
     const { requestImpl, requests } = createRequestMock([
       { partialBody: '{"status":', leaveOpen: true },
     ]);
 
     await expect(verifyBackendReady('https://api.useit.com', {
-      lookupImpl,
+      resolverFactory: dns.resolverFactory,
       requestImpl,
       timeoutMs: 25,
     })).rejects.toThrow('/health is unreachable');
 
-    expect(lookupImpl).toHaveBeenCalledTimes(1);
     expect(requests).toHaveLength(1);
     expect(requests[0].request.destroy).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'USEIT backend readiness request exceeded its total time limit.' }),
@@ -296,10 +296,10 @@ describe('pinned backend readiness probes', () => {
   });
 
   it('rejects invalid JSON and an incorrect readiness state', async () => {
-    const lookupImpl = vi.fn().mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    const dns = createResolverFactory({ ipv4: ['93.184.216.34'] });
     const invalidJson = createRequestMock([{ body: 'not-json' }]);
     await expect(verifyBackendReady('https://api.useit.com', {
-      lookupImpl,
+      resolverFactory: dns.resolverFactory,
       requestImpl: invalidJson.requestImpl,
     })).rejects.toThrow('/health returned invalid JSON');
 
@@ -307,29 +307,44 @@ describe('pinned backend readiness probes', () => {
       { payload: { status: 'not-ready' } },
     ]);
     await expect(verifyBackendReady('https://api.useit.com', {
-      lookupImpl,
+      resolverFactory: dns.resolverFactory,
       requestImpl: incorrectStatus.requestImpl,
     })).rejects.toThrow('did not report status "ok"');
   });
 
   it('blocks builds when backend readiness is unavailable', async () => {
-    const lookupImpl = vi.fn().mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    const dns = createResolverFactory({ ipv4: ['93.184.216.34'] });
     const { requestImpl } = createRequestMock([
       { payload: { status: 'ok' } },
       { statusCode: 503, payload: { detail: 'Service is not ready.' } },
     ]);
     await expect(verifyBackendReady('https://api.useit.com', {
-      lookupImpl,
+      resolverFactory: dns.resolverFactory,
       requestImpl,
     })).rejects.toThrow('/ready returned HTTP 503');
   });
 
   it('fails closed when DNS resolution fails', async () => {
+    const failure = Object.assign(new Error('DNS unavailable'), { code: 'ESERVFAIL' });
+    const dns = createResolverFactory({ errors: { ipv4: failure, ipv6: failure } });
     const requestImpl = vi.fn();
     await expect(verifyBackendReady('https://api.useit.com', {
-      lookupImpl: vi.fn().mockRejectedValue(new Error('DNS unavailable')),
+      resolverFactory: dns.resolverFactory,
       requestImpl,
     })).rejects.toThrow('could not be resolved');
+    expect(dns.instances[0].cancel).toHaveBeenCalledTimes(1);
+    expect(requestImpl).not.toHaveBeenCalled();
+  });
+
+  it('applies the DNS deadline before any HTTPS readiness probe', async () => {
+    const dns = createResolverFactory({ pending: true });
+    const requestImpl = vi.fn();
+    await expect(verifyBackendReady('https://api.useit.com', {
+      resolverFactory: dns.resolverFactory,
+      dnsTimeoutMs: 25,
+      requestImpl,
+    })).rejects.toThrow('DNS resolution exceeded its total time limit');
+    expect(dns.instances[0].cancel).toHaveBeenCalledTimes(1);
     expect(requestImpl).not.toHaveBeenCalled();
   });
 });
