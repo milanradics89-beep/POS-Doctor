@@ -195,6 +195,17 @@ describe('public DNS address validation', () => {
       .rejects.toThrow('exclusively to public');
   });
 
+  it('fails closed on NXDOMAIN even when the other record family returns an address', async () => {
+    const nxdomain = Object.assign(new Error('DNS name does not exist'), { code: 'ENOTFOUND' });
+    const factory = createResolverFactory({
+      ipv4: ['93.184.216.34'],
+      errors: { ipv6: nxdomain },
+    });
+    await expect(resolvePublicAddresses('api.useit.com', factory.resolverFactory))
+      .rejects.toThrow('could not be resolved');
+    expect(factory.instances[0].cancel).toHaveBeenCalledTimes(1);
+  });
+
   it('treats an absent address family as empty while requiring at least one valid public answer', async () => {
     const noIpv6 = Object.assign(new Error('no AAAA records'), { code: 'ENODATA' });
     const factory = createResolverFactory({
