@@ -14,6 +14,12 @@ The product's signature is the **Possibility Frame**: the user's photograph rema
 - Product language: plain, encouraging, specific. No developer terminology or generic AI hype.
 - Locale: Hungarian (`hu-HU`) is the primary launch locale. This is an explicit launch gate, not a statement that the current app is already localized. The current implementation still contains English user-facing and accessibility strings and sends `locale: 'en-HU'`; those gaps must be closed and verified before launch. No mixed-language flow may pass acceptance.
 
+## Localization ownership and launch gate
+
+The launch locale is exactly `hu-HU`; `en-HU` is not an accepted locale or fallback. Current user-facing copy is split across legacy owners: Home and chooser descriptions in `app/index.tsx`, intent/result labels in `src/ui/resultModel.ts`, and result-screen copy in `src/ui/PhotoResult.tsx`. These are current implementation locations, not the target architecture.
+
+The target is one typed locale catalog under `src/i18n/`. Screen components must consume typed localization keys rather than define user-facing literals. Resolve the selected locale once at the app boundary and send the same `hu-HU` value to `/v1/useit/analyze`. Treat this catalog as a required future implementation, not as something this documentation PR has already delivered. Acceptance requires complete Hungarian coverage for visible copy, errors, accessibility labels/hints and all recovery states, plus tests proving no mixed-language path remains.
+
 ## Visual direction
 
 A tactile, editorial-meets-product aesthetic: quiet warm surfaces, confident graphite typography, one unmistakable lime signal, generous image space, and crisp functional controls. The UI should feel calm until the moment of discovery, when the image and recommendation become the hero.

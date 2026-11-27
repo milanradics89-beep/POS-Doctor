@@ -16,14 +16,18 @@ The selected photo and current analysis context must be preserved when navigatin
 |---|---|---|
 | Brand and visual tokens | `src/ui/theme.ts`, `src/ui/components.tsx` | Extend shared owners; no parallel token palettes |
 | Home and capture entry | `app/index.tsx` | One dominant capture action; gallery is secondary |
-| Intent chooser labels and descriptions | `app/index.tsx` (`modes`) | Current literal owner; localize together with selected-state and accessibility copy |
-| Result intent labels and mapping | `src/ui/resultModel.ts`, consumer intent domain | Keep all six intents distinct: CREATE, IMPROVE, FIX, COOK, SHOP, SURPRISE |
-| Result presentation and concept comparison | `src/ui/PhotoResult.tsx` (`PhotoResult`, `PhotoComparison`) | Intent-specific result hierarchy; original/concept comparison must retain explicit image labels |
-| Selected-photo preview | `app/index.tsx` (`SelectedPhoto`) | Preserve source aspect ratio and orientation; use contain unless the user explicitly chooses a reversible crop |
+| Intent chooser title labels | `src/ui/resultModel.ts` (`modeCopy.*.title`) | Current label source; keep chooser and result labels aligned and localize through the shared catalog |
+| Intent chooser descriptions | `app/index.tsx` (`modes` tuple descriptions) | Current literal description source; migrate to the same locale catalog, not a second copy source |
+| Result intent labels and mapping | `src/ui/resultModel.ts`, consumer intent domain | Exactly five canonical intents: CREATE, IMPROVE, FIX, COOK, SURPRISE. SHOP is legacy copy, not an intent |
+| Result presentation | `src/ui/PhotoResult.tsx` (`PhotoResult`) | Owns result hierarchy and result-screen interaction copy |
+| Original/concept comparison | `src/ui/PhotoResult.tsx` (`PhotoComparison`) | Owns the result-side original/generated comparison and its explicit image labels |
+| Selected-photo preview | `app/index.tsx` (`SelectedPhoto`) | Owns the input-photo preview; preserve source aspect ratio and orientation, use contain unless the user explicitly chooses a reversible crop |
 | Image preparation | `src/core/intelligence/imageNormalization.ts` | Normalize transport dimensions without silently changing the visible composition |
 | Shared status and recovery | `src/ui/components.tsx` | Use shared `StatePanel` patterns; actionable recovery where possible |
 
-These are the owners observed in the current source, not proof that the experience is complete. When a shared localization or image-display primitive is introduced, update this table in the same change and migrate all consumers; do not leave parallel sources of truth.
+These are the owners observed in the current source, not proof that the experience is complete. The input-photo preview (`SelectedPhoto`) and the result comparison (`PhotoComparison`) are separate image-display owners today; both must preserve orientation, aspect ratio and fidelity, and neither may silently crop or stretch. Do not imply that a shared image component already exists. If one is introduced later, migrate both consumers before declaring a single owner.
+
+The canonical intent scope follows Issue #347: exactly five consumer intents (CREATE, IMPROVE, FIX, COOK, SURPRISE). The legacy SHOP entry in the current `docs/PRODUCT-VISION.md` is known documentation drift being corrected with the five-intent product change; do not implement SHOP as a chooser intent. Product discovery is a separate optional result action, driven only by evidence-backed `shoppingNeed`, and must never become a sixth intent.
 
 ## Interaction contract
 
@@ -40,9 +44,9 @@ These are the owners observed in the current source, not proof that the experien
 - Permission denial and picker/camera failures must explain the next available action.
 
 ### Intent selection
-- Show the six canonical intents with distinct, localized descriptions.
+- Show exactly five canonical intents with distinct, localized descriptions: CREATE, IMPROVE, FIX, COOK and SURPRISE. Product discovery is a separate optional result action, not a chooser tile or consumer intent.
 - Selection must have a visible state and accessible selected semantics.
-- Do not conflate product discovery with the five other consumer intents.
+- Do not conflate product discovery with the five canonical consumer intents.
 - Intent changes must not accidentally create duplicate paid requests.
 
 ### Analysis
@@ -86,6 +90,6 @@ For every substantial UI change, attach or link:
 - Accessibility and reduced-motion checks.
 - Visual regression results when Percy or equivalent is available.
 - Maestro end-to-end results for the changed journey when configured. If Maestro is unavailable or unconfigured, require a recorded manual walkthrough of every changed action and recovery path, including the exact device/build used and observed outcome.
-- Representative photo-and-intent fixtures for all six intents. For each fixture, record the visible evidence in the source photo, why the result is relevant to that evidence, and how the result differs from the other intents. Generic output that could be produced without the photo or selected intent fails acceptance.
+- Representative photo-and-intent fixtures for each of the five canonical intents. For each fixture, record the visible evidence in the source photo, why the result is relevant to that evidence, and how the result differs from the other intents. Generic output that could be produced without the photo or selected intent fails acceptance. Verify product discovery separately with an evidence-backed shoppingNeed fixture: its POST receives only bounded search terms, never the image, image URI or prompt; it makes one attempt without retry or a second vision request, and a search failure preserves the completed photo analysis.
 
 A green build alone is not UI acceptance. A screenshot alone is not interaction acceptance.
