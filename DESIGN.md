@@ -111,6 +111,8 @@ Use a small motion vocabulary: short opacity/position reveal for content, tactil
 
 ## Quality bar
 
+Generated design-reference images are the minimum acceptable visual bar, not the target to copy and not proof of product acceptance. The implemented experience must be demonstrably better in craft, hierarchy, typography, spacing, image treatment, consistency, accessibility, responsive behavior and real interaction. Never regress below the reference quality to save implementation effort; improve the reference where product behavior, clarity or usability requires it. A static mockup cannot excuse missing states or broken functionality.
+
 A design is not accepted because it compiles or looks attractive in one screenshot. It must be coherent across Home, Camera/Photo Preview, Intent Selection, Analysis, Results, Refinement, and recovery states on both iOS and Android. Verify narrow and large devices, accessibility, reduced motion, localization, image fidelity, and real interaction paths. Record screenshots and visual regression evidence where available.
 
 ## Ownership
