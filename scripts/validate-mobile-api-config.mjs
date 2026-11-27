@@ -33,32 +33,18 @@ function isInIpv4Range(address, network, prefix) {
   return (ipv4ToBigInt(address) & mask) === network;
 }
 
-function ipv6ToBigInt(address) {
-  let source = address.toLowerCase().split('%')[0];
+function isPublicIpv6(address) {
+  const [firstHextet, rawSecondHextet] = address.toLowerCase().split(':');
+  if (!/^[23][0-9a-f]{3}$/.test(firstHextet)) return false;
 
-  if (source.includes('.')) {
-    const lastColon = source.lastIndexOf(':');
-    const ipv4 = source.slice(lastColon + 1);
-    if (isIP(ipv4) !== 4) return null;
-    const octets = ipv4.split('.').map(Number);
-    const high = ((octets[0] << 8) | octets[1]).toString(16);
-    const low = ((octets[2] << 8) | octets[3]).toString(16);
-    source = source.slice(0, lastColon + 1) + high + ':' + low;
-  }
+  const secondHextet = rawSecondHextet || '0';
+  const secondValue = Number.parseInt(secondHextet, 16);
+  const isIetfProtocolRange = firstHextet === '2001' && secondValue <= 0x01ff;
+  const isDocumentationRange = (firstHextet === '2001' && secondValue === 0x0db8)
+    || (firstHextet === '3fff' && secondValue <= 0x0fff);
+  const is6to4Range = firstHextet === '2002';
 
-  const halves = source.split('::');
-  if (halves.length > 2) return null;
-  const left = halves[0] ? halves[0].split(':') : [];
-  const right = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
-  const missing = halves.length === 2 ? 8 - left.length - right.length : 0;
-  if ((halves.length === 2 && missing < 1) || (halves.length === 1 && left.length !== 8)) return null;
-
-  const groups = halves.length === 2
-    ? [...left, ...Array(missing).fill('0'), ...right]
-    : left;
-  if (groups.length !== 8 || groups.some((group) => !/^[0-9a-f]{1,4}$/.test(group))) return null;
-
-  return groups.reduce((value, group) => (value << 16n) | BigInt(parseInt(group, 16)), 0n);
+  return !isIetfProtocolRange && !isDocumentationRange && !is6to4Range;
 }
 
 function isPublicAddress(address) {
@@ -66,23 +52,7 @@ function isPublicAddress(address) {
   if (family === 4) {
     return !IPV4_NON_PUBLIC_RANGES.some(([network, prefix]) => isInIpv4Range(address, network, prefix));
   }
-  if (family !== 6) return false;
-
-  const value = ipv6ToBigInt(address);
-  if (value === null) return false;
-
-  // Only global-unicast space is eligible. This excludes unspecified,
-  // loopback, IPv4-mapped, ULA, link-local and multicast addresses.
-  const firstHextet = Number((value >> 112n) & 0xffffn);
-  if (firstHextet < 0x2000 || firstHextet > 0x3fff) return false;
-
-  const secondHextet = Number((value >> 96n) & 0xffffn);
-  if (firstHextet === 0x2001 && secondHextet <= 0x01ff) return false; // IETF protocol assignments
-  if (firstHextet === 0x2001 && secondHextet === 0x0db8) return false; // Documentation
-  if (firstHextet === 0x2002) return false; // 6to4 transition space
-  if (firstHextet === 0x3fff && secondHextet <= 0x0fff) return false; // Documentation
-
-  return true;
+  return family === 6 && isPublicIpv6(address);
 }
 
 function validateMobileApiConfig(value) {
@@ -221,41 +191,45 @@ function requestJson(url, hostname, records, requestImpl = httpsRequest) {
   });
 }
 
+async function verifyReadinessEndpoint(url, path, hostname, addresses, requestImpl) {
+  let response;
+  try {
+    response = await requestJson(url, hostname, addresses, requestImpl);
+  } catch {
+    throw new Error('USEIT backend ' + path + ' is unreachable from the mobile build environment.');
+  }
+
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw new Error('USEIT backend ' + path + ' returned HTTP ' + response.statusCode + '; the deployment is not ready for mobile builds.');
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(response.body);
+  } catch {
+    throw new Error('USEIT backend ' + path + ' returned invalid JSON.');
+  }
+
+  const expectedStatus = path === '/health' ? 'ok' : 'ready';
+  if (!payload || payload.status !== expectedStatus) {
+    throw new Error('USEIT backend ' + path + ' did not report status "' + expectedStatus + '".');
+  }
+}
+
 async function verifyBackendReady(baseUrl, dependencies = {}) {
   const lookupImpl = dependencies.lookupImpl ?? lookup;
   const requestImpl = dependencies.requestImpl ?? httpsRequest;
   const validatedBase = validateMobileApiConfig(baseUrl);
   const base = validatedBase.endsWith('/') ? validatedBase : validatedBase + '/';
   const baseUrlObject = new URL(base);
-  const hostname = baseUrlObject.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  const hostname = baseUrlObject.hostname.toLowerCase().replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
 
   // Resolve exactly once, reject the entire answer if any result is non-public,
   // then pin both anonymous HTTPS probes to this validated address set.
   const addresses = await resolvePublicAddresses(hostname, lookupImpl);
 
   for (const path of ['/health', '/ready']) {
-    let response;
-    try {
-      response = await requestJson(new URL(path.slice(1), base), hostname, addresses, requestImpl);
-    } catch {
-      throw new Error('USEIT backend ' + path + ' is unreachable from the mobile build environment.');
-    }
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw new Error('USEIT backend ' + path + ' returned HTTP ' + response.statusCode + '; the deployment is not ready for mobile builds.');
-    }
-
-    let payload;
-    try {
-      payload = JSON.parse(response.body);
-    } catch {
-      throw new Error('USEIT backend ' + path + ' returned invalid JSON.');
-    }
-
-    const expectedStatus = path === '/health' ? 'ok' : 'ready';
-    if (!payload || payload.status !== expectedStatus) {
-      throw new Error('USEIT backend ' + path + ' did not report status "' + expectedStatus + '".');
-    }
+    await verifyReadinessEndpoint(new URL(path.slice(1), base), path, hostname, addresses, requestImpl);
   }
 }
 
