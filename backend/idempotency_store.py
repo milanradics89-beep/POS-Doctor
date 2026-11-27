@@ -10,6 +10,8 @@ from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 from typing import Callable
 
+from google.api_core.exceptions import AlreadyExists, FailedPrecondition, NotFound
+from google.cloud.firestore_v1 import DELETE_FIELD
 from google.cloud.firestore_v1.async_client import AsyncClient
 from google.cloud.firestore_v1.async_transaction import async_transactional
 
@@ -44,11 +46,13 @@ def _utc_now() -> datetime:
 
 
 class FirestoreIdempotencyStore:
-    """Atomic, cross-client request claims backed by Firestore transactions.
+    """Atomic, cross-client request claims backed by conditional Firestore writes.
 
     Only HMAC digests and lifecycle metadata are persisted. Raw idempotency keys,
     request bodies, image data, prompts and model responses are never stored.
-    Firestore TTL is cleanup only; every claim checks expires_at in the transaction.
+    Processing and outcome-unknown claims deliberately have no TTL field; only
+    completed records expire. Firestore TTL is cleanup only, and completed claims
+    check expires_at transactionally.
     """
 
     def __init__(
@@ -103,51 +107,124 @@ class FirestoreIdempotencyStore:
             raise ValueError("Idempotency request fingerprint must be non-empty bytes.")
 
         now = self._now()
-        expires_at = now + timedelta(seconds=self._ttl_seconds)
         document_id = self._digest(b"useit:idempotency-key:v1", key_bytes)
         request_hash = self._digest(b"useit:request-fingerprint:v1", request_payload)
         lease_token = secrets.token_urlsafe(32)
         reference = self._client.collection(self._collection).document(document_id)
+        claim_data = {
+            "schema_version": 1,
+            "request_hash": request_hash,
+            "status": "processing",
+            "lease_token": lease_token,
+            "created_at": now,
+            "updated_at": now,
+        }
 
-        @async_transactional
-        async def claim_in_transaction(transaction):
-            snapshot = await reference.get(transaction=transaction)
-            if snapshot.exists:
-                existing = snapshot.to_dict() or {}
-                existing_expiry = existing.get("expires_at")
-                if not isinstance(existing_expiry, datetime):
-                    # Unknown/corrupt records fail closed rather than permitting
-                    # a second billable request.
-                    return IdempotencyDecision.DUPLICATE
-                if existing_expiry.tzinfo is None:
-                    existing_expiry = existing_expiry.replace(tzinfo=timezone.utc)
-                if existing_expiry.astimezone(timezone.utc) > now:
-                    stored_hash = existing.get("request_hash")
-                    if not isinstance(stored_hash, str) or not hmac.compare_digest(stored_hash, request_hash):
-                        return IdempotencyDecision.PAYLOAD_MISMATCH
-                    return IdempotencyDecision.DUPLICATE
+        # Conditional create/update avoids transaction lock contention between
+        # independent instances. Only a completed record whose terminal TTL has
+        # elapsed can be replaced; processing, uncertain and corrupt states fail closed.
+        for attempt in range(5):
+            snapshot = await reference.get()
+            if not snapshot.exists:
+                try:
+                    await reference.create(claim_data, retry=None)
+                except AlreadyExists:
+                    if attempt == 4:
+                        raise
+                    await asyncio.sleep(0.01 * 2**attempt)
+                    continue
+                return IdempotencyClaimResult(
+                    decision=IdempotencyDecision.CLAIMED,
+                    claim=IdempotencyClaim(document_id=document_id, lease_token=lease_token),
+                )
 
-            transaction.set(
-                reference,
-                {
-                    "schema_version": 1,
-                    "request_hash": request_hash,
-                    "status": "processing",
-                    "lease_token": lease_token,
-                    "created_at": now,
-                    "updated_at": now,
-                    "expires_at": expires_at,
-                },
+            existing = snapshot.to_dict() or {}
+            status = existing.get("status")
+            if status in {"processing", "outcome_unknown"}:
+                if "expires_at" in existing:
+                    try:
+                        await reference.update(
+                            {"expires_at": DELETE_FIELD},
+                            option=self._client.write_option(last_update_time=snapshot.update_time),
+                            retry=None,
+                        )
+                    except NotFound:
+                        return IdempotencyClaimResult(decision=IdempotencyDecision.DUPLICATE)
+                    except FailedPrecondition:
+                        if attempt == 4:
+                            raise
+                        await asyncio.sleep(0.01 * 2**attempt)
+                        continue
+                stored_hash = existing.get("request_hash")
+                if not isinstance(stored_hash, str):
+                    return IdempotencyClaimResult(decision=IdempotencyDecision.DUPLICATE)
+                decision = (
+                    IdempotencyDecision.DUPLICATE
+                    if hmac.compare_digest(stored_hash, request_hash)
+                    else IdempotencyDecision.PAYLOAD_MISMATCH
+                )
+                return IdempotencyClaimResult(decision=decision)
+
+            if status != "completed":
+                if status != "health_probe" and "expires_at" in existing:
+                    try:
+                        await reference.update(
+                            {"expires_at": DELETE_FIELD},
+                            option=self._client.write_option(last_update_time=snapshot.update_time),
+                            retry=None,
+                        )
+                    except NotFound:
+                        return IdempotencyClaimResult(decision=IdempotencyDecision.DUPLICATE)
+                    except FailedPrecondition:
+                        if attempt == 4:
+                            raise
+                        await asyncio.sleep(0.01 * 2**attempt)
+                        continue
+                return IdempotencyClaimResult(decision=IdempotencyDecision.DUPLICATE)
+
+            existing_expiry = existing.get("expires_at")
+            if not isinstance(existing_expiry, datetime):
+                if "expires_at" in existing:
+                    try:
+                        await reference.update(
+                            {"expires_at": DELETE_FIELD},
+                            option=self._client.write_option(last_update_time=snapshot.update_time),
+                            retry=None,
+                        )
+                    except NotFound:
+                        return IdempotencyClaimResult(decision=IdempotencyDecision.DUPLICATE)
+                    except FailedPrecondition:
+                        if attempt == 4:
+                            raise
+                        await asyncio.sleep(0.01 * 2**attempt)
+                        continue
+                return IdempotencyClaimResult(decision=IdempotencyDecision.DUPLICATE)
+
+            if existing_expiry.tzinfo is None:
+                existing_expiry = existing_expiry.replace(tzinfo=timezone.utc)
+            if existing_expiry.astimezone(timezone.utc) > now:
+                stored_hash = existing.get("request_hash")
+                if not isinstance(stored_hash, str) or not hmac.compare_digest(stored_hash, request_hash):
+                    return IdempotencyClaimResult(decision=IdempotencyDecision.PAYLOAD_MISMATCH)
+                return IdempotencyClaimResult(decision=IdempotencyDecision.DUPLICATE)
+
+            try:
+                await reference.set(
+                    claim_data,
+                    option=self._client.write_option(last_update_time=snapshot.update_time),
+                    retry=None,
+                )
+            except (FailedPrecondition, NotFound):
+                if attempt == 4:
+                    raise
+                await asyncio.sleep(0.01 * 2**attempt)
+                continue
+            return IdempotencyClaimResult(
+                decision=IdempotencyDecision.CLAIMED,
+                claim=IdempotencyClaim(document_id=document_id, lease_token=lease_token),
             )
-            return IdempotencyDecision.CLAIMED
 
-        decision = await claim_in_transaction(self._client.transaction(max_attempts=5))
-        if decision is not IdempotencyDecision.CLAIMED:
-            return IdempotencyClaimResult(decision=decision)
-        return IdempotencyClaimResult(
-            decision=IdempotencyDecision.CLAIMED,
-            claim=IdempotencyClaim(document_id=document_id, lease_token=lease_token),
-        )
+        raise RuntimeError("Firestore idempotency claim could not be acquired after concurrent updates.")
 
     async def mark_completed(self, claim: IdempotencyClaim) -> bool:
         return await self._finish(claim, "completed")
@@ -196,14 +273,18 @@ class FirestoreIdempotencyStore:
                 or not hmac.compare_digest(lease, claim.lease_token)
             ):
                 return False
-            transaction.update(
-                reference,
-                {
-                    "status": status,
-                    "lease_token": None,
-                    "updated_at": now,
-                },
-            )
+            updates = {
+                "status": status,
+                "lease_token": None,
+                "updated_at": now,
+            }
+            if status == "completed":
+                updates["expires_at"] = now + timedelta(seconds=self._ttl_seconds)
+            else:
+                # Provider outcome is uncertain: retain the key until explicit
+                # evidence-backed reconciliation, never TTL-based replay.
+                updates["expires_at"] = DELETE_FIELD
+            transaction.update(reference, updates)
             return True
 
         return await finish_in_transaction(self._client.transaction(max_attempts=5))

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from google.cloud.firestore_v1.async_client import AsyncClient
+from google.cloud.firestore_v1.async_document import AsyncDocumentReference
 from google.cloud.firestore_v1.async_transaction import AsyncTransaction
 
 from backend.idempotency_store import (
@@ -41,10 +42,24 @@ async def _close_pair(collection, first_client, second_client):
 
 
 @pytest.mark.asyncio
-async def test_concurrent_claims_from_independent_clients_allow_exactly_one_winner():
+async def test_concurrent_claims_from_independent_clients_allow_exactly_one_winner(monkeypatch):
     collection, first_client, second_client, first, second = await _new_pair()
     key = f"analysis-{uuid.uuid4().hex}"
     payload = b'{"scene":"synthetic","imageFingerprint":"not-an-image"}'
+    reference = first_client.collection(collection).document(first.document_id_for_key(key))
+    original_get = AsyncDocumentReference.get
+    first_reads = 0
+    barrier = asyncio.Barrier(2)
+
+    async def synchronized_get(document, *args, **kwargs):
+        nonlocal first_reads
+        snapshot = await original_get(document, *args, **kwargs)
+        if document.path == reference.path and first_reads < 2:
+            first_reads += 1
+            await asyncio.wait_for(barrier.wait(), timeout=5)
+        return snapshot
+
+    monkeypatch.setattr(AsyncDocumentReference, "get", synchronized_get)
     try:
         results = await asyncio.gather(first.claim(key, payload), second.claim(key, payload))
         assert sorted(result.decision.value for result in results) == ["claimed", "duplicate"]
@@ -72,15 +87,36 @@ async def test_same_key_with_different_payload_is_rejected_without_overwrite():
 
 
 @pytest.mark.asyncio
-async def test_provider_outcome_unknown_remains_blocked_until_expiry():
-    collection, first_client, second_client, first, second = await _new_pair()
+async def test_provider_outcome_unknown_remains_blocked_after_ttl_and_migrates_legacy_expiry():
+    initial_time = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
+    current_time = [initial_time]
+    collection, first_client, second_client, first, second = await _new_pair(
+        ttl_seconds=60,
+        clock=lambda: current_time[0],
+    )
     key = f"analysis-{uuid.uuid4().hex}"
     payload = b"provider-may-have-processed"
     try:
         claimed = await first.claim(key, payload)
         assert claimed.claim is not None
         assert await first.mark_outcome_unknown(claimed.claim) is True
-        assert (await second.claim(key, payload)).decision is IdempotencyDecision.DUPLICATE
+        reference = first_client.collection(collection).document(claimed.claim.document_id)
+        stored = (await reference.get()).to_dict() or {}
+        assert stored["status"] == "outcome_unknown"
+        assert "expires_at" not in stored
+
+        # Simulate a legacy writer that gave an uncertain outcome a TTL.
+        await reference.update({"expires_at": initial_time + timedelta(seconds=60)})
+        current_time[0] += timedelta(seconds=61)
+
+        retry = await second.claim(key, payload)
+        assert retry.decision is IdempotencyDecision.DUPLICATE
+        migrated = (await reference.get()).to_dict() or {}
+        assert migrated["status"] == "outcome_unknown"
+        assert "expires_at" not in migrated
+
+        mismatch = await second.claim(key, b"different-provider-payload")
+        assert mismatch.decision is IdempotencyDecision.PAYLOAD_MISMATCH
     finally:
         await _close_pair(collection, first_client, second_client)
 
@@ -101,9 +137,9 @@ async def test_pre_provider_failure_can_release_claim_for_a_safe_retry():
 
 
 @pytest.mark.asyncio
-async def test_expired_record_can_be_reclaimed_without_waiting_for_ttl_cleanup():
+async def test_expired_processing_claim_remains_blocked_and_is_migrated_off_ttl():
     initial_time = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
-    collection, first_client, second_client, first, second = await _new_pair(
+    collection, first_client, second_client, first, _ = await _new_pair(
         ttl_seconds=60,
         clock=lambda: initial_time,
     )
@@ -115,12 +151,51 @@ async def test_expired_record_can_be_reclaimed_without_waiting_for_ttl_cleanup()
         clock=lambda: initial_time + timedelta(seconds=61),
     )
     key = f"analysis-{uuid.uuid4().hex}"
-    payload = b"expired-record"
+    payload = b"still-processing"
     try:
         first_claim = await first.claim(key, payload)
-        assert first_claim.decision is IdempotencyDecision.CLAIMED
-        second_claim = await second.claim(key, payload)
-        assert second_claim.decision is IdempotencyDecision.CLAIMED
+        assert first_claim.claim is not None
+        reference = first_client.collection(collection).document(first_claim.claim.document_id)
+        # Simulate a legacy processing document created before terminal-only TTL.
+        await reference.update({"expires_at": initial_time + timedelta(seconds=60)})
+
+        retry = await second.claim(key, payload)
+        assert retry.decision is IdempotencyDecision.DUPLICATE
+        stored = (await reference.get()).to_dict() or {}
+        assert stored["status"] == "processing"
+        assert "expires_at" not in stored
+    finally:
+        await _close_pair(collection, first_client, second_client)
+
+
+@pytest.mark.asyncio
+async def test_completed_record_expires_from_completion_time_without_waiting_for_ttl_cleanup():
+    initial_time = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
+    current_time = [initial_time]
+    collection, first_client, second_client, first, second = await _new_pair(
+        ttl_seconds=60,
+        clock=lambda: current_time[0],
+    )
+    key = f"analysis-{uuid.uuid4().hex}"
+    payload = b"completed-record"
+    try:
+        first_claim = await first.claim(key, payload)
+        assert first_claim.claim is not None
+        current_time[0] += timedelta(seconds=30)
+        assert await first.mark_completed(first_claim.claim) is True
+        terminal = (await first_client.collection(collection).document(first_claim.claim.document_id).get()).to_dict() or {}
+        assert terminal["status"] == "completed"
+        assert terminal["expires_at"] == current_time[0] + timedelta(seconds=60)
+
+        # A retry after the creation-based expiry must still be blocked until
+        # the completion-based expiry is reached.
+        current_time[0] = initial_time + timedelta(seconds=61)
+        before_completion_expiry = await second.claim(key, payload)
+        assert before_completion_expiry.decision is IdempotencyDecision.DUPLICATE
+
+        current_time[0] = initial_time + timedelta(seconds=91)
+        after_completion_expiry = await second.claim(key, payload)
+        assert after_completion_expiry.decision is IdempotencyDecision.CLAIMED
     finally:
         await _close_pair(collection, first_client, second_client)
 
@@ -146,7 +221,6 @@ async def test_firestore_document_contains_only_hmacs_and_lifecycle_metadata():
             "lease_token",
             "created_at",
             "updated_at",
-            "expires_at",
         }
         assert stored["status"] == "processing"
     finally:
@@ -202,5 +276,31 @@ async def test_invalid_keys_and_ttl_are_rejected_before_firestore_access():
             await first.claim(f"analysis-{uuid.uuid4().hex}", b"")
         with pytest.raises(ValueError, match="TTL"):
             FirestoreIdempotencyStore(first_client, SECRET, ttl_seconds=30, collection=collection)
+    finally:
+        await _close_pair(collection, first_client, second_client)
+
+@pytest.mark.asyncio
+async def test_unknown_claim_state_with_legacy_expiry_remains_blocked_and_clears_ttl():
+    now = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
+    collection, first_client, second_client, first, _ = await _new_pair(
+        ttl_seconds=60,
+        clock=lambda: now,
+    )
+    key = f"analysis-{uuid.uuid4().hex}"
+    payload = b"unknown-claim-state"
+    try:
+        claimed = await first.claim(key, payload)
+        assert claimed.claim is not None
+        reference = first_client.collection(collection).document(claimed.claim.document_id)
+        await reference.update({
+            "status": "corrupt_state",
+            "expires_at": now + timedelta(seconds=60),
+        })
+
+        retry = await first.claim(key, payload)
+        assert retry.decision is IdempotencyDecision.DUPLICATE
+        stored = (await reference.get()).to_dict() or {}
+        assert stored["status"] == "corrupt_state"
+        assert "expires_at" not in stored
     finally:
         await _close_pair(collection, first_client, second_client)

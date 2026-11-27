@@ -12,7 +12,7 @@ from backend.firestore_state import FirestoreState
 
 
 @pytest.mark.asyncio
-async def test_security_state_is_atomic_across_instances():
+async def test_security_state_is_atomic_across_instances(monkeypatch):
     if not os.getenv("FIRESTORE_EMULATOR_HOST"):
         pytest.skip("requires local Firestore emulator")
     clients = [AsyncClient(project="useit-test") for _ in range(2)]
@@ -21,6 +21,20 @@ async def test_security_state_is_atomic_across_instances():
     try:
         assert await a.check_connection()
         await a.put(key, AttestationProvider.APP_ATTEST, "ios.app", 30)
+        challenge_ref = a.reference("challenge", key)
+        original_get = AsyncDocumentReference.get
+        first_reads = 0
+        barrier = asyncio.Barrier(2)
+
+        async def synchronized_get(document, *args, **kwargs):
+            nonlocal first_reads
+            snapshot = await original_get(document, *args, **kwargs)
+            if document.path == challenge_ref.path and first_reads < 2:
+                first_reads += 1
+                await asyncio.wait_for(barrier.wait(), timeout=5)
+            return snapshot
+
+        monkeypatch.setattr(AsyncDocumentReference, "get", synchronized_get)
         records = await asyncio.gather(a.consume(key), b.consume(key))
         assert [r.app_id for r in records if r] == ["ios.app"]
         await a.put(key, AttestationProvider.APP_ATTEST, "ios.app", 30)
@@ -42,7 +56,7 @@ async def test_security_state_is_atomic_across_instances():
 
 
 @pytest.mark.asyncio
-async def test_shared_budget_reserves_before_dispatch_and_resets_by_utc_day():
+async def test_shared_budget_reserves_before_dispatch_and_resets_by_utc_day(monkeypatch):
     if not os.getenv("FIRESTORE_EMULATOR_HOST"):
         pytest.skip("requires local Firestore emulator")
     project = "budget-" + uuid.uuid4().hex[:12]
@@ -51,6 +65,19 @@ async def test_shared_budget_reserves_before_dispatch_and_resets_by_utc_day():
     ref = clients[0].collection("useit_state_v1").document("ai_daily_units")
     try:
         assert not await a.reserve_daily(0, 1)
+        original_get = AsyncDocumentReference.get
+        first_reads = 0
+        barrier = asyncio.Barrier(2)
+
+        async def synchronized_get(document, *args, **kwargs):
+            nonlocal first_reads
+            snapshot = await original_get(document, *args, **kwargs)
+            if document.path == ref.path and first_reads < 2:
+                first_reads += 1
+                await asyncio.wait_for(barrier.wait(), timeout=5)
+            return snapshot
+
+        monkeypatch.setattr(AsyncDocumentReference, "get", synchronized_get)
         assert sorted(await asyncio.gather(a.reserve_daily(5, 5), b.reserve_daily(5, 5))) == [False, True]
         assert not await b.reserve_daily(5, 1)
         await ref.update({"day": "2000-01-01"})
