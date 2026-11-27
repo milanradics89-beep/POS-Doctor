@@ -8,7 +8,6 @@ MODE_DIRECTIONS = {
     "improve": "Improve something already in the image. For a room, identify what should stay before changing layout or styling.",
     "fix": "Describe observed symptoms, not a diagnosis of hidden causes. Give only safe, non-invasive checks. For hazardous or uncertain repairs, leave steps empty and say when to stop and seek qualified help.",
     "cook": "Suggest a meal using identifiable ingredients. Give ordered preparation steps, separate missing ingredients and substitutions, and never infer food freshness or allergen safety from a photograph.",
-    "shop": "Describe one visually supported shopping need. Use a generic item and relevant attributes for search, not a guessed brand, size, compatibility, or price. Do not include names of people, addresses or other personal data in search terms. Leave searchTerms empty if fit cannot be assessed from this photo.",
     "surprise": "Find an unexpected use or combination that depends on specific things visible in this photo. Give a small, practical way to try it.",
 }
 
@@ -31,9 +30,11 @@ ACTIONABLE_SCHEMA["required"].extend(["shoppingNeed", "clarification"])
 def instructions(mode: str) -> str:
     return (
         f"\nFor this request the selected mode is {mode}. {MODE_DIRECTIONS[mode]} "
-        "Return at most three opportunities, all with kind equal to the selected mode; for shop return no opportunities "
-        "and use shoppingNeed only. For other modes return empty shoppingNeed fields. Every evidence entry must be "
-        "the exact name of a reasonably certain detected item. Each opportunity must use that evidence. "
+        "Return at most three opportunities, all with kind equal to the selected mode. Product discovery is a separate, optional follow-up and is never a consumer intent. "
+        "Independently populate shoppingNeed only when a specific purchasable item or missing component is supported by visible evidence. "
+        "Use generic search terms and exact observed item names; never guess a brand, size, compatibility, price, or availability, and never include personal data. "
+        "If no useful product need is supported, return empty shoppingNeed evidence and searchTerms with an empty summary. "
+        "Every opportunity evidence entry must be the exact name of a reasonably certain detected item, and each opportunity must use that evidence. "
         "Use up to five concise ordered steps, starting with a concrete action. List only necessary missing items "
         "and meaningful substitutions in alternatives. Use limits for uncertainty and stop conditions; "
         "keep describes specific existing items or structural features to preserve. Empty arrays mean not applicable. "
@@ -58,7 +59,7 @@ def attach_actionable_result(scene: dict, ranked: list[dict], mode: str) -> dict
     clarification = scene.get("clarification")
     brief = scene.get("shoppingNeed")
     shopping = None
-    if mode == "shop" and isinstance(brief, dict):
+    if isinstance(brief, dict):
         evidence = _evidence(brief.get("evidence"), observed)
         terms = _lines(brief.get("searchTerms"), 4, 60)
         summary = brief.get("summary")

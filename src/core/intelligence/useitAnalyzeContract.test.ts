@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { USEIT_ANALYZE_CONTRACT_VERSION, validateUseitAnalyzeResponse } from './useitAnalyzeContract';
+import { USEIT_ANALYZE_CONTRACT_VERSION, validateProductDiscoveryResponse, validateUseitAnalyzeResponse } from './useitAnalyzeContract';
 
 const scene = {
   responseFormat: 'scene_analysis_v1',
@@ -28,6 +28,26 @@ const validResponse = {
   pipeline: ['see', 'understand', 'reason', 'intent', 'specialist', 'suggest', 'shop'],
 };
 
+describe('validateProductDiscoveryResponse', () => {
+  it('accepts bounded product results and drops unsafe retailer URLs', () => {
+    const result = validateProductDiscoveryResponse({
+      query: 'desk lamp',
+      candidates: [
+        { id: 'safe', name: 'Desk lamp', url: 'https://shop.example.test/lamp', currency: 'EUR', price: 99.99, qualityScore: 0.9, searchRank: 1 },
+        { id: 'unsafe', name: 'Unsafe lamp', url: 'http://127.0.0.1/lamp' },
+      ],
+      errors: [],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.candidates.map(candidate => candidate.id)).toEqual(['safe']);
+  });
+
+  it('rejects malformed product discovery responses', () => {
+    expect(validateProductDiscoveryResponse({ query: 'lamp', candidates: [{ id: 'broken' }] }).ok).toBe(false);
+    expect(validateProductDiscoveryResponse({ query: '', candidates: [] }).ok).toBe(false);
+  });
+});
+
 describe('validateUseitAnalyzeResponse', () => {
   it('accepts the complete versioned unified analysis contract', () => {
     const result = validateUseitAnalyzeResponse(validResponse);
@@ -41,6 +61,18 @@ describe('validateUseitAnalyzeResponse', () => {
       expect(result.data.shopping?.candidates[0]?.brand).toBe('Example');
       expect(result.data.pipeline).toContain('specialist');
     }
+  });
+
+  it('requires generic search terms when a photo-grounded product need is present', () => {
+    const result = validateUseitAnalyzeResponse({
+      ...validResponse,
+      actionable: {
+        guides: {},
+        shoppingNeed: { summary: 'A tray may help.', evidence: ['Tomato'], searchTerms: [] },
+        clarification: '',
+      },
+    });
+    expect(result.ok).toBe(false);
   });
 
   it('rejects a response with an invalid contract version', () => {

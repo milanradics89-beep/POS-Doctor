@@ -62,6 +62,7 @@ const ActionableResult = z.object({
   shoppingNeed: z.object({
     summary: z.string().trim().min(1).max(420),
     evidence: ResultLines.min(1),
+    searchTerms: ResultLines.min(1).max(4),
   }).nullable(),
   clarification: z.string().max(420),
 });
@@ -106,6 +107,37 @@ function hasValidRanking(value: Record<string, unknown>): boolean {
   if (value.qualityScore !== undefined && (!isFiniteNumber(value.qualityScore) || value.qualityScore < 0 || value.qualityScore > 1)) return false;
   if (value.searchRank !== undefined && (!isFiniteNumber(value.searchRank) || !Number.isInteger(value.searchRank) || value.searchRank < 1)) return false;
   return true;
+}
+
+export function validateProductDiscoveryResponse(payload: unknown):
+  | { ok: true; data: NonNullable<UseitShopping> }
+  | { ok: false; issues: string[] } {
+  if (!isRecord(payload)) return { ok: false, issues: ['response must be an object'] };
+  const issues: string[] = [];
+  if (typeof payload.query !== 'string' || !payload.query.trim()) issues.push('query: expected non-empty string');
+  if (!Array.isArray(payload.candidates)) issues.push('candidates: expected array');
+  if (payload.errors !== undefined && (!Array.isArray(payload.errors) || payload.errors.some(error =>
+    !isRecord(error) || typeof error.url !== 'string' || typeof error.message !== 'string'
+  ))) issues.push('errors: expected array of {url,message}');
+  if (issues.length || !Array.isArray(payload.candidates)) return { ok: false, issues };
+
+  const candidates: UseitShoppingCandidate[] = [];
+  for (const [index, candidate] of payload.candidates.entries()) {
+    if (!isValidShoppingCandidate(candidate)) {
+      issues.push(`candidates.${index}: invalid product candidate`);
+    } else if (isSafeExternalHttpUrl(candidate.url)) {
+      candidates.push(candidate);
+    }
+  }
+  if (issues.length) return { ok: false, issues };
+  return {
+    ok: true,
+    data: {
+      query: payload.query as string,
+      candidates,
+      errors: Array.isArray(payload.errors) ? payload.errors as Array<{ url: string; message: string }> : undefined,
+    },
+  };
 }
 
 export function validateUseitAnalyzeResponse(payload: unknown):

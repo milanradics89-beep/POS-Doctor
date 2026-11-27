@@ -2,27 +2,33 @@
 
 ## Goal
 
-Prove that the canonical USEIT consumer endpoint works as one coherent runtime boundary without requiring a live vision provider in CI.
+Prove that the canonical USEIT photo-analysis boundary works as one coherent runtime flow without requiring a live vision provider in CI, while keeping product discovery separate from the five consumer intentions.
 
-## Acceptance path
+## Acceptance paths
 
-`HTTP request → /v1/useit/analyze → vision boundary → intent classification → specialist selection → suggestions → optional product discovery → unified response`
+Photo analysis:
 
-The acceptance tests replace only the external vision and product-discovery calls with deterministic async test doubles. The HTTP boundary, request validation, orchestration, intent routing, specialist routing, response assembly, request ID propagation and shopping decision remain real.
+`HTTP request → /v1/useit/analyze → vision boundary → five-mode intent classification → specialist selection → suggestions + optional shoppingNeed → unified response`
+
+Optional product discovery:
+
+`explicit user action → POST /v1/products/discover → bounded search and product resolution → validated retailer candidates`
+
+Product discovery is not an intent and is not part of the photo-analysis request. It receives generic search terms only; it must not receive the image, image URI, prompt, or a second OpenAI vision request.
 
 ## Required behavior
 
-1. A shopping request produces the versioned `useit_analyze_v1` response.
-2. The request is analyzed exactly once.
-3. Shopping discovery is invoked only when the classified intent is `shop` and discovery is enabled.
-4. The selected specialist is consistent with the scene and intent.
-5. Product candidates returned by the discovery boundary are preserved in the unified response.
-6. The final pipeline records `shop` when shopping was executed and `plan` otherwise.
-7. The request ID remains available on the HTTP response.
-8. A non-shopping request must not invoke product discovery even when discovery is enabled.
+1. The consumer intent is one of CREATE, IMPROVE, FIX, COOK or SURPRISE.
+2. The image is analyzed exactly once for a user-selected intent.
+3. The unified analysis may return an evidence-backed `shoppingNeed`, but does not automatically invoke product search.
+4. Product discovery starts only after an explicit user action and uses `shoppingNeed.searchTerms` only.
+5. The product-discovery request is single-attempt and does not resend the image or invoke OpenAI vision.
+6. Product candidates are validated for safe HTTP(S) URLs, bounded metadata and non-invented currency/price presentation.
+7. Product-search failure does not invalidate the completed photo analysis.
+8. The request ID remains available on the HTTP response.
 
 ## CI gate
 
-The phase is accepted when backend compilation and the complete backend pytest suite pass, including `test_phase25_end_to_end.py`.
+The phase is accepted when backend compilation and the complete backend pytest suite pass, including `test_phase25_end_to_end.py` and product-discovery boundary tests.
 
-No live API credentials or external product-search calls are required for this acceptance gate.
+No live API credentials or external product-search calls are required for this acceptance gate. CI does not prove physical-device, production, business-accuracy or pilot acceptance.

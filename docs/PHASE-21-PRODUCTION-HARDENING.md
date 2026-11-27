@@ -2,24 +2,21 @@
 
 ## Goal
 
-Make the unified USEIT runtime resilient to partial dependency failure and production conditions without adding a second intelligence architecture.
+Keep photo analysis and optional product discovery as separate, bounded backend capabilities. A product-search outage must not trigger another vision request or invalidate a completed photo analysis.
 
 ## Scope
 
-1. Make optional product discovery fail soft: a shopping dependency failure must not discard an otherwise valid scene, intent, specialist context, or suggestions.
-2. Preserve the versioned `useit_analyze_v1` contract when discovery is unavailable by returning an empty candidate list plus a structured discovery error.
-3. Add backend regression coverage for discovery HTTP failures and unexpected dependency exceptions.
-4. Add unified endpoint integration coverage proving the core analysis still succeeds when shopping is degraded.
-5. Keep `/v1/analyze` authoritative for raw vision and `/v1/useit/analyze` authoritative for consumer orchestration.
-6. Do not move credentials into Expo and do not introduce a duplicate intelligence implementation.
+1. Keep `/v1/useit/analyze` authoritative for the single photo-analysis request and its versioned `useit_analyze_v1` response.
+2. Keep product search behind the separate `POST /v1/products/discover` backend boundary.
+3. Send only generic, photo-grounded search terms to product discovery; never forward the image, image URI or vision prompt.
+4. Return bounded product-search errors without exposing provider exception text, credentials or query parameters.
+5. Preserve safe product URL, currency, price and candidate validation.
+6. Keep credentials out of Expo and do not introduce a second AI/multimodal provider.
 
 ## Acceptance gate
 
-- Frontend typecheck passes.
-- Frontend tests pass.
-- Backend compile passes.
-- Backend tests pass.
-- A product-discovery failure does not turn a valid unified analysis into HTTP 5xx.
-- The unified response remains contract-compatible and explicitly reports the degraded shopping state.
-- Existing security, privacy, rate-limit, and request-control tests remain green.
-- No new client-side credentialed provider path is introduced.
+- Frontend typecheck and tests pass.
+- Backend compile and tests pass.
+- Product-search HTTP failures and unexpected exceptions return a bounded degraded product response.
+- A product-search failure does not trigger a second vision analysis or alter the already completed photo-analysis result.
+- Existing security, privacy, rate-limit and request-control tests remain green.

@@ -2,12 +2,13 @@
 
 ## Goal
 
-Make failure behavior at the canonical USEIT consumer boundary explicit and regression-tested, so upstream vision failures, optional shopping failures, and readiness failures remain predictable and non-disclosive.
+Make failure behavior at the canonical USEIT consumer boundary explicit and regression-tested, so upstream vision failures, separate product-discovery failures, and readiness failures remain predictable and non-disclosive.
 
 ## Changes
 
 - Vision-layer `HTTPException` failures remain HTTP failures rather than being converted into misleading successful responses.
-- Product discovery remains an optional degradation path: provider failure produces structured empty shopping results while the core analysis response remains successful.
+- Product discovery runs through the separate `/v1/products/discover` endpoint. Provider failure produces a bounded empty product response while leaving the photo-analysis request and result untouched.
+- Product-discovery requests contain generic search terms only; no image or second vision request is sent.
 - Provider exception details are not returned to the client.
 - Readiness failure remains a generic `503` response without dependency or secret-state disclosure.
 
@@ -15,10 +16,10 @@ Make failure behavior at the canonical USEIT consumer boundary explicit and regr
 
 - Full backend test suite succeeds.
 - Canonical `/v1/useit/analyze` preserves explicit upstream failure status.
-- Optional product discovery failure does not fail the core analysis response.
+- Product-discovery failure is isolated to `/v1/products/discover` and does not trigger another analysis request.
 - Internal provider exception text is not exposed in the response.
 - `/ready` failure remains generic and non-disclosive.
 
 ## Operational contract
 
-Failure semantics are part of the public runtime boundary. This phase does not add another intelligence path and does not change the `useit_analyze_v1` response contract for successful requests.
+Failure semantics are part of the public runtime boundary. Product discovery is a separate optional capability, not a consumer intent or a second intelligence path. The `useit_analyze_v1` photo-analysis contract remains stable.

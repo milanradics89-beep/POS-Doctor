@@ -41,7 +41,6 @@ const modes: [ConsumerIntent, string, string][] = [
   ['improve', modeCopy.improve.title, 'Explore changes to the look or layout.'],
   ['fix', modeCopy.fix.title, 'Find a practical next step for a damaged item.'],
   ['cook', modeCopy.cook.title, 'Get a recipe idea from the ingredients in view.'],
-  ['shop', modeCopy.shop.title, 'Find products based on visible details. Store search uses search terms.'],
   ['surprise', modeCopy.surprise.title, 'Discover an unexpected use for this scene.'],
 ];
 
@@ -98,7 +97,7 @@ function PhotoWelcome({ capture, chooseGallery, noticePanel }: {
             <Text style={s.sub}>Your photo stays on this device until you start an analysis. USEIT and its AI provider then process the photo.</Text>
 
             {noticePanel}
-            <Text accessibilityRole="header" style={s.modeHeading}>One photo. Six possibilities.</Text>
+            <Text accessibilityRole="header" style={s.modeHeading}>One photo. Five possibilities.</Text>
             <View style={s.examples}>
               <Text style={s.exampleTitle}>Fridge shelf → a meal idea</Text>
               <Text style={s.modeDesc}>Cook with the ingredients you already have.</Text>

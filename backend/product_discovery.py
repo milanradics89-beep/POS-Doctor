@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import math
 from typing import Any
 from urllib.parse import urlparse, urlunparse
@@ -13,6 +14,7 @@ from backend.google_search import ProductSearchRequest, product_search
 from backend.product_extractor import ProductResolveRequest, resolve_product
 
 router = APIRouter(prefix="/v1/products", tags=["products"])
+logger = logging.getLogger("useit")
 
 
 class ProductDiscoveryRequest(BaseModel):
@@ -237,7 +239,8 @@ async def discover_products(request: ProductDiscoveryRequest):
             region=request.region,
         ))
     except Exception as exc:
-        # Do not leak provider responses, credentials, or exception messages to clients.
+        # Log only the exception class; provider messages can contain private data.
+        logger.error("Product discovery search failed (exception_type=%s)", type(exc).__name__)
         return {
             "query": request.query,
             "candidates": [],
