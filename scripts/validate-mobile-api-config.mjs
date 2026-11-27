@@ -4,6 +4,7 @@ import { request as httpsRequest } from 'node:https';
 
 const raw = process.env.EXPO_PUBLIC_USEIT_API_URL?.trim() ?? '';
 const REQUEST_TIMEOUT_MS = 10_000;
+const DNS_TIMEOUT_MS = 10_000;
 const MAX_RESPONSE_BYTES = 32 * 1024;
 
 const IPV4_NON_PUBLIC_RANGES = [
@@ -277,9 +278,10 @@ async function verifyReadinessEndpoint(url, path, hostname, addresses, requestIm
 }
 
 async function verifyBackendReady(baseUrl, dependencies = {}) {
-  const lookupImpl = dependencies.lookupImpl ?? lookup;
+  const resolverFactory = dependencies.resolverFactory ?? (() => new Resolver());
   const requestImpl = dependencies.requestImpl ?? httpsRequest;
   const timeoutMs = dependencies.timeoutMs ?? REQUEST_TIMEOUT_MS;
+  const dnsTimeoutMs = dependencies.dnsTimeoutMs ?? DNS_TIMEOUT_MS;
   const validatedBase = validateMobileApiConfig(baseUrl);
   const base = validatedBase.endsWith('/') ? validatedBase : validatedBase + '/';
   const baseUrlObject = new URL(base);
@@ -287,7 +289,7 @@ async function verifyBackendReady(baseUrl, dependencies = {}) {
 
   // Resolve exactly once, reject the entire answer if any result is non-public,
   // then pin both anonymous HTTPS probes to this validated address set.
-  const addresses = await resolvePublicAddresses(hostname, lookupImpl);
+  const addresses = await resolvePublicAddresses(hostname, resolverFactory, dnsTimeoutMs);
 
   for (const path of ['/health', '/ready']) {
     await verifyReadinessEndpoint(new URL(path.slice(1), base), path, hostname, addresses, requestImpl, timeoutMs);
