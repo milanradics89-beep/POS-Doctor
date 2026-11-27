@@ -6,7 +6,6 @@ import math
 from datetime import datetime, timedelta, timezone
 
 from google.api_core.exceptions import AlreadyExists, FailedPrecondition, NotFound
-from google.cloud.firestore_v1.async_transaction import async_transactional
 
 from backend.idempotency_store import FirestoreIdempotencyStore
 from backend.attestation import AttestationProvider
@@ -36,19 +35,31 @@ class FirestoreState:
 
     async def consume(self, challenge):
         ref = self.reference("challenge", challenge)
-
-        @async_transactional
-        async def take(tx):
-            snap = await ref.get(transaction=tx)
+        for attempt in range(5):
+            snap = await ref.get()
             if not snap.exists:
                 return None
-            row = snap.to_dict()
-            tx.delete(ref)
-            if row["expires_at"] <= snap.read_time:
+
+            row = snap.to_dict() or {}
+            expires_at = row.get("expires_at")
+            valid = isinstance(expires_at, datetime) and expires_at > snap.read_time
+            try:
+                await ref.delete(
+                    option=self.client.write_option(last_update_time=snap.update_time),
+                    retry=None,
+                )
+            except NotFound:
+                return None
+            except FailedPrecondition:
+                if attempt == 4:
+                    raise
+                await asyncio.sleep(0.01 * 2**attempt)
+                continue
+
+            if not valid:
                 return None
             return ChallengeRecord(AttestationProvider(row["provider"]), row["app_id"])
-
-        return await take(self.client.transaction())
+        return None
 
     async def allow(self, namespace, host, limit):
         ref = self.reference("quota:" + namespace, host)
@@ -79,24 +90,41 @@ class FirestoreState:
                 return True, 0
 
     async def reserve_daily(self, limit: int, units: int) -> bool:
-        if units <= 0 or limit < 0:
+        if type(units) is not int or type(limit) is not int or units <= 0 or limit < 0:
             raise ValueError("Invalid budget.")
-        # One counter shared by every instance. Use Firestore's read time for
-        # the UTC day; local clock skew cannot open a second budget window.
+        # A document-version precondition makes the shared UTC-day budget atomic
+        # across independent instances without holding a transaction lock.
         ref = self.client.collection("useit_state_v1").document("ai_daily_units")
-
-        @async_transactional
-        async def reserve(tx):
-            snap = await ref.get(transaction=tx)
+        for attempt in range(5):
+            snap = await ref.get()
             day = snap.read_time.astimezone(timezone.utc).date().isoformat()
             row = snap.to_dict() or {}
-            used = row["used"] if row.get("day") == day else 0
-            if type(used) is not int or used < 0 or used + units > limit:
+            if row.get("day") == day:
+                used = row.get("used")
+                if type(used) is not int or used < 0:
+                    return False
+            else:
+                used = 0
+            if used + units > limit:
                 return False
-            tx.set(ref, {"day": day, "used": used + units})
-            return True
 
-        return await reserve(self.client.transaction())
+            bucket = {"day": day, "used": used + units}
+            try:
+                if snap.exists:
+                    await ref.update(
+                        bucket,
+                        option=self.client.write_option(last_update_time=snap.update_time),
+                        retry=None,
+                    )
+                else:
+                    await ref.create(bucket, retry=None)
+            except (AlreadyExists, FailedPrecondition, NotFound):
+                if attempt == 4:
+                    raise
+                await asyncio.sleep(0.01 * 2**attempt)
+            else:
+                return True
+        return False
 
     async def create(self, key_id, public_key_der, app_id):
         try:
@@ -117,12 +145,30 @@ class FirestoreState:
     async def advance(self, key_id, counter):
         ref = self.reference("apple-key", key_id)
 
-        @async_transactional
-        async def compare_and_set(tx):
-            snap = await ref.get(transaction=tx)
-            if not snap.exists or counter <= snap.get("counter"):
+        # A document-version precondition is an atomic compare-and-set. It avoids
+        # holding a transaction lock while independent instances advance the same
+        # App Attest counter, while preserving strictly monotonic updates.
+        for attempt in range(5):
+            snap = await ref.get()
+            if not snap.exists:
                 return False
-            tx.update(ref, {"counter": counter})
-            return True
+            current_counter = snap.get("counter")
+            if type(counter) is not int or type(current_counter) is not int or counter <= current_counter:
+                return False
 
-        return await compare_and_set(self.client.transaction())
+            version = self.client.write_option(last_update_time=snap.update_time)
+            try:
+                await ref.update({"counter": counter}, option=version, retry=None)
+            except NotFound:
+                # The enrolled key was removed after the read; never recreate it.
+                return False
+            except FailedPrecondition:
+                # A competing instance changed the document. Re-read and either
+                # reject a stale counter or retry against the new version.
+                if attempt == 4:
+                    raise
+                await asyncio.sleep(0.01 * 2**attempt)
+            else:
+                return True
+
+        return False
