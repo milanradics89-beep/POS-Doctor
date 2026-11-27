@@ -51,6 +51,7 @@ Do not introduce additional accent colors per feature. Semantic tints may suppor
 - Display: platform system rounded/sans display treatment where available; large, compact, confident headlines with restrained line breaks.
 - Body: platform system sans, readable at 15–17sp with comfortable line height.
 - Utility: platform system sans at 11–13sp; never make essential instructions tiny.
+- Essential recovery, permission, and primary-action labels must be at least 12sp with sufficient line height; avoid 9sp microcopy for an action users must read to recover.
 - Use weight, spacing, and scale for hierarchy rather than decorative all-caps.
 - Avoid shipping custom font dependencies until licensing, bundle size, and Android/iOS parity are verified.
 
@@ -84,7 +85,7 @@ Maintain shared, reusable visual owners for:
 - Loading, empty, offline, permission, error, and success states.
 - Dialogs, banners, and transient feedback.
 
-Every interactive control needs pressed, focus/accessibility, disabled, and busy states as applicable. Touch targets should be comfortably usable. Icons must be consistent and have accessible labels when actionable.
+Every interactive control needs pressed, focus/accessibility, disabled, and busy states as applicable. Primary touch targets must be at least 44 × 44 points. Use platform-independent geometric icon components or a verified icon set; do not use font-dependent Unicode characters as interface icons. Decorative icon geometry must be hidden from the accessibility tree, while actionable icons need localized accessible names and hints.
 
 ## Motion
 

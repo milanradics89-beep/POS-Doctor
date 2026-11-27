@@ -36,6 +36,8 @@ The target product contract after PR #355 integration is exactly five consumer i
 - Make the photo action immediately understandable and dominant.
 - Gallery selection is an equally discoverable alternative but visually secondary.
 - Explain in plain language that analysis starts only after the user initiates it.
+- Before analysis, clearly disclose that the selected photo is sent through USEIT to OpenAI for processing. Before visual-concept generation or refinement, disclose that the original photo is sent again. The disclosure must be visible, localized and accurate to the current request path.
+- For optional product discovery, explain that only photo-derived text search terms are sent to the product-search service; the photo is not resent.
 - Keep the home screen focused; examples should demonstrate the breadth of USEIT without becoming a feature catalogue.
 
 ### Photo capture and preview
@@ -43,6 +45,7 @@ The target product contract after PR #355 integration is exactly five consumer i
 - Provide explicit replace, cancel/back, and continue actions.
 - Do not silently crop, stretch, or lower image fidelity.
 - Permission denial and picker/camera failures must explain the next available action.
+- Native camera and photo-library permission prompts must use Hungarian purpose strings. Request only permissions used by the feature; no microphone permission is needed for still-photo capture and selection.
 
 ### Intent selection
 - **Target after PR #355 integration:** show exactly five canonical intents with distinct, localized descriptions: CREATE, IMPROVE, FIX, COOK and SURPRISE. Until that PR is integrated, the existing SHOP chooser/API path is legacy transitional behavior, not accepted product scope. Product discovery is a separate optional result action, not a chooser tile or consumer intent.
@@ -77,7 +80,7 @@ Every asynchronous screen must have intentional loading, success, empty, error, 
 - Target WCAG 2.2 AA principles where applicable to native mobile UI.
 - Use semantic roles, accessible names/hints, visible state, and logical focus order.
 - Support system reduced motion.
-- Maintain readable type and contrast; never communicate state through color alone.
+- Maintain readable type and contrast; never communicate state through color alone. Essential recovery, permission and primary-action text must be at least 12sp; touch targets must be at least 44 × 44 points and must remain usable with dynamic text.
 - Hungarian (`hu-HU`) is the primary launch locale and a blocking launch gate. Main still contains English strings and sends `en-HU`. Draft PR #360 introduces the central catalog and `HU_LOCALE`, but it is stacked on PR #355 and remains unaccepted. User-facing strings, errors, AI-generated content, product states and accessibility labels must all be verified before launch; no mixed-language fallback is accepted.
 - Respect safe areas, dynamic text where supported, and virtual keyboard behavior.
 
