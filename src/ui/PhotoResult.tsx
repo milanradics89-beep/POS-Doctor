@@ -188,6 +188,7 @@ function ProductDiscoveryPanel({ result, onOpenProduct }: {
       <Text accessibilityRole="header" style={s.sectionTitle}>{hu.product.heading}</Text>
       <Text style={s.body}>{discovery.need.summary}</Text>
       <Lines title={hu.product.photoClues} items={discovery.need.evidence} />
+      <Text style={s.caption}>{hu.product.findDisclosure}</Text>
       {discovery.loading ? (
         <StatePanel kind="loading" title={hu.product.searching}
           description={hu.product.searchingDescription}
