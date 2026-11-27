@@ -89,33 +89,65 @@ function validateMobileApiConfig(value) {
   return url.toString().replace(/\/$/, '');
 }
 
-async function resolvePublicAddresses(hostname, lookupImpl = lookup) {
-  let resolved;
+async function resolveDnsFamily(resolver, method, hostname, family) {
   try {
-    resolved = await lookupImpl(hostname, { all: true, verbatim: true });
-  } catch {
-    throw new Error('USEIT backend hostname could not be resolved from the mobile build environment.');
+    const addresses = await resolver[method](hostname);
+    return addresses.map((address) => ({ address, family }));
+  } catch (error) {
+    if (error?.code === 'ENODATA' || error?.code === 'ENOTFOUND') return [];
+    throw error;
   }
+}
 
-  if (!Array.isArray(resolved) || resolved.length === 0) {
-    throw new Error('USEIT backend hostname did not resolve to a public IP address.');
-  }
+async function resolvePublicAddresses(
+  hostname,
+  resolverFactory = () => new Resolver(),
+  timeoutMs = DNS_TIMEOUT_MS,
+) {
+  const resolver = resolverFactory();
+  const absoluteHostname = hostname.endsWith('.') ? hostname : hostname + '.';
+  let deadline;
 
-  const records = [];
-  const seen = new Set();
-  for (const record of resolved) {
-    const family = record?.family || isIP(record?.address ?? '');
-    if (!record?.address || !family || isIP(record.address) !== family || !isPublicAddress(record.address)) {
-      throw new Error('USEIT backend hostname must resolve exclusively to public IPv4 or IPv6 addresses.');
+  try {
+    const queries = Promise.all([
+      resolveDnsFamily(resolver, 'resolve4', absoluteHostname, 4),
+      resolveDnsFamily(resolver, 'resolve6', absoluteHostname, 6),
+    ]);
+    const timeout = new Promise((resolve, reject) => {
+      deadline = setTimeout(() => {
+        resolver.cancel();
+        const error = new Error('USEIT backend hostname DNS resolution exceeded its total time limit.');
+        error.code = 'ETIMEOUT';
+        reject(error);
+      }, timeoutMs);
+    });
+    const resolved = await Promise.race([queries, timeout]);
+    const records = resolved.flat();
+
+    if (records.length === 0) {
+      throw new Error('USEIT backend hostname did not resolve to a public IP address.');
     }
-    const key = record.address + '/' + family;
-    if (!seen.has(key)) {
-      seen.add(key);
-      records.push({ address: record.address, family });
-    }
-  }
 
-  return records;
+    const validated = [];
+    const seen = new Set();
+    for (const record of records) {
+      if (!record?.address || isIP(record.address) !== record.family || !isPublicAddress(record.address)) {
+        throw new Error('USEIT backend hostname must resolve exclusively to public IPv4 or IPv6 addresses.');
+      }
+      const key = record.address + '/' + record.family;
+      if (!seen.has(key)) {
+        seen.add(key);
+        validated.push({ address: record.address, family: record.family });
+      }
+    }
+
+    return validated;
+  } catch (error) {
+    resolver.cancel();
+    throw error;
+  } finally {
+    clearTimeout(deadline);
+  }
 }
 
 function getPinnedLookupResult(expectedHostname, records, requestedHostname, family) {
