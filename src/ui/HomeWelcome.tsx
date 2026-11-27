@@ -11,6 +11,57 @@ type Props = {
   noticePanel: React.ReactNode;
 };
 
+function ExampleIllustration({ variant }: { variant: 0 | 1 | 2 }) {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[styles.scene, variant === 0 ? styles.foodScene : variant === 1 ? styles.roomScene : styles.repairScene]}
+    >
+      {variant === 0 ? (
+        <>
+          <View style={styles.fridgeBody}>
+            <View style={styles.fridgeFreezer} />
+            <View style={styles.fridgeDivider} />
+            <View style={styles.fridgeShelf} />
+            <View style={[styles.foodItem, styles.foodTomato]} />
+            <View style={[styles.foodItem, styles.foodLemon]} />
+            <View style={[styles.foodItem, styles.foodLeaf]} />
+            <View style={styles.fridgeHandle} />
+          </View>
+          <View style={styles.sceneTag}><Text style={styles.sceneTagText}>KONYHA</Text></View>
+        </>
+      ) : variant === 1 ? (
+        <>
+          <View style={styles.roomPicture}><View style={styles.pictureSun} /><View style={styles.pictureHill} /></View>
+          <View style={styles.roomSofaBack} />
+          <View style={styles.roomSofaSeat} />
+          <View style={styles.roomSofaLegLeft} />
+          <View style={styles.roomSofaLegRight} />
+          <View style={styles.roomPlantPot} />
+          <View style={styles.roomPlantStem} />
+          <View style={styles.roomPlantLeaf} />
+          <View style={styles.roomLampShade} />
+          <View style={styles.roomLampStem} />
+          <View style={styles.sceneTag}><Text style={styles.sceneTagText}>OTTHON</Text></View>
+        </>
+      ) : (
+        <>
+          <View style={styles.toolBoard}>
+            <View style={styles.toolScrewdriverHandle} />
+            <View style={styles.toolScrewdriverShaft} />
+            <View style={styles.toolWrenchJaw} />
+            <View style={styles.toolWrenchNeck} />
+            <View style={styles.toolWrenchGrip} />
+            <View style={styles.toolBolt} />
+          </View>
+          <View style={styles.sceneTag}><Text style={styles.sceneTagText}>JAVÍTÁS</Text></View>
+        </>
+      )}
+    </View>
+  );
+}
+
 const primaryIntents: ResultMode[] = ['create', 'improve', 'fix', 'cook', 'surprise'];
 
 export function HomeWelcome({ capture, chooseGallery, noticePanel }: Props) {
@@ -92,6 +143,7 @@ export function HomeWelcome({ capture, chooseGallery, noticePanel }: Props) {
         <View style={styles.exampleGrid}>
           {hu.home.examples.map((item, index) => (
             <View key={item.title} style={[styles.example, index === 0 && styles.exampleWide]}>
+              <ExampleIllustration variant={index as 0 | 1 | 2} />
               <Text style={styles.exampleNumber}>{String(index + 1).padStart(2, '0')}</Text>
               <Text style={styles.exampleTitle}>{item.title}</Text>
               <Text style={styles.exampleDescription}>{item.description}</Text>
@@ -159,7 +211,41 @@ const styles = StyleSheet.create({
   sectionTitle: { color: theme.colors.ink, fontSize: 21, lineHeight: 26, fontWeight: '900', letterSpacing: -0.6 },
   sectionMeta: { color: theme.colors.accentDark, fontSize: 9, letterSpacing: 1.1, fontWeight: '900' },
   exampleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  example: { flexGrow: 1, flexBasis: '47%', minWidth: 140, backgroundColor: theme.colors.surface, borderRadius: 17, padding: 13, borderWidth: 1, borderColor: theme.colors.line, gap: 6 },
+  example: { flexGrow: 1, flexBasis: '47%', minWidth: 140, backgroundColor: theme.colors.surface, borderRadius: 19, padding: 12, borderWidth: 1, borderColor: theme.colors.line, gap: 7 },
+  scene: { width: '100%', height: 104, borderRadius: 13, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  foodScene: { backgroundColor: '#E8EBDD' },
+  fridgeBody: { width: 74, height: 86, borderRadius: 11, backgroundColor: '#F8F8F2', borderWidth: 1, borderColor: '#C7CDC1', position: 'relative', overflow: 'hidden' },
+  fridgeFreezer: { position: 'absolute', top: 0, left: 0, right: 0, height: 19, backgroundColor: '#E5E9E0' },
+  fridgeDivider: { position: 'absolute', top: 19, left: 0, right: 0, height: 2, backgroundColor: '#C7CDC1' },
+  fridgeShelf: { position: 'absolute', top: 49, left: 5, right: 5, height: 2, backgroundColor: '#C7CDC1' },
+  foodItem: { position: 'absolute', width: 13, height: 13, borderRadius: 7, bottom: 23 },
+  foodTomato: { left: 10, backgroundColor: '#D86F50' },
+  foodLemon: { left: 29, backgroundColor: '#EACB62', width: 15, height: 12 },
+  foodLeaf: { right: 9, backgroundColor: '#77936B', width: 14, height: 15, borderTopLeftRadius: 10, borderBottomRightRadius: 10 },
+  fridgeHandle: { position: 'absolute', right: 5, top: 28, width: 3, height: 13, borderRadius: 2, backgroundColor: '#A8B0A4' },
+  roomScene: { backgroundColor: '#EEE6DC' },
+  roomPicture: { position: 'absolute', top: 12, left: '34%', width: 55, height: 42, borderRadius: 5, backgroundColor: '#FAF6ED', borderWidth: 3, borderColor: '#FFFFFF', overflow: 'hidden' },
+  pictureSun: { position: 'absolute', top: 7, right: 10, width: 12, height: 12, borderRadius: 6, backgroundColor: '#E7C57D' },
+  pictureHill: { position: 'absolute', bottom: -8, left: -5, width: 58, height: 26, borderRadius: 20, backgroundColor: '#A3B29A', transform: [{ rotate: '-12deg' }] },
+  roomSofaBack: { position: 'absolute', bottom: 30, left: '22%', width: 112, height: 31, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: '#758A79' },
+  roomSofaSeat: { position: 'absolute', bottom: 22, left: '18%', width: 122, height: 17, borderRadius: 8, backgroundColor: '#657C6A' },
+  roomSofaLegLeft: { position: 'absolute', bottom: 12, left: '26%', width: 5, height: 12, backgroundColor: '#8A725E', borderRadius: 2 },
+  roomSofaLegRight: { position: 'absolute', bottom: 12, right: '26%', width: 5, height: 12, backgroundColor: '#8A725E', borderRadius: 2 },
+  roomPlantPot: { position: 'absolute', bottom: 11, left: 12, width: 18, height: 17, backgroundColor: '#C58E67', borderBottomLeftRadius: 5, borderBottomRightRadius: 5 },
+  roomPlantStem: { position: 'absolute', bottom: 26, left: 20, width: 2, height: 25, backgroundColor: '#58765D', transform: [{ rotate: '10deg' }] },
+  roomPlantLeaf: { position: 'absolute', bottom: 43, left: 10, width: 15, height: 9, backgroundColor: '#78916E', borderRadius: 10, transform: [{ rotate: '-32deg' }] },
+  roomLampShade: { position: 'absolute', top: 18, right: 13, width: 23, height: 18, backgroundColor: '#E2C989', borderTopLeftRadius: 5, borderTopRightRadius: 5 },
+  roomLampStem: { position: 'absolute', top: 35, right: 23, width: 2, height: 30, backgroundColor: '#8C8270' },
+  repairScene: { backgroundColor: '#E4E9E7' },
+  toolBoard: { width: 140, height: 78, borderRadius: 15, backgroundColor: '#D5DED8', borderWidth: 1, borderColor: '#C0CBC3', position: 'relative' },
+  toolScrewdriverHandle: { position: 'absolute', top: 30, left: 24, width: 17, height: 34, borderRadius: 7, backgroundColor: '#D88A55', transform: [{ rotate: '32deg' }] },
+  toolScrewdriverShaft: { position: 'absolute', top: 19, left: 43, width: 5, height: 35, borderRadius: 2, backgroundColor: '#687773', transform: [{ rotate: '32deg' }] },
+  toolWrenchJaw: { position: 'absolute', top: 14, right: 28, width: 22, height: 22, borderWidth: 5, borderColor: '#6F817B', borderRadius: 10, borderBottomColor: 'transparent', transform: [{ rotate: '38deg' }] },
+  toolWrenchNeck: { position: 'absolute', top: 30, right: 35, width: 6, height: 26, borderRadius: 3, backgroundColor: '#6F817B', transform: [{ rotate: '38deg' }] },
+  toolWrenchGrip: { position: 'absolute', bottom: 11, right: 31, width: 17, height: 8, borderRadius: 4, backgroundColor: '#6F817B', transform: [{ rotate: '38deg' }] },
+  toolBolt: { position: 'absolute', top: 15, left: 20, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.accentDark },
+  sceneTag: { position: 'absolute', bottom: 7, right: 7, borderRadius: theme.radius.pill, backgroundColor: 'rgba(255,255,255,0.78)', paddingHorizontal: 8, paddingVertical: 4 },
+  sceneTagText: { color: theme.colors.ink, fontSize: 8, fontWeight: '900', letterSpacing: 1.1 },
   exampleWide: { flexBasis: '100%' },
   exampleNumber: { color: theme.colors.accentDark, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   exampleTitle: { color: theme.colors.ink, fontSize: 15, lineHeight: 19, fontWeight: '800' },
