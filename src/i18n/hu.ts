@@ -165,6 +165,7 @@ export const hu = {
     retrySearchDescription: 'A fotóelemzésed továbbra is elérhető. A termékkeresést külön is megpróbálhatod újra.',
     retrySearchHint: 'Új termékkeresést indít ugyanazokkal a szöveges támpontokkal.',
     find: 'Megfelelő termékek keresése',
+    findDisclosure: 'A kereséshez a fotóból kinyert szöveges keresőkifejezéseket a Google keresőszolgáltatásnak továbbítjuk. A fotódat nem küldjük el újra.',
     findHint: 'A fotó újraküldése és új AI-elemzés nélkül keres. Csak a képből származó szöveges keresőkifejezések kerülnek továbbításra.',
     unknownCategory: 'egyéb',
   },
@@ -189,6 +190,7 @@ export const hu = {
   },
   common: {
     productHint: 'Megnyitja a termék oldalát a böngészőben.',
+    productOpen: 'Termék megnyitása',
     productUnavailableHint: 'Ehhez a termékhez nem érhető el megnyitható adatlap.',
     recoveryHint: 'Végrehajtja az elérhető helyreállítási műveletet.',
     priceUnavailable: 'Ár nem érhető el',
