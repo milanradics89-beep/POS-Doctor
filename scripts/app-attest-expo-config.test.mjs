@@ -60,6 +60,17 @@ function expectNode22Prebuild(jobName, buildStepName, command) {
 }
 
 describe('App Attest config/runtime entrypoint separation', () => {
+  it('uses Hungarian camera/photo permission copy and removes unused microphone permission', () => {
+    const imagePicker = app.plugins.find((entry) =>
+      Array.isArray(entry) && entry[0] === 'expo-image-picker',
+    );
+    expect(imagePicker).toBeDefined();
+    expect(imagePicker[1].cameraPermission).toContain('kamerád');
+    expect(imagePicker[1].photosPermission).toContain('fotóidhoz');
+    expect(imagePicker[1].microphonePermission).toBe(false);
+  });
+
+
   it('loads the JavaScript config plugin, never the runtime TypeScript entrypoint', () => {
     expect(app.plugins).toContain('./modules/useit-app-attest/app.plugin.js');
     expect(app.plugins).not.toContain('./modules/useit-app-attest');

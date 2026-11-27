@@ -1,8 +1,10 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { StatePanel } from '../src/ui/components';
 import { theme } from '../src/ui/theme';
+import { hu } from '../src/i18n/hu';
 
 type State = { hasError: boolean };
 
@@ -24,14 +26,14 @@ class AppErrorBoundary extends React.Component<React.PropsWithChildren, State> {
       return (
         <SafeAreaView style={styles.safe}>
           <View style={styles.container}>
-            <Text style={styles.kicker}>USEIT / SYSTEM</Text>
-            <Text style={styles.title}>A small interruption.</Text>
+            <Text style={styles.kicker}>{hu.appError.kicker}</Text>
+            <Text style={styles.title}>{hu.appError.title}</Text>
             <StatePanel
               kind="error"
-              title="Something didn't go to plan"
-              description="USEIT hit an unexpected application error. Your next step is to try the screen again."
-              actionLabel="TRY AGAIN"
-              actionAccessibilityHint="Retries the current screen after recovering from an unexpected error."
+              title={hu.appError.title}
+              description={hu.appError.description}
+              actionLabel={hu.appError.retry}
+              actionAccessibilityHint={hu.appError.retryHint}
               onAction={this.reset}
             />
           </View>

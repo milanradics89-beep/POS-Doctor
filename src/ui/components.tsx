@@ -1,13 +1,37 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from './theme';
 import { formatProductPrice, productCardAccessibilityLabel } from './productAccessibility';
+import { hu } from '../i18n/hu';
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <View style={[styles.brandMark, compact && styles.brandMarkCompact]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <View style={styles.brandDot} />
       <View style={styles.brandDotSmall} />
+    </View>
+  );
+}
+
+export function PhotoFrame({ uri, label, eyebrow, imageHeight = 330 }: {
+  uri: string;
+  label: string;
+  eyebrow: string;
+  imageHeight?: number;
+}) {
+  return (
+    <View style={styles.photoFrame}>
+      <View style={styles.photoFrameHeader} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View style={styles.photoFrameAccent} />
+        <Text style={styles.photoFrameEyebrow}>{eyebrow}</Text>
+      </View>
+      <Image
+        accessible
+        accessibilityLabel={label}
+        resizeMode="contain"
+        source={{ uri }}
+        style={[styles.photoFrameImage, { height: imageHeight }]}
+      />
     </View>
   );
 }
@@ -19,7 +43,7 @@ export function ProductCard({ title, category, source, price, currency, onPress 
     <Pressable
       accessibilityRole={onPress ? 'link' : 'text'}
       accessibilityLabel={productCardAccessibilityLabel({ title, category, source, price, currency, actionable: Boolean(onPress) })}
-      accessibilityHint={onPress ? 'Opens the product page in your browser.' : 'Product details are not available for this item.'}
+      accessibilityHint={onPress ? hu.common.productHint : hu.common.productUnavailableHint}
       onPress={onPress}
       disabled={!onPress}
       style={({ pressed }) => [styles.product, pressed && styles.pressed]}
@@ -31,7 +55,7 @@ export function ProductCard({ title, category, source, price, currency, onPress 
       <Text style={styles.productTitle}>{title}</Text>
       <View style={styles.productFooter}>
         <Text style={styles.price}>{formatProductPrice(price, currency)}</Text>
-        {onPress ? <Text style={styles.link}>View product ↗</Text> : null}
+        {onPress ? <Text style={styles.link}>{hu.common.productOpen} ↗</Text> : null}
       </View>
     </Pressable>
   );
@@ -86,7 +110,7 @@ export function StatePanel({ kind, title, description, actionLabel, actionAccess
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={actionLabel}
-          accessibilityHint={actionAccessibilityHint?.trim() || 'Activates the available recovery action.'}
+          accessibilityHint={actionAccessibilityHint?.trim() || hu.common.recoveryHint}
           onPress={onAction}
           style={({ pressed }) => [styles.stateAction, pressed && styles.pressed]}
         >
@@ -146,6 +170,11 @@ export function FadeIn({ children, delay = 0 }: React.PropsWithChildren<{ delay?
 }
 
 const styles = StyleSheet.create({
+  photoFrame: { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.line, borderRadius: theme.radius.xl, padding: 10, gap: 9 },
+  photoFrameHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4, minHeight: 18 },
+  photoFrameAccent: { width: 7, height: 7, borderRadius: 4, backgroundColor: theme.colors.accentDark },
+  photoFrameEyebrow: { color: theme.colors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
+  photoFrameImage: { width: '100%', backgroundColor: theme.colors.surfaceMuted, borderRadius: theme.radius.md },
   brandMark: { width: 25, height: 25, borderRadius: 9, backgroundColor: theme.colors.ink, alignItems: 'center', justifyContent: 'center' },
   brandMarkCompact: { width: 21, height: 21, borderRadius: 7 },
   brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.accent, position: 'absolute', top: 5, left: 5 },
@@ -170,5 +199,5 @@ const styles = StyleSheet.create({
   stateTitle: { color: theme.colors.ink, fontSize: 17, fontWeight: '800', marginTop: 15, textAlign: 'center' },
   stateDescription: { color: theme.colors.muted, fontSize: 12, lineHeight: 19, textAlign: 'center', marginTop: 7 },
   stateAction: { marginTop: 17, backgroundColor: theme.colors.ink, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 13 },
-  stateActionText: { color: theme.colors.surface, fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  stateActionText: { color: theme.colors.surface, fontSize: 12, lineHeight: 16, fontWeight: '900', letterSpacing: 0.5 },
 });

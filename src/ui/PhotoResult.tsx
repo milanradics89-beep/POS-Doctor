@@ -1,14 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { UseitApiProvider } from '../core/intelligence/apiClient';
 import type { ConsumerAnalysis } from '../core/intelligence/apiClient';
 import type { UseitShopping } from '../core/intelligence/useitAnalyzeContract';
 import { isSafeExternalHttpUrl } from '../core/intelligence/externalLink';
-import { ProductCard, StatePanel } from './components';
+import { PhotoFrame, ProductCard, StatePanel } from './components';
 import { modeCopy, selectResult, type ResultMode } from './resultModel';
 import { theme } from './theme';
 import { productResultsState } from './productResultsState';
 import { productPriceDisplay } from './productPresentation';
+import { localizeProductCategory } from './productAccessibility';
+import { hu } from '../i18n/hu';
+import { canDiscoverReviewedProductQuery, isCurrentProductDiscoveryResult, normalizeReviewedProductSearchQuery, MAX_REVIEWED_PRODUCT_QUERY_LENGTH } from './productDiscoveryReview';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -39,17 +42,19 @@ export function PhotoComparison({ photo, concept }: { photo: string; concept: st
   const [showConcept, setShowConcept] = useState(true);
   return (
     <View style={s.comparison}>
-      <Text style={s.eyebrow}>{showConcept ? 'PROPOSED CONCEPT' : 'ORIGINAL PHOTO'}</Text>
-      <Image
-        accessible accessibilityLabel={showConcept ? 'Generated visual concept' : 'Your selected photo'}
-        resizeMode="contain" source={{ uri: showConcept ? concept : photo }} style={s.comparisonImage}
+      <PhotoFrame
+        uri={showConcept ? concept : photo}
+        label={showConcept ? hu.result.generatedImage : hu.result.originalImage}
+        eyebrow={showConcept ? hu.result.comparisonConcept : hu.result.comparisonOriginal}
+        imageHeight={330}
       />
       <ResultButton
-        label={showConcept ? 'Show original photo' : 'Show visual concept'}
-        hint="Switches the comparison without generating another image."
+        label={showConcept ? hu.result.showOriginal : hu.result.showConcept}
+        hint={hu.result.comparisonHint}
         onPress={() => setShowConcept(!showConcept)}
       />
-      <Text style={s.caption}>AI visualization. Appearance, scale and placement may differ from the real room.</Text>
+      <Text style={s.caption}>{hu.result.conceptDisclaimer}</Text>
+      <Text style={s.caption}>{hu.result.conceptPrivacy}</Text>
     </View>
   );
 }
@@ -79,10 +84,11 @@ function ProductCardRow({ item, onOpenProduct }: {
   onOpenProduct: Props["onOpenProduct"];
 }) {
   const price = productPriceDisplay(item);
+  const category = localizeProductCategory(item.category ?? '');
   return (
     <ProductCard
       title={item.name}
-      category={item.brand ? `${item.brand} · ${item.category ?? 'general'}` : item.category ?? 'general'}
+      category={item.brand ? `${item.brand} · ${category}` : category}
       source={item.retailer ?? 'USEIT'}
       price={price.price}
       currency={price.currency}
@@ -102,21 +108,21 @@ function ProductResults({ shopping, onOpenProduct, onRetry }: {
     return (
       <StatePanel
         kind="error"
-        title="Product search unavailable"
-        description="Your photo analysis is still available. Product listings could not be verified."
-        actionLabel="TRY AGAIN"
-        actionAccessibilityHint="Starts one new product search using the same text clues."
+        title={hu.product.unavailableTitle}
+        description={hu.product.unavailableDescription}
+        actionLabel={hu.product.tryAgain}
+        actionAccessibilityHint={hu.product.retryHint}
         onAction={onRetry}
       />
     );
   }
   if (!candidates.length) {
-    return <StatePanel kind="empty" title="No matching products yet" description="Try a more specific product need or keep the photo-based recommendation." />;
+    return <StatePanel kind="empty" title={hu.product.emptyTitle} description={hu.product.emptyDescription} />;
   }
   return (
     <View style={s.stack}>
-      <Text accessibilityRole="header" style={s.sectionTitle}>Matching products</Text>
-      <Text style={s.caption}>Store listings. Confirm price, dimensions and availability with the retailer.</Text>
+      <Text accessibilityRole="header" style={s.sectionTitle}>{hu.product.matching}</Text>
+      <Text style={s.caption}>{hu.product.retailerDisclaimer}</Text>
       {candidates.slice(0, 5).map(item => (
         <ProductCardRow key={item.id} item={item} onOpenProduct={onOpenProduct} />
       ))}
@@ -126,8 +132,12 @@ function ProductResults({ shopping, onOpenProduct, onRetry }: {
 
 function useProductDiscovery(result: ConsumerAnalysis) {
   const need = result.unified?.actionable?.shoppingNeed;
-  const query = need?.searchTerms.join(" ").replace(/\s+/g, " ").slice(0, 500) ?? "";
-  const [shopping, setShopping] = useState<NonNullable<UseitShopping> | null>(result.unified?.shopping ?? null);
+  const initialQuery = normalizeReviewedProductSearchQuery(need?.searchTerms.join(" ") ?? "");
+  const [query, setQuery] = useState(initialQuery);
+  // Never surface legacy/analysis-embedded shopping results: only a separate
+  // request using the user's currently reviewed query may populate this state.
+  const [shopping, setShopping] = useState<NonNullable<UseitShopping> | null>(null);
+  const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
@@ -139,15 +149,17 @@ function useProductDiscovery(result: ConsumerAnalysis) {
   }, []);
 
   async function discover() {
-    if (loading || controllerRef.current || query.length < 2) return;
+    const requestQuery = normalizeReviewedProductSearchQuery(query);
+    if (loading || controllerRef.current || !canDiscoverReviewedProductQuery(requestQuery)) return;
     const controller = new AbortController();
     controllerRef.current = controller;
+    setSubmittedQuery(requestQuery);
     setShopping(null);
     setLoading(true);
     setFailed(false);
     try {
       const response = await new UseitApiProvider(API_URL).discoverProducts(
-        query,
+        requestQuery,
         { limit: 8, maxResolve: 8, locale: "hu-HU", region: "HU" },
         controller.signal,
       );
@@ -162,6 +174,19 @@ function useProductDiscovery(result: ConsumerAnalysis) {
     }
   }
 
+  function updateQuery(value: string) {
+    setQuery(value);
+    setShopping(null);
+    setSubmittedQuery(null);
+    setFailed(false);
+    const controller = controllerRef.current;
+    if (controller) {
+      controllerRef.current = null;
+      controller.abort();
+      setLoading(false);
+    }
+  }
+
   function cancel() {
     const controller = controllerRef.current;
     controllerRef.current = null;
@@ -169,7 +194,21 @@ function useProductDiscovery(result: ConsumerAnalysis) {
     setLoading(false);
   }
 
-  return { need, shopping, loading, failed, discover, cancel };
+  const currentShopping = shopping && isCurrentProductDiscoveryResult(query, submittedQuery)
+    ? shopping
+    : null;
+
+  return {
+    need,
+    query,
+    updateQuery,
+    shopping: currentShopping,
+    canSearch: canDiscoverReviewedProductQuery(query),
+    loading,
+    failed,
+    discover,
+    cancel,
+  };
 }
 
 function ProductDiscoveryPanel({ result, onOpenProduct }: {
@@ -180,24 +219,39 @@ function ProductDiscoveryPanel({ result, onOpenProduct }: {
   if (!discovery.need) return null;
   return (
     <View style={s.stack}>
-      <Text accessibilityRole="header" style={s.sectionTitle}>Product discovery</Text>
+      <Text accessibilityRole="header" style={s.sectionTitle}>{hu.product.heading}</Text>
       <Text style={s.body}>{discovery.need.summary}</Text>
-      <Lines title="Clues from your photo" items={discovery.need.evidence} />
+      <Lines title={hu.product.photoClues} items={discovery.need.evidence} />
+      <Text style={s.caption}>{hu.product.findDisclosure}</Text>
+      <TextInput
+        accessibilityLabel={hu.product.queryAccessibility}
+        placeholder={hu.product.queryPlaceholder}
+        placeholderTextColor={theme.colors.muted}
+        value={discovery.query}
+        onChangeText={discovery.updateQuery}
+        maxLength={MAX_REVIEWED_PRODUCT_QUERY_LENGTH}
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="search"
+        onSubmitEditing={() => { void discovery.discover(); }}
+        style={s.searchInput}
+      />
+      <Text style={s.caption}>{hu.product.queryGuidance}</Text>
       {discovery.loading ? (
-        <StatePanel kind="loading" title="Finding matching products"
-          description="Searching product listings from the text clues. Your photo is not sent again."
-          actionLabel="CANCEL SEARCH" actionAccessibilityHint="Stops the product search without repeating the photo analysis."
+        <StatePanel kind="loading" title={hu.product.searching}
+          description={hu.product.searchingDescription}
+          actionLabel={hu.product.cancelSearch} actionAccessibilityHint={hu.product.cancelSearchHint}
           onAction={discovery.cancel} />
       ) : null}
       {discovery.failed ? (
-        <StatePanel kind="error" title="Product search unavailable"
-          description="Your photo analysis is still available. You can retry product discovery separately."
-          actionLabel="TRY AGAIN" actionAccessibilityHint="Starts one new product search using the same text clues."
+        <StatePanel kind="error" title={hu.product.unavailableTitle}
+          description={hu.product.retrySearchDescription}
+          actionLabel={hu.product.tryAgain} actionAccessibilityHint={hu.product.retrySearchHint}
           onAction={() => { void discovery.discover(); }} />
       ) : null}
-      {!discovery.loading && !discovery.failed && !discovery.shopping ? (
-        <ResultButton label="Find matching products"
-          hint="Searches product listings using visible-item clues without sending your photo or starting another AI analysis."
+      {!discovery.loading && !discovery.failed && !discovery.shopping && discovery.canSearch ? (
+        <ResultButton label={hu.product.find}
+          hint={hu.product.findHint}
           onPress={() => { void discovery.discover(); }} primary />
       ) : null}
       {discovery.shopping ? (
@@ -214,16 +268,16 @@ function ProductDiscoveryPanel({ result, onOpenProduct }: {
 function Refinement({ onRefine }: Pick<Props, 'onRefine'>) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
-  if (!open) return <ResultButton label="Refine this result" hint="Opens a field for what you want to change." onPress={() => setOpen(true)} expanded={false} />;
+  if (!open) return <ResultButton label={hu.refinement.open} hint={hu.refinement.openHint} onPress={() => setOpen(true)} expanded={false} />;
   const text = value.trim();
   return (
     <View style={s.guide}>
-      <Text accessibilityRole="header" style={s.sectionTitle}>What would you change?</Text>
-      <TextInput accessibilityLabel="What would you change?" placeholder="E.g. Use only what’s in the photo" placeholderTextColor={theme.colors.muted}
+      <Text accessibilityRole="header" style={s.sectionTitle}>{hu.refinement.heading}</Text>
+      <TextInput accessibilityLabel={hu.refinement.accessibility} placeholder={hu.refinement.placeholder} placeholderTextColor={theme.colors.muted}
         value={value} onChangeText={setValue} maxLength={320} multiline style={s.input} />
-      <Text style={s.caption}>Requesting a new result sends this note and your photo for analysis.</Text>
-      {text ? <ResultButton label="Analyze with this note" hint="Starts a new analysis with your photo and note." onPress={() => onRefine(text)} primary /> : null}
-      <ResultButton label="Cancel refinement" hint="Closes the note and keeps your result." onPress={() => setOpen(false)} expanded />
+      <Text style={s.caption}>{hu.refinement.privacy}</Text>
+      {text ? <ResultButton label={hu.refinement.submit} hint={hu.refinement.submitHint} onPress={() => onRefine(text)} primary /> : null}
+      <ResultButton label={hu.refinement.cancel} hint={hu.refinement.cancelHint} onPress={() => setOpen(false)} expanded />
     </View>
   );
 }
@@ -235,17 +289,17 @@ function GuideDetails({ guide, mode, expanded, onToggle }: {
 }) {
   return (
         <View style={s.guide}>
-          <Lines title="Used from your photo" items={guide.evidence} />
-          <Lines title="Check before you start" items={guide.limits} />
-          {guide.steps[0] ? <Lines title={mode === 'fix' ? 'First safe check' : 'Start here'} items={[guide.steps[0]]} /> : null}
-          <ResultButton label={expanded ? 'Hide plan details' : 'View plan details'} hint="Shows the plan, materials and alternatives already available for this idea."
+          <Lines title={hu.result.usedFromPhoto} items={guide.evidence} />
+          <Lines title={hu.result.checkBeforeStart} items={guide.limits} />
+          {guide.steps[0] ? <Lines title={mode === 'fix' ? hu.result.firstSafeCheck : hu.result.startHere} items={[guide.steps[0]]} /> : null}
+          <ResultButton label={expanded ? hu.result.hidePlan : hu.result.showPlan} hint={hu.result.planHint}
             expanded={expanded} onPress={onToggle} />
           {expanded ? <>
             <Lines title={modeCopy[mode].next} items={guide.steps} ordered />
             <Lines title={modeCopy[mode].needs} items={guide.requiredItems} />
-            <Lines title="What’s missing or unconfirmed" items={guide.missingItems} />
+            <Lines title={hu.result.missing} items={guide.missingItems} />
             <Lines title={modeCopy[mode].alternatives} items={guide.alternatives} />
-            <Lines title="Keep as it is" items={guide.keep} />
+            <Lines title={hu.result.keep} items={guide.keep} />
           </> : null}
         </View>
   );
@@ -257,9 +311,9 @@ function IdeaChoices({ ideas, selected, onSelect }: {
   if (ideas.length < 2) return null;
   return (
     <View style={s.stack}>
-      <Text accessibilityRole="header" style={s.sectionTitle}>More ideas for this photo</Text>
+      <Text accessibilityRole="header" style={s.sectionTitle}>{hu.result.moreIdeas}</Text>
       {ideas.map((other, index) => index === selected ? null : (
-        <ResultButton key={other.id} label={other.title} hint="Shows this idea without analyzing the photo again."
+        <ResultButton key={other.id} label={other.title} hint={hu.result.ideaHint}
           onPress={() => onSelect(index)} />
       ))}
     </View>
@@ -276,7 +330,7 @@ function Recommendations({ data, mode, onRefine, onConcept }: Pick<Props, 'mode'
   if (!idea) {
     return (
       <>
-        <StatePanel kind="empty" title="I need a little more context" description={data.clarification || 'Try a closer photo, or tell USEIT what you want to achieve below.'} />
+        <StatePanel kind="empty" title={hu.result.needsContext} description={data.clarification || hu.result.needsContextDescription} />
         <Refinement onRefine={onRefine} />
       </>
     );
@@ -288,12 +342,15 @@ function Recommendations({ data, mode, onRefine, onConcept }: Pick<Props, 'mode'
         <Text style={s.featureLabel}>{modeCopy[mode].title.toUpperCase()}</Text>
         <Text accessibilityRole="header" style={s.featureTitle}>{idea.title}</Text>
         <Text style={s.featureText}>{idea.description}</Text>
-        {idea.durationMinutes ? <Text style={s.featureText}>About {idea.durationMinutes} min</Text> : null}
+        {idea.durationMinutes ? <Text style={s.featureText}>{hu.result.duration.replace('{minutes}', String(idea.durationMinutes))}</Text> : null}
       </View>
       {guide ? (
         <GuideDetails guide={guide} mode={mode} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
       ) : null}
-      {(!selected && onConcept) ? <ResultButton label="Create visual concept" hint="Generates a visual redesign for this suggestion." onPress={onConcept} primary /> : null}
+      {(!selected && onConcept) ? <>
+        <ResultButton label={hu.result.createConcept} hint={hu.result.createConceptHint} onPress={onConcept} primary />
+        <Text style={s.caption}>{hu.result.conceptPrivacy}</Text>
+      </> : null}
       <Refinement key={idea.id} onRefine={(note) => onRefine(note, idea.title)} />
       <IdeaChoices ideas={data.ideas} selected={selected}
         onSelect={(index) => { setSelected(index); setExpanded(false); }} />
@@ -307,11 +364,11 @@ export function PhotoResult({ result, mode, onOpenProduct, onRefine, onConcept }
   return (
     <View style={s.result}>
       <View style={s.stack}>
-        <Text style={s.eyebrow}>YOUR PHOTO · {modeCopy[mode].title.toUpperCase()}</Text>
-        <Text accessibilityRole="header" style={s.heading}>What USEIT sees</Text>
+        <Text style={s.eyebrow}>{hu.result.lead} · {modeCopy[mode].title.toUpperCase()}</Text>
+        <Text accessibilityRole="header" style={s.heading}>{hu.result.heading}</Text>
         <Text style={s.body}>{result.analysis.summary}</Text>
       </View>
-      {data.cautions.length ? <View style={s.caution}><Lines title="Before you continue" items={data.cautions} /></View> : null}
+      {data.cautions.length ? <View style={s.caution}><Lines title={hu.result.beforeContinue} items={data.cautions} /></View> : null}
       <Recommendations data={data} mode={mode} onRefine={onRefine} onConcept={onConcept} />
       <ProductDiscoveryPanel result={result} onOpenProduct={onOpenProduct} />
     </View>
@@ -336,7 +393,7 @@ const s = StyleSheet.create({
   featureTitle: { color: theme.colors.surface, fontSize: 24, lineHeight: 30, fontWeight: '800' },
   featureText: { color: theme.colors.captureTextMuted, fontSize: 15, lineHeight: 23 },
   caution: { backgroundColor: theme.colors.errorSurface, borderColor: theme.colors.errorBorder, borderWidth: 1, borderRadius: theme.radius.md, padding: theme.spacing.lg },
+  searchInput: { color: theme.colors.ink, backgroundColor: theme.colors.canvas, borderColor: theme.colors.controlBorder, borderWidth: 1, borderRadius: theme.radius.sm, minHeight: 52, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16 },
   input: { color: theme.colors.ink, backgroundColor: theme.colors.canvas, borderColor: theme.colors.controlBorder, borderWidth: 1, borderRadius: theme.radius.sm, minHeight: 70, padding: 12, fontSize: 16, textAlignVertical: 'top' },
   comparison: { gap: theme.spacing.sm },
-  comparisonImage: { height: 330, width: '100%', backgroundColor: theme.colors.surfaceMuted, borderRadius: theme.radius.md },
 });

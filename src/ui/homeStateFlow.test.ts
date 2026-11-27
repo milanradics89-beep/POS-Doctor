@@ -4,6 +4,19 @@ import { describe, expect, it } from 'vitest';
 const home = readFileSync(new URL('../../app/index.tsx', import.meta.url), 'utf8');
 
 describe('USEIT Home recovery-state integration', () => {
+  it('uses bespoke platform-independent glyphs instead of font-dependent symbols', () => {
+    expect(home).toContain("Image.getSize(");
+    expect(home).toMatch(/import \{[\s\S]*\bImage\b[\s\S]*\} from 'react-native';/);
+    expect(home).toContain('function CameraGlyph()');
+    expect(home).toContain('function GalleryGlyph()');
+    expect(home).toContain('function IntentGlyph');
+    expect(home).toContain('<CameraGlyph />');
+    expect(home).toContain('<GalleryGlyph />');
+    expect(home).toContain('<IntentGlyph mode={intent as ResultMode} />');
+    expect(home).not.toContain('modeGlyphText');
+    expect(home).not.toContain('galleryIconText');
+  });
+
   it('uses a single-flight abortable analysis request and ignores stale completions', () => {
     expect(home).toContain('useRef');
     expect(home).toContain('const analysisControllerRef = useRef<AbortController | null>(null);');
@@ -50,14 +63,16 @@ describe('USEIT Home recovery-state integration', () => {
 
   it('routes exhausted camera and gallery permissions to the permission-denied panel', () => {
     expect(home).toContain("kind: 'permission-denied'");
-    expect(home).toContain("actionLabel: openSettings ? 'OPEN SETTINGS' : 'TRY AGAIN'");
+    expect(home).toContain('actionLabel: openSettings ? hu.picker.openSettings : hu.picker.tryAgain');
+    expect(home).toContain('actionAccessibilityHint: openSettings ? hu.picker.settingsHint : hu.picker.permissionHint');
     expect(home).toContain('if (openSettings) void Linking.openSettings();');
     expect(home).toContain('void pickPhoto(source);');
     expect(home).toContain("permissionNotice(copy, decision === 'open_settings'");
   });
 
   it('uses the shared panel for recoverable visual rendering failures', () => {
-    expect(home).toContain("title: 'Visual concept failed'");
+    expect(home).toContain('title: hu.notice.conceptFailedTitle');
+    expect(home).toContain('description: hu.notice.conceptFailedDescription');
     expect(home).toContain('void createVisualConcept(true);');
     expect(home).toContain('const noticePanel = notice ? (');
     expect(home).toContain('<StatePanel');
