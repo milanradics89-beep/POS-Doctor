@@ -21,28 +21,34 @@ async def test_ttl_migration_dry_run_and_apply_only_remove_nonterminal_expiry_fi
     collection = client.collection(collection_name)
     processing = collection.document("processing")
     unknown = collection.document("unknown")
+    corrupt = collection.document("corrupt")
     completed = collection.document("completed")
     health_probe = collection.document("health-probe")
     try:
         await processing.set({"status": "processing", "expires_at": now})
         await unknown.set({"status": "outcome_unknown", "expires_at": now})
+        await corrupt.set({"status": "corrupt_state", "expires_at": now})
         await completed.set({"status": "completed", "expires_at": now})
         await health_probe.set({"status": "health_probe", "expires_at": now})
 
         dry_run = await migrate_legacy_expiry_fields(client, collection_name=collection_name)
-        assert dry_run == {"scanned": 2, "candidates": 2, "migrated": 0}
+        assert dry_run == {"scanned": 5, "candidates": 3, "migrated": 0}
         assert "expires_at" in ((await processing.get()).to_dict() or {})
         assert "expires_at" in ((await unknown.get()).to_dict() or {})
+        assert "expires_at" in ((await corrupt.get()).to_dict() or {})
+        assert "expires_at" in ((await completed.get()).to_dict() or {})
+        assert "expires_at" in ((await health_probe.get()).to_dict() or {})
 
         applied = await migrate_legacy_expiry_fields(client, collection_name=collection_name, apply=True)
-        assert applied == {"scanned": 2, "candidates": 2, "migrated": 2}
+        assert applied == {"scanned": 5, "candidates": 3, "migrated": 3}
         assert "expires_at" not in ((await processing.get()).to_dict() or {})
         assert "expires_at" not in ((await unknown.get()).to_dict() or {})
+        assert "expires_at" not in ((await corrupt.get()).to_dict() or {})
         assert "expires_at" in ((await completed.get()).to_dict() or {})
         assert "expires_at" in ((await health_probe.get()).to_dict() or {})
 
         verification = await migrate_legacy_expiry_fields(client, collection_name=collection_name)
-        assert verification == {"scanned": 2, "candidates": 0, "migrated": 0}
+        assert verification == {"scanned": 5, "candidates": 0, "migrated": 0}
     finally:
         await client.recursive_delete(client.collection(collection_name))
         client.close()

@@ -9,10 +9,9 @@ from typing import Any
 from google.cloud.firestore_v1 import DELETE_FIELD
 from google.cloud.firestore_v1.async_client import AsyncClient
 from google.cloud.firestore_v1.async_transaction import async_transactional
-from google.cloud.firestore_v1.base_query import FieldFilter
 
 DEFAULT_COLLECTION = "analysis_idempotency_v1"
-LEGACY_NON_EXPIRING_STATUSES = ("processing", "outcome_unknown")
+TTL_ALLOWED_STATUSES = ("completed", "health_probe")
 _PROJECT_ID_RE = re.compile(r"^[a-z][a-z0-9-]{4,28}[a-z0-9]$")
 
 
@@ -23,7 +22,7 @@ async def _remove_legacy_expiry_transactionally(client: AsyncClient, reference: 
         if not snapshot.exists:
             return False
         data = snapshot.to_dict() or {}
-        if data.get("status") not in LEGACY_NON_EXPIRING_STATUSES or "expires_at" not in data:
+        if data.get("status") in TTL_ALLOWED_STATUSES or "expires_at" not in data:
             return False
         transaction.update(reference, {"expires_at": DELETE_FIELD})
         return True
@@ -37,24 +36,23 @@ async def migrate_legacy_expiry_fields(
     collection_name: str = DEFAULT_COLLECTION,
     apply: bool = False,
 ) -> dict[str, int]:
-    """Count or remove expiry fields from legacy non-expiring claim states.
+    """Count or remove expiry fields from nonterminal and unknown claim states.
 
     The caller must disable the collection TTL policy and drain old writers before
     applying this migration. Each write rechecks the document status transactionally
-    so a concurrently completed claim keeps its expiry field.
+    so completed claims and short-lived health probes keep their expiry field.
     """
-    query = (
-        client.collection(collection_name)
-        .where(filter=FieldFilter("status", "in", list(LEGACY_NON_EXPIRING_STATUSES)))
-        .select(["status", "expires_at"])
-    )
+    # Scan only lifecycle metadata. Firestore TTL is field-based, so unknown or
+    # corrupt statuses must be migrated too; filtering only known states would
+    # leave those records eligible for deletion.
+    query = client.collection(collection_name).select(["status", "expires_at"])
     scanned = 0
     candidates = 0
     migrated = 0
     async for snapshot in query.stream():
         scanned += 1
         data = snapshot.to_dict() or {}
-        if data.get("status") not in LEGACY_NON_EXPIRING_STATUSES or "expires_at" not in data:
+        if data.get("status") in TTL_ALLOWED_STATUSES or "expires_at" not in data:
             continue
         candidates += 1
         if apply and await _remove_legacy_expiry_transactionally(client, snapshot.reference):
@@ -74,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Dry-run or safely migrate legacy USEIT idempotency TTL fields."
     )
-    parser.add_argument("--apply", action="store_true", help="Remove expires_at from processing/outcome_unknown records.")
+    parser.add_argument("--apply", action="store_true", help="Remove expires_at from nonterminal and unknown claim records.")
     parser.add_argument("--ttl-disabled-confirmed", action="store_true", help="Confirm the analysis_idempotency_v1 TTL policy is disabled.")
     parser.add_argument("--old-writers-drained", action="store_true", help="Confirm all old application writers are drained.")
     args = parser.parse_args(argv)

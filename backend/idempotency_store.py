@@ -131,11 +131,19 @@ class FirestoreIdempotencyStore:
                     return IdempotencyDecision.DUPLICATE
 
                 if status != "completed":
+                    # Unknown/corrupt claim states are non-replayable. Remove a
+                    # legacy TTL field before returning so TTL cannot erase the
+                    # fail-closed record and permit a later redispatch.
+                    if status != "health_probe" and "expires_at" in existing:
+                        transaction.update(reference, {"expires_at": DELETE_FIELD})
                     return IdempotencyDecision.DUPLICATE
 
                 existing_expiry = existing.get("expires_at")
                 if not isinstance(existing_expiry, datetime):
-                    # Unknown/corrupt terminal records fail closed.
+                    # A corrupt completed record also fails closed and must not
+                    # be removed by a malformed legacy TTL value.
+                    if "expires_at" in existing:
+                        transaction.update(reference, {"expires_at": DELETE_FIELD})
                     return IdempotencyDecision.DUPLICATE
                 if existing_expiry.tzinfo is None:
                     existing_expiry = existing_expiry.replace(tzinfo=timezone.utc)

@@ -30,16 +30,16 @@ A mobile retry of the same analysis carries the same `Idempotency-Key`. The serv
 
 ## Existing Firestore idempotency collection: TTL migration gate
 
-Firestore TTL is field-based; it cannot filter by document status. An existing `analysis_idempotency_v1` TTL policy can delete legacy `processing` or `outcome_unknown` records before the new code migrates them. Do not retain or enable that policy during the migration.
+Firestore TTL is field-based; it cannot filter by document status. An existing `analysis_idempotency_v1` TTL policy can delete legacy `processing`, `outcome_unknown` or unknown/corrupt claim records before the new code migrates them. Do not retain or enable that policy during the migration.
 
 1. Confirm the exact, approved Google Cloud project ID and record its project number. Do not infer an ID from a display name or substitute a historical project.
 2. If TTL is already enabled on `analysis_idempotency_v1`, disable that policy before deploying the new application version. This is a separate, explicitly authorized GCP operation.
 3. Drain every old-version writer and verify no old instance can create new claims. Old writers may still attach `expires_at` to `processing` records; mixed versions are not safe.
 4. Deploy the new application version while the `analysis_idempotency_v1` TTL policy remains disabled.
 5. Run the migration in dry-run mode using the verified project ID: `USEIT_FIRESTORE_PROJECT_ID=<verified-project-id> python -m backend.migrate_idempotency_ttl`. Review the counts; the script reads only status/expiry metadata and never prints document IDs, keys, image data or prompts.
-6. After an operator has confirmed TTL is disabled and all old writers are drained, apply the migration: `USEIT_FIRESTORE_PROJECT_ID=<verified-project-id> python -m backend.migrate_idempotency_ttl --apply --ttl-disabled-confirmed --old-writers-drained`. It removes only `expires_at` from documents whose current status is `processing` or `outcome_unknown`, rechecking status transactionally.
-7. Run the dry-run again and require `candidates=0`. Verify that `completed` records still have `expires_at`, while `processing` and `outcome_unknown` records do not.
-8. Only then re-enable TTL on `expires_at` for `analysis_idempotency_v1`. The policy may clean `completed` records and bounded health probes; it must never see `expires_at` on `processing` or `outcome_unknown`. The `useit_state_v1` TTL policy is separate.
+6. After an operator has confirmed TTL is disabled and all old writers are drained, apply the migration: `USEIT_FIRESTORE_PROJECT_ID=<verified-project-id> python -m backend.migrate_idempotency_ttl --apply --ttl-disabled-confirmed --old-writers-drained`. It removes `expires_at` from every record whose status is not `completed` or the short-lived `health_probe` state, including unknown/corrupt states, rechecking status transactionally.
+7. Run the dry-run again and require `candidates=0`. Verify that `completed` and `health_probe` records retain `expires_at`, while `processing`, `outcome_unknown` and unknown/corrupt states do not.
+8. Only then re-enable TTL on `expires_at` for `analysis_idempotency_v1`. The policy may clean `completed` records and bounded health probes; it must never see `expires_at` on a processing, outcome-unknown or unknown/corrupt claim. The `useit_state_v1` TTL policy is separate.
 9. Record the exact project ID, policy change, dry-run/apply counts, application SHA, operator, reviewer and rollback decision. If rollback to an old writer is required, disable this collection's TTL before any old writer is restarted.
 
 The migration command is dry-run by default. `--apply` requires both explicit acknowledgement flags and a syntactically valid 6-30 character Google Cloud project ID in `USEIT_FIRESTORE_PROJECT_ID`. It does not create resources, change TTL policies, or deploy code. Never run it from CI or without approved credentials and an operator-reviewed change.
