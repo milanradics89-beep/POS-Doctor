@@ -75,6 +75,10 @@ type Props = {
 
 type ProductCandidate = NonNullable<UseitShopping>["candidates"][number];
 
+function normalizeReviewedProductSearchQuery(value: string): string {
+  return value.replace(/\s+/g, ' ').trim().slice(0, 200);
+}
+
 function ProductCardRow({ item, onOpenProduct }: {
   item: ProductCandidate;
   onOpenProduct: Props["onOpenProduct"];
@@ -127,7 +131,9 @@ function ProductResults({ shopping, onOpenProduct, onRetry }: {
 
 function useProductDiscovery(result: ConsumerAnalysis) {
   const need = result.unified?.actionable?.shoppingNeed;
-  const query = need?.searchTerms.join(" ").replace(/\s+/g, " ").slice(0, 500) ?? "";
+  const initialQuery = normalizeReviewedProductSearchQuery(need?.searchTerms.join(" ") ?? "");
+  const [reviewedQuery, setReviewedQuery] = useState(initialQuery);
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [shopping, setShopping] = useState<NonNullable<UseitShopping> | null>(result.unified?.shopping ?? null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -140,9 +146,11 @@ function useProductDiscovery(result: ConsumerAnalysis) {
   }, []);
 
   async function discover() {
+    const query = normalizeReviewedProductSearchQuery(reviewedQuery);
     if (loading || controllerRef.current || query.length < 2) return;
     const controller = new AbortController();
     controllerRef.current = controller;
+    setSubmittedQuery(query);
     setShopping(null);
     setLoading(true);
     setFailed(false);
@@ -170,7 +178,19 @@ function useProductDiscovery(result: ConsumerAnalysis) {
     setLoading(false);
   }
 
-  return { need, shopping, loading, failed, discover, cancel };
+  const normalizedQuery = normalizeReviewedProductSearchQuery(reviewedQuery);
+  return {
+    need,
+    reviewedQuery,
+    setReviewedQuery,
+    canSearch: normalizedQuery.length >= 2,
+    queryChanged: normalizedQuery !== submittedQuery,
+    shopping,
+    loading,
+    failed,
+    discover,
+    cancel,
+  };
 }
 
 function ProductDiscoveryPanel({ result, onOpenProduct }: {
@@ -184,6 +204,19 @@ function ProductDiscoveryPanel({ result, onOpenProduct }: {
       <Text accessibilityRole="header" style={s.sectionTitle}>{hu.result.productDiscoveryTitle}</Text>
       <Text style={s.body}>{discovery.need.summary}</Text>
       <Lines title={hu.result.cluesFromPhoto} items={discovery.need.evidence} />
+      <Text accessibilityRole="header" style={s.sectionTitle}>{hu.result.whatToSearch}</Text>
+      <TextInput
+        accessibilityLabel={hu.result.whatToSearch}
+        accessibilityHint={hu.result.findMatchingProductsHint}
+        autoCapitalize="none"
+        autoCorrect={false}
+        editable={!discovery.loading}
+        maxLength={200}
+        value={discovery.reviewedQuery}
+        onChangeText={discovery.setReviewedQuery}
+        style={s.searchTermsInput}
+      />
+      <Text style={s.caption}>{hu.result.findMatchingProductsHint}</Text>
       {discovery.loading ? (
         <StatePanel kind="loading" title={hu.result.productDiscoveryLoading}
           description={hu.result.productDiscoveryLoadingBody}
@@ -196,7 +229,7 @@ function ProductDiscoveryPanel({ result, onOpenProduct }: {
           actionLabel={hu.flow.tryAgain} actionAccessibilityHint={hu.result.productSearchRetryHint}
           onAction={() => { void discovery.discover(); }} />
       ) : null}
-      {!discovery.loading && !discovery.failed && !discovery.shopping ? (
+      {!discovery.loading && !discovery.failed && (!discovery.shopping || discovery.queryChanged) && discovery.canSearch ? (
         <ResultButton label={hu.result.findMatchingProducts}
           hint={hu.result.findMatchingProductsHint}
           onPress={() => { void discovery.discover(); }} primary />
@@ -338,6 +371,7 @@ const s = StyleSheet.create({
   featureText: { color: theme.colors.captureTextMuted, fontSize: 15, lineHeight: 23 },
   caution: { backgroundColor: theme.colors.errorSurface, borderColor: theme.colors.errorBorder, borderWidth: 1, borderRadius: theme.radius.md, padding: theme.spacing.lg },
   input: { color: theme.colors.ink, backgroundColor: theme.colors.canvas, borderColor: theme.colors.controlBorder, borderWidth: 1, borderRadius: theme.radius.sm, minHeight: 70, padding: 12, fontSize: 16, textAlignVertical: 'top' },
+  searchTermsInput: { color: theme.colors.ink, backgroundColor: theme.colors.canvas, borderColor: theme.colors.controlBorder, borderWidth: 1, borderRadius: theme.radius.sm, minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
   comparison: { gap: theme.spacing.sm },
   comparisonImage: { height: 330, width: '100%', backgroundColor: theme.colors.surfaceMuted, borderRadius: theme.radius.md },
 });
