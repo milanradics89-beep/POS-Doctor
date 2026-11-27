@@ -16,16 +16,17 @@ The selected photo and current analysis context must be preserved when navigatin
 |---|---|---|
 | Brand and visual tokens | `src/ui/theme.ts`, `src/ui/components.tsx` | Extend shared owners; no parallel token palettes |
 | Home and capture entry | `app/index.tsx` | One dominant capture action; gallery is secondary |
-| Intent chooser title labels | `src/ui/resultModel.ts` (`modeCopy.*.title`) | Current label source; keep chooser and result labels aligned and localize through the shared catalog |
-| Intent chooser descriptions | `app/index.tsx` (`modes` tuple descriptions) | Current literal description source; migrate to the same locale catalog, not a second copy source |
+| Locale catalog | `src/i18n/hu.ts` (`hu`, `HU_LOCALE`) | Draft PR #360 owns Hungarian static UI copy and exact `hu-HU` request locale; pending stack integration |
+| Intent chooser labels and descriptions | `src/i18n/hu.ts` via `src/ui/resultModel.ts` (`modeCopy`) | One catalog owner for titles, descriptions, chips and result section labels; `app/index.tsx` consumes the facade |
 | Result intent labels and mapping | `src/ui/resultModel.ts`, consumer intent domain | **Target after PR #355 integration:** exactly five canonical intents (CREATE, IMPROVE, FIX, COOK, SURPRISE). Current main still exposes legacy SHOP chooser/API support; it is transitional runtime behavior, not the accepted target |
 | Result presentation | `src/ui/PhotoResult.tsx` (`PhotoResult`) | Owns result hierarchy and result-screen interaction copy |
-| Original/concept comparison | `src/ui/PhotoResult.tsx` (`PhotoComparison`) | Owns the result-side original/generated comparison and its explicit image labels |
-| Selected-photo preview | `app/index.tsx` (`SelectedPhoto`) | Owns the input-photo preview; preserve source aspect ratio and orientation, use contain unless the user explicitly chooses a reversible crop |
+| Original/concept comparison | `src/ui/PhotoResult.tsx` (`PhotoComparison`) | Owns comparison state and labels; delegates image rendering to shared `PhotoFrame` on the PR #360 stack |
+| Selected-photo preview | `app/index.tsx` (`SelectedPhoto`) | Owns preview flow; delegates image rendering to shared `PhotoFrame` on the PR #360 stack |
+| Shared photo frame | `src/ui/components.tsx` (`PhotoFrame`) | Single rendering owner for original and generated imagery; always uses `contain`, accessible image labels and no silent crop/stretch |
 | Image preparation | `src/core/intelligence/imageNormalization.ts` | Normalize transport dimensions without silently changing the visible composition |
 | Shared status and recovery | `src/ui/components.tsx` | Use shared `StatePanel` patterns; actionable recovery where possible |
 
-These are the owners observed in the current source, not proof that the experience is complete. The input-photo preview (`SelectedPhoto`) and the result comparison (`PhotoComparison`) are separate image-display owners today; both must preserve orientation, aspect ratio and fidelity, and neither may silently crop or stretch. Do not imply that a shared image component already exists. If one is introduced later, migrate both consumers before declaring a single owner.
+At main HEAD `2c0230c`, `SelectedPhoto` and `PhotoComparison` are separate image-display owners. Draft PR #360 introduces a shared `PhotoFrame` in `src/ui/components.tsx` and migrates both consumers to it. This is the intended single image-rendering owner, but remains pending until the PR #360 stack is integrated and exact-head tests plus device-level fidelity checks pass. The component uses `contain`; neither consumer may silently crop or stretch the source image.
 
 The target product contract after PR #355 integration is exactly five consumer intents (CREATE, IMPROVE, FIX, COOK, SURPRISE). This is **pending runtime integration**, not a claim about current main: at base HEAD `2c0230cd005aadbf9edbc6174f8f1638a0b0d38e`, `app/index.tsx` still exposes a legacy SHOP chooser entry and `src/core/intelligence/apiClient.ts` still includes `shop` in `ConsumerIntent`. Treat that SHOP path as transitional legacy behavior only; do not expand it or accept it as a sixth intent. The five-intent contract becomes current runtime behavior only after PR #355 is integrated with exact-head required checks and review. Product discovery is a separate optional result action, driven only by evidence-backed `shoppingNeed`, and must never become a sixth intent.
 
@@ -77,7 +78,7 @@ Every asynchronous screen must have intentional loading, success, empty, error, 
 - Use semantic roles, accessible names/hints, visible state, and logical focus order.
 - Support system reduced motion.
 - Maintain readable type and contrast; never communicate state through color alone.
-- Hungarian (`hu-HU`) is the primary launch locale and a blocking launch gate. Current English strings and the current `en-HU` request locale are known implementation gaps, not accepted fallbacks. User-facing strings, errors, and accessibility labels must be localized consistently before launch.
+- Hungarian (`hu-HU`) is the primary launch locale and a blocking launch gate. Main still contains English strings and sends `en-HU`. Draft PR #360 introduces the central catalog and `HU_LOCALE`, but it is stacked on PR #355 and remains unaccepted. User-facing strings, errors, AI-generated content, product states and accessibility labels must all be verified before launch; no mixed-language fallback is accepted.
 - Respect safe areas, dynamic text where supported, and virtual keyboard behavior.
 
 ## Verification evidence

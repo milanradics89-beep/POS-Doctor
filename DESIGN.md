@@ -12,13 +12,13 @@ The product's signature is the **Possibility Frame**: the user's photograph rema
 - Audience: ordinary people looking for useful, creative, practical ideas from objects, rooms, ingredients, and everyday scenes.
 - Primary context: one-handed use on a phone, often in a real room with variable lighting and connectivity.
 - Product language: plain, encouraging, specific. No developer terminology or generic AI hype.
-- Locale: Hungarian (`hu-HU`) is the primary launch locale. This is an explicit launch gate, not a statement that the current app is already localized. The current implementation still contains English user-facing and accessibility strings and sends `locale: 'en-HU'`; those gaps must be closed and verified before launch. No mixed-language flow may pass acceptance.
+- Locale: Hungarian (`hu-HU`) is the primary launch locale. Main HEAD `2c0230c` is still not localized and sends `locale: 'en-HU'`. Draft PR #360, stacked on PR #355, introduces the `hu-HU` catalog and migrates the Home, intent, result, product-discovery, recovery and accessibility surfaces. That work remains unaccepted until the complete stack passes exact-head CI, review, device walkthrough and mixed-language verification. No mixed-language flow may pass acceptance.
 
 ## Localization ownership and launch gate
 
-The launch locale is exactly `hu-HU`; `en-HU` is not an accepted locale or fallback. Current user-facing copy is split across legacy owners: Home and chooser descriptions in `app/index.tsx`, intent/result labels in `src/ui/resultModel.ts`, and result-screen copy in `src/ui/PhotoResult.tsx`. These are current implementation locations, not the target architecture.
+The launch locale is exactly `hu-HU`; `en-HU` is not an accepted locale or fallback. On main, copy is split across `app/index.tsx`, `src/ui/resultModel.ts`, `src/ui/PhotoResult.tsx` and shared components. Draft PR #360 introduces `src/i18n/hu.ts` as the typed static-copy catalog and exports the exact `HU_LOCALE` constant. `src/ui/resultModel.ts` exposes `hu.modes` as the shared intent-copy facade; chooser labels and descriptions consume that same source. The PR also localizes shared status, product and accessibility copy.
 
-The target is one typed locale catalog under `src/i18n/`. Screen components must consume typed localization keys rather than define user-facing literals. Resolve the selected locale once at the app boundary and send the same `hu-HU` value to `/v1/useit/analyze`. Treat this catalog as a required future implementation, not as something this documentation PR has already delivered. Acceptance requires complete Hungarian coverage for visible copy, errors, accessibility labels/hints and all recovery states, plus tests proving no mixed-language path remains.
+The selected analysis locale is passed to `/v1/useit/analyze`, and the prompt policy instructs the model to return user-facing text in that locale. Static UI copy and AI-generated text therefore have separate but explicit localization owners. PR #360 is stacked on PR #355 and remains a draft; its implementation is not integrated into main or launch-accepted. Acceptance requires exact-head checks, independent review, complete Hungarian coverage for visible copy, errors, accessibility labels/hints and recovery states, plus representative result checks proving generated content is Hungarian and photo-grounded.
 
 ## Visual direction
 
@@ -78,7 +78,7 @@ Maintain shared, reusable visual owners for:
 - Brand mark and app wordmark.
 - Primary capture action and secondary gallery action.
 - Intent selector with selected, pressed, disabled, and loading states.
-- Photo preview and original/concept comparison.
+- Photo preview and original/concept comparison through the shared `PhotoFrame` image owner (introduced on the PR #360 stack; pending integration).
 - Recommendation/result card and product card.
 - Inline refinement controls.
 - Loading, empty, offline, permission, error, and success states.
@@ -116,6 +116,7 @@ A design is not accepted because it compiles or looks attractive in one screensh
 
 - This document owns visual intent and rationale.
 - `src/ui/theme.ts` remains the current runtime token source of truth.
-- Shared primitives live under `src/ui/`; avoid screen-local duplicates.
+- `src/i18n/hu.ts` owns the Hungarian static-copy catalog on the PR #360 stack; `HU_LOCALE` owns the exact request locale.
+- Shared primitives live under `src/ui/`; `PhotoFrame` in `src/ui/components.tsx` owns uncropped original/concept image rendering on the PR #360 stack. Do not mark it integrated until the stacked PRs are accepted.
 - When a durable visual token changes, update this document and runtime tokens in the same change.
 - `docs/PRODUCT-VISION.md` remains the business/product vision and overrides aesthetic preferences when product behavior or trust is at stake.
