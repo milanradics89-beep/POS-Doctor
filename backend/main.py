@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import binascii
 import inspect
@@ -22,7 +23,12 @@ from backend.ai_budget import daily_budget, reserve_units
 from backend.security import validate_public_http_url
 from google.api_core.exceptions import GoogleAPIError
 from backend.firestore_state import FirestoreState
-from backend.idempotency_store import FirestoreIdempotencyStore, IdempotencyDecision
+from backend.idempotency_store import (
+    FirestoreIdempotencyStore,
+    IdempotencyDecision,
+    release_claim_before_provider_start,
+    retain_claim_after_ambiguous_budget_reservation,
+)
 from backend.privacy_logging import log_event
 
 from backend.action_layer import router as action_router
@@ -293,7 +299,7 @@ def _get_client() -> AsyncOpenAI:
         raise HTTPException(503, detail)
     return client
 
-async def _analyze(request: AnalyzeRequest, client: AsyncOpenAI | None = None):
+async def _analyze(request: AnalyzeRequest, client: AsyncOpenAI | None = None, *, reserve_budget: bool = True):
     if request.responseFormat != "scene_analysis_v1": raise HTTPException(400, "Unsupported response format.")
     try:
         instructions = BASE_SYSTEM
@@ -306,7 +312,8 @@ async def _analyze(request: AnalyzeRequest, client: AsyncOpenAI | None = None):
             instructions += actionable_instructions(mode)
             user_text += "\nRefinement: " + json.dumps({"note": request.refinement, "previousSuggestion": request.refinementTarget}, ensure_ascii=False)
         provider = client or _get_client()
-        await reserve_units(app, 1)
+        if reserve_budget:
+            await reserve_units(app, 1)
         response = await provider.chat.completions.create(
             model=MODEL,
             max_completion_tokens=VISION_MAX_COMPLETION_TOKENS,
@@ -552,13 +559,14 @@ async def useit_analyze(
         if claim is None:
             raise HTTPException(status_code=503, detail="Analysis request protection could not claim this request.")
 
+    if claim is not None:
         try:
-            # Resolve configuration before provider start. A failure here is safe
-            # to release because no billable OpenAI request has been attempted.
+            # Resolve the provider before reserving budget so configuration failures
+            # cannot consume the daily allowance or strand a keyed claim.
             provider_client = _get_client()
         except Exception as exc:
             try:
-                await store.release_before_provider_start(claim)
+                await release_claim_before_provider_start(store, claim)
             except Exception as release_exc:
                 logger.warning(
                     "Analysis idempotency pre-provider release failed (exception_type=%s)",
@@ -566,8 +574,49 @@ async def useit_analyze(
                 )
             raise HTTPException(status_code=503, detail="Vision service is not configured.") from exc
 
+        try:
+            await reserve_units(app, 1)
+        except asyncio.CancelledError:
+            # The daily budget write may have committed before cancellation
+            # interrupted its acknowledgement. Keep this key blocked; releasing
+            # it could reserve the same logical request twice on retry.
+            await retain_claim_after_ambiguous_budget_reservation(store, claim)
+            raise
+        except Exception as exc:
+            # A 429 is an explicit negative reservation result: Firestore
+            # confirmed that no units were consumed. A 503/transport error may
+            # have committed before its acknowledgement was lost, so retain the
+            # claim and require reconciliation rather than risking a second charge.
+            if isinstance(exc, HTTPException) and exc.status_code == 429:
+                released = await release_claim_before_provider_start(store, claim)
+                if not released:
+                    logger.error(
+                        "Analysis idempotency pre-provider release could not be confirmed after budget denial"
+                    )
+                    raise HTTPException(
+                        status_code=503,
+                        detail="Analysis request state could not be safely released.",
+                    ) from exc
+            else:
+                logger.warning(
+                    "Analysis idempotency claim retained after ambiguous budget reservation (exception_type=%s)",
+                    type(exc).__name__,
+                )
+            if isinstance(exc, HTTPException):
+                raise
+            logger.warning(
+                "Analysis budget reservation failed before provider start (exception_type=%s)",
+                type(exc).__name__,
+            )
+            raise HTTPException(status_code=503, detail="AI budget protection is temporarily unavailable.") from exc
+
     try:
-        scene = await _analyze(request, client=provider_client) if provider_client is not None else await _analyze(request)
+        if claim is not None:
+            scene = await _analyze(request, client=provider_client, reserve_budget=False)
+        else:
+            # Preserve the legacy unkeyed API path: _analyze resolves the client
+            # and reserves its own budget when no idempotency claim exists.
+            scene = await _analyze(request)
         intent = classify_intent(request.userIntent, request.prompt)
         context = {"preferredStyles": request.preferredStyles, "preferredColors": request.preferredColors, "budgetHuf": request.budgetHuf}
         ranked = rank_opportunities(scene, intent, context=context)
@@ -603,7 +652,16 @@ async def useit_analyze(
                     "Analysis idempotency completion failed (exception_type=%s)",
                     type(exc).__name__,
                 )
-                raise HTTPException(status_code=503, detail="Analysis request state could not be finalized.") from exc
+                completed = False
+            if not completed:
+                try:
+                    completed = await store.confirm_completed(claim)
+                except Exception as exc:
+                    logger.warning(
+                        "Analysis idempotency completion confirmation failed (exception_type=%s)",
+                        type(exc).__name__,
+                    )
+                    completed = False
             if not completed:
                 raise HTTPException(status_code=503, detail="Analysis request state could not be finalized.")
         return result
