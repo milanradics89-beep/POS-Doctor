@@ -146,13 +146,15 @@ async def redesign(
                 # Only an explicit budget denial proves that no units were reserved.
                 # Transport and 503 failures may follow a committed write; retain
                 # the key rather than allowing a retry to reserve twice.
-                try:
-                    await release_claim_before_provider_start(store, claim)
-                except Exception as release_exc:
-                    logger.warning(
-                        "Redesign idempotency pre-provider release failed (exception_type=%s)",
-                        type(release_exc).__name__,
+                released = await release_claim_before_provider_start(store, claim)
+                if not released:
+                    logger.error(
+                        "Redesign idempotency pre-provider release could not be confirmed after budget denial"
                     )
+                    raise HTTPException(
+                        503,
+                        "Image request state could not be safely released.",
+                    ) from exc
             elif claim is not None:
                 logger.warning(
                     "Redesign idempotency claim retained after ambiguous budget reservation (exception_type=%s)",
@@ -174,6 +176,12 @@ async def redesign(
             )
             if not result.data or not getattr(result.data[0], "b64_json", None):
                 raise HTTPException(502, "Image generation returned no image.")
+            try:
+                decoded_image = base64.b64decode(result.data[0].b64_json, validate=True)
+            except (ValueError, TypeError) as exc:
+                raise HTTPException(502, "Image generation returned an invalid image.") from exc
+            if not decoded_image:
+                raise HTTPException(502, "Image generation returned an invalid image.")
             if claim is not None:
                 try:
                     completed = await store.mark_completed(claim)
@@ -182,7 +190,16 @@ async def redesign(
                         "Redesign idempotency completion failed (exception_type=%s)",
                         type(exc).__name__,
                     )
-                    raise HTTPException(503, "Image request state could not be finalized.") from exc
+                    completed = False
+                if not completed:
+                    try:
+                        completed = await store.confirm_completed(claim)
+                    except Exception as exc:
+                        logger.warning(
+                            "Redesign idempotency completion confirmation failed (exception_type=%s)",
+                            type(exc).__name__,
+                        )
+                        completed = False
                 if not completed:
                     raise HTTPException(503, "Image request state could not be finalized.")
             return {

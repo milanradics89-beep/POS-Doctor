@@ -126,18 +126,58 @@ async def test_provider_outcome_unknown_remains_blocked_after_ttl_and_migrates_l
 
 
 @pytest.mark.asyncio
-async def test_pre_provider_failure_can_release_claim_for_a_safe_retry():
+async def test_pre_provider_failure_persists_retryable_state_and_allows_safe_same_payload_retry(monkeypatch):
     collection, first_client, second_client, first, second = await _new_pair()
     key = f"analysis-{uuid.uuid4().hex}"
     payload = b"provider-not-started"
+    original_update = AsyncDocumentReference.update
+    lost_ack = False
+
+    async def commit_then_lose_release_ack(document, data, *args, **kwargs):
+        nonlocal lost_ack
+        if data.get("status") == "retryable_pre_provider" and not lost_ack:
+            await original_update(document, data, *args, **kwargs)
+            lost_ack = True
+            raise TimeoutError("simulated lost pre-provider release acknowledgement")
+        return await original_update(document, data, *args, **kwargs)
+
+    monkeypatch.setattr(AsyncDocumentReference, "update", commit_then_lose_release_ack)
     try:
         claimed = await first.claim(key, payload)
         assert claimed.claim is not None
-        assert await first.release_before_provider_start(claimed.claim) is True
-        # Releasing after a lost delete acknowledgement is idempotent.
-        assert await first.release_before_provider_start(claimed.claim) is True
+        assert await release_claim_before_provider_start(first, claimed.claim) is True
+        assert lost_ack is True
+
+        released = (
+            await first_client.collection(collection)
+            .document(claimed.claim.document_id)
+            .get()
+        ).to_dict() or {}
+        assert released["status"] == "retryable_pre_provider"
+        assert "lease_token" not in released
+        assert "expires_at" not in released
+        assert released["pre_provider_release_fingerprint"]
+
+        # A different payload cannot reuse the released key.
+        mismatch = await second.claim(key, b"different-provider-payload")
+        assert mismatch.decision is IdempotencyDecision.PAYLOAD_MISMATCH
+
         retried = await second.claim(key, payload)
         assert retried.decision is IdempotencyDecision.CLAIMED
+        assert retried.claim is not None
+        assert retried.claim.lease_token != claimed.claim.lease_token
+
+        current = (
+            await first_client.collection(collection)
+            .document(claimed.claim.document_id)
+            .get()
+        ).to_dict() or {}
+        assert current["status"] == "processing"
+        assert current["lease_token"] == retried.claim.lease_token
+        assert "pre_provider_release_fingerprint" not in current
+
+        # A delayed cleanup from the old request cannot release the successor.
+        assert await first.release_before_provider_start(claimed.claim) is False
     finally:
         await _close_pair(collection, first_client, second_client)
 
@@ -261,6 +301,7 @@ async def test_completed_record_expires_from_completion_time_without_waiting_for
         terminal = (await first_client.collection(collection).document(first_claim.claim.document_id).get()).to_dict() or {}
         assert terminal["status"] == "completed"
         assert terminal["expires_at"] == current_time[0] + timedelta(seconds=60)
+        assert terminal["completion_fingerprint"]
 
         # A retry after the creation-based expiry must still be blocked until
         # the completion-based expiry is reached.
@@ -278,6 +319,7 @@ async def test_completed_record_expires_from_completion_time_without_waiting_for
         ).to_dict() or {}
         assert renewed["status"] == "processing"
         assert "expires_at" not in renewed
+        assert "completion_fingerprint" not in renewed
     finally:
         await _close_pair(collection, first_client, second_client)
 
@@ -465,3 +507,28 @@ async def test_claim_confirms_ownership_when_expired_record_update_acknowledgeme
     assert state["status"] == "processing"
     assert state["lease_token"] == result.claim.lease_token
     assert "expires_at" not in state
+
+
+
+@pytest.mark.asyncio
+async def test_completed_claim_can_be_confirmed_after_lost_write_acknowledgement(monkeypatch):
+    collection, first_client, second_client, first, second = await _new_pair()
+    key = f"analysis-{uuid.uuid4().hex}"
+    try:
+        claimed = await first.claim(key, b"completed-response-in-memory")
+        assert claimed.claim is not None
+        original_mark_completed = first.mark_completed
+
+        async def mark_completed_then_lose_ack(claim):
+            assert await original_mark_completed(claim) is True
+            raise TimeoutError("simulated lost completion acknowledgement")
+
+        monkeypatch.setattr(first, "mark_completed", mark_completed_then_lose_ack)
+        with pytest.raises(TimeoutError, match="lost completion acknowledgement"):
+            await first.mark_completed(claimed.claim)
+
+        assert await first.confirm_completed(claimed.claim) is True
+        wrong_lease = IdempotencyClaim(claimed.claim.document_id, "different-lease-token")
+        assert await first.confirm_completed(wrong_lease) is False
+    finally:
+        await _close_pair(collection, first_client, second_client)

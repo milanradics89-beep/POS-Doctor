@@ -29,5 +29,7 @@ describe("Firestore idempotency TTL migration release gate", () => {
     expect(register).toContain(
       "A Firestore timeout, transport error, HTTP 503 or request cancellation may leave the daily budget reservation committed; retain the processing claim",
     );
+    expect(register).toContain("retryable_pre_provider");
+    expect(register).toContain("lease-checked claim");
   });
 });

@@ -588,13 +588,15 @@ async def useit_analyze(
             # have committed before its acknowledgement was lost, so retain the
             # claim and require reconciliation rather than risking a second charge.
             if isinstance(exc, HTTPException) and exc.status_code == 429:
-                try:
-                    await release_claim_before_provider_start(store, claim)
-                except Exception as release_exc:
-                    logger.warning(
-                        "Analysis idempotency pre-provider release failed (exception_type=%s)",
-                        type(release_exc).__name__,
+                released = await release_claim_before_provider_start(store, claim)
+                if not released:
+                    logger.error(
+                        "Analysis idempotency pre-provider release could not be confirmed after budget denial"
                     )
+                    raise HTTPException(
+                        status_code=503,
+                        detail="Analysis request state could not be safely released.",
+                    ) from exc
             else:
                 logger.warning(
                     "Analysis idempotency claim retained after ambiguous budget reservation (exception_type=%s)",
@@ -650,7 +652,16 @@ async def useit_analyze(
                     "Analysis idempotency completion failed (exception_type=%s)",
                     type(exc).__name__,
                 )
-                raise HTTPException(status_code=503, detail="Analysis request state could not be finalized.") from exc
+                completed = False
+            if not completed:
+                try:
+                    completed = await store.confirm_completed(claim)
+                except Exception as exc:
+                    logger.warning(
+                        "Analysis idempotency completion confirmation failed (exception_type=%s)",
+                        type(exc).__name__,
+                    )
+                    completed = False
             if not completed:
                 raise HTTPException(status_code=503, detail="Analysis request state could not be finalized.")
         return result

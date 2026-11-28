@@ -127,6 +127,7 @@ class FakeIdempotencyStore:
             side_effect=claim_error,
         )
         self.mark_completed = AsyncMock(return_value=completed)
+        self.confirm_completed = AsyncMock(return_value=False)
         self.mark_outcome_unknown = AsyncMock(return_value=True)
         self.release_before_provider_start = AsyncMock(return_value=True)
 
@@ -312,3 +313,47 @@ def test_useit_analyze_fails_closed_when_claim_completion_cannot_be_confirmed(mo
     assert response.status_code == 503
     store.mark_completed.assert_awaited_once()
     store.mark_outcome_unknown.assert_awaited_once()
+
+
+
+def test_useit_analyze_returns_result_when_completion_acknowledgement_is_lost(monkeypatch):
+    store = FakeIdempotencyStore()
+    store.mark_completed.side_effect = TimeoutError("completion acknowledgement lost")
+    store.confirm_completed.return_value = True
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    _patch_useit_response(monkeypatch)
+
+    response = client.post(
+        "/v1/useit/analyze",
+        headers={"Idempotency-Key": "analysis-test-key-123456"},
+        json=_idempotent_analysis_request(),
+    )
+
+    assert response.status_code == 200
+    store.mark_completed.assert_awaited_once()
+    store.confirm_completed.assert_awaited_once_with(store.claim.return_value.claim)
+    store.mark_outcome_unknown.assert_not_awaited()
+
+
+def test_useit_analyze_fails_closed_when_confirmed_budget_denial_cannot_release_claim(monkeypatch):
+    from fastapi import HTTPException
+
+    store = FakeIdempotencyStore()
+    store.release_before_provider_start.return_value = False
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr(main, "_get_client", lambda: Mock())
+    reserve = AsyncMock(side_effect=HTTPException(status_code=429, detail="budget exhausted"))
+    monkeypatch.setattr(main, "reserve_units", reserve)
+    analyze = AsyncMock()
+    monkeypatch.setattr(main, "_analyze", analyze)
+
+    response = client.post(
+        "/v1/useit/analyze",
+        headers={"Idempotency-Key": "analysis-test-key-123456"},
+        json=_idempotent_analysis_request(),
+    )
+
+    assert response.status_code == 503
+    reserve.assert_awaited_once_with(main.app, 1)
+    store.release_before_provider_start.assert_awaited_once()
+    analyze.assert_not_awaited()

@@ -277,3 +277,89 @@ def test_keyed_redesign_retains_claim_when_budget_reservation_is_ambiguous(monke
     store.release_before_provider_start.assert_not_awaited()
     store.mark_completed.assert_not_awaited()
     store.mark_outcome_unknown.assert_not_awaited()
+
+
+
+def test_keyed_redesign_rejects_invalid_provider_base64_before_completion(monkeypatch):
+    claim = IdempotencyClaim("doc", "lease")
+    store = SimpleNamespace(
+        claim=AsyncMock(return_value=IdempotencyClaimResult(IdempotencyDecision.CLAIMED, claim)),
+        mark_completed=AsyncMock(return_value=True),
+        confirm_completed=AsyncMock(return_value=False),
+        mark_outcome_unknown=AsyncMock(return_value=True),
+        release_before_provider_start=AsyncMock(return_value=True),
+    )
+    provider = SimpleNamespace(
+        images=SimpleNamespace(edit=AsyncMock(return_value=SimpleNamespace(data=[SimpleNamespace(b64_json="not base64!")]))),
+    )
+    monkeypatch.setattr(app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr("backend.redesign.reserve_units", AsyncMock(return_value=None))
+    monkeypatch.setattr("backend.redesign._client", lambda _: provider)
+
+    response = client.post(
+        "/v1/redesign",
+        json={"imageUri": image_uri(), "prompt": "Keep the existing windows and room dimensions."},
+        headers={"Idempotency-Key": "redesign-test-request"},
+    )
+
+    assert response.status_code == 502
+    provider.images.edit.assert_awaited_once()
+    store.mark_completed.assert_not_awaited()
+    store.confirm_completed.assert_not_awaited()
+    store.mark_outcome_unknown.assert_awaited_once_with(claim)
+
+
+def test_keyed_redesign_returns_image_when_completion_acknowledgement_is_lost(monkeypatch):
+    claim = IdempotencyClaim("doc", "lease")
+    store = SimpleNamespace(
+        claim=AsyncMock(return_value=IdempotencyClaimResult(IdempotencyDecision.CLAIMED, claim)),
+        mark_completed=AsyncMock(side_effect=TimeoutError("completion acknowledgement lost")),
+        confirm_completed=AsyncMock(return_value=True),
+        mark_outcome_unknown=AsyncMock(return_value=True),
+        release_before_provider_start=AsyncMock(return_value=True),
+    )
+    generated = base64.b64encode(b"generated-image").decode()
+    provider = SimpleNamespace(
+        images=SimpleNamespace(edit=AsyncMock(return_value=SimpleNamespace(data=[SimpleNamespace(b64_json=generated)]))),
+    )
+    monkeypatch.setattr(app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr("backend.redesign.reserve_units", AsyncMock(return_value=None))
+    monkeypatch.setattr("backend.redesign._client", lambda _: provider)
+
+    response = client.post(
+        "/v1/redesign",
+        json={"imageUri": image_uri(), "prompt": "Keep the existing windows and room dimensions."},
+        headers={"Idempotency-Key": "redesign-test-request"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["imageDataUrl"] == "data:image/png;base64," + generated
+    store.mark_completed.assert_awaited_once_with(claim)
+    store.confirm_completed.assert_awaited_once_with(claim)
+    store.mark_outcome_unknown.assert_not_awaited()
+
+
+def test_keyed_redesign_fails_closed_when_budget_denial_cannot_release_claim(monkeypatch):
+    claim = IdempotencyClaim("doc", "lease")
+    store = SimpleNamespace(
+        claim=AsyncMock(return_value=IdempotencyClaimResult(IdempotencyDecision.CLAIMED, claim)),
+        mark_completed=AsyncMock(return_value=True),
+        confirm_completed=AsyncMock(return_value=False),
+        mark_outcome_unknown=AsyncMock(return_value=True),
+        release_before_provider_start=AsyncMock(return_value=False),
+    )
+    provider = SimpleNamespace(images=SimpleNamespace(edit=AsyncMock()))
+    monkeypatch.setattr(app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr("backend.redesign.reserve_units", AsyncMock(side_effect=HTTPException(429, "budget exhausted")))
+    monkeypatch.setattr("backend.redesign._client", lambda _: provider)
+
+    response = client.post(
+        "/v1/redesign",
+        json={"imageUri": image_uri(), "prompt": "Keep the existing windows and room dimensions."},
+        headers={"Idempotency-Key": "redesign-test-request"},
+    )
+
+    assert response.status_code == 503
+    provider.images.edit.assert_not_awaited()
+    store.release_before_provider_start.assert_awaited_once_with(claim)
+    store.mark_outcome_unknown.assert_not_awaited()
