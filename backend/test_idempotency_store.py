@@ -16,6 +16,7 @@ from backend.idempotency_store import (
     IdempotencyClaim,
     IdempotencyDecision,
     release_claim_before_provider_start,
+    retain_claim_after_ambiguous_budget_reservation,
 )
 
 SECRET = "test-only-idempotency-secret-32-bytes-minimum"
@@ -174,6 +175,32 @@ async def test_pre_provider_release_continues_after_request_cancellation():
     claim = IdempotencyClaim("document", "lease")
     request_task = asyncio.create_task(
         release_claim_before_provider_start(store, claim, timeout_seconds=2.0)
+    )
+    await asyncio.wait_for(started.wait(), timeout=1.0)
+    request_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await request_task
+
+    finish.set()
+    await asyncio.wait_for(completed.wait(), timeout=1.0)
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_budget_outcome_retention_continues_after_request_cancellation():
+    started = asyncio.Event()
+    finish = asyncio.Event()
+    completed = asyncio.Event()
+
+    async def mark_unknown(_claim):
+        started.set()
+        await finish.wait()
+        completed.set()
+        return True
+
+    store = SimpleNamespace(mark_outcome_unknown=mark_unknown)
+    claim = IdempotencyClaim("document", "lease")
+    request_task = asyncio.create_task(
+        retain_claim_after_ambiguous_budget_reservation(store, claim, timeout_seconds=2.0)
     )
     await asyncio.wait_for(started.wait(), timeout=1.0)
     request_task.cancel()

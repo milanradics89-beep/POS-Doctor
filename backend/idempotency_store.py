@@ -97,6 +97,56 @@ async def release_claim_before_provider_start(
         logging.getLogger(__name__).warning("Pre-provider idempotency release was not confirmed because claim ownership changed")
     return released
 
+def _consume_outcome_cleanup(task: asyncio.Task[bool]) -> None:
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        return
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "Ambiguous budget reservation outcome could not be retained after caller exit (exception_type=%s)",
+            type(exc).__name__,
+        )
+
+
+async def retain_claim_after_ambiguous_budget_reservation(
+    store,
+    claim: IdempotencyClaim,
+    *,
+    timeout_seconds: float = 3.0,
+) -> bool:
+    """Keep a request key blocked when cancellation leaves budget reservation uncertain.
+
+    Firestore may commit the daily-unit increment before its acknowledgement
+    reaches the caller. Cancellation therefore cannot prove that no units were
+    reserved, and releasing the claim could charge the same logical request
+    again on retry.
+    """
+    cleanup = asyncio.create_task(store.mark_outcome_unknown(claim))
+    try:
+        retained = await asyncio.wait_for(asyncio.shield(cleanup), timeout=timeout_seconds)
+    except asyncio.CancelledError:
+        cleanup.add_done_callback(_consume_outcome_cleanup)
+        raise
+    except asyncio.TimeoutError:
+        cleanup.add_done_callback(_consume_outcome_cleanup)
+        logging.getLogger(__name__).warning(
+            "Ambiguous budget reservation outcome retention exceeded its bounded cleanup window"
+        )
+        return False
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "Ambiguous budget reservation outcome could not be retained (exception_type=%s)",
+            type(exc).__name__,
+        )
+        return False
+
+    if not retained:
+        logging.getLogger(__name__).warning(
+            "Ambiguous budget reservation claim was not retained because ownership changed"
+        )
+    return retained
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -350,7 +400,7 @@ class FirestoreIdempotencyStore:
         return await self._finish(claim, "completed")
 
     async def mark_outcome_unknown(self, claim: IdempotencyClaim) -> bool:
-        """Retain the claim when a provider call started but its outcome is uncertain."""
+        """Retain the key when a provider or budget-reservation outcome is uncertain."""
         return await self._finish(claim, "outcome_unknown")
 
     async def release_before_provider_start(self, claim: IdempotencyClaim) -> bool:

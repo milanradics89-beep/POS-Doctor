@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
+from google.auth.credentials import AnonymousCredentials
 from google.cloud.firestore_v1.async_client import AsyncClient
 
 from backend import migrate_idempotency_ttl
@@ -17,7 +18,7 @@ async def test_ttl_migration_dry_run_and_apply_only_remove_nonterminal_expiry_fi
         pytest.skip("requires local Firestore emulator")
     project = os.environ.get("GOOGLE_CLOUD_PROJECT", "useit-test")
     collection_name = f"test_idempotency_ttl_{uuid.uuid4().hex[:16]}"
-    client = AsyncClient(project=project)
+    client = AsyncClient(project=project, credentials=AnonymousCredentials())
     now = datetime(2026, 11, 27, 6, 0, tzinfo=timezone.utc)
     collection = client.collection(collection_name)
     processing = collection.document("processing")
@@ -57,7 +58,7 @@ async def test_ttl_migration_dry_run_and_apply_only_remove_nonterminal_expiry_fi
 
 @pytest.mark.asyncio
 async def test_ttl_migration_rejects_invalid_page_sizes():
-    client = AsyncClient(project="useit-test")
+    client = AsyncClient(project="useit-test", credentials=AnonymousCredentials())
     try:
         with pytest.raises(ValueError, match="page_size must be a positive integer"):
             await migrate_legacy_expiry_fields(client, page_size=0)
@@ -75,7 +76,7 @@ async def test_ttl_migration_rejects_invalid_page_sizes():
     ],
 )
 def test_ttl_migration_operator_cli_rejects_emulator_routing(monkeypatch, args):
-    monkeypatch.setenv("USEIT_FIRESTORE_PROJECT_ID", "useit-platform-2026")
+    monkeypatch.setenv("USEIT_FIRESTORE_PROJECT_ID", "useit")
     monkeypatch.setenv("FIRESTORE_EMULATOR_HOST", "127.0.0.1:8080")
 
     def unexpected_cloud_run(*_args, **_kwargs):

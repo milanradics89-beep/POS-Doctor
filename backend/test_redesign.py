@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from backend.main import app
 from backend.idempotency_store import IdempotencyClaim, IdempotencyClaimResult, IdempotencyDecision
-from backend.redesign import _client, _image_file
+from backend.redesign import RedesignRequest, _client, _image_file, redesign
 
 client = TestClient(app)
 
@@ -181,7 +181,7 @@ def test_keyed_redesign_releases_claim_only_when_budget_is_explicitly_denied(mon
     store.mark_outcome_unknown.assert_not_awaited()
 
 
-def test_keyed_redesign_releases_claim_when_budget_wait_is_cancelled(monkeypatch):
+def test_keyed_redesign_retains_claim_when_budget_reservation_is_cancelled(monkeypatch):
     claim = IdempotencyClaim("doc", "lease")
     store = SimpleNamespace(
         claim=AsyncMock(return_value=IdempotencyClaimResult(IdempotencyDecision.CLAIMED, claim)),
@@ -191,19 +191,28 @@ def test_keyed_redesign_releases_claim_when_budget_wait_is_cancelled(monkeypatch
     )
     provider = SimpleNamespace(images=SimpleNamespace(edit=AsyncMock()))
     monkeypatch.setattr(app.state, "idempotency_store", store, raising=False)
-    monkeypatch.setattr("backend.redesign.reserve_units", AsyncMock(side_effect=asyncio.CancelledError()))
+    reserve = AsyncMock(side_effect=asyncio.CancelledError())
+    monkeypatch.setattr("backend.redesign.reserve_units", reserve)
     monkeypatch.setattr("backend.redesign._client", lambda _: provider)
+    request = RedesignRequest(
+        imageUri=image_uri(),
+        prompt="Keep the existing windows and room dimensions.",
+    )
 
+    # Direct route invocation avoids TestClient's ASGI cancellation wrapper.
     with pytest.raises(asyncio.CancelledError):
-        client.post(
-            "/v1/redesign",
-            json={"imageUri": image_uri(), "prompt": "Keep the existing windows and room dimensions."},
-            headers={"Idempotency-Key": "redesign-test-request"},
+        asyncio.run(
+            redesign(
+                request,
+                SimpleNamespace(app=app),
+                idempotency_key="redesign-test-request",
+            )
         )
 
-    store.release_before_provider_start.assert_awaited_once_with(claim)
+    reserve.assert_awaited_once_with(app, 5)
+    store.mark_outcome_unknown.assert_awaited_once_with(claim)
+    store.release_before_provider_start.assert_not_awaited()
     provider.images.edit.assert_not_awaited()
-    store.mark_outcome_unknown.assert_not_awaited()
 
 
 def test_keyed_redesign_retains_claim_when_provider_outcome_is_unknown(monkeypatch):

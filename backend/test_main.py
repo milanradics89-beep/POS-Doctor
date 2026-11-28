@@ -247,7 +247,7 @@ def test_useit_analyze_releases_claim_when_budget_reservation_fails(monkeypatch,
     store.mark_outcome_unknown.assert_not_awaited()
 
 
-def test_useit_analyze_releases_claim_when_budget_wait_is_cancelled(monkeypatch):
+def test_useit_analyze_retains_claim_when_budget_reservation_is_cancelled(monkeypatch):
     store = FakeIdempotencyStore()
     monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
     monkeypatch.setattr(main, "_get_client", lambda: Mock())
@@ -255,17 +255,18 @@ def test_useit_analyze_releases_claim_when_budget_wait_is_cancelled(monkeypatch)
     monkeypatch.setattr(main, "reserve_units", reserve)
     analyze = AsyncMock()
     monkeypatch.setattr(main, "_analyze", analyze)
+    request = main.UseItAnalyzeRequest(**_idempotent_analysis_request())
 
+    # Invoke the route directly: TestClient's ASGI cancellation adapter wraps
+    # an intentionally propagated cancellation as "No response returned".
     with pytest.raises(asyncio.CancelledError):
-        client.post(
-            "/v1/useit/analyze",
-            headers={"Idempotency-Key": "analysis-test-key-123456"},
-            json=_idempotent_analysis_request(),
-        )
+        asyncio.run(main.useit_analyze(request, idempotency_key="analysis-test-key-123456"))
 
-    store.release_before_provider_start.assert_awaited_once()
+    claim = store.claim.return_value.claim
+    reserve.assert_awaited_once_with(main.app, 1)
+    store.mark_outcome_unknown.assert_awaited_once_with(claim)
+    store.release_before_provider_start.assert_not_awaited()
     analyze.assert_not_awaited()
-    store.mark_outcome_unknown.assert_not_awaited()
 
 
 def test_useit_analyze_marks_provider_outcome_unknown_after_failure(monkeypatch):

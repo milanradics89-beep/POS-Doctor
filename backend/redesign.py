@@ -8,7 +8,12 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Header, HTTPException, Request
 from openai import AsyncOpenAI
 from backend.ai_budget import reserve_units
-from backend.idempotency_store import IdempotencyClaim, IdempotencyDecision, release_claim_before_provider_start
+from backend.idempotency_store import (
+    IdempotencyClaim,
+    IdempotencyDecision,
+    release_claim_before_provider_start,
+    retain_claim_after_ambiguous_budget_reservation,
+)
 from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter()
@@ -131,8 +136,10 @@ async def redesign(
             await reserve_units(http_request.app, 5)
         except asyncio.CancelledError:
             if claim is not None:
-                # The image provider has not been dispatched yet.
-                await release_claim_before_provider_start(store, claim)
+                # The five-unit budget write may have committed before its
+                # acknowledgement was interrupted. Retain the key to prevent
+                # a retry from reserving the same logical request twice.
+                await retain_claim_after_ambiguous_budget_reservation(store, claim)
             raise
         except Exception as exc:
             if claim is not None and isinstance(exc, HTTPException) and exc.status_code == 429:

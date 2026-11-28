@@ -23,7 +23,12 @@ from backend.ai_budget import daily_budget, reserve_units
 from backend.security import validate_public_http_url
 from google.api_core.exceptions import GoogleAPIError
 from backend.firestore_state import FirestoreState
-from backend.idempotency_store import FirestoreIdempotencyStore, IdempotencyDecision, release_claim_before_provider_start
+from backend.idempotency_store import (
+    FirestoreIdempotencyStore,
+    IdempotencyDecision,
+    release_claim_before_provider_start,
+    retain_claim_after_ambiguous_budget_reservation,
+)
 from backend.privacy_logging import log_event
 
 from backend.action_layer import router as action_router
@@ -572,9 +577,10 @@ async def useit_analyze(
         try:
             await reserve_units(app, 1)
         except asyncio.CancelledError:
-            # Cancellation occurs before provider dispatch. Finish the lease-checked
-            # cleanup in a shielded task, then preserve request cancellation.
-            await release_claim_before_provider_start(store, claim)
+            # The daily budget write may have committed before cancellation
+            # interrupted its acknowledgement. Keep this key blocked; releasing
+            # it could reserve the same logical request twice on retry.
+            await retain_claim_after_ambiguous_budget_reservation(store, claim)
             raise
         except Exception as exc:
             # A 429 is an explicit negative reservation result: Firestore
