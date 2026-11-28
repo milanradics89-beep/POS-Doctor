@@ -23,7 +23,8 @@ import { theme } from '../src/ui/theme';
 import { createIdempotencyKey } from '../src/core/intelligence/idempotencyKey';
 import { requestFailureKind } from '../src/ui/requestFailure';
 import { validateImageUri } from '../src/core/intelligence/imageInput';
-import { matchesImageFidelity, normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';
+import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';
+import { runAnalysisWithVerifiedPhoto, runVisualConceptWithVerifiedPhoto } from '../src/core/intelligence/verifiedPhotoRequest';
 import type { NormalizedImageFidelity } from '../src/core/intelligence/imageNormalization';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
@@ -256,7 +257,7 @@ function SelectedPhoto({ photo, concept, reset, photoFidelity }: {
   reset: () => void;
   photoFidelity: NormalizedImageFidelity | null;
 }) {
-  const accessibilityLabel = photoFidelity && matchesImageFidelity(photo, photoFidelity)
+  const accessibilityLabel = photoFidelity
     ? `Your selected photo, ${photoFidelity.outputWidth} by ${photoFidelity.outputHeight} pixels`
     : 'Your selected photo';
   return (
@@ -437,15 +438,7 @@ function prepareConceptRequest({
   setRendered: (image: string) => void;
 }) {
   async function createVisualConcept(retry = false) {
-    if (!photo || !redesign || redesignControllerRef.current) return;
-    if (!matchesImageFidelity(photo, photoFidelity)) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'The prepared photo could not be verified. Choose the photo again before creating a visual concept.',
-      });
-      return;
-    }
+    if (!redesign || redesignControllerRef.current) return;
 
     const controller = new AbortController();
     redesignControllerRef.current = controller;
@@ -455,8 +448,6 @@ function prepareConceptRequest({
     setNotice(null);
 
     try {
-      const api = new UseitApiProvider(API_URL);
-
       const products = redesign.products.map((product) => ({
         title: product.title,
         category: product.category,
@@ -467,17 +458,25 @@ function prepareConceptRequest({
         id: product.productId,
       }));
 
-      const renderedResult = await api.renderRedesign(
+      const guarded = await runVisualConceptWithVerifiedPhoto(
         photo,
-        redesign.prompt,
-        products,
-        controller.signal,
-        key,
-        retry
+        photoFidelity,
+        () => setNotice({
+          kind: 'error',
+          title: 'Photo unavailable',
+          description: 'The prepared photo could not be verified. Choose the photo again before creating a visual concept.',
+        }),
+        (verifiedPhoto) => new UseitApiProvider(API_URL).renderRedesign(
+          verifiedPhoto,
+          redesign.prompt,
+          products,
+          controller.signal,
+          key,
+          retry
+        )
       );
-
-      if (requestId !== redesignRequestIdRef.current) return;
-      setRendered(renderedResult.imageDataUrl);
+      if (!guarded.ok || requestId !== redesignRequestIdRef.current) return;
+      setRendered(guarded.value.imageDataUrl);
     } catch (error) {
       if (requestId !== redesignRequestIdRef.current) return;
       setNotice(conceptFailureNotice(error, () => { void createVisualConcept(true); }));
@@ -512,16 +511,6 @@ function createAnalysisRequest({ photo, photoFidelity, analysisControllerRef, an
       return;
     }
 
-    if (!photo) return;
-    if (!matchesImageFidelity(photo, photoFidelity)) {
-      setNotice({
-        kind: 'error',
-        title: 'Photo unavailable',
-        description: 'The prepared photo could not be verified. Choose the photo again before analysis.',
-      });
-      return;
-    }
-
     const controller = new AbortController();
     const requestId = ++analysisRequestIdRef.current;
     const isStale = () => controller.signal.aborted || requestId !== analysisRequestIdRef.current;
@@ -530,14 +519,23 @@ function createAnalysisRequest({ photo, photoFidelity, analysisControllerRef, an
     setNotice(null);
 
     try {
-      const response = await analyzeForConsumer(
-        new UseitApiProvider(API_URL),
+      const guarded = await runAnalysisWithVerifiedPhoto(
         photo,
-        intent,
-        { signal: controller.signal, idempotencyKey, actionable: true, refinement, refinementTarget, locale: 'en-HU', retry }
+        photoFidelity,
+        () => setNotice({
+          kind: 'error',
+          title: 'Photo unavailable',
+          description: 'The prepared photo could not be verified. Choose the photo again before analysis.',
+        }),
+        (verifiedPhoto) => analyzeForConsumer(
+          new UseitApiProvider(API_URL),
+          verifiedPhoto,
+          intent,
+          { signal: controller.signal, idempotencyKey, actionable: true, refinement, refinementTarget, locale: 'en-HU', retry }
+        )
       );
-      if (isStale()) return;
-      onComplete(response, intent);
+      if (!guarded.ok || isStale()) return;
+      onComplete(guarded.value, intent);
     } catch (error) {
       if (isStale()) return;
       setNotice(analysisFailureNotice(error, () => { void analyze(intent, idempotencyKey, refinement, refinementTarget, true); }));
@@ -608,9 +606,6 @@ export default function Home() {
 
   function setSelectedPhoto(imageUri: string, fidelity: NormalizedImageFidelity) {
     validateImageUri(imageUri);
-    if (!matchesImageFidelity(imageUri, fidelity)) {
-      throw new Error('Prepared photo fidelity metadata does not match the image payload.');
-    }
     cancelAnalysis();
     setNotice(null);
     setPhoto(imageUri);

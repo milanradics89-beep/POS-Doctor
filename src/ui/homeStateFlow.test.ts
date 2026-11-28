@@ -31,7 +31,8 @@ describe('USEIT Home recovery-state integration', () => {
   it('retains local fidelity metadata and verifies the same image before preview and API requests', () => {
     expect(home).toContain('const [photoFidelity, setPhotoFidelity] = useState<NormalizedImageFidelity | null>(null);');
     expect(home).toContain('setPhotoFidelity(fidelity);');
-    expect(home).toContain('matchesImageFidelity(photo, photoFidelity)');
+    expect(home).toContain('runAnalysisWithVerifiedPhoto(');
+    expect(home).toContain('runVisualConceptWithVerifiedPhoto(');
     expect(home).toContain('accessibilityLabel={accessibilityLabel}');
     expect(home).toContain('setPhotoFidelity(null);');
     expect(home).toContain('photoFidelity={props.photoFidelity}');

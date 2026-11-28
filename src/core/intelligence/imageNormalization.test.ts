@@ -15,6 +15,7 @@ vi.mock('expo-file-system/legacy', () => ({
 }));
 
 import { ImageManipulator } from 'expo-image-manipulator';
+import { fingerprintImage } from './imageFingerprint';
 import * as FileSystem from 'expo-file-system/legacy';
 import {
   normalizeImageAsset,
@@ -111,13 +112,15 @@ describe('normalizeImageAsset', () => {
         mimeType: 'image/jpeg',
         outputBytes: 3,
         payloadBytes: new TextEncoder().encode('data:image/jpeg;base64,Zm9v').byteLength,
+        payloadFingerprint: await fingerprintImage('data:image/jpeg;base64,Zm9v'),
         jpegQuality: 0.82,
         resizeLimit: 2048,
         aspectRatioDelta: 0,
       },
     });
-    expect(matchesImageFidelity(result.dataUrl, result.fidelity)).toBe(true);
-    expect(matchesImageFidelity(`${result.dataUrl}x`, result.fidelity)).toBe(false);
+    expect(await matchesImageFidelity(result.dataUrl, result.fidelity)).toBe(true);
+    expect(await matchesImageFidelity('data:image/jpeg;base64,YmFy', result.fidelity)).toBe(false);
+    expect(await matchesImageFidelity(`${result.dataUrl}x`, result.fidelity)).toBe(false);
     expect(FileSystem.deleteAsync).toHaveBeenCalledWith('file:///cache/normalized.jpg', { idempotent: true });
     expect(releaseImage).toHaveBeenCalledOnce();
     expect(releaseContext).toHaveBeenCalledOnce();

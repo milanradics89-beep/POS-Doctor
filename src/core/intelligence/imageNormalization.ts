@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { validateImageUri } from './imageInput';
+import { fingerprintImage } from './imageFingerprint';
 
 export const IMAGE_NORMALIZATION_MAX_DIMENSION = 2048;
 const MAX_DATA_URL_ATTEMPTS = [2048, 1600, 1280, 960, 720] as const;
@@ -15,6 +16,7 @@ export type NormalizedImageFidelity = {
   mimeType: 'image/jpeg';
   outputBytes: number;
   payloadBytes: number;
+  payloadFingerprint: string;
   jpegQuality: number;
   resizeLimit: number;
   aspectRatioDelta: number;
@@ -39,16 +41,22 @@ function base64ByteLength(value: string): number {
   return (value.length / 4) * 3 - padding;
 }
 
-export function matchesImageFidelity(
+export async function matchesImageFidelity(
   dataUrl: string,
   fidelity: NormalizedImageFidelity | null | undefined
-): boolean {
+): Promise<boolean> {
   if (!fidelity) return false;
   const prefix = `data:${fidelity.mimeType};base64,`;
   if (!dataUrl.startsWith(prefix)) return false;
   try {
-    return base64ByteLength(dataUrl.slice(prefix.length)) === fidelity.outputBytes
-      && new TextEncoder().encode(dataUrl).byteLength === fidelity.payloadBytes;
+    const encoded = dataUrl.slice(prefix.length);
+    if (
+      base64ByteLength(encoded) !== fidelity.outputBytes
+      || new TextEncoder().encode(dataUrl).byteLength !== fidelity.payloadBytes
+    ) {
+      return false;
+    }
+    return await fingerprintImage(dataUrl) === fidelity.payloadFingerprint;
   } catch {
     return false;
   }
@@ -93,6 +101,99 @@ export function getResizeAction(
   return width >= height ? { width: maxDimension } : { height: maxDimension };
 }
 
+async function createImageFidelity(
+  dataUrl: string,
+  base64: string,
+  sourceWidth: number,
+  sourceHeight: number,
+  sourceMimeType: string | null,
+  outputWidth: number,
+  outputHeight: number,
+  resizeLimit: number
+): Promise<NormalizedImageFidelity> {
+  const sourceAspectRatio = sourceWidth / sourceHeight;
+  const outputAspectRatio = outputWidth / outputHeight;
+  return {
+    sourceWidth,
+    sourceHeight,
+    sourceMimeType: typeof sourceMimeType === 'string' && sourceMimeType.trim()
+      ? sourceMimeType.toLowerCase()
+      : null,
+    outputWidth,
+    outputHeight,
+    mimeType: 'image/jpeg',
+    outputBytes: base64ByteLength(base64),
+    payloadBytes: new TextEncoder().encode(dataUrl).byteLength,
+    payloadFingerprint: await fingerprintImage(dataUrl),
+    jpegQuality: JPEG_QUALITY,
+    resizeLimit,
+    aspectRatioDelta: Math.abs(outputAspectRatio / sourceAspectRatio - 1),
+  };
+}
+
+function isImageTooLargeError(error: unknown): boolean {
+  return error instanceof Error && error.message === 'Image is too large. Please choose a smaller photo.';
+}
+
+async function normalizeAttempt(
+  uri: string,
+  sourceWidth: number,
+  sourceHeight: number,
+  sourceMimeType: string | null,
+  maxDimension: number
+): Promise<NormalizedImage | null> {
+  const context = ImageManipulator.manipulate(uri);
+  let rendered: Awaited<ReturnType<typeof context.renderAsync>> | undefined;
+  let outputUri: string | undefined;
+
+  try {
+    const resize = getResizeAction(sourceWidth, sourceHeight, maxDimension);
+    if (resize) context.resize(resize);
+
+    rendered = await context.renderAsync();
+    const saved = await rendered.saveAsync({
+      format: SaveFormat.JPEG,
+      compress: JPEG_QUALITY,
+      base64: true,
+    });
+    outputUri = saved.uri;
+
+    if (!saved.base64) throw new Error('The image could not be encoded.');
+    const dataUrl = `data:image/jpeg;base64,${saved.base64}`;
+    try {
+      validateImageUri(dataUrl);
+      if (
+        !Number.isFinite(saved.width)
+        || !Number.isFinite(saved.height)
+        || saved.width <= 0
+        || saved.height <= 0
+      ) {
+        throw new Error('Normalized image dimensions are unavailable.');
+      }
+      const fidelity = await createImageFidelity(
+        dataUrl,
+        saved.base64,
+        sourceWidth,
+        sourceHeight,
+        sourceMimeType,
+        saved.width,
+        saved.height,
+        maxDimension
+      );
+      return { dataUrl, width: saved.width, height: saved.height, fidelity };
+    } catch (error) {
+      if (isImageTooLargeError(error)) return null;
+      throw error;
+    }
+  } finally {
+    if (outputUri) {
+      await FileSystem.deleteAsync(outputUri, { idempotent: true }).catch(() => undefined);
+    }
+    rendered?.release();
+    context.release();
+  }
+}
+
 export async function normalizeImageAsset(
   uri: string,
   sourceWidth: number,
@@ -104,69 +205,8 @@ export async function normalizeImageAsset(
   }
 
   for (const maxDimension of MAX_DATA_URL_ATTEMPTS) {
-    const context = ImageManipulator.manipulate(uri);
-    let rendered: Awaited<ReturnType<typeof context.renderAsync>> | undefined;
-    let outputUri: string | undefined;
-
-    try {
-      const resize = getResizeAction(sourceWidth, sourceHeight, maxDimension);
-      if (resize) context.resize(resize);
-
-      rendered = await context.renderAsync();
-      const saved = await rendered.saveAsync({
-        format: SaveFormat.JPEG,
-        compress: JPEG_QUALITY,
-        base64: true,
-      });
-      outputUri = saved.uri;
-
-      if (!saved.base64) throw new Error('The image could not be encoded.');
-      const dataUrl = `data:image/jpeg;base64,${saved.base64}`;
-      try {
-        validateImageUri(dataUrl);
-        if (
-          !Number.isFinite(saved.width) ||
-          !Number.isFinite(saved.height) ||
-          saved.width <= 0 ||
-          saved.height <= 0
-        ) {
-          throw new Error('Normalized image dimensions are unavailable.');
-        }
-        const outputBytes = base64ByteLength(saved.base64);
-        const payloadBytes = new TextEncoder().encode(dataUrl).byteLength;
-        const sourceAspectRatio = sourceWidth / sourceHeight;
-        const outputAspectRatio = saved.width / saved.height;
-        const fidelity: NormalizedImageFidelity = {
-          sourceWidth,
-          sourceHeight,
-          sourceMimeType: typeof sourceMimeType === 'string' && sourceMimeType.trim()
-            ? sourceMimeType.toLowerCase()
-            : null,
-          outputWidth: saved.width,
-          outputHeight: saved.height,
-          mimeType: 'image/jpeg',
-          outputBytes,
-          payloadBytes,
-          jpegQuality: JPEG_QUALITY,
-          resizeLimit: maxDimension,
-          aspectRatioDelta: Math.abs(outputAspectRatio / sourceAspectRatio - 1),
-        };
-        if (!matchesImageFidelity(dataUrl, fidelity)) {
-          throw new Error('Normalized image fidelity metadata is inconsistent.');
-        }
-        return { dataUrl, width: saved.width, height: saved.height, fidelity };
-      } catch (error) {
-        if (!(error instanceof Error) || error.message !== 'Image is too large. Please choose a smaller photo.') {
-          throw error;
-        }
-      }
-    } finally {
-      if (outputUri) {
-        await FileSystem.deleteAsync(outputUri, { idempotent: true }).catch(() => undefined);
-      }
-      rendered?.release();
-      context.release();
-    }
+    const normalized = await normalizeAttempt(uri, sourceWidth, sourceHeight, sourceMimeType, maxDimension);
+    if (normalized) return normalized;
   }
 
   throw new Error('This photo is too large to process. Choose a smaller image.');
