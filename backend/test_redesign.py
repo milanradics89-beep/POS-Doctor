@@ -1,6 +1,9 @@
+import asyncio
 import base64
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -175,6 +178,31 @@ def test_keyed_redesign_releases_claim_only_when_budget_is_explicitly_denied(mon
     provider.images.edit.assert_not_awaited()
     store.release_before_provider_start.assert_awaited_once_with(claim)
     store.mark_completed.assert_not_awaited()
+    store.mark_outcome_unknown.assert_not_awaited()
+
+
+def test_keyed_redesign_releases_claim_when_budget_wait_is_cancelled(monkeypatch):
+    claim = IdempotencyClaim("doc", "lease")
+    store = SimpleNamespace(
+        claim=AsyncMock(return_value=IdempotencyClaimResult(IdempotencyDecision.CLAIMED, claim)),
+        mark_completed=AsyncMock(return_value=True),
+        mark_outcome_unknown=AsyncMock(return_value=True),
+        release_before_provider_start=AsyncMock(return_value=True),
+    )
+    provider = SimpleNamespace(images=SimpleNamespace(edit=AsyncMock()))
+    monkeypatch.setattr(app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr("backend.redesign.reserve_units", AsyncMock(side_effect=asyncio.CancelledError()))
+    monkeypatch.setattr("backend.redesign._client", lambda _: provider)
+
+    with pytest.raises(asyncio.CancelledError):
+        client.post(
+            "/v1/redesign",
+            json={"imageUri": image_uri(), "prompt": "Keep the existing windows and room dimensions."},
+            headers={"Idempotency-Key": "redesign-test-request"},
+        )
+
+    store.release_before_provider_start.assert_awaited_once_with(claim)
+    provider.images.edit.assert_not_awaited()
     store.mark_outcome_unknown.assert_not_awaited()
 
 

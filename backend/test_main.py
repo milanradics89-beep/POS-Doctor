@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from unittest.mock import AsyncMock, Mock, patch
@@ -243,6 +244,27 @@ def test_useit_analyze_releases_claim_when_budget_reservation_fails(monkeypatch,
         store.release_before_provider_start.assert_awaited_once()
     else:
         store.release_before_provider_start.assert_not_awaited()
+    store.mark_outcome_unknown.assert_not_awaited()
+
+
+def test_useit_analyze_releases_claim_when_budget_wait_is_cancelled(monkeypatch):
+    store = FakeIdempotencyStore()
+    monkeypatch.setattr(main.app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr(main, "_get_client", lambda: Mock())
+    reserve = AsyncMock(side_effect=asyncio.CancelledError())
+    monkeypatch.setattr(main, "reserve_units", reserve)
+    analyze = AsyncMock()
+    monkeypatch.setattr(main, "_analyze", analyze)
+
+    with pytest.raises(asyncio.CancelledError):
+        client.post(
+            "/v1/useit/analyze",
+            headers={"Idempotency-Key": "analysis-test-key-123456"},
+            json=_idempotent_analysis_request(),
+        )
+
+    store.release_before_provider_start.assert_awaited_once()
+    analyze.assert_not_awaited()
     store.mark_outcome_unknown.assert_not_awaited()
 
 

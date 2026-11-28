@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import io
 import json
@@ -7,7 +8,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Header, HTTPException, Request
 from openai import AsyncOpenAI
 from backend.ai_budget import reserve_units
-from backend.idempotency_store import IdempotencyClaim, IdempotencyDecision
+from backend.idempotency_store import IdempotencyClaim, IdempotencyDecision, release_claim_before_provider_start
 from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter()
@@ -128,13 +129,18 @@ async def redesign(
 
         try:
             await reserve_units(http_request.app, 5)
+        except asyncio.CancelledError:
+            if claim is not None:
+                # The image provider has not been dispatched yet.
+                await release_claim_before_provider_start(store, claim)
+            raise
         except Exception as exc:
             if claim is not None and isinstance(exc, HTTPException) and exc.status_code == 429:
                 # Only an explicit budget denial proves that no units were reserved.
                 # Transport and 503 failures may follow a committed write; retain
                 # the key rather than allowing a retry to reserve twice.
                 try:
-                    await store.release_before_provider_start(claim)
+                    await release_claim_before_provider_start(store, claim)
                 except Exception as release_exc:
                     logger.warning(
                         "Redesign idempotency pre-provider release failed (exception_type=%s)",

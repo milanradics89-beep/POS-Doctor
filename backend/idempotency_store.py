@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import logging
 import re
 import secrets
 from dataclasses import dataclass
@@ -39,6 +40,62 @@ class IdempotencyClaim:
 class IdempotencyClaimResult:
     decision: IdempotencyDecision
     claim: IdempotencyClaim | None = None
+
+
+def _consume_release_cleanup(task: asyncio.Task[bool]) -> None:
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        return
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "Pre-provider idempotency release cleanup failed after caller exit (exception_type=%s)",
+            type(exc).__name__,
+        )
+
+
+async def release_claim_before_provider_start(
+    store,
+    claim: IdempotencyClaim,
+    *,
+    attempts: int = 3,
+    timeout_seconds: float = 3.0,
+) -> bool:
+    """Release a pre-provider claim with bounded retries and cancellation shielding.
+
+    This helper is only for paths that have not dispatched a billable provider call.
+    The store method remains lease-checked; a changed lease is never deleted.
+    """
+    async def release_with_retry() -> bool:
+        for attempt in range(attempts):
+            try:
+                return await store.release_before_provider_start(claim)
+            except Exception:
+                if attempt + 1 >= attempts:
+                    raise
+                await asyncio.sleep(0.05 * (2 ** attempt))
+        return False
+
+    cleanup = asyncio.create_task(release_with_retry())
+    try:
+        released = await asyncio.wait_for(asyncio.shield(cleanup), timeout=timeout_seconds)
+    except asyncio.CancelledError:
+        cleanup.add_done_callback(_consume_release_cleanup)
+        raise
+    except asyncio.TimeoutError:
+        cleanup.add_done_callback(_consume_release_cleanup)
+        logging.getLogger(__name__).warning("Pre-provider idempotency release exceeded its bounded cleanup window")
+        return False
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "Pre-provider idempotency release failed (exception_type=%s)",
+            type(exc).__name__,
+        )
+        return False
+
+    if not released:
+        logging.getLogger(__name__).warning("Pre-provider idempotency release was not confirmed because claim ownership changed")
+    return released
 
 
 def _utc_now() -> datetime:
@@ -303,7 +360,9 @@ class FirestoreIdempotencyStore:
         async def release_in_transaction(transaction):
             snapshot = await reference.get(transaction=transaction)
             if not snapshot.exists:
-                return False
+                # A previous delete may have committed while its acknowledgement
+                # was lost. Treat the already-absent claim as idempotent success.
+                return True
             existing = snapshot.to_dict() or {}
             lease = existing.get("lease_token")
             if (

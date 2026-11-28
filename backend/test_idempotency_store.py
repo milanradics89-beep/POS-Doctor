@@ -13,7 +13,9 @@ from google.cloud.firestore_v1.async_transaction import AsyncTransaction
 
 from backend.idempotency_store import (
     FirestoreIdempotencyStore,
+    IdempotencyClaim,
     IdempotencyDecision,
+    release_claim_before_provider_start,
 )
 
 SECRET = "test-only-idempotency-secret-32-bytes-minimum"
@@ -131,10 +133,55 @@ async def test_pre_provider_failure_can_release_claim_for_a_safe_retry():
         claimed = await first.claim(key, payload)
         assert claimed.claim is not None
         assert await first.release_before_provider_start(claimed.claim) is True
+        # Releasing after a lost delete acknowledgement is idempotent.
+        assert await first.release_before_provider_start(claimed.claim) is True
         retried = await second.claim(key, payload)
         assert retried.decision is IdempotencyDecision.CLAIMED
     finally:
         await _close_pair(collection, first_client, second_client)
+
+
+@pytest.mark.asyncio
+async def test_pre_provider_release_retries_transient_store_errors():
+    attempts = 0
+
+    async def release(_claim):
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            raise TimeoutError("temporary Firestore acknowledgement failure")
+        return True
+
+    store = SimpleNamespace(release_before_provider_start=release)
+    claim = IdempotencyClaim("document", "lease")
+    assert await release_claim_before_provider_start(store, claim) is True
+    assert attempts == 3
+
+
+@pytest.mark.asyncio
+async def test_pre_provider_release_continues_after_request_cancellation():
+    started = asyncio.Event()
+    finish = asyncio.Event()
+    completed = asyncio.Event()
+
+    async def release(_claim):
+        started.set()
+        await finish.wait()
+        completed.set()
+        return True
+
+    store = SimpleNamespace(release_before_provider_start=release)
+    claim = IdempotencyClaim("document", "lease")
+    request_task = asyncio.create_task(
+        release_claim_before_provider_start(store, claim, timeout_seconds=2.0)
+    )
+    await asyncio.wait_for(started.wait(), timeout=1.0)
+    request_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await request_task
+
+    finish.set()
+    await asyncio.wait_for(completed.wait(), timeout=1.0)
 
 
 @pytest.mark.asyncio

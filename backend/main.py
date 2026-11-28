@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import binascii
 import inspect
@@ -22,7 +23,7 @@ from backend.ai_budget import daily_budget, reserve_units
 from backend.security import validate_public_http_url
 from google.api_core.exceptions import GoogleAPIError
 from backend.firestore_state import FirestoreState
-from backend.idempotency_store import FirestoreIdempotencyStore, IdempotencyDecision
+from backend.idempotency_store import FirestoreIdempotencyStore, IdempotencyDecision, release_claim_before_provider_start
 from backend.privacy_logging import log_event
 
 from backend.action_layer import router as action_router
@@ -560,7 +561,7 @@ async def useit_analyze(
             provider_client = _get_client()
         except Exception as exc:
             try:
-                await store.release_before_provider_start(claim)
+                await release_claim_before_provider_start(store, claim)
             except Exception as release_exc:
                 logger.warning(
                     "Analysis idempotency pre-provider release failed (exception_type=%s)",
@@ -570,6 +571,11 @@ async def useit_analyze(
 
         try:
             await reserve_units(app, 1)
+        except asyncio.CancelledError:
+            # Cancellation occurs before provider dispatch. Finish the lease-checked
+            # cleanup in a shielded task, then preserve request cancellation.
+            await release_claim_before_provider_start(store, claim)
+            raise
         except Exception as exc:
             # A 429 is an explicit negative reservation result: Firestore
             # confirmed that no units were consumed. A 503/transport error may
@@ -577,7 +583,7 @@ async def useit_analyze(
             # claim and require reconciliation rather than risking a second charge.
             if isinstance(exc, HTTPException) and exc.status_code == 429:
                 try:
-                    await store.release_before_provider_start(claim)
+                    await release_claim_before_provider_start(store, claim)
                 except Exception as release_exc:
                     logger.warning(
                         "Analysis idempotency pre-provider release failed (exception_type=%s)",
