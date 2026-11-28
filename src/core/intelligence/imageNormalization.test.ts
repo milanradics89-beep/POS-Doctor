@@ -15,8 +15,15 @@ vi.mock('expo-file-system/legacy', () => ({
 }));
 
 import { ImageManipulator } from 'expo-image-manipulator';
+import { fingerprintImage } from './imageFingerprint';
 import * as FileSystem from 'expo-file-system/legacy';
-import { normalizeImageAsset, getResizeAction, resolveVisualDimensions, IMAGE_NORMALIZATION_MAX_DIMENSION } from './imageNormalization';
+import {
+  normalizeImageAsset,
+  getResizeAction,
+  resolveVisualDimensions,
+  IMAGE_NORMALIZATION_MAX_DIMENSION,
+  matchesImageFidelity,
+} from './imageNormalization';
 
 describe('image normalization resize policy', () => {
   it.each([5, 6, 7, 8])('swaps encoded axes for EXIF orientation %s', (orientation) => {
@@ -83,7 +90,7 @@ describe('normalizeImageAsset', () => {
 
     mocks.manipulate.mockReturnValue(context as unknown as ReturnType<typeof ImageManipulator.manipulate>);
 
-    const result = await normalizeImageAsset('file:///photos/source.heic', 4032, 3024);
+    const result = await normalizeImageAsset('file:///photos/source.heic', 4032, 3024, 'image/heic');
 
     expect(mocks.manipulate).toHaveBeenCalledWith('file:///photos/source.heic');
     expect(resize).toHaveBeenCalledWith({ width: 2048 });
@@ -96,8 +103,94 @@ describe('normalizeImageAsset', () => {
       dataUrl: 'data:image/jpeg;base64,Zm9v',
       width: 2048,
       height: 1536,
+      fidelity: {
+        sourceWidth: 4032,
+        sourceHeight: 3024,
+        sourceMimeType: 'image/heic',
+        outputWidth: 2048,
+        outputHeight: 1536,
+        mimeType: 'image/jpeg',
+        outputBytes: 3,
+        payloadBytes: new TextEncoder().encode('data:image/jpeg;base64,Zm9v').byteLength,
+        payloadFingerprint: await fingerprintImage('data:image/jpeg;base64,Zm9v'),
+        jpegQuality: 0.82,
+        resizeLimit: 2048,
+        aspectRatioDelta: 0,
+      },
     });
+    expect(await matchesImageFidelity(result.dataUrl, result.fidelity)).toBe(true);
+    expect(await matchesImageFidelity('data:image/jpeg;base64,YmFy', result.fidelity)).toBe(false);
+    expect(await matchesImageFidelity(`${result.dataUrl}x`, result.fidelity)).toBe(false);
     expect(FileSystem.deleteAsync).toHaveBeenCalledWith('file:///cache/normalized.jpg', { idempotent: true });
+    expect(releaseImage).toHaveBeenCalledOnce();
+    expect(releaseContext).toHaveBeenCalledOnce();
+  });
+
+  it('retries with a smaller bound and cleans every temporary output', async () => {
+    const firstRelease = vi.fn();
+    const firstContextRelease = vi.fn();
+    const secondRelease = vi.fn();
+    const secondContextRelease = vi.fn();
+    const firstDelete = 'file:///cache/oversized.jpg';
+    const secondDelete = 'file:///cache/reduced.jpg';
+    const firstSave = vi.fn().mockResolvedValue({
+      uri: firstDelete,
+      width: 2048,
+      height: 1536,
+      base64: 'A'.repeat(7_900_000),
+    });
+    const secondSave = vi.fn().mockResolvedValue({
+      uri: secondDelete,
+      width: 1600,
+      height: 1200,
+      base64: 'Zm9v',
+    });
+    const firstContext = {
+      resize: vi.fn(),
+      renderAsync: vi.fn().mockResolvedValue({ saveAsync: firstSave, release: firstRelease }),
+      release: firstContextRelease,
+    };
+    const secondContext = {
+      resize: vi.fn(),
+      renderAsync: vi.fn().mockResolvedValue({ saveAsync: secondSave, release: secondRelease }),
+      release: secondContextRelease,
+    };
+    mocks.manipulate
+      .mockReturnValueOnce(firstContext as unknown as ReturnType<typeof ImageManipulator.manipulate>)
+      .mockReturnValueOnce(secondContext as unknown as ReturnType<typeof ImageManipulator.manipulate>);
+
+    const result = await normalizeImageAsset('file:///photos/source.heic', 4032, 3024, 'image/heic');
+
+    expect(mocks.manipulate).toHaveBeenCalledTimes(2);
+    expect(firstContext.resize).toHaveBeenCalledWith({ width: 2048 });
+    expect(secondContext.resize).toHaveBeenCalledWith({ width: 1600 });
+    expect(result.fidelity.resizeLimit).toBe(1600);
+    expect(result.fidelity.outputBytes).toBe(3);
+    expect(FileSystem.deleteAsync).toHaveBeenNthCalledWith(1, firstDelete, { idempotent: true });
+    expect(FileSystem.deleteAsync).toHaveBeenNthCalledWith(2, secondDelete, { idempotent: true });
+    expect(firstRelease).toHaveBeenCalledOnce();
+    expect(firstContextRelease).toHaveBeenCalledOnce();
+    expect(secondRelease).toHaveBeenCalledOnce();
+    expect(secondContextRelease).toHaveBeenCalledOnce();
+  });
+
+  it('rejects invalid base64 output and still releases temporary resources', async () => {
+    const releaseImage = vi.fn();
+    const releaseContext = vi.fn();
+    const saveAsync = vi.fn().mockResolvedValue({
+      uri: 'file:///cache/invalid.jpg',
+      width: 1200,
+      height: 800,
+      base64: 'not-base64',
+    });
+    mocks.manipulate.mockReturnValue({
+      resize: vi.fn(),
+      renderAsync: vi.fn().mockResolvedValue({ saveAsync, release: releaseImage }),
+      release: releaseContext,
+    } as unknown as ReturnType<typeof ImageManipulator.manipulate>);
+
+    await expect(normalizeImageAsset('file:///photos/source.heic', 1200, 800)).rejects.toThrow('The image could not be encoded.');
+    expect(FileSystem.deleteAsync).toHaveBeenCalledWith('file:///cache/invalid.jpg', { idempotent: true });
     expect(releaseImage).toHaveBeenCalledOnce();
     expect(releaseContext).toHaveBeenCalledOnce();
   });

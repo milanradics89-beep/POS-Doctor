@@ -17,13 +17,28 @@ describe('USEIT Home recovery-state integration', () => {
     expect(home).toContain("import { validateImageUri } from '../src/core/intelligence/imageInput';");
     expect(home).toContain('validateImageUri(imageUri);');
     expect(home).toContain("import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';");
+    expect(home).toContain("import type { NormalizedImageFidelity } from '../src/core/intelligence/imageNormalization';");
     expect(home).toContain('await selectPickerResult(r, generation, copy.decode)');
     expect(home).toContain('await prepareAndSelectPhoto(asset.uri, asset.width, asset.height');
     expect(home).toContain('asset.exif?.Orientation');
     expect(home).toContain('resolveVisualDimensions(dimensions.width, dimensions.height, orientation)');
-    expect(home).toContain('const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);');
-    expect(home).toContain('setSelectedPhoto(normalized.dataUrl);');
+    expect(home).toContain('const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight, sourceMimeType);');
+    expect(home).toContain('setSelectedPhoto(normalized.dataUrl, normalized.fidelity);');
+    expect(home).toContain('asset.mimeType');
     expect(home).not.toContain('setPhoto(`data:${a.mimeType || \'image/jpeg\'};base64,${a.base64}`)');
+  });
+
+  it('retains local fidelity metadata and verifies the same image before preview and API requests', () => {
+    expect(home).toContain('const [photoFidelity, setPhotoFidelity] = useState<NormalizedImageFidelity | null>(null);');
+    expect(home).toContain('setPhotoFidelity(fidelity);');
+    expect(home).toContain('runAnalysisWithVerifiedPhoto(');
+    expect(home).toContain('runVisualConceptWithVerifiedPhoto(');
+    expect(home).toContain('() => !controller.signal.aborted && requestId === redesignRequestIdRef.current');
+    expect(home).toContain('() => !isStale()');
+    expect(home).toContain('accessibilityLabel={accessibilityLabel}');
+    expect(home).toContain('setPhotoFidelity(null);');
+    expect(home).toContain('photoFidelity={props.photoFidelity}');
+    expect(home).toContain('The prepared photo could not be verified.');
   });
 
   it('invalidates a pending visual concept before photo preparation can await', () => {

@@ -33,3 +33,7 @@ Start with the [release register](docs/RELEASE-REGISTER.md) for current configur
 <!-- /coderabbit-ai-generated:v1 -->
 
 <!-- /coderabbit-ai-generated:v1 -->
+
+## Web delivery
+
+Serve exported web builds over HTTPS. Browser SHA-256 verification uses WebCrypto or Expo Crypto, which require a secure browser context; browsers treat localhost as secure. On insecure non-localhost HTTP origins, USEIT deliberately refuses image normalization rather than using a weaker digest path.
