@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 function decodeImageBytes(dataUrl: string): Uint8Array<ArrayBuffer> {
   const match = /^data:image\/[a-z0-9.+-]+;base64,([A-Za-z0-9+/]+={0,2})$/i.exec(dataUrl);
   if (!match || match[1].length % 4 !== 0) {
@@ -9,11 +7,12 @@ function decodeImageBytes(dataUrl: string): Uint8Array<ArrayBuffer> {
 }
 
 async function digestSha256(bytes: Uint8Array<ArrayBuffer>): Promise<ArrayBuffer> {
-  // Browser image processing must fail closed outside secure contexts. React Native
-  // also exposes a window-like global, but it does not provide browser security state.
+  // Browser windows expose isSecureContext; React Native's window-like global does not.
+  // Avoid importing React Native's Flow entry into Node/Vitest while keeping insecure web fail-closed.
   if (
-    Platform.OS === 'web'
-    && (typeof window === 'undefined' || window.isSecureContext !== true)
+    typeof window !== 'undefined'
+    && 'isSecureContext' in window
+    && window.isSecureContext !== true
   ) {
     throw new Error('Image verification requires a secure browser context. Open USEIT over HTTPS or localhost.');
   }
