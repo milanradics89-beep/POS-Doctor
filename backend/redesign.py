@@ -25,6 +25,46 @@ MAX_SOURCE_BYTES = 6_000_000
 MAX_GENERATED_IMAGE_BYTES = 12_000_000
 MAX_PNG_DECODED_BYTES = 64 * 1024 * 1024
 
+def _paeth_predictor(left: int, above: int, upper_left: int) -> int:
+    estimate = left + above - upper_left
+    left_distance = abs(estimate - left)
+    above_distance = abs(estimate - above)
+    upper_left_distance = abs(estimate - upper_left)
+    if left_distance <= above_distance and left_distance <= upper_left_distance:
+        return left
+    if above_distance <= upper_left_distance:
+        return above
+    return upper_left
+
+
+def _unfilter_png_scanline(
+    scanline: bytes,
+    previous: bytes,
+    bytes_per_pixel: int,
+    filter_type: int,
+) -> bytes | None:
+    if filter_type == 0:
+        return scanline
+    if filter_type not in (1, 2, 3, 4) or len(previous) != len(scanline):
+        return None
+
+    reconstructed = bytearray(scanline)
+    for index in range(len(reconstructed)):
+        left = reconstructed[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+        above = previous[index]
+        upper_left = previous[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+        if filter_type == 1:
+            predictor = left
+        elif filter_type == 2:
+            predictor = above
+        elif filter_type == 3:
+            predictor = (left + above) // 2
+        else:
+            predictor = _paeth_predictor(left, above, upper_left)
+        reconstructed[index] = (reconstructed[index] + predictor) & 0xFF
+    return bytes(reconstructed)
+
+
 def _is_complete_png(raw: bytes) -> bool:
     """Validate the complete PNG container and bounded decompressed scanlines."""
     if len(raw) < 57 or len(raw) > MAX_GENERATED_IMAGE_BYTES or not raw.startswith(PNG_SIGNATURE):
@@ -36,6 +76,7 @@ def _is_complete_png(raw: bytes) -> bool:
     seen_idat = False
     idat_closed = False
     seen_iend = False
+    palette_entries = 0
     compressed_idat = bytearray()
     width = height = bit_depth = color_type = interlace_method = 0
 
@@ -103,6 +144,7 @@ def _is_complete_png(raw: bytes) -> bool:
                 return False
             if color_type == 3 and chunk_length // 3 > (1 << bit_depth):
                 return False
+            palette_entries = chunk_length // 3
             seen_plte = True
         elif chunk_type == b"IDAT":
             if idat_closed:
@@ -149,7 +191,7 @@ def _is_complete_png(raw: bytes) -> bool:
         if pass_width and pass_height:
             row_bytes = (pass_width * bits_per_pixel + 7) // 8
             expected_decoded_bytes += pass_height * (row_bytes + 1)
-            pass_rows.append((row_bytes, pass_height))
+            pass_rows.append((row_bytes, pass_width, pass_height))
 
     if not 0 < expected_decoded_bytes <= MAX_PNG_DECODED_BYTES:
         return False
@@ -168,11 +210,34 @@ def _is_complete_png(raw: bytes) -> bool:
         return False
 
     cursor = 0
-    for row_bytes, row_count in pass_rows:
+    bytes_per_pixel = max(1, (bits_per_pixel + 7) // 8)
+    palette_mask = (1 << bit_depth) - 1
+    for row_bytes, pass_width, row_count in pass_rows:
+        previous = bytes(row_bytes)
         for _ in range(row_count):
-            if scanlines[cursor] > 4:
+            filter_type = scanlines[cursor]
+            row_start = cursor + 1
+            row_end = row_start + row_bytes
+            if filter_type > 4:
                 return False
-            cursor += row_bytes + 1
+            if color_type == 3:
+                row = _unfilter_png_scanline(
+                    scanlines[row_start:row_end],
+                    previous,
+                    bytes_per_pixel,
+                    filter_type,
+                )
+                if row is None:
+                    return False
+                previous = row
+                for pixel in range(pass_width):
+                    bit_offset = pixel * bit_depth
+                    byte_index = bit_offset // 8
+                    shift = 8 - bit_depth - (bit_offset % 8)
+                    palette_index = (row[byte_index] >> shift) & palette_mask
+                    if palette_index >= palette_entries:
+                        return False
+            cursor = row_end
     return cursor == len(scanlines)
 
 

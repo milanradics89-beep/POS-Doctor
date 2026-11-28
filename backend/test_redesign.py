@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import zlib
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -19,6 +20,28 @@ PNG_BYTES = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADE
 def image_uri(payload: bytes = PNG_BYTES) -> str:
     return "data:image/png;base64," + base64.b64encode(payload).decode()
 
+
+def _png_chunk(chunk_type: bytes, data: bytes) -> bytes:
+    crc = zlib.crc32(chunk_type + data) & 0xFFFFFFFF
+    return len(data).to_bytes(4, "big") + chunk_type + data + crc.to_bytes(4, "big")
+
+
+def _indexed_png(pixel_index: int, bit_depth: int) -> bytes:
+    header = (1).to_bytes(4, "big") + (1).to_bytes(4, "big") + bytes((bit_depth, 3, 0, 0, 0))
+    packed_pixel = pixel_index << (8 - bit_depth)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + _png_chunk(b"IHDR", header)
+        + _png_chunk(b"PLTE", b"\x00\x00\x00")
+        + _png_chunk(b"IDAT", zlib.compress(bytes((0, packed_pixel))))
+        + _png_chunk(b"IEND", b"")
+    )
+
+
+@pytest.mark.parametrize("bit_depth", [1, 2, 4, 8])
+def test_complete_png_validator_checks_indexed_palette_bounds(bit_depth):
+    assert _is_complete_png(_indexed_png(0, bit_depth))
+    assert not _is_complete_png(_indexed_png(1, bit_depth))
 
 
 def test_complete_png_validator_rejects_truncated_and_corrupt_png():
