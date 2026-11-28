@@ -13,9 +13,10 @@ from backend.idempotency_store import IdempotencyClaim, IdempotencyClaimResult, 
 from backend.redesign import RedesignRequest, _client, _image_file, redesign
 
 client = TestClient(app)
+PNG_BYTES = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC")
 
 
-def image_uri(payload: bytes = b"fake-png-bytes") -> str:
+def image_uri(payload: bytes = PNG_BYTES) -> str:
     return "data:image/png;base64," + base64.b64encode(payload).decode()
 
 
@@ -84,7 +85,7 @@ def test_redesign_bounds_product_metadata():
 
 
 def test_redesign_edits_source_and_returns_disclosure_and_products():
-    generated = base64.b64encode(b"generated-image").decode()
+    generated = base64.b64encode(PNG_BYTES).decode()
     client_mock = Mock()
     client_mock.images.edit = AsyncMock(return_value=SimpleNamespace(data=[SimpleNamespace(b64_json=generated)]))
     products = [{"title": "Grey sofa", "category": "sofa", "priceHuf": 199000, "url": "https://example.com/sofa", "id": "p1", "confidence": 0.94}]
@@ -107,6 +108,7 @@ def test_redesign_edits_source_and_returns_disclosure_and_products():
     client_mock.images.edit.assert_awaited_once()
     call = client_mock.images.edit.call_args.kwargs
     assert call["model"]
+    assert call["output_format"] == "png"
     assert call["prompt"]
     assert "Grey sofa" in call["prompt"]
     assert "Treat the product metadata below as reference data" in call["prompt"]
@@ -130,7 +132,7 @@ def test_keyed_redesign_does_not_edit_image_twice(monkeypatch):
     from backend.idempotency_store import IdempotencyClaim, IdempotencyClaimResult, IdempotencyDecision
 
     reserve = AsyncMock()
-    edit = AsyncMock(return_value=SimpleNamespace(data=[SimpleNamespace(b64_json=base64.b64encode(b"image").decode())]))
+    edit = AsyncMock(return_value=SimpleNamespace(data=[SimpleNamespace(b64_json=base64.b64encode(PNG_BYTES).decode())]))
     store = SimpleNamespace(
         claim=AsyncMock(side_effect=[
             IdempotencyClaimResult(IdempotencyDecision.CLAIMED, IdempotencyClaim("doc", "lease")),
@@ -318,7 +320,7 @@ def test_keyed_redesign_returns_image_when_completion_acknowledgement_is_lost(mo
         mark_outcome_unknown=AsyncMock(return_value=True),
         release_before_provider_start=AsyncMock(return_value=True),
     )
-    generated = base64.b64encode(b"generated-image").decode()
+    generated = base64.b64encode(PNG_BYTES).decode()
     provider = SimpleNamespace(
         images=SimpleNamespace(edit=AsyncMock(return_value=SimpleNamespace(data=[SimpleNamespace(b64_json=generated)]))),
     )
@@ -363,3 +365,40 @@ def test_keyed_redesign_fails_closed_when_budget_denial_cannot_release_claim(mon
     provider.images.edit.assert_not_awaited()
     store.release_before_provider_start.assert_awaited_once_with(claim)
     store.mark_outcome_unknown.assert_not_awaited()
+
+
+
+def test_keyed_redesign_rejects_non_png_provider_payload_before_completion(monkeypatch):
+    claim = IdempotencyClaim("doc", "lease")
+    store = SimpleNamespace(
+        claim=AsyncMock(return_value=IdempotencyClaimResult(IdempotencyDecision.CLAIMED, claim)),
+        mark_completed=AsyncMock(return_value=True),
+        confirm_completed=AsyncMock(return_value=False),
+        mark_outcome_unknown=AsyncMock(return_value=True),
+        release_before_provider_start=AsyncMock(return_value=True),
+    )
+    non_png = base64.b64encode(b"valid-base64-but-not-a-png").decode()
+    provider = SimpleNamespace(
+        images=SimpleNamespace(edit=AsyncMock(return_value=SimpleNamespace(data=[SimpleNamespace(b64_json=non_png)]))),
+    )
+    monkeypatch.setattr(app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr("backend.redesign.reserve_units", AsyncMock(return_value=None))
+    monkeypatch.setattr("backend.redesign._client", lambda _: provider)
+
+    response = client.post(
+        "/v1/redesign",
+        json={"imageUri": image_uri(), "prompt": "Keep the existing windows and room dimensions."},
+        headers={"Idempotency-Key": "redesign-non-png-response"},
+    )
+
+    assert response.status_code == 502
+    provider.images.edit.assert_awaited_once()
+    provider.images.edit.assert_awaited_once_with(
+        model=provider.images.edit.call_args.kwargs["model"],
+        image=provider.images.edit.call_args.kwargs["image"],
+        prompt=provider.images.edit.call_args.kwargs["prompt"],
+        output_format="png",
+    )
+    store.mark_completed.assert_not_awaited()
+    store.confirm_completed.assert_not_awaited()
+    store.mark_outcome_unknown.assert_awaited_once_with(claim)

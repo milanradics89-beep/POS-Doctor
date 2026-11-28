@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field, field_validator
 router = APIRouter()
 logger = logging.getLogger(__name__)
 IMAGE_MODEL = os.environ.get("USEIT_IMAGE_MODEL", "gpt-image-2")
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 MAX_SOURCE_BYTES = 6_000_000
 
 class ProductRef(BaseModel):
@@ -173,6 +174,7 @@ async def redesign(
                 model=IMAGE_MODEL,
                 image=(f"source.{extension}", image_file, "image/jpeg" if extension == "jpg" else f"image/{extension}"),
                 prompt=prompt,
+                output_format="png",
             )
             if not result.data or not getattr(result.data[0], "b64_json", None):
                 raise HTTPException(502, "Image generation returned no image.")
@@ -180,8 +182,13 @@ async def redesign(
                 decoded_image = base64.b64decode(result.data[0].b64_json, validate=True)
             except (ValueError, TypeError) as exc:
                 raise HTTPException(502, "Image generation returned an invalid image.") from exc
-            if not decoded_image:
-                raise HTTPException(502, "Image generation returned an invalid image.")
+            if (
+                len(decoded_image) < 33
+                or not decoded_image.startswith(PNG_SIGNATURE)
+                or decoded_image[8:12] != b"\x00\x00\x00\r"
+                or decoded_image[12:16] != b"IHDR"
+            ):
+                raise HTTPException(502, "Image generation returned an invalid PNG image.")
             if claim is not None:
                 try:
                     completed = await store.mark_completed(claim)
