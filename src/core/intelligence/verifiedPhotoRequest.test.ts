@@ -6,6 +6,20 @@ import {
   runVisualConceptWithVerifiedPhoto,
 } from './verifiedPhotoRequest';
 
+const nativeMocks = vi.hoisted(() => ({
+  manipulate: vi.fn(),
+  deleteAsync: vi.fn(),
+}));
+
+vi.mock('expo-image-manipulator', () => ({
+  SaveFormat: { JPEG: 'jpeg' },
+  ImageManipulator: { manipulate: nativeMocks.manipulate },
+}));
+
+vi.mock('expo-file-system/legacy', () => ({
+  deleteAsync: nativeMocks.deleteAsync,
+}));
+
 const photo = 'data:image/jpeg;base64,Zm9v';
 
 type Guard = typeof runAnalysisWithVerifiedPhoto;

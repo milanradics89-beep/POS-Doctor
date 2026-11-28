@@ -35,6 +35,25 @@ describe('image fingerprint SHA-256', () => {
     expect(digestMock).toHaveBeenCalledWith('SHA-256', Uint8Array.from([102, 111, 111]));
   });
 
+  it('uses Expo Crypto in a secure web context when SubtleCrypto is unavailable', async () => {
+    vi.stubGlobal('crypto', undefined);
+    vi.stubGlobal('window', { isSecureContext: true });
+    digestMock.mockResolvedValue(expectedBytes.buffer);
+
+    await expect(fingerprintImage(photo)).resolves.toBe(expected);
+    expect(digestMock).toHaveBeenCalledOnce();
+  });
+
+  it('fails closed on insecure web origins without SubtleCrypto', async () => {
+    vi.stubGlobal('crypto', undefined);
+    vi.stubGlobal('window', { isSecureContext: false });
+
+    await expect(fingerprintImage(photo)).rejects.toThrow(
+      'Image verification requires a secure browser context. Open USEIT over HTTPS or localhost.'
+    );
+    expect(digestMock).not.toHaveBeenCalled();
+  });
+
   it.each([
     'not-a-data-url',
     'data:image/jpeg;base64,',
