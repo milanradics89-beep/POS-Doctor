@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from backend.main import app
 from backend.idempotency_store import IdempotencyClaim, IdempotencyClaimResult, IdempotencyDecision
-from backend.redesign import RedesignRequest, _client, _image_file, redesign
+from backend.redesign import RedesignRequest, _client, _image_file, _is_complete_png, redesign
 
 client = TestClient(app)
 PNG_BYTES = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC")
@@ -18,6 +18,16 @@ PNG_BYTES = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADE
 
 def image_uri(payload: bytes = PNG_BYTES) -> str:
     return "data:image/png;base64," + base64.b64encode(payload).decode()
+
+
+
+def test_complete_png_validator_rejects_truncated_and_corrupt_png():
+    assert _is_complete_png(PNG_BYTES)
+    assert not _is_complete_png(PNG_BYTES[:33])
+
+    corrupt_crc = bytearray(PNG_BYTES)
+    corrupt_crc[-5] ^= 1
+    assert not _is_complete_png(bytes(corrupt_crc))
 
 
 def test_redesign_uses_application_scoped_async_openai_client():
@@ -126,6 +136,38 @@ def test_redesign_reports_provider_failure_as_bad_gateway():
 
     assert response.status_code == 502
     client_mock.images.edit.assert_awaited_once()
+
+
+
+def test_keyed_redesign_rejects_truncated_png_before_completion(monkeypatch):
+    claim = IdempotencyClaim("doc", "lease")
+    store = SimpleNamespace(
+        claim=AsyncMock(return_value=IdempotencyClaimResult(IdempotencyDecision.CLAIMED, claim)),
+        mark_completed=AsyncMock(return_value=True),
+        mark_outcome_unknown=AsyncMock(return_value=True),
+        release_before_provider_start=AsyncMock(return_value=True),
+    )
+    truncated = base64.b64encode(PNG_BYTES[:33]).decode()
+    provider = SimpleNamespace(
+        images=SimpleNamespace(
+            edit=AsyncMock(return_value=SimpleNamespace(data=[SimpleNamespace(b64_json=truncated)]))
+        )
+    )
+    monkeypatch.setattr(app.state, "idempotency_store", store, raising=False)
+    monkeypatch.setattr("backend.redesign.reserve_units", AsyncMock(return_value=None))
+    monkeypatch.setattr("backend.redesign._client", lambda _: provider)
+
+    response = client.post(
+        "/v1/redesign",
+        json={"imageUri": image_uri(), "prompt": "Keep the existing windows and room dimensions."},
+        headers={"Idempotency-Key": "truncated-png-request"},
+    )
+
+    assert response.status_code == 502
+    provider.images.edit.assert_awaited_once()
+    store.mark_completed.assert_not_awaited()
+    store.mark_outcome_unknown.assert_awaited_once_with(claim)
+    store.release_before_provider_start.assert_not_awaited()
 
 
 def test_keyed_redesign_does_not_edit_image_twice(monkeypatch):
