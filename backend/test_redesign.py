@@ -44,6 +44,32 @@ def test_complete_png_validator_checks_indexed_palette_bounds(bit_depth):
     assert not _is_complete_png(_indexed_png(1, bit_depth))
 
 
+def _indexed_png_sub_filtered(pixel_indexes: tuple[int, int]) -> bytes:
+    header = (2).to_bytes(4, "big") + (1).to_bytes(4, "big") + bytes((8, 3, 0, 0, 0))
+    palette = b"\x00\x00\x00\xff\xff\xff"
+    first, second = pixel_indexes
+    # PNG Sub filtering stores the second byte as a delta from the reconstructed left byte.
+    filtered_row = bytes((1, first, (second - first) & 0xFF))
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + _png_chunk(b"IHDR", header)
+        + _png_chunk(b"PLTE", palette)
+        + _png_chunk(b"IDAT", zlib.compress(filtered_row))
+        + _png_chunk(b"IEND", b"")
+    )
+
+
+def test_complete_png_validator_unfilters_sub_filtered_indexed_scanlines():
+    # Encoded bytes are [1, 255], which is invalid as a raw palette row.
+    # After Sub reconstruction the pixels are [1, 0], both valid palette indexes.
+    assert _is_complete_png(_indexed_png_sub_filtered((1, 0)))
+
+
+def test_complete_png_validator_checks_palette_bounds_after_sub_unfiltering():
+    # The encoded bytes [1, 1] reconstruct to [1, 2]; index 2 is outside a two-entry palette.
+    assert not _is_complete_png(_indexed_png_sub_filtered((1, 2)))
+
+
 def test_complete_png_validator_rejects_truncated_and_corrupt_png():
     assert _is_complete_png(PNG_BYTES)
     assert not _is_complete_png(PNG_BYTES[:33])
