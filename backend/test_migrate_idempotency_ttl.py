@@ -75,8 +75,8 @@ async def test_ttl_migration_rejects_invalid_page_sizes():
         ["--apply", "--ttl-disabled-confirmed", "--old-writers-drained"],
     ],
 )
-def test_ttl_migration_operator_cli_rejects_emulator_routing(monkeypatch, args):
-    monkeypatch.setenv("USEIT_FIRESTORE_PROJECT_ID", "useit")
+def test_ttl_migration_operator_cli_rejects_emulator_routing(monkeypatch, capsys, args):
+    monkeypatch.setenv("USEIT_FIRESTORE_PROJECT_ID", "useit-test")
     monkeypatch.setenv("FIRESTORE_EMULATOR_HOST", "127.0.0.1:8080")
 
     def unexpected_cloud_run(*_args, **_kwargs):
@@ -87,3 +87,4 @@ def test_ttl_migration_operator_cli_rejects_emulator_routing(monkeypatch, args):
         migrate_idempotency_ttl.main(args)
 
     assert error.value.code == 2
+    assert "FIRESTORE_EMULATOR_HOST must be unset" in capsys.readouterr().err
