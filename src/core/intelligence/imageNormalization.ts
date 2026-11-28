@@ -6,11 +6,53 @@ export const IMAGE_NORMALIZATION_MAX_DIMENSION = 2048;
 const MAX_DATA_URL_ATTEMPTS = [2048, 1600, 1280, 960, 720] as const;
 const JPEG_QUALITY = 0.82;
 
+export type NormalizedImageFidelity = {
+  sourceWidth: number;
+  sourceHeight: number;
+  sourceMimeType: string | null;
+  outputWidth: number;
+  outputHeight: number;
+  mimeType: 'image/jpeg';
+  outputBytes: number;
+  payloadBytes: number;
+  jpegQuality: number;
+  resizeLimit: number;
+  aspectRatioDelta: number;
+};
+
 export type NormalizedImage = {
   dataUrl: string;
   width: number;
   height: number;
+  fidelity: NormalizedImageFidelity;
 };
+
+function base64ByteLength(value: string): number {
+  if (
+    !value ||
+    value.length % 4 !== 0 ||
+    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)
+  ) {
+    throw new Error('The image could not be encoded.');
+  }
+  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
+  return (value.length / 4) * 3 - padding;
+}
+
+export function matchesImageFidelity(
+  dataUrl: string,
+  fidelity: NormalizedImageFidelity | null | undefined
+): boolean {
+  if (!fidelity) return false;
+  const prefix = `data:${fidelity.mimeType};base64,`;
+  if (!dataUrl.startsWith(prefix)) return false;
+  try {
+    return base64ByteLength(dataUrl.slice(prefix.length)) === fidelity.outputBytes
+      && new TextEncoder().encode(dataUrl).byteLength === fidelity.payloadBytes;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Image.getSize can return encoded dimensions for EXIF-rotated assets.
@@ -54,7 +96,8 @@ export function getResizeAction(
 export async function normalizeImageAsset(
   uri: string,
   sourceWidth: number,
-  sourceHeight: number
+  sourceHeight: number,
+  sourceMimeType: string | null = null
 ): Promise<NormalizedImage> {
   if (typeof uri !== 'string' || uri.trim().length === 0) {
     throw new Error('Image file is unavailable.');
@@ -81,7 +124,37 @@ export async function normalizeImageAsset(
       const dataUrl = `data:image/jpeg;base64,${saved.base64}`;
       try {
         validateImageUri(dataUrl);
-        return { dataUrl, width: saved.width, height: saved.height };
+        if (
+          !Number.isFinite(saved.width) ||
+          !Number.isFinite(saved.height) ||
+          saved.width <= 0 ||
+          saved.height <= 0
+        ) {
+          throw new Error('Normalized image dimensions are unavailable.');
+        }
+        const outputBytes = base64ByteLength(saved.base64);
+        const payloadBytes = new TextEncoder().encode(dataUrl).byteLength;
+        const sourceAspectRatio = sourceWidth / sourceHeight;
+        const outputAspectRatio = saved.width / saved.height;
+        const fidelity: NormalizedImageFidelity = {
+          sourceWidth,
+          sourceHeight,
+          sourceMimeType: typeof sourceMimeType === 'string' && sourceMimeType.trim()
+            ? sourceMimeType.toLowerCase()
+            : null,
+          outputWidth: saved.width,
+          outputHeight: saved.height,
+          mimeType: 'image/jpeg',
+          outputBytes,
+          payloadBytes,
+          jpegQuality: JPEG_QUALITY,
+          resizeLimit: maxDimension,
+          aspectRatioDelta: Math.abs(outputAspectRatio / sourceAspectRatio - 1),
+        };
+        if (!matchesImageFidelity(dataUrl, fidelity)) {
+          throw new Error('Normalized image fidelity metadata is inconsistent.');
+        }
+        return { dataUrl, width: saved.width, height: saved.height, fidelity };
       } catch (error) {
         if (!(error instanceof Error) || error.message !== 'Image is too large. Please choose a smaller photo.') {
           throw error;

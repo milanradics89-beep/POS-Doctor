@@ -23,7 +23,8 @@ import { theme } from '../src/ui/theme';
 import { createIdempotencyKey } from '../src/core/intelligence/idempotencyKey';
 import { requestFailureKind } from '../src/ui/requestFailure';
 import { validateImageUri } from '../src/core/intelligence/imageInput';
-import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';
+import { matchesImageFidelity, normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';
+import type { NormalizedImageFidelity } from '../src/core/intelligence/imageNormalization';
 
 const API_URL = process.env.EXPO_PUBLIC_USEIT_API_URL || '';
 
@@ -249,7 +250,15 @@ function conceptFailureNotice(error: unknown, retryConcept: () => void): ScreenN
   };
 }
 
-function SelectedPhoto({ photo, concept, reset }: { photo: string; concept: string | null; reset: () => void }) {
+function SelectedPhoto({ photo, concept, reset, photoFidelity }: {
+  photo: string;
+  concept: string | null;
+  reset: () => void;
+  photoFidelity: NormalizedImageFidelity | null;
+}) {
+  const accessibilityLabel = photoFidelity && matchesImageFidelity(photo, photoFidelity)
+    ? `Your selected photo, ${photoFidelity.outputWidth} by ${photoFidelity.outputHeight} pixels`
+    : 'Your selected photo';
   return (
     <>
             <View style={s.top}>
@@ -269,7 +278,14 @@ function SelectedPhoto({ photo, concept, reset }: { photo: string; concept: stri
             </View>
 
             {concept ? <PhotoComparison photo={photo} concept={concept} /> : (
-              <Image accessible accessibilityLabel="Your selected photo" resizeMode="contain" source={{ uri: photo }} style={s.photo} />
+              <Image
+                accessible
+                accessibilityLabel={accessibilityLabel}
+                accessibilityHint="Shows the complete selected photo without cropping."
+                resizeMode="contain"
+                source={{ uri: photo }}
+                style={s.photo}
+              />
             )}
 
     </>
@@ -322,7 +338,7 @@ type PhotoPreparation = {
   setPreparing: (preparing: boolean) => void;
   onBegin: () => void;
   setNotice: (notice: ScreenNotice | null) => void;
-  setSelectedPhoto: (image: string) => void;
+  setSelectedPhoto: (image: string, fidelity: NormalizedImageFidelity) => void;
 };
 
 function createPhotoPreparation({ photoGeneration, setPreparing, onBegin, setNotice, setSelectedPhoto }: PhotoPreparation) {
@@ -331,7 +347,8 @@ function createPhotoPreparation({ photoGeneration, setPreparing, onBegin, setNot
     width: number,
     height: number,
     orientation: unknown,
-    failureDescription: string
+    failureDescription: string,
+    sourceMimeType?: string | null
   ) {
     const generation = ++photoGeneration.current;
     setPreparing(true);
@@ -349,9 +366,9 @@ function createPhotoPreparation({ photoGeneration, setPreparing, onBegin, setNot
         resolvedWidth = visualDimensions.width;
         resolvedHeight = visualDimensions.height;
       }
-      const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight);
+      const normalized = await normalizeImageAsset(uri, resolvedWidth, resolvedHeight, sourceMimeType);
       if (generation !== photoGeneration.current) return;
-      setSelectedPhoto(normalized.dataUrl);
+      setSelectedPhoto(normalized.dataUrl, normalized.fidelity);
     } catch (error) {
       if (generation !== photoGeneration.current) return;
       setNotice({
@@ -379,7 +396,7 @@ function createPhotoPicker({ photoGeneration, setNotice, prepareAndSelectPhoto }
       setNotice({ kind: 'error', title: 'Photo unavailable', description: failure });
       return;
     }
-    await prepareAndSelectPhoto(asset.uri, asset.width, asset.height, asset.exif?.Orientation, failure);
+    await prepareAndSelectPhoto(asset.uri, asset.width, asset.height, asset.exif?.Orientation, failure, asset.mimeType);
   }
 
   async function pickPhoto(source: PickerSource) {
@@ -407,9 +424,10 @@ function createPhotoPicker({ photoGeneration, setNotice, prepareAndSelectPhoto }
 }
 
 function prepareConceptRequest({
-  photo, redesign, redesignControllerRef, redesignRequestIdRef, redesignKeyRef, setRendering, setNotice, setRendered,
+  photo, photoFidelity, redesign, redesignControllerRef, redesignRequestIdRef, redesignKeyRef, setRendering, setNotice, setRendered,
 }: {
   photo: string | null;
+  photoFidelity: NormalizedImageFidelity | null;
   redesign: ConsumerAnalysis['redesign'];
   redesignControllerRef: React.RefObject<AbortController | null>;
   redesignRequestIdRef: React.RefObject<number>;
@@ -420,6 +438,14 @@ function prepareConceptRequest({
 }) {
   async function createVisualConcept(retry = false) {
     if (!photo || !redesign || redesignControllerRef.current) return;
+    if (!matchesImageFidelity(photo, photoFidelity)) {
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: 'The prepared photo could not be verified. Choose the photo again before creating a visual concept.',
+      });
+      return;
+    }
 
     const controller = new AbortController();
     redesignControllerRef.current = controller;
@@ -466,8 +492,9 @@ function prepareConceptRequest({
   return createVisualConcept;
 }
 
-function createAnalysisRequest({ photo, analysisControllerRef, analysisRequestIdRef, setBusy, setNotice, onComplete }: {
+function createAnalysisRequest({ photo, photoFidelity, analysisControllerRef, analysisRequestIdRef, setBusy, setNotice, onComplete }: {
   photo: string | null;
+  photoFidelity: NormalizedImageFidelity | null;
   analysisControllerRef: React.RefObject<AbortController | null>;
   analysisRequestIdRef: React.RefObject<number>;
   setBusy: (busy: boolean) => void;
@@ -486,6 +513,14 @@ function createAnalysisRequest({ photo, analysisControllerRef, analysisRequestId
     }
 
     if (!photo) return;
+    if (!matchesImageFidelity(photo, photoFidelity)) {
+      setNotice({
+        kind: 'error',
+        title: 'Photo unavailable',
+        description: 'The prepared photo could not be verified. Choose the photo again before analysis.',
+      });
+      return;
+    }
 
     const controller = new AbortController();
     const requestId = ++analysisRequestIdRef.current;
@@ -552,6 +587,7 @@ function usePhotoRequestLifetimes(setBusy: (busy: boolean) => void, setRendering
 
 export default function Home() {
   const [photo, setPhoto] = useState<string | null>(null);
+  const [photoFidelity, setPhotoFidelity] = useState<NormalizedImageFidelity | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [rendering, setRendering] = useState(false);
@@ -570,11 +606,15 @@ export default function Home() {
     setChoosingMode(true);
   }
 
-  function setSelectedPhoto(imageUri: string) {
+  function setSelectedPhoto(imageUri: string, fidelity: NormalizedImageFidelity) {
     validateImageUri(imageUri);
+    if (!matchesImageFidelity(imageUri, fidelity)) {
+      throw new Error('Prepared photo fidelity metadata does not match the image payload.');
+    }
     cancelAnalysis();
     setNotice(null);
     setPhoto(imageUri);
+    setPhotoFidelity(fidelity);
     setResult(null);
     setRendered(null);
   }
@@ -600,13 +640,14 @@ export default function Home() {
     cancelAnalysis();
     cancelRedesign();
     setPhoto(null);
+    setPhotoFidelity(null);
     setResult(null);
     setRendered(null);
     setNotice(null);
   };
 
   const analyze = createAnalysisRequest({
-    photo, analysisControllerRef, analysisRequestIdRef, setBusy, setNotice,
+    photo, photoFidelity, analysisControllerRef, analysisRequestIdRef, setBusy, setNotice,
     onComplete: (response, intent) => {
       setCompletedMode(resultMode(intent));
       setChoosingMode(false);
@@ -617,7 +658,7 @@ export default function Home() {
   });
 
   const createVisualConcept = prepareConceptRequest({
-    photo, redesign, redesignControllerRef, redesignRequestIdRef, redesignKeyRef,
+    photo, photoFidelity, redesign, redesignControllerRef, redesignRequestIdRef, redesignKeyRef,
     setRendering, setNotice, setRendered,
   });
 
@@ -634,7 +675,7 @@ export default function Home() {
 
   const onRefine = (text: string, target?: string) => { void analyze(completedMode, undefined, text, target?.slice(0, 180)); };
   return (
-    <PhotoStage photo={photo} preparing={preparing} busy={busy} noticePanel={noticePanel}
+    <PhotoStage photo={photo} photoFidelity={photoFidelity} preparing={preparing} busy={busy} noticePanel={noticePanel}
       concept={rendered} rendering={rendering} choosingMode={choosingMode} result={result} mode={completedMode}
       cancelAnalysis={cancelAnalysis} cancelRedesign={cancelRedesign}
       resultId={analysisRequestIdRef.current} reset={reset} switchMode={switchMode}
@@ -646,7 +687,7 @@ export default function Home() {
 }
 
 type PhotoStageProps = {
-  photo: string | null; preparing: boolean; busy: boolean; noticePanel: React.ReactNode;
+  photo: string | null; photoFidelity: NormalizedImageFidelity | null; preparing: boolean; busy: boolean; noticePanel: React.ReactNode;
   concept: string | null; rendering: boolean; choosingMode: boolean;
   cancelAnalysis: () => void; cancelRedesign: () => void; result: ConsumerAnalysis | null; mode: ResultMode;
   resultId: number; reset: () => void; switchMode: () => void; pickPhoto: (source: PickerSource) => Promise<void>;
@@ -693,7 +734,7 @@ function SelectedPhotoFlow(props: PhotoStageProps & { photo: string }) {
   }
   return (
     <>
-      <SelectedPhoto photo={photo} concept={concept} reset={reset} />
+      <SelectedPhoto photo={photo} concept={concept} reset={reset} photoFidelity={props.photoFidelity} />
       {body}
     </>
   );
