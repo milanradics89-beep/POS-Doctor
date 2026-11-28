@@ -10,9 +10,17 @@ The repository and current application are named USEIT. The original POS Doctor 
 
 <!-- /coderabbit-ai-generated:v1 -->
 
-## Canonical runtime path today
+## Canonical runtime paths today
 
-`Expo UI → src/core/intelligence/apiClient.ts → POST /v1/useit/analyze → backend/main.py → Vision + scene understanding + intent + specialist + suggestions + optional shopping → validated unified response → presentation`
+Photo analysis:
+
+`Expo UI → src/core/intelligence/apiClient.ts → POST /v1/useit/analyze → backend/main.py → Vision + scene understanding + five-mode intent + specialist + suggestions + optional shoppingNeed → validated unified response → presentation`
+
+Optional product discovery:
+
+`Result UI → POST /v1/products/discover → backend product-search boundary → validated retailer candidates → presentation`
+
+The product-discovery request contains generic search terms only. It never sends the photo again or starts a second OpenAI vision analysis.
 
 `/v1/analyze` remains the authoritative low-level vision endpoint. The consumer runtime now prefers the versioned `/v1/useit/analyze` boundary, so the mobile client does not perform a second vision request or duplicate product discovery when the provider supports the unified capability.
 
@@ -32,7 +40,7 @@ The TypeScript core retains the deeper planning modules for migration/compatibil
 
 ## Security boundary
 
-Product discovery is invoked by the backend unified endpoint. The Expo-side product provider is retained only for legacy-provider compatibility and is not used on the unified consumer path. Product-provider credentials must never be shipped to Expo.
+Product discovery is invoked separately through the backend `/v1/products/discover` endpoint after an explicit user action. The Expo client sends only generic search terms derived from the photo-grounded `shoppingNeed`; it never forwards the image to a retailer provider. Third-party product-provider credentials must never be shipped to Expo.
 
 ## Operational boundary
 
@@ -60,7 +68,7 @@ Production configuration is fail-closed: production requires vision and applicat
 - Phase 22: bounded request deadlines and timeout behavior are hardened.
 - Phase 23: operational readiness probing is implemented with safe production gating.
 - Phase 24: safe request observability is implemented, with structured completion telemetry and regression coverage that excludes request payloads.
-- Phase 25: end-to-end acceptance coverage is implemented for the canonical `/v1/useit/analyze` consumer boundary, including single-pass vision orchestration and conditional shopping execution.
+- Phase 25: end-to-end acceptance covers the canonical `/v1/useit/analyze` photo-analysis boundary and keeps optional product discovery on the separate, user-initiated `/v1/products/discover` endpoint.
 - Phase 26: runtime resilience hardening is implemented for malformed timeout configuration and readiness availability during rate limiting.
 - Phase 27: canonical runtime failure semantics are regression-tested for vision failures, optional shopping degradation, provider-error redaction, readiness failure disclosure, and unexpected request failures with safe correlation IDs.
 - Phase 28: production security configuration is regression-tested for fail-closed secrets, CORS, documentation exposure, valid configuration, and generic runtime enforcement.

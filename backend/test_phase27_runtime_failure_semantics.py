@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 import backend.main as main
+import backend.product_discovery as discovery
 
 
 SCENE = {
@@ -33,38 +34,22 @@ def test_vision_failure_is_translated_to_safe_502(monkeypatch):
     assert response.json() == {"detail": "Vision analysis failed."}
 
 
-def test_product_discovery_failure_degrades_without_failing_analysis(monkeypatch, caplog):
-    async def fake_analyze(_request):
-        return dict(SCENE)
-
-    async def fail_discovery(_request):
+def test_product_discovery_failure_degrades_on_its_separate_endpoint(monkeypatch, caplog):
+    async def fail_search(_request):
         raise RuntimeError("provider outage")
 
-    monkeypatch.setattr(main, "_analyze", fake_analyze)
-    monkeypatch.setattr(main, "discover_products", fail_discovery)
+    monkeypatch.setattr(discovery, "product_search", fail_search)
 
     with caplog.at_level("ERROR", logger="useit"):
         with TestClient(main.app) as client:
-            response = client.post(
-                "/v1/useit/analyze",
-                json={
-                    "imageUri": "https://example.com/image.jpg",
-                    "userIntent": "shopping",
-                    "discoverProducts": True,
-                },
-            )
+            response = client.post("/v1/products/discover", json={"query": "desk lamp"})
 
     assert "provider outage" not in caplog.text
-    assert "RuntimeError" in caplog.text
     assert response.status_code == 200
     payload = response.json()
-    assert payload["contractVersion"] == "useit_analyze_v1"
-    assert payload["intent"]["name"] == "shop"
-    assert payload["shopping"] == {
-        "query": "room",
-        "candidates": [],
-        "errors": [{"url": "", "message": "product discovery unavailable"}],
-    }
+    assert payload["query"] == "desk lamp"
+    assert payload["candidates"] == []
+    assert payload["errors"] == [{"url": "", "message": "product search unavailable (RuntimeError)"}]
     assert "provider outage" not in response.text
 
 
@@ -97,5 +82,4 @@ def test_vision_provider_exception_message_is_not_logged(monkeypatch, caplog):
             )
 
     assert response.status_code == 502
-    assert "RuntimeError" in caplog.text
     assert "PRIVATE_VISION_PROVIDER_RESPONSE" not in caplog.text

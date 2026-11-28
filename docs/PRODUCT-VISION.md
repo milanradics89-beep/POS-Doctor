@@ -126,16 +126,17 @@ Examples:
 - Provide preparation instructions.
 - Suggest alternatives based on missing ingredients.
 
-**SHOP**
-Find products that match the user's actual needs and visual context.
+**Product discovery (separate capability)**
+
+Product discovery is not a sixth consumer intention. It is an optional follow-up to a photo-grounded result when the image provides a concrete, evidence-backed product need.
 
 Examples:
 - Find furniture that fits a photographed room.
 - Discover compatible accessories.
 - Find replacements for visible objects.
-- Recommend products that match the user's style and requirements.
+- Compare products that match the user's style and requirements.
 
-Product recommendations must be relevant, credible and clearly distinguish product information from AI-generated suggestions.
+The follow-up sends only generic, photo-grounded search terms to the backend product-discovery endpoint. It does not send the image again or start another vision analysis. Product recommendations must be relevant, credible and clearly distinguish verified retailer information from AI-generated suggestions.
 
 **SURPRISE**
 Discover something unexpected.

@@ -28,7 +28,7 @@ async def _scene(_: object):
     return dict(SCENE)
 
 
-def test_unified_endpoint_is_end_to_end_wired(monkeypatch):
+def test_unified_endpoint_keeps_product_discovery_out_of_intent_classification(monkeypatch):
     analyze = AsyncMock(side_effect=_scene)
     discover = AsyncMock(
         return_value={
@@ -54,11 +54,11 @@ def test_unified_endpoint_is_end_to_end_wired(monkeypatch):
             headers={"X-Request-ID": "phase25-e2e"},
             json={
                 "imageUri": "data:image/png;base64,dGVzdC1pbWFnZQ==",
-                "userIntent": "vásárolni",
+                "userIntent": "improve",
                 "preferredStyles": ["modern"],
                 "preferredColors": ["blue"],
                 "budgetHuf": 50000,
-                "discoverProducts": True,
+                "discoverProducts": False,
                 "productLimit": 1,
             },
         )
@@ -67,13 +67,13 @@ def test_unified_endpoint_is_end_to_end_wired(monkeypatch):
     body = response.json()
     assert body["contractVersion"] == "useit_analyze_v1"
     assert body["scene"]["sceneType"] == "room"
-    assert body["intent"]["name"] == "shop"
+    assert body["intent"]["name"] == "improve"
     assert body["specialist"]["name"] == "home_design"
-    assert body["shopping"]["candidates"][0]["id"] == "chair-1"
-    assert body["pipeline"][-1] == "shop"
+    assert body["shopping"] is None
+    assert body["pipeline"][-1] == "plan"
     assert response.headers["X-Request-ID"] == "phase25-e2e"
     analyze.assert_awaited_once()
-    discover.assert_awaited_once()
+    discover.assert_not_awaited()
 
 
 def test_unified_endpoint_skips_shopping_for_non_shopping_intent(monkeypatch):

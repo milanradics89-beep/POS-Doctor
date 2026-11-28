@@ -78,10 +78,6 @@ def select_specialist(scene: dict[str, Any], intent: dict[str, Any] | None = Non
 
     if intent_name == "cook" or {"food", "ingredient", "meal"} & tokens:
         return SPECIALISTS[2]
-    if intent_name == "shop":
-        if {"room", "interior", "furniture", "decor"} & tokens:
-            return SPECIALISTS[0]
-        return SPECIALISTS[3]
     if intent_name == "fix" or {"device", "tool", "appliance", "hardware", "damage"} & tokens:
         return SPECIALISTS[1]
     if {"room", "interior", "furniture", "decor", "workspace"} & tokens:

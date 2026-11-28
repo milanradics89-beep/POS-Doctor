@@ -1,6 +1,6 @@
-# USEIT End-to-End Use Case: Room → Design → Shop → Visualize
+# USEIT End-to-End Use Case: Room → Design → Product Discovery → Visualize
 
-Flagship Phase 3+ flow. It shapes the intelligence model without coupling scene analysis to a shopping provider.
+Flagship Phase 3+ flow. Product discovery is a separate, optional capability, not a sixth consumer intent. The photo-analysis request and product search remain separate boundaries.
 
 ## Flow
 1. Capture a room image from camera or gallery.
@@ -26,4 +26,4 @@ Flagship Phase 3+ flow. It shapes the intelligence model without coupling scene 
 - explicit unknowns
 
 ## Architecture rule
-Scene understanding, product search, visual generation and action/purchase execution remain separate capabilities connected by typed contracts. A shopping provider or image model must not contaminate the canonical scene model.
+Scene understanding, product search, visual generation and action/purchase execution remain separate capabilities connected by typed contracts. Product search receives only generic search terms from the photo-grounded shopping need; it does not receive the image or trigger another vision analysis. A shopping provider or image model must not contaminate the canonical scene model.

@@ -11,7 +11,7 @@ import type { ProductProvider } from './productCandidateCollector';
 import { googleProductProvider } from './googleProductProvider';
 import { validateImageUri } from './imageInput';
 import { normalizeApiBaseUrl } from './apiConfig';
-import { validateUseitAnalyzeResponse, type UseitAnalyzeResponse } from './useitAnalyzeContract';
+import { validateProductDiscoveryResponse, validateUseitAnalyzeResponse, type UseitAnalyzeResponse, type UseitShopping } from './useitAnalyzeContract';
 import { isSafeExternalHttpUrl } from './externalLink';
 import { getSessionToken } from './attestationClient';
 import type { RedesignPlan } from './redesignPlan';
@@ -35,11 +35,10 @@ type UseitAnalyzeOptions = {
 
 function buildUseitAnalyzePayload(
   imageUri: string,
-  intent: OpportunityKind | 'shop' | undefined,
+  intent: OpportunityKind | undefined,
   options: UseitAnalyzeOptions,
 ) {
-  const policyIntent = intent === 'shop' ? undefined : intent;
-  const policy = createPromptPolicy(policyIntent, options.locale ?? 'hu-HU');
+  const policy = createPromptPolicy(intent, options.locale ?? 'hu-HU');
   return {
     imageUri,
     userIntent: intent ?? policy.intent,
@@ -48,7 +47,7 @@ function buildUseitAnalyzePayload(
     budgetHuf: options.budgetHuf,
     preferredStyles: options.preferredStyles ?? [],
     preferredColors: options.preferredColors ?? [],
-    discoverProducts: options.discoverProducts ?? true,
+    discoverProducts: options.discoverProducts ?? false,
     productLimit: options.productLimit ?? 8,
     actionable: options.actionable,
     refinement: options.refinement,
@@ -80,6 +79,26 @@ export class UseitApiError extends Error {
 // Billable POSTs remain single-attempt. The caller reuses an idempotency key only for an explicit retry of the same user action.
 const AI_REQUEST_TIMEOUT_MS = 50_000;
 
+function postJsonOnce(
+  base: string,
+  path: string,
+  headers: Record<string, string>,
+  body: unknown,
+  signal?: AbortSignal,
+) {
+  return fetchJsonWithPolicy(
+    `${base}${path}`,
+    { method: 'POST', headers, body: JSON.stringify(body), signal },
+    { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS },
+  );
+}
+
+function prepareImageRequest(baseUrl: string, imageUri: string): string {
+  const base = normalizeApiBaseUrl(baseUrl);
+  validateImageUri(imageUri);
+  return base;
+}
+
 export class UseitApiProvider implements IntelligenceProvider {
   private readonly apiKey?: string;
 
@@ -98,8 +117,7 @@ export class UseitApiProvider implements IntelligenceProvider {
   }
 
   async analyzeImage(imageUri: string, userIntent?: OpportunityKind, signal?: AbortSignal): Promise<SceneAnalysis> {
-    const base = normalizeApiBaseUrl(this.baseUrl);
-    validateImageUri(imageUri);
+    const base = prepareImageRequest(this.baseUrl, imageUri);
     const policy = createPromptPolicy(userIntent, 'hu-HU');
     const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/analyze`, { method: 'POST', headers: await this.headers(), body: JSON.stringify({ imageUri, userIntent: policy.intent, prompt: policy.system, locale: policy.locale }), signal }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS });
     if (!response.ok) throw new Error(`USEIT API request failed (${response.status}).`);
@@ -108,16 +126,11 @@ export class UseitApiProvider implements IntelligenceProvider {
     if (!checked.ok) throw new Error(`USEIT API returned an invalid analysis: ${checked.issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
     return normalizeAnalysis(checked.data);
   }
-  async analyzeUseit(imageUri: string, intent?: OpportunityKind | 'shop', options: UseitAnalyzeOptions = {}, signal?: AbortSignal): Promise<UseitAnalyzeResponse> {
-    const base = normalizeApiBaseUrl(this.baseUrl);
-    validateImageUri(imageUri);
+  async analyzeUseit(imageUri: string, intent?: OpportunityKind, options: UseitAnalyzeOptions = {}, signal?: AbortSignal): Promise<UseitAnalyzeResponse> {
+    const base = prepareImageRequest(this.baseUrl, imageUri);
     const body = buildUseitAnalyzePayload(imageUri, intent, options);
     const headers = buildUseitAnalyzeHeaders(await this.headers(), options.idempotencyKey, options.retry);
-    const request = await fetchJsonWithPolicy(
-      `${base}/v1/useit/analyze`,
-      { method: 'POST', headers, body: JSON.stringify(body), signal },
-      { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS },
-    );
+    const request = await postJsonOnce(base, '/v1/useit/analyze', headers, body, signal);
     if (!request.response.ok) {
       throw new UseitApiError(`USEIT unified analysis failed (${request.response.status}).`, request.response.status);
     }
@@ -128,9 +141,40 @@ export class UseitApiProvider implements IntelligenceProvider {
     }
     return checked.data;
   }
-  async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; sourcePrice?: number; currency?: string; url: string; id?: string; confidence?: number }>, signal?: AbortSignal, idempotencyKey?: string, retry?: boolean): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
+  async discoverProducts(
+    query: string,
+    options: { limit?: number; locale?: string; region?: string; maxResolve?: number } = {},
+    signal?: AbortSignal,
+  ): Promise<NonNullable<UseitShopping>> {
     const base = normalizeApiBaseUrl(this.baseUrl);
-    validateImageUri(imageUri);
+    const normalizedQuery = query.trim().replace(/\s+/g, ' ').slice(0, 500);
+    if (normalizedQuery.length < 2) throw new Error('Product discovery needs at least two characters.');
+    const request = await postJsonOnce(
+      base,
+      '/v1/products/discover',
+      await this.headers(),
+      {
+        query: normalizedQuery,
+        limit: options.limit ?? 8,
+        locale: options.locale ?? 'hu-HU',
+        region: options.region ?? 'HU',
+        max_resolve: options.maxResolve ?? 8,
+      },
+      signal,
+    );
+    if (!request.response.ok) {
+      throw new UseitApiError(`USEIT product discovery failed (${request.response.status}).`, request.response.status);
+    }
+    if (request.parseError) throw new Error('USEIT product discovery returned malformed JSON.');
+    const checked = validateProductDiscoveryResponse(request.payload);
+    if (!checked.ok) {
+      throw new Error(`USEIT product discovery returned an invalid response: ${checked.issues.join('; ')}`);
+    }
+    return checked.data;
+  }
+
+  async renderRedesign(imageUri: string, prompt: string, products: Array<{ title: string; category: string; priceHuf?: number; sourcePrice?: number; currency?: string; url: string; id?: string; confidence?: number }>, signal?: AbortSignal, idempotencyKey?: string, retry?: boolean): Promise<{ imageDataUrl: string; disclosure: string; products: typeof products }> {
+    const base = prepareImageRequest(this.baseUrl, imageUri);
     const { response, payload, parseError } = await fetchJsonWithPolicy(`${base}/v1/redesign`, { method: 'POST', headers: buildUseitAnalyzeHeaders(await this.headers(), idempotencyKey, retry), body: JSON.stringify({ imageUri, prompt, products }), signal }, { attempts: 1, timeoutMs: AI_REQUEST_TIMEOUT_MS }, { requireJsonContentType: true });
     if (!response.ok) throw new UseitApiError(`USEIT redesign request failed (${response.status}).`, response.status);
     if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('USEIT redesign API returned an unexpected response.');
@@ -142,7 +186,7 @@ export class UseitApiProvider implements IntelligenceProvider {
   }
 }
 
-export type ConsumerIntent = OpportunityKind | 'shop';
+export type ConsumerIntent = OpportunityKind;
 
 export type ConsumerIntelligence = {
   action: { type: string; title: string };
@@ -165,36 +209,102 @@ function intentText(intent: OpportunityKind | undefined, sceneType: SceneAnalysi
   if (sceneType === 'fridge' || sceneType === 'food') return 'cook a recipe from what I have';
   switch (intent) { case 'create': return 'create redesign or new solution'; case 'improve': return 'improve or redesign this'; case 'fix': return 'fix this'; case 'cook': return 'cook a recipe from what I have'; case 'surprise': return 'find an unexpected useful idea'; default: return ''; }
 }
-function toConsumerIntelligence(run: IntelligenceRun): ConsumerIntelligence {
-  const goal = run.task.goal;
-  const actionType = goal === 'food_recipe' ? 'recipe' : goal === 'wardrobe_styling' ? 'style' : goal === 'object_repair' ? 'repair_guide' : goal === 'room_redesign' || goal === 'room_shopping' ? 'visualize' : run.task.shoppingRequired ? 'shop' : 'recommend';
-  const actionTitle = actionType === 'visualize' ? 'Create the redesigned view' : actionType === 'recipe' ? 'Build a recipe from the visible ingredients' : actionType === 'style' ? 'Complete the outfit' : actionType === 'repair_guide' ? 'Show the repair path' : actionType === 'shop' ? 'Show the best matching options' : 'Show recommendations';
-  const ranked = (run.ranked ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({ id: candidate.id, title: candidate.title, category: candidate.category, source: candidate.source, priceHuf: candidate.priceHuf ?? undefined, url: candidate.url }));
-  return { action: { type: actionType, title: actionTitle }, need: { kind: goal }, rankedCandidates: ranked, intentConfidence: run.clarification.needsClarification ? 0.5 : 1, clarificationRequired: run.clarification.needsClarification };
-}
-function priceHufForCandidate(candidate: NonNullable<UseitAnalyzeResponse['shopping']>['candidates'][number]): number | undefined {
-  if (typeof candidate.priceHuf === 'number') return candidate.priceHuf;
-  if (candidate.currency?.toUpperCase() === 'HUF' && typeof candidate.price === 'number') return candidate.price;
-  return undefined;
+type LegacyRankedCandidate = NonNullable<IntelligenceRun["ranked"]>[number];
+type UnifiedShoppingCandidate = NonNullable<UseitShopping>["candidates"][number];
+
+function legacyActionType(goal: string, shoppingRequired: boolean): string {
+  switch (goal) {
+    case "food_recipe": return "recipe";
+    case "wardrobe_styling": return "style";
+    case "object_repair": return "repair_guide";
+    case "room_redesign":
+    case "room_shopping": return "visualize";
+    default: return shoppingRequired ? "product_discovery" : "recommend";
+  }
 }
 
-function toUnifiedConsumerIntelligence(result: UseitAnalyzeResponse): ConsumerIntelligence {
-  const intent = result.intent.name;
-  const actionType = intent === 'cook' ? 'recipe' : intent === 'fix' ? 'repair_guide' : intent === 'improve' || intent === 'create' ? 'visualize' : intent === 'shop' ? 'shop' : 'recommend';
-  const actionTitle = actionType === 'visualize' ? 'Create the redesigned view' : actionType === 'recipe' ? 'Build a recipe from the visible ingredients' : actionType === 'repair_guide' ? 'Show the repair path' : actionType === 'shop' ? 'Show the best matching options' : 'Show recommendations';
-  const ranked = (result.shopping?.candidates ?? []).filter(candidate => isSafeExternalHttpUrl(candidate.url)).slice(0, 10).map(candidate => ({
+function unifiedActionType(intent: string): string {
+  switch (intent) {
+    case "cook": return "recipe";
+    case "fix": return "repair_guide";
+    case "improve":
+    case "create": return "visualize";
+    default: return "recommend";
+  }
+}
+
+function actionTitleFor(type: string): string {
+  switch (type) {
+    case "visualize": return "Create the redesigned view";
+    case "recipe": return "Build a recipe from the visible ingredients";
+    case "style": return "Complete the outfit";
+    case "repair_guide": return "Show the repair path";
+    case "product_discovery": return "Show the best matching options";
+    default: return "Show recommendations";
+  }
+}
+
+function toLegacyRankedCandidate(candidate: LegacyRankedCandidate): ConsumerIntelligence["rankedCandidates"][number] {
+  return {
+    id: candidate.id,
+    title: candidate.title,
+    category: candidate.category,
+    source: candidate.source,
+    priceHuf: candidate.priceHuf ?? undefined,
+    url: candidate.url,
+  };
+}
+
+function toUnifiedRankedCandidate(candidate: UnifiedShoppingCandidate): ConsumerIntelligence["rankedCandidates"][number] {
+  return {
     id: candidate.id,
     title: candidate.name,
-    category: candidate.category ?? 'general',
-    source: candidate.retailer ?? 'USEIT',
+    category: candidate.category ?? "general",
+    source: candidate.retailer ?? "USEIT",
     priceHuf: priceHufForCandidate(candidate),
     sourcePrice: candidate.price ?? undefined,
     brand: candidate.brand ?? undefined,
     currency: candidate.currency ?? undefined,
     availability: candidate.availability ?? undefined,
     url: candidate.url,
-  }));
-  return { action: { type: actionType, title: actionTitle }, need: { kind: intent }, rankedCandidates: ranked, intentConfidence: result.intent.confidence ?? 0.5, clarificationRequired: (result.intent.confidence ?? 0.5) < 0.6 };
+  };
+}
+
+function toConsumerIntelligence(run: IntelligenceRun): ConsumerIntelligence {
+  const actionType = legacyActionType(run.task.goal, run.task.shoppingRequired);
+  const ranked = (run.ranked ?? [])
+    .filter(candidate => isSafeExternalHttpUrl(candidate.url))
+    .slice(0, 10)
+    .map(toLegacyRankedCandidate);
+  return {
+    action: { type: actionType, title: actionTitleFor(actionType) },
+    need: { kind: run.task.goal },
+    rankedCandidates: ranked,
+    intentConfidence: run.clarification.needsClarification ? 0.5 : 1,
+    clarificationRequired: run.clarification.needsClarification,
+  };
+}
+
+function priceHufForCandidate(candidate: UnifiedShoppingCandidate): number | undefined {
+  if (typeof candidate.priceHuf === "number") return candidate.priceHuf;
+  if (candidate.currency?.toUpperCase() === "HUF" && typeof candidate.price === "number") return candidate.price;
+  return undefined;
+}
+
+function toUnifiedConsumerIntelligence(result: UseitAnalyzeResponse): ConsumerIntelligence {
+  const intent = result.intent.name;
+  const actionType = unifiedActionType(intent);
+  const ranked = (result.shopping?.candidates ?? [])
+    .filter(candidate => isSafeExternalHttpUrl(candidate.url))
+    .slice(0, 10)
+    .map(toUnifiedRankedCandidate);
+  return {
+    action: { type: actionType, title: actionTitleFor(actionType) },
+    need: { kind: intent },
+    rankedCandidates: ranked,
+    intentConfidence: result.intent.confidence ?? 0.5,
+    clarificationRequired: (result.intent.confidence ?? 0.5) < 0.6,
+  };
 }
 function redesignProducts(result: UseitAnalyzeResponse): RedesignPlan['products'] {
   return (result.shopping?.candidates ?? [])
@@ -283,9 +393,9 @@ export async function analyzeForConsumer(provider: IntelligenceProvider, imageUr
     const analysis = normalizeAnalysis(unified.scene);
     const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(unified.scene, imageUri.slice(0, 80));
     const redesign = toUnifiedRedesignPlan(unified, scene);
-    return { ...toPresentationResult(analysis, intent === 'shop' ? undefined : intent), intelligence: toUnifiedConsumerIntelligence(unified), analysis, unified, ...(redesign ? { redesign } : {}) };
+    return { ...toPresentationResult(analysis, intent), intelligence: toUnifiedConsumerIntelligence(unified), analysis, unified, ...(redesign ? { redesign } : {}) };
   }
-  const legacyIntent = intent === 'shop' ? undefined : intent;
+  const legacyIntent = intent;
   const analysis = await provider.analyzeImage(imageUri, legacyIntent, options.signal);
   const scene = (await import('./sceneAnalysisAdapter')).toSceneModel(analysis, imageUri.slice(0, 80));
   const providers = options.phase3Providers ?? [googleProductProvider];

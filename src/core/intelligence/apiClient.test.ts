@@ -32,6 +32,7 @@ describe('UseitApiProvider boundary handling', () => {
   it.each([
     { name: 'scene analysis', run: (api: UseitApiProvider) => api.analyzeImage(image) },
     { name: 'unified analysis', run: (api: UseitApiProvider) => api.analyzeUseit(image) },
+    { name: 'product discovery', run: (api: UseitApiProvider) => api.discoverProducts('desk lamp') },
     { name: 'redesign', run: (api: UseitApiProvider) => api.renderRedesign(image, 'test', []) },
   ])('keeps the $name client deadline beyond the backend 45-second request limit', async ({ run }) => {
     vi.useFakeTimers();
@@ -92,22 +93,43 @@ describe('UseitApiProvider boundary handling', () => {
     expect(observedSignal?.aborted).toBe(true);
   });
 
-  it('forwards the canonical shop mode to the unified API request', async () => {
-    const payload = { ...validUnified, intent: { name: 'shop', confidence: 0.9 } };
+  it('forwards only a canonical consumer intent to the unified analysis request', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }),
+      new Response(JSON.stringify({ ...validUnified, intent: { name: 'surprise', confidence: 0.8 } }), { status: 200, headers: { 'content-type': 'application/json' } }),
     );
 
-    await provider().analyzeUseit(image, 'shop');
+    await provider().analyzeUseit(image, 'surprise');
 
     const requestBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
-    expect(requestBody.userIntent).toBe('shop');
+    expect(requestBody.userIntent).toBe('surprise');
+    expect(requestBody.discoverProducts).toBe(false);
+  });
+
+  it('runs product discovery separately without sending the image or retrying the POST', async () => {
+    const products = {
+      query: 'desk lamp',
+      candidates: [{ id: 'lamp', name: 'Desk lamp', url: 'https://shop.example.test/lamp', price: 99.99, currency: 'EUR', retailer: 'Example', availability: 'in_stock', qualityScore: 0.9, searchRank: 1 }],
+      errors: [],
+    };
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(products), { status: 200, headers: { 'content-type': 'application/json' } }),
+    );
+
+    const result = await provider().discoverProducts('  desk   lamp  ');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.example.test/v1/products/discover');
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
+      query: 'desk lamp', limit: 8, locale: 'hu-HU', region: 'HU', max_resolve: 8,
+    });
+    expect(String(fetchMock.mock.calls[0][1]?.body)).not.toContain('imageUri');
+    expect(result.candidates[0]?.currency).toBe('EUR');
   });
 
   it('preserves product metadata and never labels foreign or unknown prices as HUF', async () => {
     const payload = {
       ...validUnified,
-      intent: { name: 'shop', confidence: 0.9 },
+      intent: { name: 'improve', confidence: 0.82 },
       shopping: {
         query: 'desk lamp',
         candidates: [
@@ -119,7 +141,7 @@ describe('UseitApiProvider boundary handling', () => {
     };
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }));
 
-    const result = await analyzeForConsumer(provider(), image, 'shop');
+    const result = await analyzeForConsumer(provider(), image, 'improve');
     const [huf, eur, unknown] = result.intelligence.rankedCandidates;
 
     expect(huf).toMatchObject({ brand: 'Example', currency: 'HUF', availability: 'in_stock', priceHuf: 24990 });

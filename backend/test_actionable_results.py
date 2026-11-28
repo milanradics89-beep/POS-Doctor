@@ -29,7 +29,7 @@ def connect_model(monkeypatch, mode, visible):
     payload = {
         "sceneType": "room", "summary": "A test scene with an identifiable everyday item.",
         "items": [observed(visible)], "relations": [], "constraints": [],
-        "opportunities": [] if mode == "shop" else [
+        "opportunities": [
             opportunity(mode, ["tomato"], "grounded"),
             opportunity(mode, ["imagined item"], "unsupported"),
         ],
@@ -63,17 +63,14 @@ def test_each_mode_gets_image_mode_policy_and_grounded_result(monkeypatch, mode)
     assert "Use only what is visible." in call["messages"][1]["content"][0]["text"]
     assert call["messages"][1]["content"][1]["image_url"]["url"] == IMAGE
     details = result["actionable"]
-    if mode == "shop":
-        assert details["shoppingNeed"]["evidence"] == ["tomato"]
-        assert discover.await_args.args[0].query == "produce tray low rim"
-        assert discover.await_args.args[0].region == "HU"
-    else:
-        assert list(details["guides"]) == ["grounded"]
-        assert details["guides"]["grounded"]["steps"] == ["Set aside the visible item."]
-        discover.assert_not_called()
+    assert list(details["guides"]) == ["grounded"]
+    assert details["guides"]["grounded"]["steps"] == ["Set aside the visible item."]
+    assert details["shoppingNeed"]["evidence"] == ["tomato"]
+    assert details["shoppingNeed"]["searchTerms"] == ["produce tray", "low rim"]
+    discover.assert_not_called()
 
 
-@pytest.mark.parametrize("mode", ["cook", "shop"])
+@pytest.mark.parametrize("mode", ["cook", "improve"])
 def test_missing_evidence_does_not_unlock_steps_or_search(monkeypatch, mode):
     connect_model(monkeypatch, mode, "apple")
     discover = AsyncMock()
