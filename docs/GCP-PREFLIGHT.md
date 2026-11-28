@@ -1,71 +1,46 @@
 # USEIT GCP read-only preflight
 
-Status: prepared for owner-operated verification. This document and its script do not provision resources, enable APIs, alter IAM, create secrets, change billing, or deploy the service.
+**Status: BLOCKED.** No GCP API or `gcloud` operation is authorized in the current project-identity state.
 
-## Owner-specified project label and exact ID gate
+## Current project identity
 
-The owner-specified GCP project label is `useit`. The literal `useit` has five characters, but Google Cloud project IDs must be 6–30 lowercase letters, digits or hyphens, begin with a letter, and not end with a hyphen ([official project ID requirements](https://docs.cloud.google.com/resource-manager/reference/rest/v1/projects)). Therefore `useit` is not a valid Google Cloud project ID. The exact existing project ID is unverified and provisioning is blocked. Do not substitute another project or create a replacement.
+- Owner-specified product/project label: `USEIT` (`useit`).
+- Exact existing Google Cloud project ID: unresolved.
+- Google Cloud project number: unresolved.
 
-<!-- coderabbit-ai-generated:v1 -->
+The literal `useit` is five characters. Google Cloud project IDs must be 6–30 characters, so `useit` is not a valid project ID. The current controlling instruction does not authorize another project or provide a valid existing project ID. Do not infer one from the display name, discover projects by name, or substitute any historical or similarly named project.
 
-<!-- coderabbit-ai-generated-section:v1:4b87fd8ff47ebb033abbc9ca28534ec6b9073687e0db33e3325c5e6b6ed64782 -->
+## Fail-closed preflight behavior
 
-Set `USEIT_GCP_PROJECT_ID` to the existing, explicitly approved project. There is no default. An empty or invalid ID stops the script before any gcloud call.
+`scripts/gcp-readonly-preflight.sh` intentionally exits with status 2 before checking credentials or invoking `gcloud` when given the literal `useit`. It also rejects every alternate value because no alternate project ID is authorized.
 
-<!-- /coderabbit-ai-generated:v1 -->
+The focused shell tests use a fake `gcloud` executable and assert that the call log remains empty for the owner-specified label, missing input, and syntactically valid but unauthorized project IDs.
 
-## Run the read-only inventory
+**Do not run a live read-only inventory yet.** A future controlling instruction must supply the exact valid ID of an existing project and separately authorize the read-only verification. That instruction must not be inferred from old PR text, display names, project numbers, screenshots, or historical comments.
 
-Requirements: Google Cloud CLI, an interactively authenticated account with read access, and Bash 3.2 or newer (including the macOS system Bash).
+## Verification required after explicit authorization
 
-<!-- coderabbit-ai-generated:v1 -->
+Only after the exact existing project ID is supplied and read-only verification is authorized:
 
-<!-- coderabbit-ai-generated-section:v1:e2a5a30c200e8aaea29ad79568f2562be3ec37198856bd034313a3ec3acda762 -->
+1. Verify the exact project ID, project number and lifecycle state.
+2. Verify billing-account linkage, current credit balance, expiry and eligible SKUs. Historical credit screenshots are not current evidence.
+3. Agree the monthly budget, worst-case exposure, notification recipients and alert thresholds. Budget alerts notify; they do not cap spend.
+4. Approve a region and Firestore database location, including data-residency requirements.
+5. Review existing IAM. Keep deployment identity separate from the Cloud Run runtime identity; do not grant project Owner or Editor.
+6. Review Secret Manager secret names and access policies only. Never read or print secret payloads.
+7. Review Workload Identity Federation restrictions for `milanradics89-beep/USEIT`, the protected branch and approved environment. Use short-lived OIDC credentials, not service-account JSON keys.
+8. Review Cloud Run ingress, minimum instances 0, maximum instances, concurrency, timeout, memory and request-based billing.
 
-    USEIT_GCP_PROJECT_ID=OWNER_CONFIRMED_PROJECT_ID bash scripts/gcp-readonly-preflight.sh
-
-<!-- /coderabbit-ai-generated:v1 -->
-
-If a region has already been selected and approved, set it explicitly:
-
-    USEIT_GCP_PROJECT_ID=OWNER_CONFIRMED_PROJECT_ID USEIT_GCP_REGION=YOUR_APPROVED_REGION bash scripts/gcp-readonly-preflight.sh
-
-The script reads project metadata, billing linkage, enabled APIs, Firestore databases, Secret Manager secret names, Workload Identity Federation pools, Artifact Registry repositories, Logging sinks, Monitoring notification channels, and (only when a region is supplied) Cloud Run services.
-
-It never reads secret versions or secret payloads. It does not call create, enable, deploy, IAM mutation, budget mutation, Terraform apply, or Terraform destroy commands. Failed read-only calls are reported as unverified and produce a non-zero exit status.
-
-## Required owner Console checks
-
-<!-- coderabbit-ai-generated:v1 -->
-
-<!-- coderabbit-ai-generated-section:v1:65b25564decb9f908b5e0d3ac1ce1818835379620d58ead46ab4a1884d0e375a -->
-
-1. Select the approved existing project and confirm its actual ID, number and lifecycle state.
-
-<!-- /coderabbit-ai-generated:v1 -->
-2. Open Billing > My projects. Confirm the linked billing account and who is financially responsible.
-3. Open Billing > Credits and Billing reports. Verify the current remaining credit, expiry date, and exact eligible SKUs for Cloud Run, Firestore, Secret Manager, Artifact Registry, Logging, Monitoring, and any required network usage. A historical credit screenshot is not current evidence.
-4. Agree and record the monthly budget amount, worst-case exposure, notification recipients, and thresholds before enabling billing-sensitive services or creating resources. Budget alerts notify; they do not cap spend.
-5. Approve one region and the Firestore database location. Confirm data-residency requirements and whether the locations are compatible.
-6. Review the existing IAM policy. Keep deployment identity separate from the Cloud Run runtime identity. Do not grant project Owner or Editor.
-7. Review existing Secret Manager secret names and access policies. OpenAI API keys, session secrets, and idempotency secrets must be added only through the approved secret-management path; never commit values or put them in EXPO_PUBLIC variables.
-8. Review Workload Identity Federation. The provider must restrict the repository to milanradics89-beep/USEIT and the approved protected branch/environment. Use short-lived OIDC credentials; do not create service-account JSON keys.
-9. Review Cloud Run ingress, minimum instances 0, maximum instances, concurrency, timeout, memory, and request-based billing. Production rollout requires a separate explicit approval.
+Read-only verification is not authorization to provision resources, enable APIs, change billing or IAM, create or mutate secrets, change TTL policies, or deploy. Each such operation requires separate approval.
 
 ## Current code readiness constraints
 
-The current mainline has the camera-to-API client path and the canonical FastAPI endpoint, but live App Preview acceptance is blocked until a real HTTPS staging URL is deployed and configured as EXPO_PUBLIC_USEIT_API_URL in Codemagic. Do not use localhost or a placeholder.
+The current mainline has the camera-to-API client path and canonical FastAPI endpoint, but live App Preview acceptance remains blocked until an approved real HTTPS staging URL exists and is configured as `EXPO_PUBLIC_USEIT_API_URL` in Codemagic. Do not use localhost or a placeholder.
 
-<!-- coderabbit-ai-generated:v1 -->
+Cloud Run requires the Firestore mode described in [the release register](RELEASE-REGISTER.md). Local emulator results do not attest to production IAM, TTL, billing or data migration.
 
-<!-- coderabbit-ai-generated-section:v1:0b389532e12a84b98b2890b7efcd94821ba396fa3ce4f706285b3317653b5c0b -->
-
-Cloud Run requires the Firestore mode described in the [release register](RELEASE-REGISTER.md). Local emulator results do not attest to production IAM, TTL, billing or data migration.
-
-<!-- /coderabbit-ai-generated:v1 -->
-
-The existing FastAPI backend, OpenAI adapter, and POST /v1/useit/analyze remain canonical. OpenAI is the only AI provider. Images remain on the phone and are sent only with the current analysis request. No server-side image storage is part of this design.
+The existing FastAPI backend, OpenAI adapter, and `POST /v1/useit/analyze` remain canonical. OpenAI is the only AI provider. Images remain on the user's phone and are sent only with the current analysis request. No server-side image storage is part of this design.
 
 ## Human gate before provisioning
 
-The owner must first verify project/billing/SKU eligibility and approve the region, monthly budget, alert recipients, and initial staging resource list. Only then may a separately reviewed Terraform/CLI deployment plan be applied. Production deployment, data migration, public-ingress changes, and paid resource creation remain separate approval gates.
+The owner must first provide a valid exact ID for an existing project in a new controlling instruction and explicitly authorize the required verification. Billing/SKU eligibility, approved region, monthly budget, alert recipients, IAM/WIF and the initial staging resource list must then be reviewed. Only a separately reviewed and approved deployment plan may provision resources. Production deployment, data migration, public-ingress changes and paid resource creation remain separate approval gates.
