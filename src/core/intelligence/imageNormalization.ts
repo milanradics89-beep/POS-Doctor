@@ -135,6 +135,50 @@ function isImageTooLargeError(error: unknown): boolean {
   return error instanceof Error && error.message === 'Image is too large. Please choose a smaller photo.';
 }
 
+type SavedImage = {
+  uri: string;
+  width: number;
+  height: number;
+  base64?: string | null;
+};
+
+async function normalizeSavedImage(
+  saved: SavedImage,
+  sourceWidth: number,
+  sourceHeight: number,
+  sourceMimeType: string | null,
+  maxDimension: number
+): Promise<NormalizedImage | null> {
+  if (!saved.base64) throw new Error('The image could not be encoded.');
+  const dataUrl = `data:image/jpeg;base64,${saved.base64}`;
+
+  try {
+    validateImageUri(dataUrl);
+    if (
+      !Number.isFinite(saved.width)
+      || !Number.isFinite(saved.height)
+      || saved.width <= 0
+      || saved.height <= 0
+    ) {
+      throw new Error('Normalized image dimensions are unavailable.');
+    }
+    const fidelity = await createImageFidelity(
+      dataUrl,
+      saved.base64,
+      sourceWidth,
+      sourceHeight,
+      sourceMimeType,
+      saved.width,
+      saved.height,
+      maxDimension
+    );
+    return { dataUrl, width: saved.width, height: saved.height, fidelity };
+  } catch (error) {
+    if (isImageTooLargeError(error)) return null;
+    throw error;
+  }
+}
+
 async function normalizeAttempt(
   uri: string,
   sourceWidth: number,
@@ -157,34 +201,7 @@ async function normalizeAttempt(
       base64: true,
     });
     outputUri = saved.uri;
-
-    if (!saved.base64) throw new Error('The image could not be encoded.');
-    const dataUrl = `data:image/jpeg;base64,${saved.base64}`;
-    try {
-      validateImageUri(dataUrl);
-      if (
-        !Number.isFinite(saved.width)
-        || !Number.isFinite(saved.height)
-        || saved.width <= 0
-        || saved.height <= 0
-      ) {
-        throw new Error('Normalized image dimensions are unavailable.');
-      }
-      const fidelity = await createImageFidelity(
-        dataUrl,
-        saved.base64,
-        sourceWidth,
-        sourceHeight,
-        sourceMimeType,
-        saved.width,
-        saved.height,
-        maxDimension
-      );
-      return { dataUrl, width: saved.width, height: saved.height, fidelity };
-    } catch (error) {
-      if (isImageTooLargeError(error)) return null;
-      throw error;
-    }
+    return await normalizeSavedImage(saved, sourceWidth, sourceHeight, sourceMimeType, maxDimension);
   } finally {
     if (outputUri) {
       await FileSystem.deleteAsync(outputUri, { idempotent: true }).catch(() => undefined);

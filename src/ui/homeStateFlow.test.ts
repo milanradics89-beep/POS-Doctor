@@ -16,7 +16,7 @@ describe('USEIT Home recovery-state integration', () => {
   it('validates camera and gallery data URLs through the same shared path', () => {
     expect(home).toContain("import { validateImageUri } from '../src/core/intelligence/imageInput';");
     expect(home).toContain('validateImageUri(imageUri);');
-    expect(home).toContain("import { matchesImageFidelity, normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';");
+    expect(home).toContain("import { normalizeImageAsset, resolveVisualDimensions } from '../src/core/intelligence/imageNormalization';");
     expect(home).toContain("import type { NormalizedImageFidelity } from '../src/core/intelligence/imageNormalization';");
     expect(home).toContain('await selectPickerResult(r, generation, copy.decode)');
     expect(home).toContain('await prepareAndSelectPhoto(asset.uri, asset.width, asset.height');
@@ -33,6 +33,8 @@ describe('USEIT Home recovery-state integration', () => {
     expect(home).toContain('setPhotoFidelity(fidelity);');
     expect(home).toContain('runAnalysisWithVerifiedPhoto(');
     expect(home).toContain('runVisualConceptWithVerifiedPhoto(');
+    expect(home).toContain('() => !controller.signal.aborted && requestId === redesignRequestIdRef.current');
+    expect(home).toContain('() => !isStale()');
     expect(home).toContain('accessibilityLabel={accessibilityLabel}');
     expect(home).toContain('setPhotoFidelity(null);');
     expect(home).toContain('photoFidelity={props.photoFidelity}');

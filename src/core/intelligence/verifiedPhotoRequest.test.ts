@@ -68,4 +68,16 @@ describe.each(guards)('%s verified photo request', (_name, guard) => {
     expect(request).toHaveBeenCalledExactlyOnceWith(photo);
     expect(onRejected).not.toHaveBeenCalled();
   });
+
+  it('does not dispatch when the request is invalidated during image verification', async () => {
+    const request = vi.fn(async (verifiedPhoto: string) => verifiedPhoto);
+    const onRejected = vi.fn();
+    const canRequest = vi.fn(() => false);
+    const result = await guard(photo, await createFidelity(), onRejected, request, canRequest);
+
+    expect(result).toEqual({ ok: false });
+    expect(canRequest).toHaveBeenCalledOnce();
+    expect(request).not.toHaveBeenCalled();
+    expect(onRejected).not.toHaveBeenCalled();
+  });
 });

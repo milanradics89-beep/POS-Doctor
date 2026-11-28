@@ -473,7 +473,8 @@ function prepareConceptRequest({
           controller.signal,
           key,
           retry
-        )
+        ),
+        () => !controller.signal.aborted && requestId === redesignRequestIdRef.current
       );
       if (!guarded.ok || requestId !== redesignRequestIdRef.current) return;
       setRendered(guarded.value.imageDataUrl);
@@ -532,7 +533,8 @@ function createAnalysisRequest({ photo, photoFidelity, analysisControllerRef, an
           verifiedPhoto,
           intent,
           { signal: controller.signal, idempotencyKey, actionable: true, refinement, refinementTarget, locale: 'en-HU', retry }
-        )
+        ),
+        () => !isStale()
       );
       if (!guarded.ok || isStale()) return;
       onComplete(guarded.value, intent);
