@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const digestMock = vi.hoisted(() => vi.fn());
+const platformMock = vi.hoisted(() => ({ OS: 'web' as string }));
+
 vi.mock('expo-crypto', () => ({
   CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
   digest: digestMock,
 }));
+vi.mock('react-native', () => ({ Platform: platformMock }));
 
 import { fingerprintImage } from './imageFingerprint';
 
@@ -16,18 +19,25 @@ const expectedBytes = Uint8Array.from(
 );
 
 afterEach(() => {
+  platformMock.OS = 'web';
   vi.unstubAllGlobals();
   digestMock.mockReset();
 });
 
 describe('image fingerprint SHA-256', () => {
-  it('hashes decoded image bytes with WebCrypto when available', async () => {
+  it('hashes decoded image bytes with WebCrypto in a secure web context when available', async () => {
+    vi.stubGlobal('window', { isSecureContext: true });
+
     await expect(fingerprintImage(photo)).resolves.toBe(expected);
     expect(digestMock).not.toHaveBeenCalled();
   });
 
-  it('uses Expo Crypto native digest when SubtleCrypto is unavailable', async () => {
+  it('uses Expo Crypto in a native runtime when SubtleCrypto is unavailable', async () => {
+    platformMock.OS = 'ios';
     vi.stubGlobal('crypto', undefined);
+    // React Native may expose a window-like global without browser security state.
+    vi.stubGlobal('window', {});
+
     digestMock.mockResolvedValue(expectedBytes.buffer);
 
     await expect(fingerprintImage(photo)).resolves.toBe(expected);
@@ -36,6 +46,7 @@ describe('image fingerprint SHA-256', () => {
   });
 
   it('uses Expo Crypto in a secure web context when SubtleCrypto is unavailable', async () => {
+    platformMock.OS = 'web';
     vi.stubGlobal('crypto', undefined);
     vi.stubGlobal('window', { isSecureContext: true });
     digestMock.mockResolvedValue(expectedBytes.buffer);
@@ -44,13 +55,16 @@ describe('image fingerprint SHA-256', () => {
     expect(digestMock).toHaveBeenCalledOnce();
   });
 
-  it('fails closed on insecure web origins without SubtleCrypto', async () => {
-    vi.stubGlobal('crypto', undefined);
+  it('fails closed on insecure web origins before attempting either digest path', async () => {
+    platformMock.OS = 'web';
+    const subtleDigest = vi.fn();
+    vi.stubGlobal('crypto', { subtle: { digest: subtleDigest } });
     vi.stubGlobal('window', { isSecureContext: false });
 
     await expect(fingerprintImage(photo)).rejects.toThrow(
       'Image verification requires a secure browser context. Open USEIT over HTTPS or localhost.'
     );
+    expect(subtleDigest).not.toHaveBeenCalled();
     expect(digestMock).not.toHaveBeenCalled();
   });
 
