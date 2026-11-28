@@ -1,4 +1,4 @@
-function decodeImageBytes(dataUrl: string): Uint8Array {
+function decodeImageBytes(dataUrl: string): Uint8Array<ArrayBuffer> {
   const match = /^data:image\/[a-z0-9.+-]+;base64,([A-Za-z0-9+/]+={0,2})$/i.exec(dataUrl);
   if (!match || match[1].length % 4 !== 0) {
     throw new Error('Invalid image data URL.');
@@ -6,7 +6,7 @@ function decodeImageBytes(dataUrl: string): Uint8Array {
   return Uint8Array.from(atob(match[1]), (character) => character.charCodeAt(0));
 }
 
-async function digestSha256(bytes: Uint8Array): Promise<ArrayBuffer> {
+async function digestSha256(bytes: Uint8Array<ArrayBuffer>): Promise<ArrayBuffer> {
   const subtle = globalThis.crypto?.subtle;
   if (subtle?.digest) return subtle.digest('SHA-256', bytes);
 
